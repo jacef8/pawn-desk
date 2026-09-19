@@ -3,7 +3,13 @@
 function localDB(){
   const KEY="pawnDeskDeals";
   const load=()=>{ try{ return JSON.parse(localStorage.getItem(KEY)||"[]"); }catch(e){ return []; } };
-  const save=a=>{ try{ localStorage.setItem(KEY,JSON.stringify(a)); }catch(e){} };
+  /* The shelf record and the listing record both cap what they keep; the deal
+     log did not, and once the sync started merging in another device's rows
+     there was nothing holding it down. Keep the newest MAX, same as the view. */
+  const MAX=800;
+  const save=a=>{ try{
+    if(a.length>MAX)a=a.slice().sort((x,y)=>(y.ts||0)-(x.ts||0)).slice(0,MAX);
+    localStorage.setItem(KEY,JSON.stringify(a)); }catch(e){} };
   const subs=[];
   const emit=()=>{ const a=load().sort((x,y)=>(y.ts||0)-(x.ts||0)).slice(0,400);
     const snap={docs:a.map(d=>({id:d._id,data:()=>{ const c=Object.assign({},d); delete c._id; return c; }}))};

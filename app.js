@@ -160,6 +160,23 @@ function brandLookup(catId,txt){
   }
   return best;
 }
+/* brandLookup matches a brand FIELD, where the whole field is the brand. When
+   the counter just types the item ("stihl br800 blower") the brand is a word
+   inside a sentence, so it has to be spotted on word boundaries - and names
+   too short to be safe that way (HK, FN, ATI) are left to the tier buttons. */
+function brandInText(catId,txt){
+  const ov=ITEM_OVERRIDES[st.itemId];
+  const book=(ov&&ov.brands)||BRANDBOOK[catId]; if(!book)return null;
+  const flat=x=>String(x).toLowerCase().replace(/[^a-z0-9& ]+/g," ").replace(/\s+/g," ").trim();
+  const t=" "+flat(txt)+" "; if(t.length<5)return null;
+  let best=null;
+  for(const tier of["hi","mid","lo"]) for(const b of book[tier]){
+    const bl=flat(b);
+    if(bl.length<4)continue;
+    if(t.indexOf(" "+bl+" ")>=0&&(!best||bl.length>flat(best.name).length))best={tier,name:b};
+  }
+  return best;
+}
 /* THE PRICE BOOK — common walk-ins that aren't on the main lists.
    Values are starting resale estimates for rural North Florida, excellent
    condition, mid brand, complete. The counter person is still the judge. */
@@ -732,7 +749,17 @@ function renderItem(){
 }
 function wireItem(){
   const v=document.getElementById("view");
-  v.querySelectorAll("[data-cat]").forEach(b=>b.onclick=()=>{st.catId=b.dataset.cat;st.market=null;st.omniDone="";st.mpPin=null;st.mpNone=false;st.condSet=false;st.cond="good";const c=CATALOG.find(x=>x.id===st.catId);st.itemId=c.items[0].id;st.bookName="";st.liq=null;st.brand="mid";st.brandTyped="";st.model="";st.detail="";st.complete=true;st.editing=false;render();});
+  v.querySelectorAll("[data-cat]").forEach(b=>b.onclick=()=>{
+    /* Typing something the lists don't carry parks you on a custom item and
+       asks what kind of thing it is - and these buttons are the answer on this
+       page. Answering must not throw away what was typed. */
+    const typed=(st.mpNone&&isCustom()&&st.bookName)?st.bookName:"";
+    st.catId=b.dataset.cat;st.market=null;st.omniDone="";st.mpPin=null;st.condSet=false;st.cond="good";
+    if(typed){ st.itemId=custId(st.catId); st.bookName=typed; st.mpNone=true; }
+    else { st.mpNone=false; const c=CATALOG.find(x=>x.id===st.catId); st.itemId=c.items[0].id; st.bookName=""; }
+    st.liq=null;st.brandTyped="";st.model="";st.detail="";st.complete=true;st.editing=false;
+    const h=typed?brandInText(st.catId,typed):null; st.brand=h?h.tier:"mid";
+    render();});
   v.querySelectorAll("[data-item]").forEach(b=>b.onclick=()=>{st.itemId=b.dataset.item;st.market=null;st.omniDone="";st.mpPin=null;st.mpNone=false;st.condSet=false;st.cond="good";st.bookName="";st.liq=null;st.brand="mid";st.brandTyped="";st.model="";st.detail="";st.complete=true;
     /* picking "Something else" with no saved value drops you straight into the price box */
     st.editing=(st.itemId===custId(st.catId));
@@ -831,7 +858,7 @@ function suggestPay(){
   let cut=0, why;
   const p=Math.round(prem*100);
   if(prem>0.15){cut=st.metal==="gold"?10:12; why=`spot is ${p}% over the 90-day average — that is a hard spike, and spikes like this usually snap back; the discount is your insurance for the 30-day hold`;}
-  else if(prem>0.08){cut=st.metal==="gold"?8:10; why=`spot is ${p}% over the 90-day average — peak conditions; sellers are walking in anyway, you don't have to pay up to win deals`;}
+  else if(prem>PEAK_OVER){cut=st.metal==="gold"?8:10; why=`spot is ${p}% over the 90-day average — peak conditions; sellers are walking in anyway, you don't have to pay up to win deals`;}
   else if(prem>0.05){cut=4; why=`spot is ${p}% over the 90-day average — running warm, trim a little`;}
   else if(prem<-0.05){cut=0; why=`spot is ${Math.abs(p)}% UNDER the average — hold the normal rate and ship on day 31 like always; "it's cheap" is not a reason to buy heavy`;}
   else {cut=0; why=`spot is close to its 90-day average — nothing unusual happening, so use the normal rate`;}
@@ -879,6 +906,15 @@ function suggestHTML(){
 /* What a refiner actually returns on scrap, as a share of melt. Widely
    quoted at 90-95%; no refiner is lined up yet, so the card shows the band. */
 const REFINER_LO=0.90, REFINER_HI=0.95;
+/* When spot is this far above its 90-day average, the loan is sized off the
+   average instead. It was written out at each of the three places that ask
+   the question, which is how two of them end up disagreeing later. */
+const PEAK_OVER=0.08;
+/* What a jeweller sells a piece for against what they paid, from Folmar's in
+   Tallahassee and matching the trade's triple-keystone convention. The card
+   used to multiply by 3 and 4 and then say "three to four" in words beside
+   it, so changing one would have left the other lying. */
+const JEWELRY_LO=3, JEWELRY_HI=4;
 const PAWN=()=>st.deal==="pawn";
 function curRate(){ return PAWN()?st.loanPct:st.payPct; }
 function setRate(n){ if(PAWN())st.loanPct=n; else st.payPct=n; }
@@ -890,7 +926,7 @@ function loanPctOfMelt(){
   if(!spot||spot<=0)return null;
   const guardOz=Math.min(spot,avg||spot);
   const prem=avg>0?(spot-avg)/avg:0;
-  return Math.round((guardOz/spot)*(st.loanPct/100)*(prem>0.08?0.9:1)*100);
+  return Math.round((guardOz/spot)*(st.loanPct/100)*(prem>PEAK_OVER?0.9:1)*100);
 }
 function calcMetal(){
   const g=parseFloat(st.grams); if(!g||g<=0)return null;
@@ -900,7 +936,7 @@ function calcMetal(){
   const guardOz=Math.min(spot,avg||spot);
   const meltGuard=(guardOz/31.1035)*purity*g;
   const premium=avg>0?(spot-avg)/avg:0;
-  const peakTrim=premium>0.08?0.9:1;
+  const peakTrim=premium>PEAK_OVER?0.9:1;
   return {melt,buy:melt*(st.payPct/100),loan:meltGuard*(st.loanPct/100)*peakTrim,
           premium,guarded:guardOz<spot,trimmed:peakTrim<1};
 }
@@ -965,8 +1001,8 @@ function metalResultHTML(){
       <div class="widget"><div class="l">Full melt value (never pay this)</div><div class="v">${money(m.melt)}</div></div>
     </div>
     ${!pawn?`<div class="tagNote"><b style="color:var(--ink)">Once you own it.</b>
-      <b style="color:var(--ink)">Sell it as jewelry:</b> about ${money(Math.round(shown)*3)} to ${money(Math.round(shown)*4)}.
-      That is what Folmar's in Tallahassee gets &mdash; they sell for three to four times what they pay.
+      <b style="color:var(--ink)">Sell it as jewelry:</b> about ${money(Math.round(shown)*JEWELRY_LO)} to ${money(Math.round(shown)*JEWELRY_HI)}.
+      That is what Folmar's in Tallahassee gets &mdash; they sell for ${JEWELRY_LO} to ${JEWELRY_HI} times what they pay.
       ${(function(){
         /* Melt is what the metal is worth at the refinery gate, not what the
            refiner hands back. Read as 90-95% returned; no refiner is lined up
@@ -1765,14 +1801,6 @@ function findBrand(text){
   let best=null,pos=1e9,hit=null;
   for(const b of BRAND_IDX){ const mm=b.re.exec(text); if(mm&&mm.index<pos){best=b;pos=mm.index;hit=mm;} }
   return best?{b:best,m:hit}:null;
-}
-function tierFor(brand,catId,itemId){
-  const t=String(brand||"").trim().toLowerCase(); if(t.length<2)return null;
-  const ov=ITEM_OVERRIDES[itemId]; const book=(ov&&ov.brands)||BRANDBOOK[catId]; if(!book)return null;
-  let best=null;
-  for(const tier of["hi","mid","lo"]) for(const b of book[tier]){ const bl=b.toLowerCase();
-    if(bl===t||bl.includes(t)&&t.length>=3||t.includes(bl)){ if(!best||b.length>best.name.length)best={tier,name:b}; } }
-  return best;
 }
 
 /* THE MODEL BOOK — the models that walk in most. A hit fills brand, model and
@@ -2757,6 +2785,9 @@ const MP_MATCH=[
  ["f11",/precedent|club\s*car/],["f12",/\btxt\b|ezgo/],["f13",/drive\s*2|yamaha\s*drive/]];
 
 let MP_BY_ID=Object.fromEntries(MODEL_PRICES.map(r=>[r[0],r]));
+/* The count is spoken to the user in step 3, and prices.json rewrites the list
+   every week, so read it off the list instead of typing a number that rots. */
+function mpCount(){ return Math.round(MODEL_PRICES.length/10)*10; }
 /* prices.json is the list the weekly refresh writes; the copy baked in above is
    the fallback for a first load with no network. A bad or truncated file must
    never wipe the price book, so the replacement has to look like a price list
@@ -2837,7 +2868,7 @@ function step4Inner(x){
       <div class="row2" style="gap:8px;margin-top:10px;flex-wrap:wrap"><button class="ghostBtn" id="valEdit">Type my own number</button>${m.kind!=="list"?`<button class="ghostBtn" id="mkClear">Clear it</button>`:""}</div>`;
   } else {
     h+=`<div class="mkNo"><b>Not checked yet.</b> ${m&&m.stale?`The price list for ${esc(m.name)} is ${m.age} days old.`:`There's no market price for ${esc(who?who+" ":"")}${esc(name.toLowerCase())} yet.`}</div>
-      <ol class="mkSteps"><li>${isTouch()?"Tap a sold-price button above, screenshot the sold results, and read them.":(pdBridge?"Click a sold-price button above. The sold page reads itself and the price lands here.":"Click a sold-price button above. On the sold page, click your <b>Pawn price</b> favorite &mdash; the price comes back here by itself.")}</li><li>${who?"":"Or type the brand and model in step 3 &mdash; about 180 common models have prices built in. "}Or type what these really sell for.</li></ol>
+      <ol class="mkSteps"><li>${isTouch()?"Tap a sold-price button above, screenshot the sold results, and read them.":(pdBridge?"Click a sold-price button above. The sold page reads itself and the price lands here.":"Click a sold-price button above. On the sold page, click your <b>Pawn price</b> favorite &mdash; the price comes back here by itself.")}</li><li>${who?"":`Or type the brand and model in step 3 &mdash; about ${mpCount()} common models have prices built in. `}Or type what these really sell for.</li></ol>
       <button class="brassBtn" id="valEdit" style="padding:11px 18px">Type the real price</button>
 `;
   }
@@ -2955,11 +2986,13 @@ const COND_WORDS=Object.fromEntries(CONDITIONS.map(c=>{
    pages come up empty. These are what a used one books at here as a share of
    new, per category — deliberately visible in the UI so the counter can see
    the haircut being taken and override it by typing the resale directly. */
-/* Checked against shelf tags photographed 19 Sep 2026: a Werner 24ft ladder at
-   $124.95 against a $199.95 regular (62% of new), a Stihl BR800 Magnum at
-   $499.95 against $749.95 (67%). Those are asking prices, and the same tags
-   show the ask stepping down 20% a quarter, so a realistic sold price sits
-   about one step below the ticket — 0.8 x ticket. That is where these land. */
+/* These are the shop's own working figures, not a measurement. The shelf tags
+   photographed 19 Sep 2026 cannot settle them: a tag's printed REGULAR turned
+   out to be that shop's earlier asking price rather than MSRP (a Werner 24ft
+   ladder at $124.95 against a $199.95 "regular" when new ones run about $330),
+   so the ticket-to-regular ratios say more about their markdown policy than
+   about what a used one is worth here. A real sold price overrides all of
+   this, which is why the card says so every time it shows the estimate. */
 const RETAIL_PCT={guns:65,power:55,tools:50,hunt:45,elec:45,music:45,rolling:60};
 /* Shelf tags photographed 19 Sep 2026, second batch. Within one category the
    brand moves the number more than the category does: a Stihl MS180C asks
@@ -2992,11 +3025,12 @@ function retailTargets(q){
   return t;
 }
 /* ---- shelf sightings: the shop's own record of what other shops ask ------
-   A photographed tag is an ASKING price, never a sale, and the tags
-   themselves show the ask stepping down about 20% a quarter. So a sighting
-   is worth roughly 0.8 of its ticket as an estimate of what it really sells
-   for, and it says so everywhere it is shown. The record lives on this
-   device; Export moves it to another one. */
+   A photographed tag is an ASKING price, never a sale, and it says so
+   everywhere it is shown. The tags are other pawn shops' retail prices on used
+   goods, which is the same thing this counter sells, so a sighting is used at
+   its ticket rather than discounted: the buy rate is what holds the margin,
+   and a second haircut here would just be an invented discount on top of it.
+   The record lives on this device; Export moves it to another one. */
 const SEEN_KEY="pawndesk_seen", SEEN_MAX=800;
 const VARIANT=/^(pro|max|plus|mini|xl|se|ultra|lite|gen)$/;
 function seenAll(){ try{ return JSON.parse(localStorage.getItem(SEEN_KEY)||"[]"); }catch(e){ return []; } }
@@ -3037,7 +3071,7 @@ function pdMatch(rows,x,limit){
 function seenMatch(x){ return pdMatch(seenAll(),x); }
 
 /* ---- looked-up prices: the dataset growing itself ------------------------
-   179 rows cannot cover a counter. When nothing matches, the service can go
+   A few hundred rows cannot cover a counter. When nothing matches, the service can go
    and find what the thing sells for used, and the answer is kept, so the
    second time it is asked it is already known. What the answer rests on is
    kept with it and shown, because a completed-listing price and somebody's
@@ -3148,8 +3182,8 @@ function compStats(rows){
   const by={}; (rows||[]).forEach(r=>{ const k=(r.where||"?").trim()||"?"; by[k]=(by[k]||0)+1; });
   const from=Object.keys(by).sort((a,b)=>by[b]-by[a]).map(k=>k+" "+by[k]).join(" \u00b7 ");
   const soldShare=sold/n;
-  /* Asking prices sit above sales, so a set that is mostly asks takes the same
-     one-step-down the shelf tags take. A set that is mostly sold does not. */
+  /* Asking prices sit above sales. The flag does not move the number - it is
+     said on the card, so the counter can weigh it against a real sold page. */
   const mostlyAsks=soldShare<0.5;
   return {n, med, lo, hi, sold, soldShare, mostlyAsks, from,
     conf:(n>=6&&soldShare>=0.6)?"h":(n>=4?"m":"l"),
@@ -3312,7 +3346,7 @@ document.addEventListener("click",e=>{
    marketplace, and both are flagged m. Saying "from a price guide" on those
    would be a lie the data does not support, so these report the confidence
    and let the source name, which is shown beside it, speak for itself.
-   Of the 179 rows, 14 are h, 123 m and 42 l. */
+   Most rows are m; a handful are h and the rest l. */
 const CONF_WORD={h:"good data",m:"fair data",l:"thin data"};
 function confShort(c){ return CONF_WORD[c]||""; }
 /* The price sources that are not the sold pages. The desk and the phone draw

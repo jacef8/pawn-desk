@@ -90,7 +90,9 @@ function wirePhone(){
   ns.querySelectorAll("[data-phcat]").forEach(b=>b.onclick=()=>{
     const c=b.dataset.phcat, nm=((isCustom()&&st.bookName)||[st.brandTyped,st.model].filter(Boolean).join(" ")||"").slice(0,60);
     st.catId=c; st.itemId=custId(c); st.bookName=nm||"Something else"; st.liq=null;
-    st.brandTyped=""; st.model=""; st.detail=""; st.brand="mid"; st.phKindsOpen=false;
+    st.brandTyped=""; st.model=""; st.detail=""; st.phKindsOpen=false;
+    /* the brand is sitting in what was typed - read the tier off it */
+    const bh=nm?brandInText(c,nm):null; st.brand=bh?bh.tier:"mid";
     st.market=null; st.mpPin=null; st.mpNone=true; st.condSet=false; st.editing=false; render();
   });
 }
