@@ -74,7 +74,11 @@ function phoneStepHTML(x){
     h=`What does it sell for, used?`;
     sub=`Tap a button to see what these actually sold for. Then type the middle price here.`;
     act=compTargets(x).map(t=>`<a class="nsBtn nsSold" data-label="${t.name}" href="${esc(t.url)}" target="_blank" rel="opener" referrerpolicy="no-referrer"><span>${t.name}</span><b>&#8599;</b></a>`).join("")
-       +`<div class="phIn"><span>$</span><input id="phVal" type="number" inputmode="decimal" placeholder="What it sells for"><button class="nsBtn on" id="phValGo"><span>Use it</span></button></div>`;
+       +`<div class="phIn"><span>$</span><input id="phVal" type="number" inputmode="decimal" placeholder="What it sells for"><button class="nsBtn on" id="phValGo"><span>Use it</span></button></div>`
+       +`<div class="label" style="margin-top:14px">No sold prices? Use what it costs new</div>`
+       +retailTargets(compQuery(x)).map(t=>`<a class="nsBtn nsSold" href="${esc(t.url)}" target="_blank" rel="noopener" referrerpolicy="no-referrer"><span>${esc(t.name)}</span><b>&#8599;</b></a>`).join("")
+       +`<div class="phIn"><span>$</span><input id="phRet" type="number" inputmode="decimal" placeholder="What it costs new"><button class="nsBtn" id="phRetGo"><span>Use it</span></button></div>`
+       +`<div class="cardHint">In ${esc(x.cat.label.toLowerCase())}, a used one books at about <b>${retailPct()}%</b> of new here &mdash; $100 new lands at ${money(Math.round(retailPct()))}. A real sold price beats this every time &mdash; use it only when the sold pages come up empty.</div>`;
   } else if(cur===3){
     h=`What shape is it in?`;
     sub=`Next to a typical used one. The resale value assumes <b>Good</b>, normal wear.`;
@@ -85,7 +89,7 @@ function phoneStepHTML(x){
       <div id="phVerdictBox">${phVerdictHTML(x)}</div>
       <button class="nsBtn ghost" id="nsCond" data-ncond="${st.cond}"><span>Condition: ${cw[0]} &mdash; change</span></button>`;
   }
-  const src=x.checked?`<div class="phSrc">Resale value from ${m.kind==="list"?`<b>${esc(srcName(m.src))}</b>, checked ${esc(fmtDay(m.date))}. ${srcLink(m.src)}`:m.kind==="shot"?`${m.n} sold on ${esc(m.site||"the sold page")}. ${srcLink(m.url,"See those sales")}`:"the price you typed."}</div>`:"";
+  const src=x.checked?`<div class="phSrc">Resale value from ${m.kind==="list"?`<b>${esc(srcName(m.src))}</b>, checked ${esc(fmtDay(m.date))}. ${srcLink(m.src)}`:m.kind==="shot"?`${m.n} sold on ${esc(m.site||"the sold page")}. ${srcLink(m.url,"See those sales")}`:m.kind==="retail"?`${money(m.retail)} new retail, taken to ${retailPct()}% for used. Not a sold price.`:"the price you typed."}</div>`:"";
   const kinds=`<details class="phKinds"${st.phKindsOpen?" open":""}><summary>${st.phKindsOpen?"What kind of thing is it?":"Wrong kind of item?"}</summary><div class="phKindRow">${CATALOG.map(c=>`<button class="nsBtn${c.id===st.catId?" on":""}" data-phcat="${c.id}"><span>${c.label}</span></button>`).join("")}</div></details>`;
   return `<div class="card nextStep" id="nextStep"><div class="nsGrid">${steps}
     <div class="nsMain">${h?`<div class="nsH">${h}</div>`:""}${sub?`<div class="nsSub">${sub}</div>`:""}<div class="nsAct">${act}</div>${src}</div></div>${kinds}</div>`;
@@ -102,6 +106,10 @@ function wirePhone(){
   const vi=document.getElementById("phVal"), vg=document.getElementById("phValGo");
   const useVal=()=>{ const n=parseFloat(vi&&vi.value); if(n>0){ st.market={kind:"hand",key:mkKey(),mid:Math.round(n)}; render(); } };
   if(vg)vg.onclick=useVal; if(vi)vi.onkeydown=e=>{ if(e.key==="Enter")useVal(); };
+  const ri=document.getElementById("phRet"), rg=document.getElementById("phRetGo");
+  const useRetail=()=>{ const n=parseFloat(ri&&ri.value);
+    if(n>0){ st.market={kind:"retail",key:mkKey(),retail:Math.round(n),mid:Math.max(5,Math.round(n*retailPct()/100/5)*5)}; render(); } };
+  if(rg)rg.onclick=useRetail; if(ri)ri.onkeydown=e=>{ if(e.key==="Enter")useRetail(); };
   ns.querySelectorAll("[data-ncond]").forEach(b=>b.onclick=()=>{
     if(b.id==="nsCond"){ st.condSet=false; render(); return; }
     st.cond=b.dataset.ncond; st.condSet=true; render();
@@ -3118,6 +3126,7 @@ function marketSrcHTML(m){
   if(m.kind==="shot"&&m.via==="button")return `From ${m.n} ${m.n===1?"sale":"sales"} on ${esc(m.site||"the sold page")}, read by your Pawn price button today. ${srcLink(m.url,"See those sales")}`;
   if(m.kind==="shot")return `From ${m.n} ${m.n===1?"sale":"sales"} you read off ${esc(m.site||"the screenshot")} today.`;
   if(m.kind==="own")return `From your own ${m.n} ${m.n===1?"sale":"sales"} of this item.`;
+  if(m.kind==="retail")return `Estimated from <b>${money(m.retail)}</b> new retail, taken to ${retailPct()}% for a used one. This is not a sold price &mdash; check sold prices when you can.`;
   return "Your number, typed in.";
 }
 function step4Inner(x){
@@ -3233,11 +3242,28 @@ function mpCandidates(){
   return rows.slice(0,8);
 }
 const COND_WORDS={new:["New in box","+30%"],exc:["Excellent","+12%"],good:["Good","as is"],fair:["Fair","\u221225%"],rough:["Rough","\u221255%"]};
+/* A new retail price is not a sold price, but it beats nothing when the sold
+   pages come up empty. These are what a used one books at here as a share of
+   new, per category — deliberately visible in the UI so the counter can see
+   the haircut being taken and override it by typing the resale directly. */
+const RETAIL_PCT={guns:65,power:45,tools:50,hunt:45,elec:35,music:50,rolling:60};
+function retailPct(){ return RETAIL_PCT[st.catId]||45; }
+function retailTargets(q){
+  const e=encodeURIComponent(q), t=[];
+  t.push({name:"Google Shopping", url:"https://www.google.com/search?tbm=shop&q="+e});
+  t.push({name:"Amazon", url:"https://www.amazon.com/s?k="+e});
+  if(st.catId==="tools"||st.catId==="power")
+    t.push({name:"Home Depot", url:"https://www.homedepot.com/s/"+e});
+  else
+    t.push({name:"Walmart", url:"https://www.walmart.com/search?q="+e});
+  return t;
+}
 function nsSrcShort(m){
   if(!m)return "";
   if(m.kind==="list")return srcName(m.src)+", "+fmtDay(m.date);
   if(m.kind==="shot")return m.n+" sold on "+(m.site||"the sold page");
   if(m.kind==="own")return "your "+m.n+" sales";
+  if(m.kind==="retail")return "est. from "+money(m.retail)+" new";
   return "your number";
 }
 function nextStepHTML(x){

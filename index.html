@@ -2968,6 +2968,7 @@ function marketSrcHTML(m){
   if(m.kind==="shot"&&m.via==="button")return `From ${m.n} ${m.n===1?"sale":"sales"} on ${esc(m.site||"the sold page")}, read by your Pawn price button today. ${srcLink(m.url,"See those sales")}`;
   if(m.kind==="shot")return `From ${m.n} ${m.n===1?"sale":"sales"} you read off ${esc(m.site||"the screenshot")} today.`;
   if(m.kind==="own")return `From your own ${m.n} ${m.n===1?"sale":"sales"} of this item.`;
+  if(m.kind==="retail")return `Estimated from <b>${money(m.retail)}</b> new retail, taken to ${retailPct()}% for a used one. This is not a sold price &mdash; check sold prices when you can.`;
   return "Your number, typed in.";
 }
 function step4Inner(x){
@@ -3083,11 +3084,28 @@ function mpCandidates(){
   return rows.slice(0,8);
 }
 const COND_WORDS={new:["New in box","+30%"],exc:["Excellent","+12%"],good:["Good","as is"],fair:["Fair","\u221225%"],rough:["Rough","\u221255%"]};
+/* A new retail price is not a sold price, but it beats nothing when the sold
+   pages come up empty. These are what a used one books at here as a share of
+   new, per category — deliberately visible in the UI so the counter can see
+   the haircut being taken and override it by typing the resale directly. */
+const RETAIL_PCT={guns:65,power:45,tools:50,hunt:45,elec:35,music:50,rolling:60};
+function retailPct(){ return RETAIL_PCT[st.catId]||45; }
+function retailTargets(q){
+  const e=encodeURIComponent(q), t=[];
+  t.push({name:"Google Shopping", url:"https://www.google.com/search?tbm=shop&q="+e});
+  t.push({name:"Amazon", url:"https://www.amazon.com/s?k="+e});
+  if(st.catId==="tools"||st.catId==="power")
+    t.push({name:"Home Depot", url:"https://www.homedepot.com/s/"+e});
+  else
+    t.push({name:"Walmart", url:"https://www.walmart.com/search?q="+e});
+  return t;
+}
 function nsSrcShort(m){
   if(!m)return "";
   if(m.kind==="list")return srcName(m.src)+", "+fmtDay(m.date);
   if(m.kind==="shot")return m.n+" sold on "+(m.site||"the sold page");
   if(m.kind==="own")return "your "+m.n+" sales";
+  if(m.kind==="retail")return "est. from "+money(m.retail)+" new";
   return "your number";
 }
 function nextStepHTML(x){
@@ -3118,7 +3136,11 @@ function nextStepHTML(x){
     h=m&&m.stale?`The price list for ${esc(m.name)} is ${m.age} days old. Check what it sells for now.`:`Check what it actually sold for.`;
     sub=(!CAP.sample&&isTouch())?"Tap a button and look at the sold prices. Then tap <b>I know the price</b> and type the middle one.":pdBridge?"Click a button. The sold page opens, reads itself, and the price lands here.":(isTouch()?"Tap a button, screenshot the sold results, and add the screenshot below.":"Click a button. On the sold page, click your <b>Pawn price</b> favorite and the price lands here.");
     act=compTargets(x).map(t=>`<a class="nsBtn nsSold" data-label="${t.name}" href="${esc(t.url)}" target="_blank" rel="opener" referrerpolicy="no-referrer"><span>${t.name}</span><b>&#8599;</b></a>`).join("")
-       +`<button class="nsBtn ghost" id="nsType"><span>I know the price &mdash; type it</span></button>`;
+       +`<button class="nsBtn ghost" id="nsType"><span>I know the price &mdash; type it</span></button>`
+       +`<div class="label" style="margin-top:14px">No sold prices? Use what it costs new</div>`
+       +retailTargets(compQuery(x)).map(t=>`<a class="nsBtn nsSold" href="${esc(t.url)}" target="_blank" rel="noopener" referrerpolicy="no-referrer"><span>${esc(t.name)}</span><b>&#8599;</b></a>`).join("")
+       +`<div class="row2" style="margin-top:8px"><input id="nsRet" class="numIn" type="number" inputmode="decimal" placeholder="What it costs new" style="flex:1;min-width:0"><button class="ghostBtn" id="nsRetGo" style="padding:10px 15px">Use it</button></div>`
+       +`<div class="cardHint">In ${esc(x.cat.label.toLowerCase())}, a used one books at about <b>${retailPct()}%</b> of new here &mdash; $100 new lands at ${money(Math.round(retailPct()))}. A real sold price beats this every time, so use this only when the sold pages come up empty.</div>`;
   } else if(cur===3){
     h=`What shape is it in?`;
     sub=`Next to a typical used one. The resale value assumes <b>Good</b>, normal wear.`;
@@ -3145,6 +3167,10 @@ function wireNext(){
     st.model=name; st.mpPin={id:r[0],model:name}; st.mpNone=false; st.market=null; st.editing=false; render();
   });
   const none=document.getElementById("nsNone"); if(none)none.onclick=()=>{ st.mpNone=true; render(); };
+  const ri=document.getElementById("nsRet"), rg=document.getElementById("nsRetGo");
+  const useRetail=()=>{ const n=parseFloat(ri&&ri.value);
+    if(n>0){ st.market={kind:"retail",key:mkKey(),retail:Math.round(n),mid:Math.max(5,Math.round(n*retailPct()/100/5)*5)}; render(); } };
+  if(rg)rg.onclick=useRetail; if(ri)ri.onkeydown=e=>{ if(e.key==="Enter")useRetail(); };
   const ty=document.getElementById("nsType"); if(ty)ty.onclick=()=>{ st.editing=true; render(); const v=document.getElementById("valIn"); if(v){ if(v.scrollIntoView)v.scrollIntoView({block:"center"}); v.focus(); } };
   ns.querySelectorAll("[data-ncond]").forEach(b=>b.onclick=()=>{
     if(b.id==="nsCond"){ st.condSet=false; render(); return; }
