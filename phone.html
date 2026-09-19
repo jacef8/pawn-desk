@@ -3411,6 +3411,7 @@ function retailTargets(q){
    for, and it says so everywhere it is shown. The record lives on this
    device; Export moves it to another one. */
 const SEEN_KEY="pawndesk_seen", SEEN_MAX=800, SEEN_TO_SOLD=0.8;
+const VARIANT=/^(pro|max|plus|mini|xl|se|ultra|lite|gen)$/;
 function seenAll(){ try{ return JSON.parse(localStorage.getItem(SEEN_KEY)||"[]"); }catch(e){ return []; } }
 function seenSave(a){ try{ localStorage.setItem(SEEN_KEY,JSON.stringify(a.slice(-SEEN_MAX))); }catch(e){} }
 function seenAdd(r){
@@ -3433,9 +3434,12 @@ function seenMedian(ns){ const a=ns.slice().sort((p,q)=>p-q), n=a.length;
 function seenMatch(x){
   const w=omniWords([st.brandTyped,st.model,x?displayName(x):"",st.bookName].filter(Boolean).join(" "));
   if(!w.length)return [];
-  const nums=w.filter(t=>/\d/.test(t)), need=w.length>1?2:1;
+  /* A number is not the only thing that separates two models: Pro, Max and
+     Mini do the same work. AirPods Pro at $99 otherwise averages with a
+     second-generation pair at $49 and prices neither of them. */
+  const key=w.filter(t=>/\d/.test(t)||VARIANT.test(t)), need=w.length>1?2:1;
   return seenAll().map(s=>({s,hit:(s.words||[]).filter(t=>w.indexOf(t)>=0).length}))
-    .filter(o=>o.hit>=need&&(!nums.length||nums.some(t=>(o.s.words||[]).indexOf(t)>=0)))
+    .filter(o=>o.hit>=need&&(!key.length||key.some(t=>(o.s.words||[]).indexOf(t)>=0)))
     .sort((a,b)=>b.hit-a.hit||b.s.ts-a.s.ts).map(o=>o.s).slice(0,12);
 }
 function seenEstimate(list){
