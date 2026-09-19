@@ -94,11 +94,25 @@ const CATALOG = [
    {id:"r2",name:"ATV / four wheeler",value:1500,liq:"normal"}]}
 ];
 const CONDITIONS=[
- {id:"new",label:"New in box",mult:1.25,hint:"Sealed"},
- {id:"exc",label:"Excellent",mult:1.0,hint:"Barely used"},
- {id:"good",label:"Good",mult:0.8,hint:"Normal wear"},
- {id:"fair",label:"Fair",mult:0.6,hint:"Heavy wear"},
- {id:"rough",label:"Rough",mult:0.35,hint:"Needs work"}];
+ {id:"new",label:"New in box",hint:"Sealed"},
+ {id:"exc",label:"Excellent",hint:"Barely used"},
+ {id:"good",label:"Good",hint:"Normal wear"},
+ {id:"fair",label:"Fair",hint:"Heavy wear"},
+ {id:"rough",label:"Rough",hint:"Needs work"}];
+/* One condition curve, anchored at Good, because Good is what the counter is
+   told every resale figure assumes.
+
+   There were two. A market price used 1.3/1.12/1/.75/.45 while a catalog
+   estimate used its own set, which normalised to +56% and +25% for the two
+   upgrades. The buttons show the first set, so on the catalog path "New in
+   box" added 56% while the button said 30%. Good, Fair and Rough already
+   agreed; only the upgrades were wrong, and only on that path.
+
+   CATALOG_AT_GOOD keeps the catalog path's Good price exactly where it was -
+   its base values were anchored a step above Good - so nothing moves except
+   the two figures that were misreporting themselves. */
+const COND_MULT={new:1.3,exc:1.12,good:1,fair:.75,rough:.45};
+const CATALOG_AT_GOOD=0.8;
 const BRANDS=[{id:"hi",mult:1.4},{id:"mid",mult:1.0},{id:"lo",mult:0.55}];
 const LIQUIDITY=[
  {id:"fast",label:"Sells fast",hint:"Gone in a week",adj:0},
@@ -387,8 +401,9 @@ function calcItem(){
     spec=specRead(st.catId,item.name,st.model+" "+st.detail);
   }
   const market=marketNow(), checked=!!(market&&!market.stale);
-  const resale=checked ? market.mid*(MARKET_COND[st.cond]||1)*completeMult
-                       : baseValue*condition.mult*brandMult*completeMult*spec.mult;
+  const cond=COND_MULT[st.cond]||1;
+  const resale=checked ? market.mid*cond*completeMult
+                       : baseValue*CATALOG_AT_GOOD*cond*brandMult*completeMult*spec.mult;
   const ltv=Math.max(10,baseLtv+liquidity.adj);
   const target=Math.max(5,Math.round(resale*ltv/100));
   const buyBase=(st.buys&&st.buys[st.catId]!=null)?st.buys[st.catId]:((typeof BUY_DEFAULT!=="undefined"&&BUY_DEFAULT[st.catId]!=null)?BUY_DEFAULT[st.catId]:Math.min(90,baseLtv+5));
@@ -2765,7 +2780,6 @@ async function refreshPrices(){
   }catch(e){}
 }
 const MP_STALE_DAYS=45;
-const MARKET_COND={new:1.3,exc:1.12,good:1,fair:.75,rough:.45};
 function mpFor(cur,text){
   const t=" "+omniNorm(text)+" ";
   if(!t.trim())return null;
@@ -2933,7 +2947,10 @@ function mpCandidates(){
   if(words.length){ const f=rows.filter(r=>{ const nw=omniWords(r[2]); return words.some(w=>wordHit(w,nw)>=2); }); if(f.length)rows=f; }
   return rows.slice(0,8);
 }
-const COND_WORDS={new:["New in box","+30%"],exc:["Excellent","+12%"],good:["Good","as is"],fair:["Fair","\u221225%"],rough:["Rough","\u221255%"]};
+const COND_WORDS=Object.fromEntries(CONDITIONS.map(c=>{
+  const d=Math.round(((COND_MULT[c.id]||1)-1)*100);
+  return [c.id,[c.label, d===0?"as is":(d>0?"+":"\u2212")+Math.abs(d)+"%"]];
+}));
 /* A new retail price is not a sold price, but it beats nothing when the sold
    pages come up empty. These are what a used one books at here as a share of
    new, per category — deliberately visible in the UI so the counter can see
