@@ -2756,7 +2756,7 @@ function marketSrcHTML(m){
   if(m.kind==="shot"&&m.via==="button")return `From ${m.n} ${m.n===1?"sale":"sales"} on ${esc(m.site||"the sold page")}, read by your Pawn price button today. ${srcLink(m.url,"See those sales")}`;
   if(m.kind==="shot")return `From ${m.n} ${m.n===1?"sale":"sales"} you read off ${esc(m.site||"the screenshot")} today.`;
   if(m.kind==="own")return `From your own ${m.n} ${m.n===1?"sale":"sales"} of this item.`;
-  if(m.kind==="found")return `Looked up: used ones sell for <b>${money(m.lo)}</b> to <b>${money(m.hi)}</b>${m.where?` (${esc(m.where)})`:""}, ${esc(m.basis||"unclear basis")}.${m.conf==="h"?" That is from sold prices.":m.conf==="m"?" That is from a price guide, not sold prices.":` <span style="color:#FFC98F">That rests on asking prices &mdash; check it before you lean on it.</span>`}`;
+  if(m.kind==="found")return `From <b>${m.n}</b> listing${m.n===1?"":"s"} on file${m.sold?`, ${m.sold} of them sold`:""}: the middle one is <b>${money(m.med)}</b>, the middle half ${money(m.lo)}&ndash;${money(m.hi)}.${m.mostlyAsks?` Mostly asking prices, so it is taken one step down.`:""}${m.conf==="l"?` <span style="color:#FFC98F">Few listings behind this &mdash; look at the sold pages before you lean on it.</span>`:""} The middle one is used, not the average, so one bad listing cannot move it.`;
   if(m.kind==="seen")return `From <b>${m.n}</b> shelf tag${m.n===1?"":"s"} you recorded, asking ${money(m.lo)}&ndash;${money(m.hi)}, typically ${money(m.ask)}. Taken one markdown step down, because an asking price is not a sale.`;
   if(m.kind==="retail")return `Estimated from <b>${money(m.retail)}</b> new retail, taken to ${(m.pct||retailPct())}% for a used one. This is not a sold price &mdash; check sold prices when you can.`;
   return "Your number, typed in.";
@@ -2988,20 +2988,51 @@ function seenMatch(x){ return pdMatch(seenAll(),x); }
    second time it is asked it is already known. What the answer rests on is
    kept with it and shown, because a completed-listing price and somebody's
    asking price are not the same evidence. */
-const FOUND_KEY="pawndesk_found", FOUND_MAX=400;
-const BASIS_CONF={"sold listings":"h","sold":"h","price guide":"m","guide":"m","asking prices":"l","asking":"l"};
-function foundAll(){ try{ return JSON.parse(localStorage.getItem(FOUND_KEY)||"[]"); }catch(e){ return []; } }
-function foundSave(a){ try{ localStorage.setItem(FOUND_KEY,JSON.stringify(a.slice(-FOUND_MAX))); }catch(e){} }
-function foundAdd(r){
-  const q=String(r.q||"").trim().slice(0,80), lo=Math.round(Number(r.lo))||0, hi=Math.round(Number(r.hi))||0;
-  if(!q||!(lo>0)||!(hi>=lo))return null;
-  const row={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), ts:Date.now(), q, lo, hi,
-    conf:(r.conf==="h"||r.conf==="m")?r.conf:"l", basis:String(r.basis||"").slice(0,24),
-    where:String(r.where||"").slice(0,40), note:String(r.note||"").slice(0,90), words:omniWords(q)};
-  const a=foundAll().filter(o=>o.q!==q);       /* a fresh answer replaces the old one */
-  a.push(row); foundSave(a); return row;
+/* ---- comparable listings: many rows, then the middle one ----------------
+   One range from one source is one opinion. A lookup now brings back the
+   individual listings it found and every one is kept, so the set grows each
+   time the same thing is priced.
+
+   The number taken off that set is the MEDIAN, not the average. Scraped
+   listings always carry junk - a chain and bar listed under the saw's name, a
+   dealer bundling three machines in one lot, a typo. On twelve rows with two
+   of them wrong, the average moves $180 and the median does not move at all.
+   The middle half is shown beside it so a set that disagrees with itself
+   cannot hide behind a single tidy figure. */
+const COMP_KEY="pawndesk_comps", COMP_MAX=3000;
+function compsAll(){ try{ return JSON.parse(localStorage.getItem(COMP_KEY)||"[]"); }catch(e){ return []; } }
+function compsSave(a){ try{ localStorage.setItem(COMP_KEY,JSON.stringify(a.slice(-COMP_MAX))); }catch(e){} }
+function compsAdd(q,list){
+  q=String(q||"").trim().slice(0,80);
+  if(!q||!Array.isArray(list))return 0;
+  const w=omniWords(q), a=compsAll(), now=Date.now();
+  let added=0;
+  list.slice(0,20).forEach((c,i)=>{
+    const p=Math.round(Number(c&&c.price));
+    if(!(p>0)||p>1000000)return;
+    a.push({id:now.toString(36)+i.toString(36)+Math.random().toString(36).slice(2,5), ts:now, q, words:w, price:p,
+      what:String((c&&c.what)||"").slice(0,60), where:String((c&&c.where)||"").slice(0,24),
+      basis:((c&&c.basis)==="sold")?"sold":"asking"});
+    added++;
+  });
+  compsSave(a); return added;
 }
-function foundMatch(x){ return pdMatch(foundAll(),x,4); }
+function compsMatch(x){ return pdMatch(compsAll(),x,60); }
+function compStats(rows){
+  const ps=(rows||[]).map(r=>r.price).filter(n=>n>0).sort((p,q)=>p-q);
+  const n=ps.length;
+  if(n<3)return null;
+  const at=f=>ps[Math.min(n-1,Math.max(0,Math.round(f*(n-1))))];
+  const med=seenMedian(ps), lo=at(0.25), hi=at(0.75);
+  const sold=(rows||[]).filter(r=>r.basis==="sold").length;
+  const soldShare=sold/n;
+  /* Asking prices sit above sales, so a set that is mostly asks takes the same
+     one-step-down the shelf tags take. A set that is mostly sold does not. */
+  const mostlyAsks=soldShare<0.5;
+  return {n, med, lo, hi, sold, soldShare, mostlyAsks,
+    conf:(n>=6&&soldShare>=0.6)?"h":(n>=4?"m":"l"),
+    mid:Math.max(5,Math.round(med*(mostlyAsks?SEEN_TO_SOLD:1)/5)*5)};
+}
 let findBusy=false;
 async function priceFind(){
   if(findBusy||!CAP.sample)return;
@@ -3011,28 +3042,28 @@ async function priceFind(){
   const say=t=>{ const el=document.getElementById("pdFindMsg"); if(el)el.textContent=t; };
   try{
     const d=await CAP.sample.json(
-      'What does a used "'+q+'" sell for in the United States today? Search the web, and prefer prices '+
-      'things actually sold for - completed eBay or GunBroker listings, marketplace sold data - over asking prices. '+
-      'Reply with JSON and nothing else: {"lo":<low end of the usual used selling price, a number>,'+
-      '"hi":<high end, a number>,"basis":"sold listings" or "price guide" or "asking prices" or "none",'+
-      '"where":"<source>","note":"<10 words or fewer on what moves the price>"}. '+
-      'If there are no real used prices for it, reply {"lo":0,"hi":0,"basis":"none"}.',
+      'Find what a used "'+q+'" actually sells for in the United States. Search the web and list the '+
+      'individual listings you find, up to 12 of them, preferring completed or sold listings over ones still for sale. '+
+      'Reply with JSON and nothing else: {"comps":[{"price":<number, one listing\'s price>,'+
+      '"what":"<the item in a few words>","where":"<site>","basis":"sold" or "asking"}]}. '+
+      'Only include listings for the same thing - not parts, not accessories, not multi-item lots. '+
+      'If you cannot find any, reply {"comps":[]}.',
       {search:true});
     findBusy=false;
-    const lo=Math.round(Number(d&&d.lo)), hi=Math.round(Number(d&&d.hi));
-    if(!(lo>0&&hi>=lo)){ render(); say("Couldn't find used prices for that. Try the sold pages."); return; }
-    const row=foundAdd({q,lo,hi,conf:BASIS_CONF[String((d&&d.basis)||"").toLowerCase()]||"l",
-                        basis:(d&&d.basis)||"",where:(d&&d.where)||"",note:(d&&d.note)||""});
-    useFound(row); 
+    const added=compsAdd(q,(d&&d.comps)||[]);
+    if(!added){ render(); say("Couldn't find listings for that. Try the sold pages."); return; }
+    useComps(compStats(compsMatch(calcItem())));
+    const st2=compStats(compsMatch(calcItem()));
+    say(added+" listing"+(added===1?"":"s")+" added"+(st2?", "+st2.n+" on file now":"")+".");
   }catch(e){
     findBusy=false; render();
     say(((e&&e.code)==="no_server")?"No service connected yet.":"Lookup failed. Try the sold pages.");
   }
 }
-function useFound(row){
-  if(!row)return;
-  st.market={kind:"found",key:mkKey(),lo:row.lo,hi:row.hi,conf:row.conf,where:row.where,basis:row.basis,
-             ts:row.ts,mid:Math.max(5,Math.round((row.lo+row.hi)/2/5)*5)};
+function useComps(t){
+  if(!t)return;
+  st.market={kind:"found",key:mkKey(),n:t.n,med:t.med,lo:t.lo,hi:t.hi,sold:t.sold,
+             mostlyAsks:t.mostlyAsks,conf:t.conf,mid:t.mid};
   render();
 }
 function seenEstimate(list){
@@ -3116,7 +3147,7 @@ document.addEventListener("change",e=>{
 document.addEventListener("click",e=>{
   const b=e.target&&e.target.closest?e.target.closest("#seenHand,#seenOut,#seenUse,#pdFindGo,#foundUse"):null; if(!b)return;
   if(b.id==="pdFindGo"){ priceFind(); return; }
-  if(b.id==="foundUse"){ useFound(foundMatch(calcItem())[0]); return; }
+  if(b.id==="foundUse"){ useComps(compStats(compsMatch(calcItem()))); return; }
   if(b.id==="seenOut"){ seenExport(); return; }
   if(b.id==="seenUse"){
     const est=seenEstimate(seenMatch(calcItem()));
@@ -3144,11 +3175,11 @@ function confShort(c){ return CONF_WORD[c]||""; }
    shops nearby are asking - so it is written once here. */
 function altSourcesHTML(x){
   let h="";
-  const F=foundMatch(x)[0];
-  if(F) h+=`<div class="label" style="margin-top:14px">Looked up before</div>`
-         +`<button class="nsBtn on" id="foundUse"><span>${esc(fmtDay(new Date(F.ts).toISOString().slice(0,10)))} &middot; ${money(F.lo)}&ndash;${money(F.hi)}</span><b>${money(Math.max(5,Math.round((F.lo+F.hi)/2/5)*5))}</b><i>use this</i></button>`;
+  const T=compStats(compsMatch(x));
+  if(T) h+=`<div class="label" style="margin-top:14px">Listings on file</div>`
+         +`<button class="nsBtn on" id="foundUse"><span>${T.n} listing${T.n===1?"":"s"}${T.sold?", "+T.sold+" sold":""} &middot; middle half ${money(T.lo)}&ndash;${money(T.hi)}</span><b>${money(T.mid)}</b><i>use this</i></button>`;
   if(CAP.sample)
-    h+=`<button class="nsBtn${F?"":" on"}" id="pdFindGo" style="margin-top:8px"><span>${findBusy?"Looking it up&hellip;":"Look up what it sells for used"}</span></button>`
+    h+=`<button class="nsBtn${T?"":" on"}" id="pdFindGo" style="margin-top:8px"><span>${findBusy?"Looking it up&hellip;":"Look up what it sells for used"}</span></button>`
       +`<div class="cardHint" id="pdFindMsg"></div>`;
   /* Google Shopping's used filter: asking prices for used ones, which sits
      below a completed sale and above a new-retail figure. The structured
@@ -3171,7 +3202,7 @@ function nsSrcShort(m){
   if(m.kind==="own")return "your "+m.n+" sales";
   if(m.kind==="retail")return "est. from "+money(m.retail)+" new";
   if(m.kind==="seen")return m.n+" seen locally, asking "+money(m.ask);
-  if(m.kind==="found")return "looked up "+money(m.lo)+"\u2013"+money(m.hi)+(confShort(m.conf)?" \u00b7 "+confShort(m.conf):"");
+  if(m.kind==="found")return m.n+" listings, median "+money(m.med)+(confShort(m.conf)?" \u00b7 "+confShort(m.conf):"");
   return "your number";
 }
 function nextStepHTML(x){
