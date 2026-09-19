@@ -75,6 +75,7 @@ function phoneStepHTML(x){
     sub=`Tap a button to see what these actually sold for. Then type the middle price here.`;
     act=compTargets(x).map(t=>`<a class="nsBtn nsSold" data-label="${t.name}" href="${esc(t.url)}" target="_blank" rel="opener" referrerpolicy="no-referrer"><span>${t.name}</span><b>&#8599;</b></a>`).join("")
        +`<div class="phIn"><span>$</span><input id="phVal" type="number" inputmode="decimal" placeholder="What it sells for"><button class="nsBtn on" id="phValGo"><span>Use it</span></button></div>`
+       +(function(){ const E=seenEstimate(seenMatch(x)); return E?`<div class="label" style="margin-top:14px">Seen on shelves near you</div><button class="nsBtn on" id="seenUse"><span>${E.n} tag${E.n===1?"":"s"}, asking ${money(E.lo)}&ndash;${money(E.hi)}</span><b>${money(E.mid)}</b><i>use this</i></button>`:""; })()
        +`<div class="label" style="margin-top:14px">No sold prices? Use what it costs new</div>`
        +(CAP.sample?`<button class="nsBtn on" id="pdRetGo"><span>${retailBusy?"Looking it up&hellip;":"Look up the new price"}</span></button><div class="cardHint" id="pdRetMsg"></div>`:retailTargets(compQuery(x)).map(t=>`<a class="nsBtn nsRetail" data-label="${esc(t.name)}" href="${esc(t.url)}" target="_blank" rel="opener" referrerpolicy="no-referrer"><span>${esc(t.name)}</span><b>&#8599;</b></a>`).join(""))
        +`<div class="phIn"><span>$</span><input id="phRet" type="number" inputmode="decimal" placeholder="What it costs new"><button class="nsBtn" id="phRetGo"><span>Use it</span></button></div>`
@@ -1177,7 +1178,7 @@ function renderItem(){
     ${cat.items.map((it,ix)=>`<button class="itemBtn${st.picked&&it.id===st.itemId?" on":""}" data-item="${it.id}"><span class="idx">${String(ix+1).padStart(2,"0")}</span><span style="flex:1">${it.name}</span>${ownAvgTag(it.id)}</button>`).join("")}
     <button class="itemBtn${st.picked&&st.itemId===custId(cat.id)?" on":""}" data-item="${custId(cat.id)}"><span class="idx">+</span><span style="flex:1">${st.itemId===custId(cat.id)&&st.bookName?esc(st.bookName):"Not on any list — I set the price"}</span></button>
   </div></div>`;
-  let mid=`<div class="colC">${photoCardHTML()}${compsCardHTML(x)}<div class="card"><span class="label">3 &middot; Brand, make &amp; model</span>
+  let mid=`<div class="colC">${photoCardHTML()}${seenCardHTML()}${compsCardHTML(x)}<div class="card"><span class="label">3 &middot; Brand, make &amp; model</span>
     <div class="driver"><p><b class="go">What sets the price:</b> ${(itemOv()&&itemOv().driver)||cat.driver}</p><p><b class="no">What kills it:</b> ${(itemOv()&&itemOv().killer)||cat.killer}</p></div>`;
   if(cat.brand.on){
     const ov=itemOv();
@@ -3223,6 +3224,7 @@ function marketSrcHTML(m){
   if(m.kind==="shot"&&m.via==="button")return `From ${m.n} ${m.n===1?"sale":"sales"} on ${esc(m.site||"the sold page")}, read by your Pawn price button today. ${srcLink(m.url,"See those sales")}`;
   if(m.kind==="shot")return `From ${m.n} ${m.n===1?"sale":"sales"} you read off ${esc(m.site||"the screenshot")} today.`;
   if(m.kind==="own")return `From your own ${m.n} ${m.n===1?"sale":"sales"} of this item.`;
+  if(m.kind==="seen")return `From <b>${m.n}</b> shelf tag${m.n===1?"":"s"} you recorded, asking ${money(m.lo)}&ndash;${money(m.hi)}, typically ${money(m.ask)}. Taken one markdown step down, because an asking price is not a sale.`;
   if(m.kind==="retail")return `Estimated from <b>${money(m.retail)}</b> new retail, taken to ${(m.pct||retailPct())}% for a used one. This is not a sold price &mdash; check sold prices when you can.`;
   return "Your number, typed in.";
 }
@@ -3377,7 +3379,8 @@ const BARE_TOOL=/\bbare\b|tool only|no battery|body only|without battery/;
 const FAST_DROP=/airpod|ear ?bud|headphone|ear ?phone|phone|watch|tablet|ipad|laptop|console/;
 function retailPct(x){
   const t=((x?displayName(x):"")+" "+(st.brandTyped||"")+" "+(st.model||"")+" "+(st.bookName||"")+" "+(st.detail||"")).toLowerCase();
-  let p=(st.catId==="elec"&&FAST_DROP.test(t))?38:(RETAIL_PCT[st.catId]||45);
+  const learned=seenPctOfNew(st.catId);
+  let p=learned?learned.pct:((st.catId==="elec"&&FAST_DROP.test(t))?38:(RETAIL_PCT[st.catId]||45));
   p+=BRAND_SHIFT[st.brand]||0;
   if(BARE_TOOL.test(t))p=Math.min(p-15,32);   /* a bare cordless tool asks about a third of new, whatever the badge says */
   return Math.max(25,Math.min(75,Math.round(p)));
@@ -3401,12 +3404,139 @@ function retailTargets(q){
     t.push({name:"Walmart", url:"https://www.walmart.com/search?q="+e});
   return t;
 }
+/* ---- shelf sightings: the shop's own record of what other shops ask ------
+   A photographed tag is an ASKING price, never a sale, and the tags
+   themselves show the ask stepping down about 20% a quarter. So a sighting
+   is worth roughly 0.8 of its ticket as an estimate of what it really sells
+   for, and it says so everywhere it is shown. The record lives on this
+   device; Export moves it to another one. */
+const SEEN_KEY="pawndesk_seen", SEEN_MAX=800, SEEN_TO_SOLD=0.8;
+function seenAll(){ try{ return JSON.parse(localStorage.getItem(SEEN_KEY)||"[]"); }catch(e){ return []; } }
+function seenSave(a){ try{ localStorage.setItem(SEEN_KEY,JSON.stringify(a.slice(-SEEN_MAX))); }catch(e){} }
+function seenAdd(r){
+  const name=String(r.name||"").trim().slice(0,70), ask=Math.round(Number(r.ask))||0;
+  if(!name||!(ask>0))return 0;
+  const a=seenAll();
+  a.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), ts:Date.now(),
+    name, brand:String(r.brand||"").trim().slice(0,30), model:String(r.model||"").trim().slice(0,40),
+    cat:String(r.cat||st.catId||"").slice(0,10), ask, reg:Math.round(Number(r.reg))||0,
+    store:String(r.store||"").trim().slice(0,30),
+    words:omniWords([name,r.brand,r.model].filter(Boolean).join(" "))});
+  seenSave(a); return a.length;
+}
+function seenMedian(ns){ const a=ns.slice().sort((p,q)=>p-q), n=a.length;
+  return !n?0:(n%2?a[(n-1)/2]:Math.round((a[n/2-1]+a[n/2])/2)); }
+/* Matched on shared words, with one hard rule: if the counter has given a
+   number — a model, a size — a tag must carry that same number to count.
+   Without it "husqvarna 455 rancher chainsaw" scores three shared words
+   against a 450 Rancher and quietly prices the wrong saw. */
+function seenMatch(x){
+  const w=omniWords([st.brandTyped,st.model,x?displayName(x):"",st.bookName].filter(Boolean).join(" "));
+  if(!w.length)return [];
+  const nums=w.filter(t=>/\d/.test(t)), need=w.length>1?2:1;
+  return seenAll().map(s=>({s,hit:(s.words||[]).filter(t=>w.indexOf(t)>=0).length}))
+    .filter(o=>o.hit>=need&&(!nums.length||nums.some(t=>(o.s.words||[]).indexOf(t)>=0)))
+    .sort((a,b)=>b.hit-a.hit||b.s.ts-a.s.ts).map(o=>o.s).slice(0,12);
+}
+function seenEstimate(list){
+  const asks=(list||[]).map(s=>s.ask).filter(n=>n>0);
+  if(!asks.length)return null;
+  const m=seenMedian(asks);
+  return {n:asks.length, lo:Math.min.apply(null,asks), hi:Math.max.apply(null,asks), ask:m,
+          mid:Math.max(5,Math.round(m*SEEN_TO_SOLD/5)*5)};
+}
+/* Once enough tags in a category carry both an ask and a printed regular, the
+   shop's own record beats a figure I picked: the median of ask/regular is
+   what those shops really ask against new, and one markdown step down from
+   that is what it sells for. Six is the floor — below that it is anecdote. */
+function seenPctOfNew(cat){
+  const rows=seenAll().filter(s=>s.cat===cat&&s.ask>0&&s.reg>s.ask);
+  if(rows.length<6)return null;
+  return {n:rows.length, pct:Math.round(seenMedian(rows.map(s=>Math.round(s.ask/s.reg*100)))*SEEN_TO_SOLD)};
+}
+function seenExport(){
+  const a=seenAll();
+  if(!a.length){ alert("Nothing recorded yet."); return; }
+  try{
+    const b=new Blob([JSON.stringify(a,null,1)],{type:"application/json"});
+    const u=URL.createObjectURL(b), el=document.createElement("a");
+    el.href=u; el.download="pawn-desk-shelf-prices.json"; el.click();
+    setTimeout(()=>URL.revokeObjectURL(u),4000);
+  }catch(e){ alert("Couldn't export."); }
+}
+function seenImport(f){
+  const r=new FileReader();
+  r.onload=()=>{
+    let rows=null; try{ rows=JSON.parse(String(r.result||"")); }catch(e){}
+    if(!Array.isArray(rows)){ alert("That file isn't a shelf-price export."); return; }
+    const have=seenAll(), ids={};
+    have.forEach(s=>{ ids[s.id]=1; });
+    let added=0;
+    rows.forEach(s=>{ if(s&&s.id&&!ids[s.id]&&s.ask>0&&s.name){ have.push(s); ids[s.id]=1; added++; } });
+    seenSave(have); render();
+    alert(added+" added. "+seenAll().length+" on this device now.");
+  };
+  r.readAsText(f);
+}
+let seenBusy=false;
+async function seenFromPhoto(f){
+  if(!f||seenBusy||!CAP.sample)return;
+  seenBusy=true; render();
+  try{
+    const d=await CAP.sample.json(
+      'This is a price tag in a pawn or second-hand shop. Read it and reply with JSON and nothing else: '+
+      '{"name":"<what the item is, in plain words>","brand":"<brand or empty>","model":"<model or empty>",'+
+      '"ask":<the price being asked, a number>,"reg":<the REGULAR or WAS price if one is printed, else 0>,'+
+      '"store":"<shop name if visible, else empty>"}. '+
+      'If this is not a price tag, reply {"name":"","ask":0}.',
+      {images:f});
+    seenBusy=false;
+    if(!d||!(Number(d.ask)>0)){ render(); alert("Couldn't read a price off that tag."); return; }
+    seenAdd(d); render();
+  }catch(e){ seenBusy=false; render(); alert("Couldn't read that tag ("+((e&&e.code)||"error")+")."); }
+}
+function seenCardHTML(){
+  const all=seenAll(), learned=seenPctOfNew(st.catId);
+  return '<div class="card" id="seenCard"><span class="label">Shelf prices you\'ve recorded</span>'+
+    '<div class="cardHint">'+(all.length
+      ? all.length+" tag"+(all.length===1?"":"s")+" recorded."+
+        (learned?" In "+esc(st.catId)+", your own record says a used one sells for about <b>"+learned.pct+
+                 "%</b> of new, from "+learned.n+" tags — that is now being used instead of my estimate.":"")
+      : "Photograph another shop&rsquo;s price tag and it goes in here. These are asking prices, not sales.")+'</div>'+
+    '<div class="row2" style="margin-top:8px;flex-wrap:wrap;gap:8px">'+
+      (CAP.sample?'<label class="ghostBtn" style="margin:0;cursor:pointer">'+(seenBusy?"Reading&hellip;":"Photograph a tag")+
+        '<input id="seenIn" type="file" accept="image/*" capture="environment" style="display:none"></label>':'')+
+      '<button class="ghostBtn" id="seenHand">Type one in</button>'+
+      '<button class="ghostBtn" id="seenOut">Export</button>'+
+      '<label class="ghostBtn" style="margin:0;cursor:pointer">Import<input id="seenImp" type="file" accept="application/json,.json" style="display:none"></label>'+
+    '</div></div>';
+}
+document.addEventListener("change",e=>{
+  const t=e.target;
+  if(t&&t.id==="seenIn"&&t.files&&t.files[0]){ seenFromPhoto(t.files[0]); t.value=""; }
+  if(t&&t.id==="seenImp"&&t.files&&t.files[0]){ seenImport(t.files[0]); t.value=""; }
+},true);
+document.addEventListener("click",e=>{
+  const b=e.target&&e.target.closest?e.target.closest("#seenHand,#seenOut,#seenUse"):null; if(!b)return;
+  if(b.id==="seenOut"){ seenExport(); return; }
+  if(b.id==="seenUse"){
+    const est=seenEstimate(seenMatch(calcItem()));
+    if(est){ st.market={kind:"seen",key:mkKey(),n:est.n,ask:est.ask,lo:est.lo,hi:est.hi,mid:est.mid}; render(); }
+    return;
+  }
+  const name=prompt("What is it? (e.g. husqvarna 455 rancher chainsaw)"); if(name===null||!name.trim())return;
+  const ask=prompt("What are they asking? ($)"); if(ask===null)return;
+  const reg=prompt("Regular or was price, if the tag shows one (blank if not):","");
+  const store=prompt("Which shop? (blank if you'd rather not)","");
+  if(seenAdd({name:name,ask:parseFloat(ask),reg:parseFloat(reg||0),store:store||""}))render();
+});
 function nsSrcShort(m){
   if(!m)return "";
   if(m.kind==="list")return srcName(m.src)+", "+fmtDay(m.date);
   if(m.kind==="shot")return m.n+" sold on "+(m.site||"the sold page");
   if(m.kind==="own")return "your "+m.n+" sales";
   if(m.kind==="retail")return "est. from "+money(m.retail)+" new";
+  if(m.kind==="seen")return m.n+" seen locally, asking "+money(m.ask);
   return "your number";
 }
 function nextStepHTML(x){
