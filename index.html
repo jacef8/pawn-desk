@@ -1294,6 +1294,11 @@ function metalResultHTML(){
       <div class="widget"><div class="l">${pawn?"Or buy it outright":"Or lend against it instead"}</div><div class="v">${money(pawn?m.buy:m.loan)}</div></div>
       <div class="widget"><div class="l">Full melt value (never pay this)</div><div class="v">${money(m.melt)}</div></div>
     </div>
+    ${!pawn?`<div class="tagNote"><b style="color:var(--ink)">Once you own it.</b>
+      <b style="color:var(--ink)">Sell it as jewelry:</b> about ${money(Math.round(shown)*3)} to ${money(Math.round(shown)*4)}.
+      That is what Folmar's in Tallahassee gets &mdash; they sell for three to four times what they pay.
+      <b style="color:var(--ink)">Scrap it:</b> about ${money(m.melt)}, and the refiner's cut comes out of that,
+      so there is little margin left in scrapping.</div>`:""}
     ${pawn&&(m.guarded||m.trimmed)?`<div class="tagNote">${(m.premium>0.05||m.trimmed)
       ?`<b style="color:var(--ink)">Peak guard is on.</b> ${st.metal==="gold"?"Gold":"Silver"} is ${Math.round(m.premium*100)}% above its 90-day average, so the loan is sized off the average${m.trimmed?" and trimmed another 10%":""} \u2014 as if today's high never happened.`
       :`<b style="color:var(--ink)">The loan is sized off the 90-day average</b>, not today's spot.`}
