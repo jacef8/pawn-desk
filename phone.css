@@ -1,0 +1,30 @@
+
+  /* Price Check (phone): only the search, the steps and the verdict */
+  body.phone #view.item .colL, body.phone #view.item .colC, body.phone #view.item .colR{display:none!important}
+  body.phone .foot{display:none!important}
+  body.phone #view.item{display:block!important}
+  body.phone .nextStep{margin-top:10px}
+  body.phone .nsGrid{grid-template-columns:minmax(0,1fr)!important}
+  body.phone .nsH{font-size:24px}
+  body.phone .nsSub{font-size:16px}
+  body.phone .nsBtn{font-size:16px;padding:12px 16px}
+  .phIn{display:flex;align-items:center;gap:8px;width:100%;margin-top:4px}
+  .phIn span{font:700 22px var(--mono);color:var(--ink)}
+  .phIn input{flex:1;min-width:0;font:700 22px var(--mono);color:var(--ink);background:var(--recess);box-shadow:var(--well-sh);border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:12px 14px}
+  .phIn.big input{font-size:30px;padding:14px 16px}
+  .phIn input:focus{outline:3px solid var(--accent);outline-offset:1px}
+  .phVerdict{margin-top:12px;border-radius:var(--r-s);padding:14px 16px;border:2px solid}
+  .phVerdict.good{border-color:var(--accent);background:rgba(0,232,160,.12)}
+  .phVerdict.thin{border-color:var(--warn);background:rgba(255,138,30,.13)}
+  .phVerdict.pass{border-color:var(--bad);background:rgba(255,66,87,.13)}
+  .phWord{font-size:30px;font-weight:800;letter-spacing:-.01em}
+  .phVerdict.good .phWord{color:var(--accent)} .phVerdict.thin .phWord{color:#FFB872} .phVerdict.pass .phWord{color:#FF8A96}
+  .phLine{font-size:17px;line-height:1.45;color:var(--ink);margin-top:4px}
+  .phMath{font-size:15px;line-height:1.45;color:var(--ink-2);margin-top:8px}
+  .phMath b,.phLine b{color:var(--ink)}
+  .phSrc{font-size:15px;line-height:1.45;color:var(--ink-2);margin-top:12px}
+  .phSrc b{color:var(--ink)}
+  .phKinds{margin-top:14px;font-size:15px;color:var(--ink-2)}
+  .phKinds summary{cursor:pointer;font-weight:700;color:var(--ink)}
+  .phKindRow{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  body.phone .bar{border-radius:var(--r)}
