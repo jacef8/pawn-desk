@@ -2803,8 +2803,8 @@ function marketSrcHTML(m){
   if(m.kind==="shot"&&m.via==="button")return `From ${m.n} ${m.n===1?"sale":"sales"} on ${esc(m.site||"the sold page")}, read by your Pawn price button today. ${srcLink(m.url,"See those sales")}`;
   if(m.kind==="shot")return `From ${m.n} ${m.n===1?"sale":"sales"} you read off ${esc(m.site||"the screenshot")} today.`;
   if(m.kind==="own")return `From your own ${m.n} ${m.n===1?"sale":"sales"} of this item.`;
-  if(m.kind==="found")return `From <b>${m.n}</b> listing${m.n===1?"":"s"} on file${m.sold?`, ${m.sold} of them sold`:""}: the middle one is <b>${money(m.med)}</b>, the middle half ${money(m.lo)}&ndash;${money(m.hi)}.${m.from?` From ${esc(m.from)}.`:""}${m.mostlyAsks?` Mostly asking prices, so it is taken one step down.`:""}${m.conf==="l"?` <span style="color:#FFC98F">Few listings behind this &mdash; look at the sold pages before you lean on it.</span>`:""} The middle one is used, not the average, so one bad listing cannot move it.`;
-  if(m.kind==="seen")return `From <b>${m.n}</b> shelf tag${m.n===1?"":"s"} you recorded, asking ${money(m.lo)}&ndash;${money(m.hi)}, typically ${money(m.ask)}. Taken one markdown step down, because an asking price is not a sale.`;
+  if(m.kind==="found")return `From <b>${m.n}</b> listing${m.n===1?"":"s"} on file${m.sold?`, ${m.sold} of them sold`:""}: the middle one is <b>${money(m.med)}</b>, the middle half ${money(m.lo)}&ndash;${money(m.hi)}.${m.from?` From ${esc(m.from)}.`:""}${m.mostlyAsks?` Mostly asking prices rather than sales.`:""}${m.conf==="l"?` <span style="color:#FFC98F">Few listings behind this &mdash; look at the sold pages before you lean on it.</span>`:""} The middle one is used, not the average, so one bad listing cannot move it.`;
+  if(m.kind==="seen")return `From <b>${m.n}</b> shelf tag${m.n===1?"":"s"} you recorded, asking ${money(m.lo)}&ndash;${money(m.hi)}, typically ${money(m.ask)} &mdash; what a used one goes for at a shop near you.`;
   if(m.kind==="retail")return `Estimated from <b>${money(m.retail)}</b> new retail, taken to ${(m.pct||retailPct())}% for a used one. This is not a sold price &mdash; check sold prices when you can.`;
   return "Your number, typed in.";
 }
@@ -2959,20 +2959,10 @@ const BARE_TOOL=/\bbare\b|tool only|no battery|body only|without battery/;
 const FAST_DROP=/airpod|ear ?bud|headphone|ear ?phone|phone|watch|tablet|ipad|laptop|console/;
 function retailPct(x){
   const t=((x?displayName(x):"")+" "+(st.brandTyped||"")+" "+(st.model||"")+" "+(st.bookName||"")+" "+(st.detail||"")).toLowerCase();
-  const learned=seenPctOfNew(st.catId);
-  let p=learned?learned.pct:((st.catId==="elec"&&FAST_DROP.test(t))?38:(RETAIL_PCT[st.catId]||45));
+  let p=(st.catId==="elec"&&FAST_DROP.test(t))?38:(RETAIL_PCT[st.catId]||45);
   p+=BRAND_SHIFT[st.brand]||0;
   if(BARE_TOOL.test(t))p=Math.min(p-15,32);   /* a bare cordless tool asks about a third of new, whatever the badge says */
   return Math.max(25,Math.min(75,Math.round(p)));
-}
-/* What a year on the shelf does to it. Every tag photographed at the counter
-   runs the same schedule: the price drops 20% about every 90 days, four
-   times, so after a year the item is asking ~41% of where it started. */
-const SIT_STEP=0.8, SIT_QTRS=4;
-function sitValue(resale){ return Math.max(5,Math.round(resale*Math.pow(SIT_STEP,SIT_QTRS)/5)*5); }
-function sitLine(x){
-  if(!x||!x.checked)return "";
-  return `If it sits a year it is worth about <b>${money(sitValue(x.resale))}</b> &mdash; the shops here drop the ask 20% every 90 days.`;
 }
 function retailTargets(q){
   const e=encodeURIComponent(q), t=[];
@@ -2990,7 +2980,7 @@ function retailTargets(q){
    is worth roughly 0.8 of its ticket as an estimate of what it really sells
    for, and it says so everywhere it is shown. The record lives on this
    device; Export moves it to another one. */
-const SEEN_KEY="pawndesk_seen", SEEN_MAX=800, SEEN_TO_SOLD=0.8;
+const SEEN_KEY="pawndesk_seen", SEEN_MAX=800;
 const VARIANT=/^(pro|max|plus|mini|xl|se|ultra|lite|gen)$/;
 function seenAll(){ try{ return JSON.parse(localStorage.getItem(SEEN_KEY)||"[]"); }catch(e){ return []; } }
 function seenSave(a){ try{ localStorage.setItem(SEEN_KEY,JSON.stringify(a.slice(-SEEN_MAX))); }catch(e){} }
@@ -3146,7 +3136,7 @@ function compStats(rows){
   const mostlyAsks=soldShare<0.5;
   return {n, med, lo, hi, sold, soldShare, mostlyAsks, from,
     conf:(n>=6&&soldShare>=0.6)?"h":(n>=4?"m":"l"),
-    mid:Math.max(5,Math.round(med*(mostlyAsks?SEEN_TO_SOLD:1)/5)*5)};
+    mid:Math.max(5,Math.round(med/5)*5)};
 }
 /* Where a lookup goes. One general search answers from wherever it lands;
    these name the places the trade actually prices from, so the pile gets
@@ -3206,28 +3196,18 @@ function useComps(t){
              mostlyAsks:t.mostlyAsks,conf:t.conf,mid:t.mid,from:t.from};
   render();
 }
+/* A price on another shop's shelf is what a used one goes for here - it is
+   already the selling price, so it is used as it stands. How far that shop
+   will discount it before it moves is their markdown policy and the POS's
+   business, not this tool's. The count of asks against sales is still shown,
+   so the counter can judge the evidence rather than have it adjusted for
+   them. */
 function seenEstimate(list){
   const asks=(list||[]).map(s=>s.ask).filter(n=>n>0);
   if(!asks.length)return null;
   const m=seenMedian(asks);
   return {n:asks.length, lo:Math.min.apply(null,asks), hi:Math.max.apply(null,asks), ask:m,
-          mid:Math.max(5,Math.round(m*SEEN_TO_SOLD/5)*5)};
-}
-/* Once enough tags in a category carry both an ask and a printed regular, the
-   shop's own record beats a figure I picked: the median of ask over regular,
-   one markdown step down.
-
-   What that regular actually is varies, and the card must not overclaim. A
-   Stihl BR800 tagged $499.95 against $749.95 is priced off something near
-   MSRP; a Werner 24ft ladder tagged $124.95 against $199.95 is not, because
-   that ladder is about $330 new — so its "regular" is the shop's own former
-   price. The figure is a share of whatever the shop calls regular, not a
-   share of new retail, and it is worded that way. Six is the floor — below
-   that it is anecdote. */
-function seenPctOfNew(cat){
-  const rows=seenAll().filter(s=>s.cat===cat&&s.ask>0&&s.reg>s.ask);
-  if(rows.length<6)return null;
-  return {n:rows.length, pct:Math.round(seenMedian(rows.map(s=>Math.round(s.ask/s.reg*100)))*SEEN_TO_SOLD)};
+          mid:Math.max(5,Math.round(m/5)*5)};
 }
 function seenExport(){
   const a=seenAll();
@@ -3271,12 +3251,10 @@ async function seenFromPhoto(f){
   }catch(e){ seenBusy=false; render(); alert("Couldn't read that tag ("+((e&&e.code)||"error")+")."); }
 }
 function seenCardHTML(){
-  const all=seenAll(), learned=seenPctOfNew(st.catId);
+  const all=seenAll();
   return '<div class="card" id="seenCard"><span class="label">Shelf prices you\'ve recorded</span>'+
     '<div class="cardHint">'+(all.length
-      ? all.length+" tag"+(all.length===1?"":"s")+" recorded."+
-        (learned?" In "+esc(st.catId)+", your own record puts a used one at about <b>"+learned.pct+
-                 "%</b> of the shops' own regular price, from "+learned.n+" tags \u2014 that is now being used instead of my estimate. Their regular is not always new retail.":"")
+      ? all.length+" tag"+(all.length===1?"":"s")+" recorded &mdash; what other shops are asking for a used one."
       : "Photograph another shop&rsquo;s price tag and it goes in here. These are asking prices, not sales.")+'</div>'+
     '<div class="row2" style="margin-top:8px;flex-wrap:wrap;gap:8px">'+
       (CAP.sample?'<label class="ghostBtn" style="margin:0;cursor:pointer">'+(seenBusy?"Reading&hellip;":"Photograph a tag")+
@@ -3444,7 +3422,7 @@ function buyRateHTML(x){
     <div class="cardHint" style="font-size:13.5px;color:var(--ink-2)">What you pay to buy it outright, as a share of the resale value. ${(()=>{ const d=BUY_DEFAULT[x.cat.id]; if(d==null)return ""; return set&&x.buyBase!==d?`Suggested: <b style="color:var(--ink)">${d}%</b> (${BUY_WHY[x.cat.id]||""}). <button id="buyReset" class="ghostBtn" style="padding:5px 12px;font-size:12px;margin-left:4px">Use ${d}%</button>`:`Suggested: <b style="color:var(--ink)">${d}%</b> &mdash; ${BUY_WHY[x.cat.id]||""}.`; })()} You carry the risk and hold it 30 days before you can sell.</div></div>`;
 }
 function buyRowHTML(x){
-  return `<div class="buyRow"><div><div class="l">Or buy it outright</div><div class="s">${x.buyPct}% of the ${money(Math.round(x.resale))} resale value. You own it &mdash; no loan to pay back.</div></div><div class="v">${money(x.buy)}</div></div>${sitLine(x)?`<div class="cardHint">${sitLine(x)}</div>`:""}`;
+  return `<div class="buyRow"><div><div class="l">Or buy it outright</div><div class="s">${x.buyPct}% of the ${money(Math.round(x.resale))} resale value. You own it &mdash; no loan to pay back.</div></div><div class="v">${money(x.buy)}</div></div>`;
 }
 function refreshBuyRate(){
   if(st.buys&&st.buys[st.catId]!=null)return;
