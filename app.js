@@ -3214,9 +3214,16 @@ function seenEstimate(list){
           mid:Math.max(5,Math.round(m*SEEN_TO_SOLD/5)*5)};
 }
 /* Once enough tags in a category carry both an ask and a printed regular, the
-   shop's own record beats a figure I picked: the median of ask/regular is
-   what those shops really ask against new, and one markdown step down from
-   that is what it sells for. Six is the floor — below that it is anecdote. */
+   shop's own record beats a figure I picked: the median of ask over regular,
+   one markdown step down.
+
+   What that regular actually is varies, and the card must not overclaim. A
+   Stihl BR800 tagged $499.95 against $749.95 is priced off something near
+   MSRP; a Werner 24ft ladder tagged $124.95 against $199.95 is not, because
+   that ladder is about $330 new — so its "regular" is the shop's own former
+   price. The figure is a share of whatever the shop calls regular, not a
+   share of new retail, and it is worded that way. Six is the floor — below
+   that it is anecdote. */
 function seenPctOfNew(cat){
   const rows=seenAll().filter(s=>s.cat===cat&&s.ask>0&&s.reg>s.ask);
   if(rows.length<6)return null;
@@ -3268,8 +3275,8 @@ function seenCardHTML(){
   return '<div class="card" id="seenCard"><span class="label">Shelf prices you\'ve recorded</span>'+
     '<div class="cardHint">'+(all.length
       ? all.length+" tag"+(all.length===1?"":"s")+" recorded."+
-        (learned?" In "+esc(st.catId)+", your own record says a used one sells for about <b>"+learned.pct+
-                 "%</b> of new, from "+learned.n+" tags — that is now being used instead of my estimate.":"")
+        (learned?" In "+esc(st.catId)+", your own record puts a used one at about <b>"+learned.pct+
+                 "%</b> of the shops' own regular price, from "+learned.n+" tags \u2014 that is now being used instead of my estimate. Their regular is not always new retail.":"")
       : "Photograph another shop&rsquo;s price tag and it goes in here. These are asking prices, not sales.")+'</div>'+
     '<div class="row2" style="margin-top:8px;flex-wrap:wrap;gap:8px">'+
       (CAP.sample?'<label class="ghostBtn" style="margin:0;cursor:pointer">'+(seenBusy?"Reading&hellip;":"Photograph a tag")+
