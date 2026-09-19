@@ -3361,14 +3361,26 @@ const COND_WORDS={new:["New in box","+30%"],exc:["Excellent","+12%"],good:["Good
    $499.95 against $749.95 (67%). Those are asking prices, and the same tags
    show the ask stepping down 20% a quarter, so a realistic sold price sits
    about one step below the ticket — 0.8 x ticket. That is where these land. */
-const RETAIL_PCT={guns:65,power:53,tools:50,hunt:45,elec:45,music:45,rolling:60};
+const RETAIL_PCT={guns:65,power:55,tools:50,hunt:45,elec:45,music:45,rolling:60};
+/* Shelf tags photographed 19 Sep 2026, second batch. Within one category the
+   brand moves the number more than the category does: a Stihl MS180C asks
+   $199.95 against about $229 new, a Husqvarna 455 Rancher $374.95 against the
+   same shop's own $499.95 new one — while a Hilti SCW 22-A with no battery
+   asks $74.95 against $300-plus, and a discontinued Ridgid R4030 tile saw
+   $99.95 against about $299. So the brand tier shifts the percentage, and a
+   cordless tool sold without its battery is treated as the different item it
+   is. Bounded either way so no combination can run off. */
+const BRAND_SHIFT={hi:8,mid:0,lo:-8};
+const BARE_TOOL=/\bbare\b|tool only|no battery|body only|without battery/;
 /* Small electronics fall much faster than a TV does: AirPods Pro ticketed at
    $99 against $249 new. One number cannot cover both, so these get their own. */
 const FAST_DROP=/airpod|ear ?bud|headphone|ear ?phone|phone|watch|tablet|ipad|laptop|console/;
 function retailPct(x){
-  const t=((x?displayName(x):"")+" "+(st.brandTyped||"")+" "+(st.model||"")+" "+(st.bookName||"")).toLowerCase();
-  if(st.catId==="elec"&&FAST_DROP.test(t)) return 38;
-  return RETAIL_PCT[st.catId]||45;
+  const t=((x?displayName(x):"")+" "+(st.brandTyped||"")+" "+(st.model||"")+" "+(st.bookName||"")+" "+(st.detail||"")).toLowerCase();
+  let p=(st.catId==="elec"&&FAST_DROP.test(t))?38:(RETAIL_PCT[st.catId]||45);
+  p+=BRAND_SHIFT[st.brand]||0;
+  if(BARE_TOOL.test(t))p=Math.min(p-15,32);   /* a bare cordless tool asks about a third of new, whatever the badge says */
+  return Math.max(25,Math.min(75,Math.round(p)));
 }
 /* What a year on the shelf does to it. Every tag photographed at the counter
    runs the same schedule: the price drops 20% about every 90 days, four
