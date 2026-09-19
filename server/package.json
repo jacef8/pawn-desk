@@ -3,8 +3,15 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Price and photo service for The Pawn Desk",
+  "description": "Price, photo and shared-record service for The Pawn Desk",
   "main": "server.js",
-  "scripts": { "start": "node server.js" },
-  "engines": { "node": ">=20" }
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0"
+  }
 }

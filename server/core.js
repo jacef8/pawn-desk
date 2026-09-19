@@ -13,6 +13,7 @@
 
 export const MODEL = "claude-opus-5";
 const API = "https://api.anthropic.com/v1/messages";
+import { syncMerge } from "./store.js";
 const DEFAULT_ORIGIN = "https://jacef8.github.io";
 const MAX_IMAGES = 4;
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -43,6 +44,20 @@ export function extractJSON(text) {
 export async function handle({ path, method, token, body, env, signal }) {
   if (path === "/limits" || path === "/") {
     return reply(200, { ok: true, images: { mediaTypes: OK_TYPES, maxCount: MAX_IMAGES, maxBytes: MAX_IMAGE_BYTES } });
+  }
+  /* Sharing the record between the phone and the desk. Same token as
+     everything else; a device that cannot reach this keeps working on its
+     own copy. */
+  if (path === "/sync") {
+    if (method !== "POST") return fail("not_found", 404);
+    if (env.PAWN_TOKEN && token !== env.PAWN_TOKEN) return fail("bad_token", 403);
+    if (!body || typeof body !== "object") return fail("bad_request");
+    try {
+      const out = await syncMerge(String(body.store || ""), body.rows, body.since);
+      return out.ok ? reply(200, out) : fail(out.code || "bad_request");
+    } catch (e) {
+      return fail("sync_failed", 502);
+    }
   }
   if (path !== "/json" || method !== "POST") return fail("not_found", 404);
   if (!env.ANTHROPIC_API_KEY) return fail("no_key", 500);

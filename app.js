@@ -3065,6 +3065,57 @@ function compsAdd(q,list){
   compsSave(a); return added;
 }
 function compsMatch(x){ return pdMatch(compsAll(),x,60); }
+
+/* ---- sharing the record between the phone and the desk ------------------
+   Each device keeps working from its own copy, online or not. This
+   reconciles them: push what this one has, take back what it has not seen,
+   and merge by id with the newer timestamp winning. Nothing is deleted and
+   nothing is authoritative but the rows themselves, so two devices that both
+   recorded something while apart end up with both. */
+const SYNC_AT="pawndesk_syncat";
+function syncAt(k){ try{ return Number(JSON.parse(localStorage.getItem(SYNC_AT)||"{}")[k])||0; }catch(e){ return 0; } }
+function syncSetAt(k,ts){ try{ const o=JSON.parse(localStorage.getItem(SYNC_AT)||"{}"); o[k]=ts;
+  localStorage.setItem(SYNC_AT,JSON.stringify(o)); }catch(e){} }
+const SYNC_STORES={ comps:{all:compsAll,save:compsSave}, seen:{all:seenAll,save:seenSave} };
+let syncBusy=false, syncNote="";
+async function pdSync(){
+  if(syncBusy||!pdServer())return;
+  syncBusy=true; syncNote="Syncing\u2026"; try{ render(); }catch(e){}
+  let pulled=0, pushed=0, warn="", failed=0;
+  for(const k of Object.keys(SYNC_STORES)){
+    const S=SYNC_STORES[k], since=syncAt(k), mine=S.all();
+    /* Only what this device has that the others may not: everything on the
+       first run, then whatever arrived since. */
+    const send=since?mine.filter(r=>(Number(r.ts)||0)>since):mine;
+    try{
+      const res=await fetch(pdBase()+"/sync",{method:"POST",
+        headers:{"content-type":"application/json","x-pawn-token":pdToken()},
+        body:JSON.stringify({store:k,rows:send,since})});
+      const j=await res.json();
+      if(!j||!j.ok){ failed++; continue; }
+      pushed+=send.length;
+      if(j.warning)warn=j.warning;
+      const byId={}; mine.forEach(r=>{ byId[r.id]=r; });
+      let newest=since, add=0;
+      (j.rows||[]).forEach(r=>{
+        if(!r||!r.id)return;
+        newest=Math.max(newest,Number(r.ts)||0);
+        const o=byId[r.id];
+        if(!o||(Number(r.ts)||0)>(Number(o.ts)||0)){ byId[r.id]=r; if(!o)add++; }
+      });
+      if(add)S.save(Object.values(byId).sort((a,b)=>(a.ts||0)-(b.ts||0)));
+      pulled+=add;
+      syncSetAt(k,newest);
+    }catch(e){ failed++; }
+  }
+  syncBusy=false;
+  syncNote = failed===Object.keys(SYNC_STORES).length ? "Couldn't reach the service."
+           : warn ? ("Shared, but "+warn)
+           : (pulled||pushed) ? ("Synced \u00b7 "+pushed+" sent, "+pulled+" received")
+           : "Synced \u00b7 nothing new";
+  try{ render(); }catch(e){}
+}
+
 function compStats(rows){
   const ps=(rows||[]).map(r=>r.price).filter(n=>n>0).sort((p,q)=>p-q);
   const n=ps.length;
@@ -3131,6 +3182,7 @@ async function priceFind(){
   const uniq=got.filter(c=>{ const k=Math.round(c.price)+"|"+String(c.where||"").toLowerCase();
                              if(seen[k])return false; seen[k]=1; return true; });
   const added=compsAdd(q,uniq);
+  if(added)pdSync();
   if(!added){ render(); say(failed===passes.length?"Every search failed. Try the sold pages.":"No listings found. Try the sold pages."); return; }
   useComps(compStats(compsMatch(calcItem())));
   const t=compStats(compsMatch(calcItem()));
@@ -3196,7 +3248,7 @@ async function seenFromPhoto(f){
       {images:f});
     seenBusy=false;
     if(!d||!(Number(d.ask)>0)){ render(); alert("Couldn't read a price off that tag."); return; }
-    seenAdd(d); render();
+    seenAdd(d); render(); pdSync();
   }catch(e){ seenBusy=false; render(); alert("Couldn't read that tag ("+((e&&e.code)||"error")+")."); }
 }
 function seenCardHTML(){
@@ -3211,9 +3263,12 @@ function seenCardHTML(){
       (CAP.sample?'<label class="ghostBtn" style="margin:0;cursor:pointer">'+(seenBusy?"Reading&hellip;":"Photograph a tag")+
         '<input id="seenIn" type="file" accept="image/*" capture="environment" style="display:none"></label>':'')+
       '<button class="ghostBtn" id="seenHand">Type one in</button>'+
+      (pdServer()?'<button class="ghostBtn" id="seenSync">'+(syncBusy?"Syncing&hellip;":"Sync")+'</button>':'')+
       '<button class="ghostBtn" id="seenOut">Export</button>'+
       '<label class="ghostBtn" style="margin:0;cursor:pointer">Import<input id="seenImp" type="file" accept="application/json,.json" style="display:none"></label>'+
-    '</div></div>';
+    '</div>'+
+    (syncNote?'<div class="cardHint">'+esc(syncNote)+'</div>':'')+
+    '</div>';
 }
 document.addEventListener("change",e=>{
   const t=e.target;
@@ -3221,9 +3276,10 @@ document.addEventListener("change",e=>{
   if(t&&t.id==="seenImp"&&t.files&&t.files[0]){ seenImport(t.files[0]); t.value=""; }
 },true);
 document.addEventListener("click",e=>{
-  const b=e.target&&e.target.closest?e.target.closest("#seenHand,#seenOut,#seenUse,#pdFindGo,#foundUse"):null; if(!b)return;
+  const b=e.target&&e.target.closest?e.target.closest("#seenHand,#seenOut,#seenUse,#seenSync,#pdFindGo,#foundUse"):null; if(!b)return;
   if(b.id==="pdFindGo"){ priceFind(); return; }
   if(b.id==="foundUse"){ useComps(compStats(compsMatch(calcItem()))); return; }
+  if(b.id==="seenSync"){ pdSync(); return; }
   if(b.id==="seenOut"){ seenExport(); return; }
   if(b.id==="seenUse"){
     const est=seenEstimate(seenMatch(calcItem()));
@@ -3234,7 +3290,7 @@ document.addEventListener("click",e=>{
   const ask=prompt("What are they asking? ($)"); if(ask===null)return;
   const reg=prompt("Regular or was price, if the tag shows one (blank if not):","");
   const store=prompt("Which shop? (blank if you'd rather not)","");
-  if(seenAdd({name:name,ask:parseFloat(ask),reg:parseFloat(reg||0),store:store||""}))render();
+  if(seenAdd({name:name,ask:parseFloat(ask),reg:parseFloat(reg||0),store:store||""})){ render(); pdSync(); }
 });
 /* Each price row carries a confidence flag, and a letter is no use at a
    counter. It grades how good the data behind the row is - not what kind of

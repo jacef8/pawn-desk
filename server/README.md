@@ -66,6 +66,36 @@ single-digit cents per lookup against a prepaid balance.
 | **Lookup failed** | Usually `PAWN_TOKEN` not matching what you typed into the app. |
 | `no_key` in the reply | `ANTHROPIC_API_KEY` missing or rejected. |
 
+## Sharing the record between devices
+
+Without this, the phone and the desk each keep their own shelf tags and
+looked-up listings, and Export/Import is the only way across. With it they are
+one record.
+
+1. Firebase console → your project → **Project settings** → **Service
+   accounts** → **Generate new private key**. A JSON file downloads.
+2. In Railway, add a variable **`FIREBASE_SERVICE_ACCOUNT`** and paste the
+   whole contents of that file as the value.
+3. Redeploy. The **Sync** button appears on the shelf-prices card, and every
+   device reconciles once at startup and again whenever something is recorded.
+
+Firestore holds three collections — `pawndesk_comps`, `pawndesk_seen`,
+`pawndesk_deals`. Rows carry their own id and timestamp, so merging is by id
+with the newer one winning; nothing is deleted, and two devices that both
+recorded something while apart end up with both.
+
+**Firestore's free tier covers this.** The Spark plan allows 1 GiB stored and
+50,000 reads and 20,000 writes a day. A counter recording tags and looking up
+prices will not come close.
+
+**Without the variable the service still answers**, holding the record in
+memory so the flow can be tried, and says so: *"Shared, but not saved: no
+Firebase credentials."* A restart forgets it.
+
+A device that cannot reach the service keeps working from its own copy and
+says *"Couldn't reach the service."* Nothing recorded offline is lost — it
+goes up on the next sync.
+
 ## Other hosts
 
 **Cloudflare Workers** — `worker.js` is the adapter. Deploy with
@@ -73,16 +103,11 @@ single-digit cents per lookup against a prepaid balance.
 (`npx wrangler secret put ANTHROPIC_API_KEY`). It imports `core.js`, so it
 cannot be pasted into the dashboard as a single file any more.
 
-**Firebase** — Cloud Functions can host this, but outbound calls to
-`api.anthropic.com` require the **Blaze** plan; the free Spark plan blocks
-them, which is the usual reason this kind of function fails there.
-
-Firebase is interesting for a different reason: the desk already talks to its
-local deal log through a Firestore-shaped interface (`collection`, `doc`,
-`onSnapshot`). Pointing that at a real Firestore would make the deal log and
-the shelf-price record shared across the phone and the desk instead of living
-on each device, which is the main thing Export and Import exist to work
-around.
+**Firebase Cloud Functions** could host the service instead of Railway, but
+outbound calls to `api.anthropic.com` from a function require the **Blaze**
+plan — the free Spark plan blocks them. That restriction is about Cloud
+Functions reaching the open internet. It does not apply to how this uses
+Firestore, which is from Railway through the Admin SDK.
 
 ## Notes
 
