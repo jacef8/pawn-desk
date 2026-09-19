@@ -37,5 +37,6 @@ window.standaloneBoot=function(){
   }
   try{ render(); }catch(e){}
   liveMetals();
+  try{ refreshPrices(); }catch(e){}
   if("serviceWorker" in navigator&&location.protocol==="https:"){ try{ navigator.serviceWorker.register("sw.js").catch(()=>{}); }catch(e){} }
 };

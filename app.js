@@ -2467,7 +2467,7 @@ function closeCam(){
    sales, whole dollars. Row: [id, item(s) it belongs to, name, low, high, confidence
    h/m/l, date checked, source page, what moves the price]. The weekly task rewrites
    only the low, high, confidence, date and source values. It never adds or removes rows. */
-const MODEL_PRICES=[
+let MODEL_PRICES=[
  ["a1","g1","Remington 870 Express",300,400,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=remington+870+express","Super Mag or extra barrels add; rust lowers"],
  ["a2","g1","Remington 870 Wingmaster",450,625,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=remington+870+wingmaster","Bluing and wood; 16, 28 and .410 bring far more"],
  ["a3","g1","Mossberg 500",225,325,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=mossberg+500","Combo barrels and chokes add"],
@@ -2694,7 +2694,29 @@ const MP_MATCH=[
  ["f7b",/ranger\s*1000/],["f7a",/ranger/],["f8",/\brzr\b/],["f9",/\bmule\b/],["f10",/gator|\bxuv\b/],
  ["f11",/precedent|club\s*car/],["f12",/\btxt\b|ezgo/],["f13",/drive\s*2|yamaha\s*drive/]];
 
-const MP_BY_ID=Object.fromEntries(MODEL_PRICES.map(r=>[r[0],r]));
+let MP_BY_ID=Object.fromEntries(MODEL_PRICES.map(r=>[r[0],r]));
+/* prices.json is the list the weekly refresh writes; the copy baked in above is
+   the fallback for a first load with no network. A bad or truncated file must
+   never wipe the price book, so the replacement has to look like a price list
+   before it is allowed in: enough rows, and every one shaped right with a
+   sane low and high. Anything less and the baked-in copy simply stays. */
+function mpOk(rows){
+  if(!Array.isArray(rows)||rows.length<100)return false;
+  return rows.every(r=>Array.isArray(r)&&r.length>=9&&typeof r[0]==="string"&&typeof r[2]==="string"
+    &&typeof r[3]==="number"&&typeof r[4]==="number"&&r[3]>0&&r[4]>=r[3]&&r[4]<1000000);
+}
+async function refreshPrices(){
+  try{
+    const res=await fetch("prices.json",{cache:"no-store"});
+    if(!res.ok)return;
+    const j=await res.json();
+    const rows=j&&j.rows;
+    if(!mpOk(rows))return;
+    MODEL_PRICES=rows;
+    MP_BY_ID=Object.fromEntries(MODEL_PRICES.map(r=>[r[0],r]));
+    try{ render(); }catch(e){}
+  }catch(e){}
+}
 const MP_STALE_DAYS=45;
 const MARKET_COND={new:1.3,exc:1.12,good:1,fair:.75,rough:.45};
 function mpFor(cur,text){
