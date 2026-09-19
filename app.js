@@ -3076,7 +3076,19 @@ const SYNC_AT="pawndesk_syncat";
 function syncAt(k){ try{ return Number(JSON.parse(localStorage.getItem(SYNC_AT)||"{}")[k])||0; }catch(e){ return 0; } }
 function syncSetAt(k,ts){ try{ const o=JSON.parse(localStorage.getItem(SYNC_AT)||"{}"); o[k]=ts;
   localStorage.setItem(SYNC_AT,JSON.stringify(o)); }catch(e){} }
-const SYNC_STORES={ comps:{all:compsAll,save:compsSave}, seen:{all:seenAll,save:seenSave} };
+/* The deal log keys on _id; everything else keys on id. Translating at the
+   edge keeps one merge rule for all three rather than a special case running
+   through the middle of it. Deals hold item facts only - no name, no ID
+   number - so they are safe to share the same way. */
+const SYNC_STORES={
+  comps:{all:compsAll,save:compsSave},
+  seen: {all:seenAll, save:seenSave},
+  deals:{
+    all:()=>((window.PD_DEALS&&window.PD_DEALS.all())||[]).map(d=>Object.assign({},d,{id:d._id})),
+    save:rows=>{ if(!window.PD_DEALS)return;
+      window.PD_DEALS.save(rows.map(d=>{ const c=Object.assign({},d); c._id=c._id||c.id; delete c.id; return c; })); }
+  }
+};
 let syncBusy=false, syncNote="";
 async function pdSync(){
   if(syncBusy||!pdServer())return;

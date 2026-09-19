@@ -9,6 +9,11 @@ function localDB(){
     const snap={docs:a.map(d=>({id:d._id,data:()=>{ const c=Object.assign({},d); delete c._id; return c; }}))};
     subs.forEach(f=>{ try{ f(snap); }catch(e){} }); };
   const q={orderBy(){return q;},limit(){return q;},onSnapshot(f){ subs.push(f); setTimeout(emit,0); return ()=>{}; }};
+  /* The deal log is the one record that predates syncing, and it keys rows on
+     _id rather than id. Rather than rename a field the log already writes and
+     reads, it hands the sync a door: read the rows, write them back, and tell
+     the deal-log view to redraw so merged-in deals appear without a reload. */
+  window.PD_DEALS={ all:load, save:a=>{ save(a); emit(); } };
   return {
     collection(){ return Object.assign({},q,{ async add(o){ const a=load(), id=Date.now().toString(36)+Math.random().toString(36).slice(2,7);
       a.push(Object.assign({_id:id},o)); save(a); emit(); return {id}; } }); },
