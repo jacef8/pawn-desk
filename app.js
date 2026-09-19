@@ -2803,7 +2803,7 @@ function marketSrcHTML(m){
   if(m.kind==="shot"&&m.via==="button")return `From ${m.n} ${m.n===1?"sale":"sales"} on ${esc(m.site||"the sold page")}, read by your Pawn price button today. ${srcLink(m.url,"See those sales")}`;
   if(m.kind==="shot")return `From ${m.n} ${m.n===1?"sale":"sales"} you read off ${esc(m.site||"the screenshot")} today.`;
   if(m.kind==="own")return `From your own ${m.n} ${m.n===1?"sale":"sales"} of this item.`;
-  if(m.kind==="found")return `From <b>${m.n}</b> listing${m.n===1?"":"s"} on file${m.sold?`, ${m.sold} of them sold`:""}: the middle one is <b>${money(m.med)}</b>, the middle half ${money(m.lo)}&ndash;${money(m.hi)}.${m.mostlyAsks?` Mostly asking prices, so it is taken one step down.`:""}${m.conf==="l"?` <span style="color:#FFC98F">Few listings behind this &mdash; look at the sold pages before you lean on it.</span>`:""} The middle one is used, not the average, so one bad listing cannot move it.`;
+  if(m.kind==="found")return `From <b>${m.n}</b> listing${m.n===1?"":"s"} on file${m.sold?`, ${m.sold} of them sold`:""}: the middle one is <b>${money(m.med)}</b>, the middle half ${money(m.lo)}&ndash;${money(m.hi)}.${m.from?` From ${esc(m.from)}.`:""}${m.mostlyAsks?` Mostly asking prices, so it is taken one step down.`:""}${m.conf==="l"?` <span style="color:#FFC98F">Few listings behind this &mdash; look at the sold pages before you lean on it.</span>`:""} The middle one is used, not the average, so one bad listing cannot move it.`;
   if(m.kind==="seen")return `From <b>${m.n}</b> shelf tag${m.n===1?"":"s"} you recorded, asking ${money(m.lo)}&ndash;${money(m.hi)}, typically ${money(m.ask)}. Taken one markdown step down, because an asking price is not a sale.`;
   if(m.kind==="retail")return `Estimated from <b>${money(m.retail)}</b> new retail, taken to ${(m.pct||retailPct())}% for a used one. This is not a sold price &mdash; check sold prices when you can.`;
   return "Your number, typed in.";
@@ -3054,7 +3054,7 @@ function compsAdd(q,list){
   if(!q||!Array.isArray(list))return 0;
   const w=omniWords(q), a=compsAll(), now=Date.now();
   let added=0;
-  list.slice(0,20).forEach((c,i)=>{
+  list.slice(0,48).forEach((c,i)=>{
     const p=Math.round(Number(c&&c.price));
     if(!(p>0)||p>1000000)return;
     a.push({id:now.toString(36)+i.toString(36)+Math.random().toString(36).slice(2,5), ts:now, q, words:w, price:p,
@@ -3072,45 +3072,74 @@ function compStats(rows){
   const at=f=>ps[Math.min(n-1,Math.max(0,Math.round(f*(n-1))))];
   const med=seenMedian(ps), lo=at(0.25), hi=at(0.75);
   const sold=(rows||[]).filter(r=>r.basis==="sold").length;
+  /* Which places the listings came from. The message under the button is gone
+     the moment the price lands and the card moves to condition, so the
+     breakdown has to live on the price itself to survive. */
+  const by={}; (rows||[]).forEach(r=>{ const k=(r.where||"?").trim()||"?"; by[k]=(by[k]||0)+1; });
+  const from=Object.keys(by).sort((a,b)=>by[b]-by[a]).map(k=>k+" "+by[k]).join(" \u00b7 ");
   const soldShare=sold/n;
   /* Asking prices sit above sales, so a set that is mostly asks takes the same
      one-step-down the shelf tags take. A set that is mostly sold does not. */
   const mostlyAsks=soldShare<0.5;
-  return {n, med, lo, hi, sold, soldShare, mostlyAsks,
+  return {n, med, lo, hi, sold, soldShare, mostlyAsks, from,
     conf:(n>=6&&soldShare>=0.6)?"h":(n>=4?"m":"l"),
     mid:Math.max(5,Math.round(med*(mostlyAsks?SEEN_TO_SOLD:1)/5)*5)};
+}
+/* Where a lookup goes. One general search answers from wherever it lands;
+   these name the places the trade actually prices from, so the pile gets
+   listings from each instead of whatever one pass happened to find. They run
+   together rather than in turn - coverage costs a call each, it does not have
+   to cost the wait as well - and one failing does not lose the others. */
+function findPasses(x){
+  const p=[{name:"eBay sold",   where:"eBay",
+            say:"completed, sold eBay listings - the price it actually went for, not what it was listed at"}];
+  if(st.catId==="guns") p.push({name:"GunBroker", where:"GunBroker",
+            say:"completed GunBroker auctions that ended in a sale"});
+  p.push({name:"Shopping, used", where:"Shopping",
+            say:"used-condition listings currently for sale on Google Shopping and the marketplaces"});
+  return p;
+}
+function findPrompt(q,pass){
+  return 'Find what a used "'+q+'" sells for in the United States. Search '+pass.say+'. '+
+    'List the individual listings you find, up to 12. Reply with JSON and nothing else: '+
+    '{"comps":[{"price":<number, one listing\'s price>,"what":"<the item in a few words>",'+
+    '"where":"<site>","basis":"sold" or "asking"}]}. '+
+    'Only listings for the same thing - not parts, not accessories, not multi-item lots. '+
+    'If you find none, reply {"comps":[]}.';
 }
 let findBusy=false;
 async function priceFind(){
   if(findBusy||!CAP.sample)return;
   const x=calcItem(), q=compQuery(x);
   if(!q)return;
+  const passes=findPasses(x);
   findBusy=true; render();
   const say=t=>{ const el=document.getElementById("pdFindMsg"); if(el)el.textContent=t; };
-  try{
-    const d=await CAP.sample.json(
-      'Find what a used "'+q+'" actually sells for in the United States. Search the web and list the '+
-      'individual listings you find, up to 12 of them, preferring completed or sold listings over ones still for sale. '+
-      'Reply with JSON and nothing else: {"comps":[{"price":<number, one listing\'s price>,'+
-      '"what":"<the item in a few words>","where":"<site>","basis":"sold" or "asking"}]}. '+
-      'Only include listings for the same thing - not parts, not accessories, not multi-item lots. '+
-      'If you cannot find any, reply {"comps":[]}.',
-      {search:true});
-    findBusy=false;
-    const added=compsAdd(q,(d&&d.comps)||[]);
-    if(!added){ render(); say("Couldn't find listings for that. Try the sold pages."); return; }
-    useComps(compStats(compsMatch(calcItem())));
-    const st2=compStats(compsMatch(calcItem()));
-    say(added+" listing"+(added===1?"":"s")+" added"+(st2?", "+st2.n+" on file now":"")+".");
-  }catch(e){
-    findBusy=false; render();
-    say(((e&&e.code)==="no_server")?"No service connected yet.":"Lookup failed. Try the sold pages.");
-  }
+  say("Searching "+passes.length+" places\u2026");
+  const out=await Promise.allSettled(passes.map(p=>CAP.sample.json(findPrompt(q,p),{search:true})));
+  findBusy=false;
+  const got=[], tally=[];
+  let failed=0;
+  out.forEach((r,i)=>{
+    if(r.status!=="fulfilled"){ failed++; tally.push(passes[i].name+" failed"); return; }
+    const cs=((r.value&&r.value.comps)||[]).filter(c=>c&&Number(c.price)>0);
+    cs.forEach(c=>got.push(Object.assign({},c,{where:String(c.where||passes[i].where).slice(0,24)})));
+    tally.push(passes[i].name+" "+cs.length);
+  });
+  /* The same listing can surface in more than one pass; count it once. */
+  const seen={};
+  const uniq=got.filter(c=>{ const k=Math.round(c.price)+"|"+String(c.where||"").toLowerCase();
+                             if(seen[k])return false; seen[k]=1; return true; });
+  const added=compsAdd(q,uniq);
+  if(!added){ render(); say(failed===passes.length?"Every search failed. Try the sold pages.":"No listings found. Try the sold pages."); return; }
+  useComps(compStats(compsMatch(calcItem())));
+  const t=compStats(compsMatch(calcItem()));
+  say(tally.join(" \u00b7 ")+" \u2014 "+added+" new"+(t?", "+t.n+" on file":"")+(got.length-uniq.length?", "+(got.length-uniq.length)+" duplicate dropped":""));
 }
 function useComps(t){
   if(!t)return;
   st.market={kind:"found",key:mkKey(),n:t.n,med:t.med,lo:t.lo,hi:t.hi,sold:t.sold,
-             mostlyAsks:t.mostlyAsks,conf:t.conf,mid:t.mid};
+             mostlyAsks:t.mostlyAsks,conf:t.conf,mid:t.mid,from:t.from};
   render();
 }
 function seenEstimate(list){
