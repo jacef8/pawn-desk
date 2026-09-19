@@ -2749,10 +2749,14 @@ const SRC_NAMES={"pricecharting.com":"PriceCharting","swappa.com":"Swappa","gunw
 function srcName(u){ try{ const h=new URL(u).hostname.replace(/^(www|used)\./,""); return SRC_NAMES[h]||h; }catch(e){ return "the source"; } }
 function srcLink(u,txt){ return /^https:\/\//.test(u||"")?`<a class="srcLink" href="${esc(u)}" target="_blank" rel="noopener" referrerpolicy="no-referrer">${txt||"Check it yourself"} &#8599;</a>`:""; }
 function marketSrcHTML(m){
-  if(m.kind==="list")return `Resale value from <b>${esc(srcName(m.src))}</b> for <b>${esc(m.name)}</b>, checked ${esc(fmtDay(m.date))}. ${srcLink(m.src)}${m.conf==="l"?` <span style="color:#FFC98F">Thin data on this one &mdash; double-check it.</span>`:""}`;
+  if(m.kind==="list")return `Resale value from <b>${esc(srcName(m.src))}</b> for <b>${esc(m.name)}</b>, checked ${esc(fmtDay(m.date))}. ${srcLink(m.src)}${m.conf==="l"
+    ?` <span style="color:#FFC98F">Thin data on this one &mdash; it rests on forum posts or a single listing, so double-check it.</span>`
+    :m.conf==="h"?` The data behind this one is good.`
+    :` The data behind this one is fair &mdash; a starting point, not the last word.`}`;
   if(m.kind==="shot"&&m.via==="button")return `From ${m.n} ${m.n===1?"sale":"sales"} on ${esc(m.site||"the sold page")}, read by your Pawn price button today. ${srcLink(m.url,"See those sales")}`;
   if(m.kind==="shot")return `From ${m.n} ${m.n===1?"sale":"sales"} you read off ${esc(m.site||"the screenshot")} today.`;
   if(m.kind==="own")return `From your own ${m.n} ${m.n===1?"sale":"sales"} of this item.`;
+  if(m.kind==="found")return `Looked up: used ones sell for <b>${money(m.lo)}</b> to <b>${money(m.hi)}</b>${m.where?` (${esc(m.where)})`:""}, ${esc(m.basis||"unclear basis")}.${m.conf==="h"?" That is from sold prices.":m.conf==="m"?" That is from a price guide, not sold prices.":` <span style="color:#FFC98F">That rests on asking prices &mdash; check it before you lean on it.</span>`}`;
   if(m.kind==="seen")return `From <b>${m.n}</b> shelf tag${m.n===1?"":"s"} you recorded, asking ${money(m.lo)}&ndash;${money(m.hi)}, typically ${money(m.ask)}. Taken one markdown step down, because an asking price is not a sale.`;
   if(m.kind==="retail")return `Estimated from <b>${money(m.retail)}</b> new retail, taken to ${(m.pct||retailPct())}% for a used one. This is not a sold price &mdash; check sold prices when you can.`;
   return "Your number, typed in.";
@@ -2960,16 +2964,76 @@ function seenMedian(ns){ const a=ns.slice().sort((p,q)=>p-q), n=a.length;
    number — a model, a size — a tag must carry that same number to count.
    Without it "husqvarna 455 rancher chainsaw" scores three shared words
    against a 450 Rancher and quietly prices the wrong saw. */
-function seenMatch(x){
-  const w=omniWords([st.brandTyped,st.model,x?displayName(x):"",st.bookName].filter(Boolean).join(" "));
+function pdQueryWords(x){
+  return omniWords([st.brandTyped,st.model,x?displayName(x):"",st.bookName].filter(Boolean).join(" "));
+}
+/* One matcher for both records - shelf tags and looked-up prices are matched
+   on the same rules, so a 450 Rancher cannot answer for a 455 in either. */
+function pdMatch(rows,x,limit){
+  const w=pdQueryWords(x);
   if(!w.length)return [];
   /* A number is not the only thing that separates two models: Pro, Max and
      Mini do the same work. AirPods Pro at $99 otherwise averages with a
      second-generation pair at $49 and prices neither of them. */
   const key=w.filter(t=>/\d/.test(t)||VARIANT.test(t)), need=w.length>1?2:1;
-  return seenAll().map(s=>({s,hit:(s.words||[]).filter(t=>w.indexOf(t)>=0).length}))
+  return (rows||[]).map(s=>({s,hit:(s.words||[]).filter(t=>w.indexOf(t)>=0).length}))
     .filter(o=>o.hit>=need&&(!key.length||key.some(t=>(o.s.words||[]).indexOf(t)>=0)))
-    .sort((a,b)=>b.hit-a.hit||b.s.ts-a.s.ts).map(o=>o.s).slice(0,12);
+    .sort((a,b)=>b.hit-a.hit||b.s.ts-a.s.ts).map(o=>o.s).slice(0,limit||12);
+}
+function seenMatch(x){ return pdMatch(seenAll(),x); }
+
+/* ---- looked-up prices: the dataset growing itself ------------------------
+   179 rows cannot cover a counter. When nothing matches, the service can go
+   and find what the thing sells for used, and the answer is kept, so the
+   second time it is asked it is already known. What the answer rests on is
+   kept with it and shown, because a completed-listing price and somebody's
+   asking price are not the same evidence. */
+const FOUND_KEY="pawndesk_found", FOUND_MAX=400;
+const BASIS_CONF={"sold listings":"h","sold":"h","price guide":"m","guide":"m","asking prices":"l","asking":"l"};
+function foundAll(){ try{ return JSON.parse(localStorage.getItem(FOUND_KEY)||"[]"); }catch(e){ return []; } }
+function foundSave(a){ try{ localStorage.setItem(FOUND_KEY,JSON.stringify(a.slice(-FOUND_MAX))); }catch(e){} }
+function foundAdd(r){
+  const q=String(r.q||"").trim().slice(0,80), lo=Math.round(Number(r.lo))||0, hi=Math.round(Number(r.hi))||0;
+  if(!q||!(lo>0)||!(hi>=lo))return null;
+  const row={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), ts:Date.now(), q, lo, hi,
+    conf:(r.conf==="h"||r.conf==="m")?r.conf:"l", basis:String(r.basis||"").slice(0,24),
+    where:String(r.where||"").slice(0,40), note:String(r.note||"").slice(0,90), words:omniWords(q)};
+  const a=foundAll().filter(o=>o.q!==q);       /* a fresh answer replaces the old one */
+  a.push(row); foundSave(a); return row;
+}
+function foundMatch(x){ return pdMatch(foundAll(),x,4); }
+let findBusy=false;
+async function priceFind(){
+  if(findBusy||!CAP.sample)return;
+  const x=calcItem(), q=compQuery(x);
+  if(!q)return;
+  findBusy=true; render();
+  const say=t=>{ const el=document.getElementById("pdFindMsg"); if(el)el.textContent=t; };
+  try{
+    const d=await CAP.sample.json(
+      'What does a used "'+q+'" sell for in the United States today? Search the web, and prefer prices '+
+      'things actually sold for - completed eBay or GunBroker listings, marketplace sold data - over asking prices. '+
+      'Reply with JSON and nothing else: {"lo":<low end of the usual used selling price, a number>,'+
+      '"hi":<high end, a number>,"basis":"sold listings" or "price guide" or "asking prices" or "none",'+
+      '"where":"<source>","note":"<10 words or fewer on what moves the price>"}. '+
+      'If there are no real used prices for it, reply {"lo":0,"hi":0,"basis":"none"}.',
+      {search:true});
+    findBusy=false;
+    const lo=Math.round(Number(d&&d.lo)), hi=Math.round(Number(d&&d.hi));
+    if(!(lo>0&&hi>=lo)){ render(); say("Couldn't find used prices for that. Try the sold pages."); return; }
+    const row=foundAdd({q,lo,hi,conf:BASIS_CONF[String((d&&d.basis)||"").toLowerCase()]||"l",
+                        basis:(d&&d.basis)||"",where:(d&&d.where)||"",note:(d&&d.note)||""});
+    useFound(row); 
+  }catch(e){
+    findBusy=false; render();
+    say(((e&&e.code)==="no_server")?"No service connected yet.":"Lookup failed. Try the sold pages.");
+  }
+}
+function useFound(row){
+  if(!row)return;
+  st.market={kind:"found",key:mkKey(),lo:row.lo,hi:row.hi,conf:row.conf,where:row.where,basis:row.basis,
+             ts:row.ts,mid:Math.max(5,Math.round((row.lo+row.hi)/2/5)*5)};
+  render();
 }
 function seenEstimate(list){
   const asks=(list||[]).map(s=>s.ask).filter(n=>n>0);
@@ -3050,7 +3114,9 @@ document.addEventListener("change",e=>{
   if(t&&t.id==="seenImp"&&t.files&&t.files[0]){ seenImport(t.files[0]); t.value=""; }
 },true);
 document.addEventListener("click",e=>{
-  const b=e.target&&e.target.closest?e.target.closest("#seenHand,#seenOut,#seenUse"):null; if(!b)return;
+  const b=e.target&&e.target.closest?e.target.closest("#seenHand,#seenOut,#seenUse,#pdFindGo,#foundUse"):null; if(!b)return;
+  if(b.id==="pdFindGo"){ priceFind(); return; }
+  if(b.id==="foundUse"){ useFound(foundMatch(calcItem())[0]); return; }
   if(b.id==="seenOut"){ seenExport(); return; }
   if(b.id==="seenUse"){
     const est=seenEstimate(seenMatch(calcItem()));
@@ -3063,13 +3129,49 @@ document.addEventListener("click",e=>{
   const store=prompt("Which shop? (blank if you'd rather not)","");
   if(seenAdd({name:name,ask:parseFloat(ask),reg:parseFloat(reg||0),store:store||""}))render();
 });
+/* Each price row carries a confidence flag, and a letter is no use at a
+   counter. It grades how good the data behind the row is - not what kind of
+   source it came from: GunWatcher is GunBroker sold data and Swappa is a sold
+   marketplace, and both are flagged m. Saying "from a price guide" on those
+   would be a lie the data does not support, so these report the confidence
+   and let the source name, which is shown beside it, speak for itself.
+   Of the 179 rows, 14 are h, 123 m and 42 l. */
+const CONF_WORD={h:"good data",m:"fair data",l:"thin data"};
+function confShort(c){ return CONF_WORD[c]||""; }
+/* The price sources that are not the sold pages. The desk and the phone draw
+   their step cards differently, but the evidence they offer is the same and in
+   the same order - what was looked up before, a fresh lookup, then what the
+   shops nearby are asking - so it is written once here. */
+function altSourcesHTML(x){
+  let h="";
+  const F=foundMatch(x)[0];
+  if(F) h+=`<div class="label" style="margin-top:14px">Looked up before</div>`
+         +`<button class="nsBtn on" id="foundUse"><span>${esc(fmtDay(new Date(F.ts).toISOString().slice(0,10)))} &middot; ${money(F.lo)}&ndash;${money(F.hi)}</span><b>${money(Math.max(5,Math.round((F.lo+F.hi)/2/5)*5))}</b><i>use this</i></button>`;
+  if(CAP.sample)
+    h+=`<button class="nsBtn${F?"":" on"}" id="pdFindGo" style="margin-top:8px"><span>${findBusy?"Looking it up&hellip;":"Look up what it sells for used"}</span></button>`
+      +`<div class="cardHint" id="pdFindMsg"></div>`;
+  /* Google Shopping's used filter: asking prices for used ones, which sits
+     below a completed sale and above a new-retail figure. The structured
+     filter rides in an opaque per-query blob that cannot be built for an
+     arbitrary item, so the Shopping tab plus the word "used" does the same
+     work for anything. Read the price and type it in the box above - it is a
+     selling price already, so it must not take the new-to-used haircut. */
+  h+=`<div class="label" style="margin-top:14px">Used ones, for sale now</div>`
+    +`<a class="nsBtn" href="https://www.google.com/search?udm=28&q=${encodeURIComponent("used "+compQuery(x))}" target="_blank" rel="noopener" referrerpolicy="no-referrer"><span>Used on Google Shopping</span><b>&#8599;</b></a>`
+    +`<div class="cardHint">Asking prices, not sales &mdash; but for what a used one is actually listed at, closer than a new price. Type it into the box above.</div>`;
+  const E=seenEstimate(seenMatch(x));
+  if(E) h+=`<div class="label" style="margin-top:14px">Seen on shelves near you</div>`
+         +`<button class="nsBtn on" id="seenUse"><span>${E.n} tag${E.n===1?"":"s"}, asking ${money(E.lo)}&ndash;${money(E.hi)}</span><b>${money(E.mid)}</b><i>use this</i></button>`;
+  return h;
+}
 function nsSrcShort(m){
   if(!m)return "";
-  if(m.kind==="list")return srcName(m.src)+", "+fmtDay(m.date);
+  if(m.kind==="list")return srcName(m.src)+", "+fmtDay(m.date)+(confShort(m.conf)?" \u00b7 "+confShort(m.conf):"");
   if(m.kind==="shot")return m.n+" sold on "+(m.site||"the sold page");
   if(m.kind==="own")return "your "+m.n+" sales";
   if(m.kind==="retail")return "est. from "+money(m.retail)+" new";
   if(m.kind==="seen")return m.n+" seen locally, asking "+money(m.ask);
+  if(m.kind==="found")return "looked up "+money(m.lo)+"\u2013"+money(m.hi)+(confShort(m.conf)?" \u00b7 "+confShort(m.conf):"");
   return "your number";
 }
 function nextStepHTML(x){
@@ -3101,7 +3203,7 @@ function nextStepHTML(x){
     sub=(!CAP.sample&&isTouch())?"Tap a button and look at the sold prices. Then tap <b>I know the price</b> and type the middle one.":pdBridge?"Click a button. The sold page opens, reads itself, and the price lands here.":(isTouch()?"Tap a button, screenshot the sold results, and add the screenshot below.":"Click a button. On the sold page, click your <b>Pawn price</b> favorite and the price lands here.");
     act=compTargets(x).map(t=>`<a class="nsBtn nsSold" data-label="${t.name}" href="${esc(t.url)}" target="_blank" rel="opener" referrerpolicy="no-referrer"><span>${t.name}</span><b>&#8599;</b></a>`).join("")
        +`<button class="nsBtn ghost" id="nsType"><span>I know the price &mdash; type it</span></button>`
-       +(function(){ const E=seenEstimate(seenMatch(x)); return E?`<div class="label" style="margin-top:14px">Seen on shelves near you</div><button class="nsBtn on" id="seenUse"><span>${E.n} tag${E.n===1?"":"s"}, asking ${money(E.lo)}&ndash;${money(E.hi)}</span><b>${money(E.mid)}</b><i>use this</i></button>`:""; })()
+       +altSourcesHTML(x)
        +`<div class="label" style="margin-top:14px">No sold prices? Use what it costs new</div>`
        +(CAP.sample?`<button class="nsBtn on" id="pdRetGo"><span>${retailBusy?"Looking it up&hellip;":"Look up the new price"}</span></button><div class="cardHint" id="pdRetMsg"></div>`:retailTargets(compQuery(x)).map(t=>`<a class="nsBtn nsRetail" data-label="${esc(t.name)}" href="${esc(t.url)}" target="_blank" rel="opener" referrerpolicy="no-referrer"><span>${esc(t.name)}</span><b>&#8599;</b></a>`).join(""))
        +`<div class="row2" style="margin-top:8px"><input id="nsRet" class="numIn" type="number" inputmode="decimal" placeholder="What it costs new" style="flex:1;min-width:0"><button class="ghostBtn" id="nsRetGo" style="padding:10px 15px">Use it</button></div>`
