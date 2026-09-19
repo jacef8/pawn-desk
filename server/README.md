@@ -1,88 +1,95 @@
-# The Pawn Desk price service
+# The Pawn Desk price and photo service
 
 The website can't identify a photo or look up a price by itself. A web page is
 not allowed to read another website, and it can't hold a secret key — anything
-in the page is public. This little service does both jobs for it.
+in the page is public. This small service does both jobs for it.
 
-Once it's running, on the phone and at the desk you get:
+Once it's running you get, on the phone and at the desk:
 
 - **Photograph an item** and have it identified
-- **Look up the new price** without a tab opening — the number lands in the app
+- **Photograph a price tag** and have it read into your shelf record
+- **Look up what it sells for used** — eBay completed, Google Shopping used,
+  and GunBroker for firearms, all at once, with no tab opening
 - **Read sold prices off a screenshot**
 
-You set it up once. It takes about ten minutes.
+## The files
+
+| File | |
+|---|---|
+| `core.js` | everything the service does — shared, never copied per host |
+| `server.js` | Railway, or any Node host |
+| `worker.js` | Cloudflare Workers, via wrangler |
+| `package.json` | no dependencies; Node's own http and fetch are enough |
+
+Both host files do nothing but hand a request to `core.js` and pass the answer
+back, so there is one copy of the logic.
 
 ---
 
-## What it costs
+## Deploying on Railway
 
-- **Cloudflare** — free. This fits inside the free plan.
-- **Anthropic** — pay per use. Each photo or lookup is a fraction of a cent;
-  a busy counter day is cents, not dollars. You add credit up front and it
-  draws down, so it can't run away from you.
-
-## What you need first
-
-1. A **Cloudflare** account — free, at `dash.cloudflare.com`.
-2. An **Anthropic API key** — from `console.anthropic.com`, under API Keys.
-   It starts with `sk-ant-`. Treat it like a credit card number.
-3. A **token you make up** — any password-like string, say `lamars-desk-7788`.
-   It stops a stranger who finds the address from spending your credit.
-
----
-
-## Setting it up
-
-1. In Cloudflare, go to **Workers & Pages** → **Create** → **Create Worker**.
-2. Name it `pawn-desk` and click **Deploy**. It deploys a placeholder — fine.
-3. Click **Edit code**. Delete everything in the editor, paste in the whole of
-   `worker.js` from this folder, then **Deploy**.
-4. Go to the worker's **Settings** → **Variables and Secrets**. Add three,
-   each as type **Secret**:
+1. **railway.app** → **New Project** → **Deploy from GitHub repo** → pick
+   `jacef8/pawn-desk`.
+2. **Settings** → **Root Directory**: `server`. Railway reads `package.json`
+   and runs `npm start`; there is nothing to install.
+3. **Variables** → add three:
 
    | Name | Value |
    |---|---|
-   | `ANTHROPIC_API_KEY` | your `sk-ant-...` key |
-   | `PAWN_TOKEN` | the token you made up |
+   | `ANTHROPIC_API_KEY` | your `sk-ant-…` key |
+   | `PAWN_TOKEN` | a password you invent, e.g. `lamars-desk-7788` |
    | `ALLOW_ORIGIN` | `https://jacef8.github.io` |
 
-5. **Deploy** again so the secrets take effect.
-6. Copy the worker's address. It looks like
-   `https://pawn-desk.<your-name>.workers.dev`.
+4. **Settings** → **Networking** → **Generate Domain**. That address is the
+   service.
+5. Check it: open `https://your-address/limits` in a browser. A short line of
+   JSON about image types means it is running.
+6. On the phone, open the desk, find **Photo ID & price lookup**, tap
+   **Connect**, paste the address and the token. Repeat on the desk computer —
+   it is stored per device.
 
-## Connecting the desk to it
+Pushing to `main` redeploys it.
 
-1. Open https://jacef8.github.io/pawn-desk/phone.html
-2. Find the **Photo ID & price lookup** card and tap **Connect**.
-3. Paste the worker address, then the token.
+## What it costs
 
-The page reloads and the camera appears. Do this once per phone or computer —
-the address is stored on that device only, never in the website.
-
-To check it's alive, open `https://your-worker-address/limits` in a browser.
-You should see a short line of text, not an error.
-
----
+Railway bills for the container, which idles at a few dollars a month.
+Anthropic bills per use: a photo read or one search pass is a fraction of a
+cent. A price lookup fires two passes, three for a firearm, so reckon on low
+single-digit cents per lookup against a prepaid balance.
 
 ## If something goes wrong
 
 | What you see | What it means |
 |---|---|
-| Card still says **Off** | The address didn't save. Tap Connect and re-paste it. |
-| **Connected, but the service did not answer** | Wrong address, or the worker isn't deployed. Try the `/limits` check above. |
-| **Lookup failed** | Usually `PAWN_TOKEN` in Cloudflare not matching the token you typed into the app. |
-| Nothing works after a key change | Redeploy the worker. Secrets only take effect on deploy. |
+| Card still says **Off** | The address did not save. Tap Connect again. |
+| **Connected, but the service did not answer** | Wrong address, or it is not running. Try the `/limits` check. |
+| **Lookup failed** | Usually `PAWN_TOKEN` not matching what you typed into the app. |
+| `no_key` in the reply | `ANTHROPIC_API_KEY` missing or rejected. |
+
+## Other hosts
+
+**Cloudflare Workers** — `worker.js` is the adapter. Deploy with
+`npx wrangler deploy` from this folder and set the same three as secrets
+(`npx wrangler secret put ANTHROPIC_API_KEY`). It imports `core.js`, so it
+cannot be pasted into the dashboard as a single file any more.
+
+**Firebase** — Cloud Functions can host this, but outbound calls to
+`api.anthropic.com` require the **Blaze** plan; the free Spark plan blocks
+them, which is the usual reason this kind of function fails there.
+
+Firebase is interesting for a different reason: the desk already talks to its
+local deal log through a Firestore-shaped interface (`collection`, `doc`,
+`onSnapshot`). Pointing that at a real Firestore would make the deal log and
+the shelf-price record shared across the phone and the desk instead of living
+on each device, which is the main thing Export and Import exist to work
+around.
 
 ## Notes
 
-- The key lives only in Cloudflare. It is never in this repository, never in
-  the website, and never on a phone.
-- `ALLOW_ORIGIN` limits which site may call the service, and `PAWN_TOKEN`
-  limits who may call it. The token does sit in your phone's storage, so
-  anyone holding your unlocked phone could read it — rotate it in Cloudflare
-  if a device goes missing.
-- Built as one file with no build step so it can be pasted into the dashboard.
-  The same endpoints run under `wrangler` with `@anthropic-ai/sdk` if you'd
-  rather build it properly later.
+- The key lives only in the host's variables. Never in this repository, never
+  in the website, never on a phone.
+- `ALLOW_ORIGIN` limits which site may call the service; `PAWN_TOKEN` limits
+  who may call it. The token does sit in the phone's storage, so rotate it if
+  a device goes missing.
 - It uses `claude-opus-5`. To spend less per lookup, add
-  `output_config: {effort: "low"}` to the request in `worker.js`.
+  `output_config: {effort: "low"}` to the request in `core.js`.
