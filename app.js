@@ -150,6 +150,13 @@ function brandLookup(catId,txt){
    Values are starting resale estimates for rural North Florida, excellent
    condition, mid brand, complete. The counter person is still the judge. */
 const PRICEBOOK=[
+ /* gaps the counter walked into: every one of these was photographed on a
+    shelf in Tallahassee and had nowhere to land in this list. Values are
+    the observed asking price taken one markdown step down, the same way a
+    shelf tag is treated everywhere else. */
+ ["Wireless earbuds",60,"elec","fast"],["DSLR / mirrorless camera",200,"elec","slow"],
+ ["Band saw \u2014 benchtop",160,"tools","slow"],["Audio mixer \u2014 PA board",140,"music","slow"],
+ ["TIG / stick welder",320,"tools","slow"],
  /* guns & shooting */
  ["Gun safe",400,"guns","slow"],["Single-shot shotgun",100,"guns","fast"],["SKS rifle",500,"guns","normal"],
  ["AK-pattern rifle",650,"guns","normal"],["Derringer",125,"guns","normal"],["Air rifle / pellet gun",40,"guns","normal"],
@@ -1669,7 +1676,7 @@ const ITEM_SYN={
  e6:"bluetooth speaker",e7:"car audio amp sub subwoofer",
  m1:"acoustic guitar",m2:"electric guitar",m3:"amplifier guitar amp",
  r1:"utility trailer",r2:"atv four wheeler 4 wheeler fourwheeler quad"};
-const BOOK_SYN={"Zero-turn mower":"zero turn zturn ztr","Golf cart":"golf cart","Kayak — sit-on-top":"kayak yak",
+const BOOK_SYN={"Wireless earbuds":"airpods air pods earbuds buds earphones galaxy buds","DSLR / mirrorless camera":"dslr slr mirrorless canon nikon sony rebel eos t6 t7 d3500 alpha","Band saw \u2014 benchtop":"bandsaw band saw","Audio mixer \u2014 PA board":"mixer mixing board soundboard sound board zed behringer yamaha mackie","TIG / stick welder":"tig stick arc welder weldpro everlast","Zero-turn mower":"zero turn zturn ztr","Golf cart":"golf cart","Kayak — sit-on-top":"kayak yak",
  "Jon boat — 12ft, no motor":"jon boat johnboat","UTV / side-by-side":"utv side by side sxs","Dirt bike":"motorcycle",
  "E-bike":"ebike electric bike","Camera drone":"drone","Smart watch":"smartwatch watch","Handheld game console":"handheld",
  "Gaming desktop PC":"desktop pc computer tower","Air rifle / pellet gun":"bb gun pellet air rifle",
@@ -1990,6 +1997,11 @@ function wordHit(tok,words){
 }
 function omniRows(q){
   const P=omniParse(q), rows=[];
+  /* Did anything really match what was typed - a known model, a price-list
+     row, or an entry carrying every word? Brand-only listings do not count:
+     typing "apple airpods pro" lists what Apple things the catalog has,
+     which is how a projector ends up answering for earbuds. */
+  let strong=false;
   if(P.raw.length<2)return {P,rows};
   const model=[P.modelLabel].concat(P.modelLabel?[]:P.left.map(w=>pretty(w))).filter(Boolean).join(" ");
   const KEEP=/^(impact|hammer|digital|pro|max|plus|lite|oled|slim|xl|compact|magnum)$/;
@@ -1999,21 +2011,37 @@ function omniRows(q){
     if(rows.some(r=>r.kind===e.kind&&r.name===e.name&&r.catId===e.catId))return;
     rows.push(Object.assign({},e,base,extra||{})); };
   if(P.metal&&!P.modelItem)rows.push({kind:"metal",metal:P.metal,karat:P.karat});
-  if(P.modelItem)add(findEntry(P.modelItem),{strong:true});
+  if(P.modelItem){ add(findEntry(P.modelItem),{strong:true}); strong=true; }
   { const bw=omniWords(P.brand||""), mq=omniWords(q).filter(w=>!STOP.has(w)&&bw.indexOf(w)<0);
     if(mq.length){
       const r0=rows[0], strongId=r0&&r0.strong?((mpFor(r0.kind==="item"?r0.itemId:r0.name,[r0.brand,r0.model,r0.detail].join(" "))||[])[0]):null;
       MODEL_PRICES.map(r=>{ const nw=omniWords(r[2]); let s=0; for(const w of mq){ const h=wordHit(w,nw); if(!h)return null; s+=h; } if(omniNorm(r[2]).indexOf(omniNorm(q))>=0)s+=5; return {r,s}; })
         .filter(Boolean).sort((a,b)=>b.s-a.s||a.r[2].length-b.r[2].length).slice(0,5)
         .forEach(({r})=>{ if(rows.length>=8||r[0]===strongId)return; const e=findEntry(String(r[1]).split("|")[0]); if(!e)return;
-          rows.push(Object.assign({},e,{kind:"mp",base:e.kind,mp:r,brand:"",model:"",detail:"",spec:{},cond:P.cond,complete:P.complete})); });
+          rows.push(Object.assign({},e,{kind:"mp",base:e.kind,mp:r,brand:"",model:"",detail:"",spec:{},cond:P.cond,complete:P.complete}));   strong=true; });
     } }
   const inBrand=e=>P.brandCats.some(c=>c.cat===e.catId&&(!c.items||c.items.indexOf(e.kind==="item"?e.itemId:e.name)>=0));
   if(P.words.length){
     let sc=[];
     const score=(e,and)=>{ let s=0; for(const w of P.words){ const h=wordHit(w,e.words); if(!h&&and)return 0; s+=h; } return s; };
     OMNI_IDX.forEach(e=>{ const s=score(e,true); if(s)sc.push({e,s:s+(inBrand(e)?3:0)+(e.kind==="item"?.5:0)}); });
-    if(!sc.length)OMNI_IDX.forEach(e=>{ const s=score(e,false); if(s)sc.push({e,s:s+(inBrand(e)?3:0)}); });
+    /* Nothing matched every word, so fall back to matching any of them - but
+       remember that we did. A loose match is how "airpods pro" reaches
+       Projector on the strength of three letters, and it must not sit above
+       the words the counter actually typed. */
+    /* The parser hands this pass only what is left after the brand and the
+       model are taken out, so a match here can rest on one generic noun:
+       "skil band saw bw9501" arrives as "saw" and lands on Tile saw, having
+       quietly dropped "band". A match counts as strong only if the entry
+       carries every distinguishing word - or if the parser recognised a model
+       and therefore understood the whole thing. */
+    if(sc.length){
+      const bw=omniWords(P.brand||"");
+      const need=omniWords(q).filter(w=>!STOP.has(w)&&bw.indexOf(w)<0);
+      const top=sc.slice().sort((a,b)=>b.s-a.s)[0].e;
+      strong=!!P.modelLabel||!need.length||need.every(w=>wordHit(w,top.words));
+    }
+    else OMNI_IDX.forEach(e=>{ const s=score(e,false); if(s)sc.push({e,s:s+(inBrand(e)?3:0)}); });
     sc.sort((a,b)=>b.s-a.s||a.e.name.length-b.e.name.length).forEach(x=>add(x.e));
   } else if(P.brandCats.length&&!P.modelItem){
     (BRAND_FIRST[P.brand.toLowerCase()]||[]).forEach(ref=>add(findEntry(ref)));
@@ -2040,6 +2068,16 @@ function omniRows(q){
   const guns=rows.length?rows.some(r=>r.catId==="guns")&&rows.filter(r=>r.catId&&r.catId!=="guns").length===0:false;
   const qq=String(q).trim().slice(0,100);
   rows.push({kind:"sold",q:qq,guns,url:guns?"https://www.gunbroker.com/All/search?Keywords="+encodeURIComponent(qq):watchCountUrl(qq)});
+  /* Whatever was typed is always something the counter can price. No button
+     for it: type, and either the catalog has it or those words become the
+     item. It goes above the matches when they are only loose ones, since a
+     wrong category is worse than no category. */
+  { const t=String(q||"").trim();
+    if(t.length>=3&&!P.metal){
+      const own={kind:"own",q:t.slice(0,60)};
+      const before=rows.findIndex(r=>r.kind==="sold");
+      rows.splice(strong?(before<0?rows.length:before):0,0,own);
+    } }
   return {P,rows};
 }
 
@@ -2059,6 +2097,7 @@ function omniHTML(){
 let omniRowsCache=[];
 function omniRowHTML(r,i){
   const hl=i===st.omniHl?" hl":"";
+  if(r.kind==="own")return `<button type="button" class="omniRow${hl}" data-omni="${i}" role="option"><span class="ot"><span class="on1">Price &ldquo;${esc(r.q)}&rdquo;</span><span class="on2">not on the lists &mdash; pick what kind of thing it is, then what it sells for</span></span><span class="ov">&rsaquo;</span></button>`;
   if(r.kind==="mp")return `<button type="button" class="omniRow${hl}" data-omni="${i}" role="option"><span class="ot"><span class="on1">${esc(r.mp[2])}</span><span class="on2">${esc(r.name)} &middot; resale value from ${esc(srcName(r.mp[7]))}, ${esc(fmtDay(r.mp[6]))}</span></span><span class="ov">${money(r.mp[3])}&ndash;${money(r.mp[4])}<small>resale</small></span></button>`;
   if(r.kind==="metal")return `<button type="button" class="omniRow${hl}" data-omni="${i}" role="option"><span class="ot"><span class="on1">Gold &amp; silver &mdash; price it by weight</span><span class="on2">${r.metal==="silver"?"Sterling .925":esc(r.karat||"Gold")} &middot; opens the scale-and-spot page</span></span><span class="ov">&rsaquo;</span></button>`;
   if(r.kind==="sold")return `<a class="omniRow sold${hl}" data-omni="${i}" role="option" href="${esc(r.url)}" target="_blank" rel="opener" referrerpolicy="no-referrer"><span class="ot"><span class="on1">Check sold prices for &ldquo;${esc(r.q)}&rdquo;</span><span class="on2">${r.guns?"GunBroker &mdash; tick Completed":"WatchCount &mdash; eBay sold"} &middot; opens a new tab</span></span><span class="ov">&#8599;</span></a>`;
@@ -2110,6 +2149,14 @@ function applySpecPicks(spec,text){
 }
 function omniPick(r){
   if(!r||r.kind==="sold")return;
+  if(r.kind==="own"){
+    st.omniQ=""; st.omniHl=0; st.mode="item"; st.itemId=custId(st.catId); st.bookName=r.q;
+    st.brandTyped=""; st.model=""; st.detail=""; st.brand="mid"; st.liq=null; st.market=null;
+    st.mpPin=null; st.mpNone=true; st.condSet=false; st.phKindsOpen=true; st.omniDone=r.q;
+    render();
+    const k=document.querySelector(".phKinds"); if(k&&k.scrollIntoView)k.scrollIntoView({block:"center"});
+    return;
+  }
   if(r.kind==="mp"){ const row=r.mp; omniPick(Object.assign({},r,{kind:r.base,model:row[2]})); st.mpPin={id:row[0],model:st.model}; render(); return; }
   st.omniQ=""; st.omniHl=0;
   if(r.kind==="metal"){

@@ -108,17 +108,6 @@ function phoneBoot(){
   if(st.mode!=="item"&&st.mode!=="metal")st.mode="item";
   /* search: anything not on the lists can still be checked */
   try{
-    const _rows=omniRows;
-    omniRows=function(q){ const o=_rows(q), t=String(q||"").trim();
-      if(t.length>=3){ const i=o.rows.findIndex(r=>r.kind==="sold"); o.rows.splice(i<0?o.rows.length:i,0,{kind:"phnew",q:t.slice(0,60)}); }
-      return o; };
-    const _rowHTML=omniRowHTML;
-    omniRowHTML=function(r,i){ if(r.kind==="phnew")return `<button type="button" class="omniRow${i===st.omniHl?" hl":""}" data-omni="${i}" role="option"><span class="ot"><span class="on1">Something else: &ldquo;${esc(r.q)}&rdquo;</span><span class="on2">pick what kind of thing it is, then what it sells for</span></span><span class="ov">&rsaquo;</span></button>`; return _rowHTML(r,i); };
-    const _pick=omniPick;
-    omniPick=function(r){ if(r&&r.kind==="phnew"){ st.omniQ=""; st.omniHl=0; st.mode="item"; st.itemId=custId(st.catId); st.bookName=r.q;
-        st.brandTyped=""; st.model=""; st.detail=""; st.brand="mid"; st.liq=null; st.market=null; st.mpPin=null; st.mpNone=true; st.condSet=false;
-        st.phKindsOpen=true; st.omniDone=r.q; render(); const k=document.querySelector(".phKinds"); if(k&&k.scrollIntoView)k.scrollIntoView({block:"center"}); return; }
-      st.phKindsOpen=false; return _pick(r); };
     const _render=render;
     render=function(){ _render(); const i=document.getElementById("omniIn"); if(i)i.placeholder="What are you looking at?"; };
   }catch(x){}
