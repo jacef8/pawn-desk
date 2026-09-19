@@ -1368,6 +1368,9 @@ function suggestHTML(){
 /* The slider is a share of melt, but a loan also takes the peak guard and the
    30% loan cut on top — so the loan lands well below the slider number. This
    is that true share, for honest labelling. */
+/* What a refiner actually returns on scrap, as a share of melt. Widely
+   quoted at 90-95%; no refiner is lined up yet, so the card shows the band. */
+const REFINER_LO=0.90, REFINER_HI=0.95;
 const PAWN=()=>st.deal==="pawn";
 function curRate(){ return PAWN()?st.loanPct:st.payPct; }
 function setRate(n){ if(PAWN())st.loanPct=n; else st.payPct=n; }
@@ -1456,8 +1459,21 @@ function metalResultHTML(){
     ${!pawn?`<div class="tagNote"><b style="color:var(--ink)">Once you own it.</b>
       <b style="color:var(--ink)">Sell it as jewelry:</b> about ${money(Math.round(shown)*3)} to ${money(Math.round(shown)*4)}.
       That is what Folmar's in Tallahassee gets &mdash; they sell for three to four times what they pay.
-      <b style="color:var(--ink)">Scrap it:</b> about ${money(m.melt)}, and the refiner's cut comes out of that,
-      so there is little margin left in scrapping.</div>`:""}
+      ${(function(){
+        /* Melt is what the metal is worth at the refinery gate, not what the
+           refiner hands back. Read as 90-95% returned; no refiner is lined up
+           yet, so it shows the band rather than pretending to one figure.
+           Change these two when one is. */
+        const meltR=Math.round(m.melt), offR=Math.round(shown);
+        const lo=Math.round(meltR*REFINER_LO), hi=Math.round(meltR*REFINER_HI);
+        const left=`<b style="color:var(--ink)">Scrap it:</b> about ${money(lo)} to ${money(hi)} &mdash; a refiner returns
+          ${Math.round(REFINER_LO*100)}&ndash;${Math.round(REFINER_HI*100)}% of the ${money(meltR)} melt.`;
+        /* Three cases, because a high buy rate can put the offer inside or above
+           the refiner's range, and "leaves $-16 to $25" is not an answer. */
+        if(hi<=offR) return left+` That is less than the ${money(offR)} you would pay, so there is nothing in scrapping at this rate.`;
+        if(lo<offR)  return left+` Against the ${money(offR)} you would pay that is about a wash &mdash; anywhere from ${money(offR-lo)} short to ${money(hi-offR)} ahead. Scrapping is not the way out of this one.`;
+        return left+` That leaves ${money(lo-offR)} to ${money(hi-offR)} over the ${money(offR)} you paid.`;
+      })()}</div>`:""}
     ${pawn&&(m.guarded||m.trimmed)?`<div class="tagNote">${(m.premium>0.05||m.trimmed)
       ?`<b style="color:var(--ink)">Peak guard is on.</b> ${st.metal==="gold"?"Gold":"Silver"} is ${Math.round(m.premium*100)}% above its 90-day average, so the loan is sized off the average${m.trimmed?" and trimmed another 10%":""} \u2014 as if today's high never happened.`
       :`<b style="color:var(--ink)">The loan is sized off the 90-day average</b>, not today's spot.`}
