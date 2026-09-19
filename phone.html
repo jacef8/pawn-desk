@@ -50,17 +50,22 @@ function phVerdictHTML(x){
 function phoneStepHTML(x){
   const m=x.market, what=[st.brandTyped,st.model].filter(Boolean).join(" ")||displayName(x);
   const cands=(!x.checked&&!st.mpNone)?mpCandidates():[];
-  const s1=x.checked||!cands.length, s2=x.checked, s3=x.checked&&!!st.condSet, ask=phAskNow();
+  const started=!!st.picked;
+  const s1=started&&(x.checked||!cands.length), s2=started&&x.checked, s3=started&&x.checked&&!!st.condSet, ask=phAskNow();
   const cur=!s1?1:!s2?2:!s3?3:4;
   const cw=COND_WORDS[st.cond]||["Good",""];
   const row=(n,label,val,done,id)=>`<div class="nsStep${done?" done":""}${cur===n?" cur":""}"><span class="nsDot">${done?"&#10003;":n}</span><span class="nsL">${label}</span><span class="nsV"${id?` id="${id}"`:""}>${val}</span></div>`;
   const steps=`<div class="nsSteps">
-    ${row(1,"What it is",esc(what),s1)}
+    ${row(1,"What it is",started?esc(what):"not set",s1)}
     ${row(2,"Resale value",x.checked?`${money(Math.round(x.resale))}<small>${esc(nsSrcShort(m))}${Math.round(x.resale)!==m.mid?`, in ${cw[0].toLowerCase()} shape`:""}</small>`:"not checked",s2)}
     ${row(3,"Condition",s3?cw[0]:"not set",s3)}
     ${row(4,"Asking price",ask?money(ask):"&mdash;",cur===4&&ask>0,"phAskV")}</div>`;
   let h="",sub="",act="";
-  if(cur===1){
+  if(cur===1&&!started){
+    h=`What are you looking at?`;
+    sub=`Search above and tap what it is &mdash; the resale value fills in from there.`;
+    act="";
+  } else if(cur===1){
     h=`Which ${esc(what)} is it?`;
     sub=`Pick one and the resale value fills in.`;
     act=cands.map(r=>`<button class="nsBtn" data-mp="${esc(r[0])}"><span>${esc(r[2])}</span><b>${money(r[3])}&ndash;${money(r[4])}</b><i>resale</i></button>`).join("")
@@ -768,7 +773,7 @@ const ladder = (p,c) => [
 
 /* ---------------- state ---------------- */
 const KEY="pawndesk:web:v1";
-let st={mode:"item",catId:"guns",itemId:"g1",cond:"good",brand:"mid",complete:true,liq:null,brandTyped:"",model:"",detail:"",specSel:{},
+let st={mode:"item",catId:"guns",itemId:"g1",picked:false,cond:"good",brand:"mid",complete:true,liq:null,brandTyped:"",model:"",detail:"",specSel:{},
         overrides:{},ltvs:{},buys:{},payPct:70,payTouched:false,loanPct:48,loanTouched:false,editing:false,
         manual:null, /* {date, spot:{gold,silver}, avg90:{gold,silver}} — a same-day hand edit beats the feed */
         deal:"buy",metal:"gold",karat:"14k",grams:"",whyOpen:false,photoRead:null,bookQ:"",bookName:""};
@@ -781,6 +786,13 @@ try{
          if(s.payDate===FEED.date && typeof s.loanPct==="number"){ st.loanPct=s.loanPct; st.loanTouched=!!s.loanTouched; }
          if(s.manual && s.manual.date===FEED.date) st.manual=s.manual; }
 }catch(e){}
+/* The catalog's first item is only a fallback so the math always has something
+   to hold — it is not a choice the clerk made. Nothing counts as chosen until
+   something actually assigns itemId, which only ever happens on a tap, a
+   search pick, or a photo read. */
+(function(){ let _iid=st.itemId; Object.defineProperty(st,"itemId",{
+  get(){ return _iid; }, set(v){ _iid=v; st.picked=true; },
+  enumerable:true, configurable:true }); })();
 let saveTimer=null;
 function persist(){
   try{
@@ -1149,8 +1161,8 @@ function renderItem(){
   </div>
   <div class="card"><span class="label">2 &middot; Item</span>
     <div class="cardHint" style="margin-top:0;font-size:13.5px">Not here? Type it in the search bar at the top. It also searches ${PRICEBOOK.length}+ more items.</div>
-    ${cat.items.map((it,ix)=>`<button class="itemBtn${it.id===st.itemId?" on":""}" data-item="${it.id}"><span class="idx">${String(ix+1).padStart(2,"0")}</span><span style="flex:1">${it.name}</span>${ownAvgTag(it.id)}</button>`).join("")}
-    <button class="itemBtn${st.itemId===custId(cat.id)?" on":""}" data-item="${custId(cat.id)}"><span class="idx">+</span><span style="flex:1">${st.itemId===custId(cat.id)&&st.bookName?esc(st.bookName):"Not on any list — I set the price"}</span></button>
+    ${cat.items.map((it,ix)=>`<button class="itemBtn${st.picked&&it.id===st.itemId?" on":""}" data-item="${it.id}"><span class="idx">${String(ix+1).padStart(2,"0")}</span><span style="flex:1">${it.name}</span>${ownAvgTag(it.id)}</button>`).join("")}
+    <button class="itemBtn${st.picked&&st.itemId===custId(cat.id)?" on":""}" data-item="${custId(cat.id)}"><span class="idx">+</span><span style="flex:1">${st.itemId===custId(cat.id)&&st.bookName?esc(st.bookName):"Not on any list — I set the price"}</span></button>
   </div></div>`;
   let mid=`<div class="colC">${photoCardHTML()}${compsCardHTML(x)}<div class="card"><span class="label">3 &middot; Brand, make &amp; model</span>
     <div class="driver"><p><b class="go">What sets the price:</b> ${(itemOv()&&itemOv().driver)||cat.driver}</p><p><b class="no">What kills it:</b> ${(itemOv()&&itemOv().killer)||cat.killer}</p></div>`;
