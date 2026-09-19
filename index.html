@@ -33,6 +33,11 @@ async function liveMetals(){
 }
 window.standaloneBoot=function(){
   try{ CAP.db=localDB(); CAP.dbLocal=true; watchDeals(); }catch(e){}
+  if(pdServer()){
+    CAP.sample={limits:pdLimits,json:pdJSON};
+    pdLimits().then(l=>{ CAP.images=!!(l&&l.images); CAP.imgLimits=(l&&l.images)||null;
+                         try{ render(); }catch(e){} }).catch(()=>{});
+  }
   try{ render(); }catch(e){}
   liveMetals();
   if("serviceWorker" in navigator&&location.protocol==="https:"){ try{ navigator.serviceWorker.register("sw.js").catch(()=>{}); }catch(e){} }
@@ -1404,6 +1409,98 @@ function renderFlags(){
    page opened outside a Claude viewer). Nothing below is allowed to be
    load-bearing: when a capability is absent its whole card is hidden and
    the counter tool behaves exactly as it did before any of this existed. */
+/* ---- the shop's own price service ----------------------------------------
+   A static page cannot hold an API key and cannot read another website, so
+   photo identification and the new-price lookup need a small service of the
+   shop's own. Its address and token live in this device's storage, never in
+   the page and never in the repository: nothing here ships a secret, and a
+   phone that is lost takes only its own copy. */
+const PD_SRV="pawndesk_server", PD_TOK="pawndesk_token";
+function pdServer(){ try{ return localStorage.getItem(PD_SRV)||""; }catch(e){ return ""; } }
+function pdToken(){ try{ return localStorage.getItem(PD_TOK)||""; }catch(e){ return ""; } }
+function pdSetServer(u,t){ try{ if(u){ localStorage.setItem(PD_SRV,u); localStorage.setItem(PD_TOK,t||""); }
+                                 else { localStorage.removeItem(PD_SRV); localStorage.removeItem(PD_TOK); } }catch(e){} }
+function pdErr(c){ const e=new Error(c); e.code=c; return e; }
+function pdBase(){ return pdServer().replace(/\/+$/,""); }
+function pdPart(f){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onerror=()=>rej(pdErr("image_rejected"));
+    r.onload=()=>{ const s=String(r.result||""), i=s.indexOf(",");
+                   res({media_type:f.type||"image/jpeg", data:i>=0?s.slice(i+1):""}); };
+    r.readAsDataURL(f);
+  });
+}
+async function pdLimits(){
+  try{ const r=await fetch(pdBase()+"/limits"); return await r.json(); }
+  catch(e){ return {images:{mediaTypes:["image/jpeg","image/png","image/webp"],maxCount:4,maxBytes:5242880}}; }
+}
+async function pdJSON(prompt,opts){
+  if(!pdServer())throw pdErr("no_server");
+  opts=opts||{};
+  let imgs=opts.images||[]; if(imgs&&!Array.isArray(imgs))imgs=[imgs];
+  const parts=[]; for(const f of imgs){ if(f)parts.push(await pdPart(f)); }
+  let r;
+  try{
+    r=await fetch(pdBase()+"/json",{method:"POST",
+      headers:{"content-type":"application/json","x-pawn-token":pdToken()},
+      body:JSON.stringify({prompt:String(prompt||""),images:parts,search:!!opts.search}),
+      signal:opts.signal});
+  }catch(e){ throw pdErr(e&&e.name==="AbortError"?"cancelled":"upstream_error"); }
+  let j=null; try{ j=await r.json(); }catch(e){}
+  if(!j||!j.ok)throw pdErr((j&&j.code)||"upstream_error");
+  return j.data;
+}
+/* The counter's own new-price lookup: no tab opens, the number comes back here. */
+let retailBusy=false;
+async function retailLookup(){
+  if(retailBusy||!CAP.sample)return;
+  const x=calcItem(), q=compQuery(x);
+  retailBusy=true; render();
+  const say=t=>{ const el=document.getElementById("pdRetMsg"); if(el)el.textContent=t; };
+  try{
+    const d=await CAP.sample.json(
+      'What does a new "'+q+'" cost today at a United States retailer? Search the web for current prices. '+
+      'Reply with JSON and nothing else: {"price": <number, the typical new retail price in US dollars>, '+
+      '"where": "<retailer>", "note": "<8 words or fewer>"}. '+
+      'If there is no real new price for it, reply {"price": 0, "where": "", "note": "not found"}.',
+      {search:true});
+    const n=Math.round(Number(d&&d.price));
+    retailBusy=false;
+    if(n>0){
+      const p=retailPct(x);
+      st.market={kind:"retail",key:mkKey(),retail:n,pct:p,where:String((d&&d.where)||"").slice(0,40),
+                 mid:Math.max(5,Math.round(n*p/100/5)*5)};
+      render(); return;
+    }
+    render(); say("No new price found for that. Type one in.");
+  }catch(e){
+    retailBusy=false; render();
+    say(((e&&e.code)==="no_server")?"No service connected yet.":"Lookup failed. Type the new price in.");
+  }
+}
+function pdConnectHTML(){
+  if(window.claude&&window.claude.use)return "";
+  const on=!!pdServer();
+  return '<div class="card" id="pdConnCard"><span class="label">Photo ID &amp; price lookup</span>'+
+    '<div class="cardHint">'+(on
+      ? "Connected, but the service did not answer. Check that it is running."
+      : "Off. Connect the shop&rsquo;s service and the camera and the new-price lookup work right here.")+'</div>'+
+    '<div class="row2" style="margin-top:8px"><button class="ghostBtn" id="pdConnBtn">'+
+      (on?"Change the address":"Connect")+'</button>'+
+      (on?'<button class="ghostBtn" id="pdConnOff">Disconnect</button>':'')+'</div></div>';
+}
+document.addEventListener("click",e=>{
+  const b=e.target&&e.target.closest?e.target.closest("#pdConnBtn,#pdConnOff,#pdRetGo"):null; if(!b)return;
+  if(b.id==="pdRetGo"){ retailLookup(); return; }
+  if(b.id==="pdConnOff"){ pdSetServer("",""); location.reload(); return; }
+  const u=prompt("Address of the shop's price service:",pdServer()||"https://");
+  if(u===null)return;
+  const t=prompt("Its token (blank if you did not set one):",pdToken()||"");
+  if(t===null)return;
+  pdSetServer(String(u).trim(),String(t).trim());
+  location.reload();
+});
 const CAP = {sample:null, images:false, imgLimits:null, db:null, dbErr:""};
 let DEALS = [];        /* the shop's own sold history — newest first */
 let dealsReady = false;
@@ -1602,7 +1699,7 @@ function wireComps(){
    Identification only. It never sets a price: the number stays yours. */
 let photoFile=null, photoBusy=false, photoCtl=null;
 function photoCardHTML(){
-  if(!CAP.sample||!CAP.images) return "";
+  if(!CAP.sample||!CAP.images) return pdConnectHTML();
   const r=st.photoRead;
   let h=`<div class="card" id="photoCard"><span class="label">Photograph it &mdash; I'll fill in what I can see</span>
     <div class="row2" style="gap:9px;flex-wrap:wrap">
@@ -3172,7 +3269,7 @@ function nextStepHTML(x){
     act=compTargets(x).map(t=>`<a class="nsBtn nsSold" data-label="${t.name}" href="${esc(t.url)}" target="_blank" rel="opener" referrerpolicy="no-referrer"><span>${t.name}</span><b>&#8599;</b></a>`).join("")
        +`<button class="nsBtn ghost" id="nsType"><span>I know the price &mdash; type it</span></button>`
        +`<div class="label" style="margin-top:14px">No sold prices? Use what it costs new</div>`
-       +retailTargets(compQuery(x)).map(t=>`<a class="nsBtn nsRetail" data-label="${esc(t.name)}" href="${esc(t.url)}" target="_blank" rel="opener" referrerpolicy="no-referrer"><span>${esc(t.name)}</span><b>&#8599;</b></a>`).join("")
+       +(CAP.sample?`<button class="nsBtn on" id="pdRetGo"><span>${retailBusy?"Looking it up&hellip;":"Look up the new price"}</span></button><div class="cardHint" id="pdRetMsg"></div>`:retailTargets(compQuery(x)).map(t=>`<a class="nsBtn nsRetail" data-label="${esc(t.name)}" href="${esc(t.url)}" target="_blank" rel="opener" referrerpolicy="no-referrer"><span>${esc(t.name)}</span><b>&#8599;</b></a>`).join(""))
        +`<div class="row2" style="margin-top:8px"><input id="nsRet" class="numIn" type="number" inputmode="decimal" placeholder="What it costs new" style="flex:1;min-width:0"><button class="ghostBtn" id="nsRetGo" style="padding:10px 15px">Use it</button></div>`
        +`<div class="cardHint">In ${esc(x.cat.label.toLowerCase())}, a used one books at about <b>${retailPct(x)}%</b> of new here &mdash; $100 new lands at ${money(Math.round(retailPct(x)))}. A real sold price beats this every time, so use this only when the sold pages come up empty.</div>`;
   } else if(cur===3){
