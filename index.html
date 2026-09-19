@@ -3024,6 +3024,14 @@ function ownAvgTag(id){ const s=CAP.db?soldStats(id):null; return s?`<span class
    that opened the sold page (window.opener), and the desk answers so that tab can
    close itself. Ctrl+V still works for a sold page opened some other way. */
 let pawnLastTs=0;
+/* Which kind of page the counter just opened, so a price coming back through
+   the bridge is filed as what it actually is: a sold comp, or a new-retail
+   number that still has to take the used haircut. */
+var pawnWant="shot";
+document.addEventListener("click",e=>{
+  const a=e.target&&e.target.closest?e.target.closest("a.nsRetail,a.nsSold,a.compBtn"):null; if(!a)return;
+  pawnWant=a.classList.contains("nsRetail")?"retail":"shot";
+},true);
 function applyPawn(t){
   if(!/^PAWNDESK:/.test(t||""))return "bad";
   if(st.mode!=="item")return "noitem";
@@ -3031,6 +3039,11 @@ function applyPawn(t){
   const mid=Math.round(Number(d&&d.mid)); if(!(mid>0))return "bad";
   const ts=Number(d.ts)||0; if(ts&&ts===pawnLastTs)return "ok";
   pawnLastTs=ts;
+  if(pawnWant==="retail"){
+    const p=retailPct(calcItem());
+    st.market={kind:"retail",key:mkKey(),retail:mid,pct:p,mid:Math.max(5,Math.round(mid*p/100/5)*5)};
+    st.editing=false; render(); return "ok";
+  }
   st.market={kind:"shot",via:"button",key:mkKey(),mid,lo:Math.round(Number(d.lo))||null,hi:Math.round(Number(d.hi))||null,
              n:Math.max(1,Math.round(Number(d.n))||1),site:String(d.site||"eBay").slice(0,24),
              url:/^https:\/\//.test(String(d.url||""))?String(d.url).slice(0,400):""};
@@ -3057,7 +3070,7 @@ function pdHello(){ try{ if(window.top&&window.top!==window)window.top.postMessa
 [300,1500,4000,9000].forEach(t=>setTimeout(pdHello,t));
 document.addEventListener("click",e=>{
   if(!pdBridge)return;
-  const a=e.target&&e.target.closest?e.target.closest("a.compBtn,a.omniRow.sold,a.nsSold,a.srcLink"):null; if(!a)return;
+  const a=e.target&&e.target.closest?e.target.closest("a.compBtn,a.omniRow.sold,a.nsSold,a.nsRetail,a.srcLink"):null; if(!a)return;
   const url=a.getAttribute("href")||""; if(!/^https:\/\//.test(url))return;
   e.preventDefault();
   try{ window.top.postMessage("PAWNDESK_OPEN:"+url,"*"); }catch(x){ return; }
@@ -3159,7 +3172,7 @@ function nextStepHTML(x){
     act=compTargets(x).map(t=>`<a class="nsBtn nsSold" data-label="${t.name}" href="${esc(t.url)}" target="_blank" rel="opener" referrerpolicy="no-referrer"><span>${t.name}</span><b>&#8599;</b></a>`).join("")
        +`<button class="nsBtn ghost" id="nsType"><span>I know the price &mdash; type it</span></button>`
        +`<div class="label" style="margin-top:14px">No sold prices? Use what it costs new</div>`
-       +retailTargets(compQuery(x)).map(t=>`<a class="nsBtn nsSold" href="${esc(t.url)}" target="_blank" rel="noopener" referrerpolicy="no-referrer"><span>${esc(t.name)}</span><b>&#8599;</b></a>`).join("")
+       +retailTargets(compQuery(x)).map(t=>`<a class="nsBtn nsRetail" data-label="${esc(t.name)}" href="${esc(t.url)}" target="_blank" rel="opener" referrerpolicy="no-referrer"><span>${esc(t.name)}</span><b>&#8599;</b></a>`).join("")
        +`<div class="row2" style="margin-top:8px"><input id="nsRet" class="numIn" type="number" inputmode="decimal" placeholder="What it costs new" style="flex:1;min-width:0"><button class="ghostBtn" id="nsRetGo" style="padding:10px 15px">Use it</button></div>`
        +`<div class="cardHint">In ${esc(x.cat.label.toLowerCase())}, a used one books at about <b>${retailPct(x)}%</b> of new here &mdash; $100 new lands at ${money(Math.round(retailPct(x)))}. A real sold price beats this every time, so use this only when the sold pages come up empty.</div>`;
   } else if(cur===3){
