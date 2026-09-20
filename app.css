@@ -341,6 +341,9 @@
   #step4.justIn{outline:3px solid var(--accent);outline-offset:-3px}
   /* next step guide */
   .nextStep{grid-area:next;padding:14px 16px}
+  .nextStep.bare{padding:12px 16px}
+  .nextStep.bare .nsGrid{display:block}
+  .nextStep.bare .nsH{font-size:clamp(16px,1.5vw,19px)}
   .nextStep .label{margin-bottom:10px}
   .nsGrid{display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
   @media (min-width:900px){.nsGrid{grid-template-columns:minmax(0,370px) minmax(0,1fr);align-items:start}}

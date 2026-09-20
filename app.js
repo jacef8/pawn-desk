@@ -3841,7 +3841,12 @@ function nextStepHTML(x){
   else if(CAP.sample&&findBusy&&!(act||"").includes("pdFindGo"))
     act=`<button class="nsBtn on" id="pdFindGo" disabled><span>Looking it up&hellip;</span></button>`+act;
   if(CAP.sample&&st.picked)act+=`<div class="cardHint" id="pdFindMsg" style="flex-basis:100%">${esc(findMsg||"")}</div>`;
-  return `<div class="card nextStep" id="nextStep"><span class="label">Next step</span><div class="nsGrid">${steps}
+  /* In step-at-a-time the run down the middle already carries the steps with
+     their answers, and the strip carries the numbers. Repeating the list here
+     is a third copy of the same progress, and it is what pushes the loan card
+     off the first screen. Keep what it alone has: what to do now. */
+  const bare=stepFlow()==="steps"&&!window.PHONE&&st.picked;
+  return `<div class="card nextStep${bare?" bare":""}" id="nextStep"><span class="label">Next step</span><div class="nsGrid">${bare?"":steps}
     <div class="nsMain"><div class="nsH">${h}</div><div class="nsSub">${sub}</div><div class="nsAct">${act}</div></div></div></div>`;
 }
 function wireNext(){
