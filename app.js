@@ -3973,10 +3973,10 @@ function wireNext(){
 /* ================= BUY OUTRIGHT — you own it, no loan =================
    Starting rates Jace approved 9/19: about 5 points over the lending rate,
    same as the loan for seasonal outdoor power. */
-var BUY_DEFAULT={guns:55,hunt:45,jewel:45,tools:40,music:40,rolling:40,power:35,elec:30};
+var BUY_DEFAULT={guns:55,hunt:45,jewel:45,power:45,tools:40,music:40,rolling:40,elec:30};
 var BUY_WHY={guns:"guns sell fast here and hold their value",jewel:"a proven one holds its price, but it sits until the right buyer walks in",hunt:"steady seller in season",tools:"steady seller",
   music:"they sell, just slower",rolling:"big dollars, needs a clean title, sells slower",
-  power:"seasonal and often needs a carb cleaned, so pay no more than you'd lend",elec:"loses value fast and can come in locked"};
+  power:"seasonal and often needs a carb cleaned, but it sells and the shelves around here ask real money for it",elec:"loses value fast and can come in locked"};
 function buyRateHTML(x){
   const set=st.buys&&st.buys[st.catId]!=null;
   return `<div id="buyRate" style="margin-top:18px">
