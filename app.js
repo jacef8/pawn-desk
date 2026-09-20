@@ -3989,37 +3989,66 @@ function findPrompt(q,pass){
     'Only listings for the same thing - not parts, not accessories, not multi-item lots. '+
     'If you find none, reply {"comps":[]}.';
 }
-let findBusy=false, findMsg="";
+let findBusy=false, findMsg="", findAgain=false;
 async function priceFind(){
   if(findBusy||!CAP.sample)return;
   const x=calcItem(), q=compQuery(x);
   if(!q)return;
   const passes=findPasses(x);
+  /* Every search costs money, so two things happen before one is fired.
+
+     First: has this already been looked up? Listings are kept, so a chainsaw
+     priced this morning and again this afternoon used to be paid for twice.
+     If there are enough recent ones on file, use those and spend nothing.
+     Holding the button down deliberately (a second press) searches anyway,
+     because sometimes you do want the market rechecked. */
+  const have=compStats(compsMatch(x));
+  const FRESH=1000*60*60*24*10;
+  const recent=compsMatch(x).filter(c=>Date.now()-(c.ts||0)<FRESH).length;
+  if(have&&recent>=5&&!findAgain){
+    findAgain=true;
+    useComps(have);
+    findMsg=have.n+" listings already on file from the last few days \u2014 no search needed. "+
+            "Press again to check the market fresh.";
+    render(); return;
+  }
+  findAgain=false;
   findBusy=true; render();
   /* Keep it in state and let the render put it on screen. Writing straight
      into the node loses the message whenever anything re-renders afterwards,
      which is exactly what happens when the lookup lands a price. */
   const say=t=>{ findMsg=t; const el=document.getElementById("pdFindMsg"); if(el)el.textContent=t; };
-  say("Searching "+passes.length+" places\u2026");
+  say("Searching "+passes[0].name+"\u2026");
+  /* Second: the passes run one at a time instead of all at once. The first
+     is the best source for the category - sold eBay listings, or GunWatcher
+     for a firearm - and when it comes back with plenty, the rest are paid
+     for to confirm a number that is already good. Thin or failed, and it
+     carries on to the next. Most lookups now cost one search, not two. */
   /* A pass may want the name put differently - GunWatcher by model alone.
      What comes back is still filed under the item's own search text. */
-  const out=await Promise.allSettled(passes.map(p=>CAP.sample.json(findPrompt(p.q||q,p),{search:true})));
-  findBusy=false;
-  const got=[], tally=[];
-  let failed=0;
-  out.forEach((r,i)=>{
-    if(r.status!=="fulfilled"){ failed++; tally.push(passes[i].name+" failed"); return; }
+  const ENOUGH=8;
+  const out=[], tally=[];
+  const got=[]; let failed=0;
+  for(let i=0;i<passes.length;i++){
+    if(i)say("Thin so far \u2014 trying "+passes[i].name+"\u2026");
+    let r;
+    try{ r={status:"fulfilled",value:await CAP.sample.json(findPrompt(passes[i].q||q,passes[i]),{search:true})}; }
+    catch(e){ r={status:"rejected"}; }
+    out.push(r);
+    if(r.status!=="fulfilled"){ failed++; tally.push(passes[i].name+" failed"); continue; }
     const cs=((r.value&&r.value.comps)||[]).filter(c=>c&&Number(c.price)>0);
     cs.forEach(c=>got.push(Object.assign({},c,{where:String(c.where||passes[i].where).slice(0,24)})));
     tally.push(passes[i].name+" "+cs.length);
-  });
+    if(got.length>=ENOUGH){ if(i<passes.length-1)tally.push("enough \u2014 "+(passes.length-1-i)+" search saved"); break; }
+  }
+  findBusy=false;
   /* The same listing can surface in more than one pass; count it once. */
   const seen={};
   const uniq=got.filter(c=>{ const k=Math.round(c.price)+"|"+String(c.where||"").toLowerCase();
                              if(seen[k])return false; seen[k]=1; return true; });
   const added=compsAdd(q,uniq);
   if(added)pdSync();
-  if(!added){ render(); say(failed===passes.length?"Every search failed. Try the sold pages.":"No listings found. Try the sold pages."); return; }
+  if(!added){ render(); say(failed&&failed===out.length?"Every search failed. Try the sold pages.":"No listings found. Try the sold pages."); return; }
   useComps(compStats(compsMatch(calcItem())));
   const t=compStats(compsMatch(calcItem()));
   say(tally.join(" \u00b7 ")+" \u2014 "+added+" new"+(t?", "+t.n+" on file":"")+(got.length-uniq.length?", "+(got.length-uniq.length)+" duplicate dropped":""));
