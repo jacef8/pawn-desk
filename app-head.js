@@ -50,6 +50,7 @@ window.standaloneBoot=function(){
   liveMetals();
   try{ refreshPrices(); }catch(e){}
   try{ loadFakes(); }catch(e){}
+  try{ readBuild(); }catch(e){}
   try{ pdSync(); }catch(e){}
   if("serviceWorker" in navigator&&location.protocol==="https:"){ try{ navigator.serviceWorker.register("sw.js").catch(()=>{}); }catch(e){} }
 };

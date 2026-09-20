@@ -1171,7 +1171,13 @@ function wireMetal(){
 
 /* ---------------- device + flags tabs ---------------- */
 function renderDevice(){
-  return `<div class="narrow"><div class="card"><p style="font-size:14px;line-height:1.6;margin:0;color:var(--ink-2)">Do all of this before money changes hands. A locked phone is worth nothing and there is no fixing it afterward.</p></div>
+  return `<div class="narrow">
+  <div class="card"><span class="label">This copy of the tool</span>
+    <div class="cardHint" style="margin-top:0">Build <b style="color:var(--ink);font-family:var(--mono)">${BUILD||"unknown"}</b>. The number beside SYS.OK at the top says the same thing, so you can tell at a glance whether a device is running what was published.</div>
+    <div class="row2" style="margin-top:9px"><button class="ghostBtn" id="pdFresh">Get the newest version</button></div>
+    <div class="cardHint" style="font-size:12.5px">Throws away everything this browser has cached and reloads from the site. Nothing you have recorded is touched &mdash; the shelf tags, listings and deal log are kept separately.</div>
+  </div>
+  <div class="card"><p style="font-size:14px;line-height:1.6;margin:0;color:var(--ink-2)">Do all of this before money changes hands. A locked phone is worth nothing and there is no fixing it afterward.</p></div>
   ${DEVICE_STEPS.map((s,i)=>
     `<div class="card step"><div style="display:flex;gap:12px;align-items:flex-start"><span class="n">${String(i+1).padStart(2,"0")}</span><div><div class="t">${s.t}</div><div class="d">${s.d}</div></div></div></div>`).join("")}</div>`;
 }
@@ -1273,6 +1279,8 @@ function pdConnectHTML(){
       (on?'<button class="ghostBtn" id="pdConnOff">Disconnect</button>':'')+'</div></div>';
 }
 document.addEventListener("click",e=>{
+  const fr=e.target&&e.target.closest?e.target.closest("#pdFresh"):null;
+  if(fr){ forceUpdate(); return; }
   const f=e.target&&e.target.closest?e.target.closest("[data-fake],[data-mkind],#fakeClear"):null;
   if(f){
     if(f.id==="fakeClear"){ st.fakeAns={}; st.fakeKey=mkKey(); render(); return; }
@@ -3035,6 +3043,31 @@ function fakeHoldHTML(F){
     ${gauge(0,"Lend him","&mdash;",F.verdict==="fail"?"failed the check":"not checked yet","gi")}
     <div class="mkNo" style="margin-top:6px">${t}</div></div>`;
 }
+/* Which copy of the tool is running. Nothing types this out: it is read off
+   the name of the cache the service worker made, which is bumped on every
+   change, so the page cannot claim a version it is not. */
+let BUILD="";
+async function readBuild(){
+  try{
+    /* Read it out of sw.js, whose cache name is bumped on every change. Not
+       from the caches the worker made: those are empty until it registers,
+       and on a page served without one they never appear at all. */
+    const r=await fetch("sw.js",{cache:"no-store"}); if(!r.ok)return;
+    const m=(await r.text()).match(/pawndesk-(\d{8})(\d{4})/); if(!m)return;
+    BUILD=m[1].slice(4,6)+m[1].slice(6,8)+"."+m[2];
+    try{ render(); }catch(e){}
+  }catch(e){}
+}
+/* Clear everything cached and come back with whatever the site is serving.
+   The service worker already asks the network first, so this is for the
+   browser's own copy - the one a plain reload can keep for ten minutes. */
+async function forceUpdate(){
+  try{
+    if(window.caches){ for(const k of await caches.keys())await caches.delete(k); }
+    if(navigator.serviceWorker){ const rs=await navigator.serviceWorker.getRegistrations(); for(const r of rs)await r.unregister(); }
+  }catch(e){}
+  location.replace(location.pathname+"?v="+Date.now());
+}
 const MP_STALE_DAYS=45;
 function mpFor(cur,text){
   const t=" "+omniNorm(text)+" ";
@@ -3763,7 +3796,7 @@ function render(){
   ["colL","colC","colR"].forEach(c=>{const el=v.querySelector("."+c);if(el)zones[c]=el.scrollTop;});
   v.className=st.mode;
   const sy=document.getElementById("sysline");
-  if(sy)sy.textContent="SYS.OK · Updated "+fmtDay(FEED.date)+" · Gold $"+Math.round(FEED.gold).toLocaleString("en-US")+" · Silver $"+Number(FEED.silver).toFixed(2);
+  if(sy)sy.textContent="SYS.OK · Updated "+fmtDay(FEED.date)+" · Gold $"+Math.round(FEED.gold).toLocaleString("en-US")+" · Silver $"+Number(FEED.silver).toFixed(2)+(BUILD?" · build "+BUILD:"");
   if(st.mode==="item"){v.innerHTML=renderItem();wireItem();}
   else if(st.mode==="metal"){v.innerHTML=renderMetal();wireMetal();}
   else if(st.mode==="log"){v.innerHTML=renderLog();wireLog();}
