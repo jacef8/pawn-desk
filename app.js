@@ -1626,9 +1626,11 @@ document.addEventListener("click",e=>{
   if(so){ startOver(); return; }
   const fr=e.target&&e.target.closest?e.target.closest("#pdFresh"):null;
   if(fr){ fr.textContent="Fetching\u2026"; fr.disabled=true; forceUpdate(); return; }
+  const sf=e.target&&e.target.closest?e.target.closest("#specFold>summary"):null;
+  if(sf){ st.specOpen=!st.specOpen; return; }   /* the browser toggles it; just remember */
   const f=e.target&&e.target.closest?e.target.closest("[data-fake],[data-mkind],[data-flow],#fakeClear"):null;
   if(f){
-    if(f.id==="fakeClear"){ st.fakeAns={}; st.fakeKey=mkKey(); render(); return; }
+    if(f.id==="fakeClear"){ st.fakeAns={}; st.fakeKey=mkKey(); st.specIn={}; st.specPick=""; render(); return; }
     if(f.dataset.mkind){ st.metalKind=f.dataset.mkind; st.fakeAns={}; st.fakeKey=mkKey(); render(); return; }
     if(f.dataset.flow){ st.flow=f.dataset.flow; try{ persist(); }catch(e){} render(); return; }
     const [id,i,v]=String(f.dataset.fake).split(":"); fakeSet(id,i,v); return;
@@ -3519,6 +3521,157 @@ function fakeState(sh){
     verdict: fail?"fail" : done<n ? "open" : unsure?"unsure" : "clear",
     blocks: !!sh.gate && (fail>0 || done<n || unsure>0)};
 }
+/* ---- Check it by the numbers -------------------------------------------
+   Weight, diameter and thickness are the cheapest fake-catchers there are,
+   and unlike everything else in this tool they need no internet, no service
+   and no API call - they are arithmetic against a published mint spec. A
+   scale and a caliper catch more fakes than any photograph.
+
+   Every figure below is the official specification, not an observed average.
+   Sources are named on the card. */
+const SPEC_GROUPS=[["silver","Silver bullion"],["gold","Gold bullion"],["us","US silver coins"],["watch","Watch cases"]];
+const SPECS=[
+ /* g = grams, d = diameter mm, t = thickness mm, sg = specific gravity.
+    wear:true means a circulated coin legitimately loses metal, so light is
+    normal and HEAVY is the suspicious direction. */
+ {id:"ase",  grp:"silver", name:"American Silver Eagle — 1 oz", g:31.103, d:40.6, t:2.98, sg:10.49, metal:".999 silver"},
+ {id:"cml",  grp:"silver", name:"Canadian Silver Maple — 1 oz", g:31.10,  d:38.0, t:3.29, sg:10.49, metal:".9999 silver"},
+ {id:"phil", grp:"silver", name:"Austrian Philharmonic — 1 oz",  g:31.103, d:37.0, t:3.2,  sg:10.49, metal:".999 silver"},
+ {id:"round",grp:"silver", name:"Generic 1 oz .999 silver round",     g:31.103, d:null, t:null, sg:10.49, metal:".999 silver",
+              note:"Rounds vary in diameter by mint — weight and specific gravity are the checks that hold."},
+ {id:"bar10",grp:"silver", name:"10 oz .999 silver bar",              g:311.03, d:null, t:null, sg:10.49, metal:".999 silver"},
+
+ {id:"age1", grp:"gold", name:"American Gold Eagle — 1 oz",   g:33.931, d:32.70, t:2.87, sg:17.3, metal:"22k (.9167)",
+              note:"Gross weight is 33.931 g because it is 22k — it holds one full ounce of gold plus alloy. A coin weighing 31.1 g is not a Gold Eagle."},
+ {id:"agehalf",grp:"gold",name:"American Gold Eagle — 1/2 oz", g:16.966, d:27.00, t:2.24, sg:17.3, metal:"22k (.9167)"},
+ {id:"agequarter",grp:"gold",name:"American Gold Eagle — 1/4 oz",g:8.483, d:22.00, t:1.78, sg:17.3, metal:"22k (.9167)"},
+ {id:"agetenth",grp:"gold",name:"American Gold Eagle — 1/10 oz",g:3.393, d:16.50, t:1.19, sg:17.3, metal:"22k (.9167)"},
+ {id:"krug", grp:"gold", name:"Krugerrand — 1 oz",            g:33.93,  d:32.77, t:2.84, sg:17.3, metal:"22k (.9167)"},
+ {id:"gml",  grp:"gold", name:"Canadian Gold Maple — 1 oz",   g:31.10,  d:30.00, t:2.87, sg:19.3, metal:".9999 gold"},
+
+ {id:"dime",  grp:"us", name:"Dime — pre-1965, 90% silver",    g:2.50,  d:17.9, t:null, sg:10.34, metal:"90% silver", wear:true},
+ {id:"quart", grp:"us", name:"Quarter — pre-1965, 90% silver", g:6.25,  d:24.3, t:null, sg:10.34, metal:"90% silver", wear:true},
+ {id:"half",  grp:"us", name:"Half dollar — pre-1965, 90%",    g:12.50, d:30.6, t:null, sg:10.34, metal:"90% silver", wear:true},
+ {id:"half40",grp:"us", name:"Kennedy half — 1965-70, 40%",    g:11.50, d:30.6, t:null, sg:9.53,  metal:"40% silver", wear:true},
+ {id:"morgan",grp:"us", name:"Morgan / Peace dollar",               g:26.73, d:38.1, t:null, sg:10.34, metal:"90% silver", wear:true},
+
+ /* Watch weight moves with how many bracelet links are in it, so it is not a
+    pass/fail number. The CASE is fixed, and a caliper across it is a real
+    check: fakes are very often a millimetre or two out. */
+ {id:"sub40", grp:"watch", name:"Rolex Submariner 116610 / 114060", d:40.0, lug:20, g:null, metal:"904L steel"},
+ {id:"sub41", grp:"watch", name:"Rolex Submariner 126610",          d:41.0, lug:20, g:null, metal:"904L steel"},
+ {id:"dj36",  grp:"watch", name:"Rolex Datejust 36",                d:36.0, lug:20, g:null, metal:"904L steel"},
+ {id:"dj41",  grp:"watch", name:"Rolex Datejust 41",                d:41.0, lug:21, g:null, metal:"904L steel"},
+ {id:"gmt",   grp:"watch", name:"Rolex GMT-Master II 116710",       d:40.0, lug:20, g:null, metal:"904L steel"},
+ {id:"day",   grp:"watch", name:"Rolex Daytona 116500",             d:40.0, lug:20, g:null, metal:"904L steel"},
+ {id:"exp",   grp:"watch", name:"Rolex Explorer 214270",            d:39.0, lug:20, g:null, metal:"904L steel"}
+];
+const SPEC_BY=Object.fromEntries(SPECS.map(s=>[s.id,s]));
+/* How far out is too far. Bullion is struck to a tight tolerance; a coin that
+   spent fifty years in a till is allowed to be light from wear and nothing
+   else. Thickness moves most with strike, so it is the loosest. */
+const SPEC_TOL={g:0.006, gWear:0.025, d:0.3, t:0.15, sg:0.03, lug:0.5};
+function specJudge(sp,f,v){
+  if(!(v>0))return null;
+  const want=sp[f]; if(want==null)return null;
+  const tol=f==="g"?(sp.wear?SPEC_TOL.gWear:SPEC_TOL.g)*want
+           :f==="sg"?SPEC_TOL.sg*want
+           :SPEC_TOL[f];
+  const off=v-want, ok=Math.abs(off)<=tol;
+  const pct=want?off/want*100:0;
+  return {f,v,want,off,pct,ok,tol,
+    heavyLight: off>0?"over":"under"};
+}
+
+/* Specific gravity: weigh it dry, then weigh it hanging in water. The ratio
+   is the density, and density is what a fake cannot fake - except tungsten
+   against gold, which the card says out loud rather than quietly passing. */
+function specGravity(air,water){
+  if(!(air>0)||!(water>0)||water>=air)return null;
+  return air/(air-water);
+}
+function specRow(label,j,extra){
+  if(!j)return "";
+  const tone=j.ok?"var(--accent)":"var(--bad)";
+  return `<div class="cardHint" style="margin-top:5px;font-size:13px">
+    <b style="color:${tone}">${j.ok?"\u2713":"\u2717"}</b> ${esc(label)}:
+    you measured <b style="color:var(--ink)">${j.v}</b>, spec is <b style="color:var(--ink)">${j.want}</b>
+    (${j.pct>=0?"+":""}${j.pct.toFixed(1)}%). ${esc(extra||"")}</div>`;
+}
+function specCardHTML(sh){
+  const pick=st.specPick||"", sp=SPEC_BY[pick];
+  const inp=st.specIn||{};
+  const num=k=>Number(inp[k])||0;
+  const grp=sh&&sh.id==="watch"?"watch":sh&&sh.id==="bullion"?null:null;
+  const opts=SPEC_GROUPS.map(([g,label])=>{
+    const rows=SPECS.filter(z=>z.grp===g);
+    return `<optgroup label="${esc(label)}">`+rows.map(z=>
+      `<option value="${z.id}"${z.id===pick?" selected":""}>${esc(z.name)}</option>`).join("")+`</optgroup>`;
+  }).join("");
+
+  let out="";
+  if(sp){
+    const rows=[];
+    const jg=specJudge(sp,"g",num("g"));
+    if(jg)rows.push(specRow("Weight",jg, sp.wear
+      ? (jg.off>0 ? "Wear only ever REMOVES metal. An overweight coin is the wrong alloy - this is the bad direction."
+                  : jg.ok ? "Light is normal on a circulated coin." : "Too light even for a worn one.")
+      : (jg.ok ? "Within mint tolerance." : "Bullion is struck to a tight weight. This is not wear.")));
+    const jd=specJudge(sp,"d",num("d"));
+    if(jd)rows.push(specRow(sp.grp==="watch"?"Case width":"Diameter",jd, jd.ok?""
+      :sp.grp==="watch"?"Case size is fixed for the reference. A millimetre or two out is the commonest tell on a fake."
+      :"Die size is fixed. Millimetres out is not wear - it is a different coin."));
+    const jt=specJudge(sp,"t",num("t"));
+    if(jt)rows.push(specRow("Thickness",jt, jt.ok?"":"Thickness moves a little with strike, but not this much."));
+    const jl=specJudge(sp,"lug",num("lug"));
+    if(jl)rows.push(specRow("Lug width",jl, jl.ok?"":"Lug width is fixed per model and fakes are often out."));
+    const isGold=sp.grp==="gold", isWatch=sp.grp==="watch";
+    const sg=specGravity(num("g"),num("w"));
+    if(sg!=null&&sp.sg!=null){
+      const j=specJudge(sp,"sg",sg); j.v=sg.toFixed(2);
+      const gold=isGold;
+      rows.push(specRow("Specific gravity",j, j.ok
+        ? (gold?"Consistent with gold - but see the tungsten note below.":"Consistent with the stated metal.")
+        : "Not this metal. Lead reads about 11.3, brass 8.5, steel 7.9."));
+    }
+    const any=rows.length;
+    const bad=[jg,jd,jt,jl].filter(z=>z&&!z.ok).length;
+    out=`<div style="margin-top:10px">
+      ${any?rows.join(""):`<div class="cardHint" style="margin-top:5px;font-size:13px">Type a measurement above and it will be checked against the spec.</div>`}
+      ${any?`<div class="cardHint" style="font-size:13px;margin-top:8px">
+        <b style="color:${bad?"var(--bad)":"var(--accent)"}">${bad?bad+" of "+any+" measurements are out.":"Every measurement you gave matches."}</b>
+        ${bad?(isWatch?" A real one is made to its own factory spec. Treat this as a fail until something explains it."
+                      :" A real one does not miss its own mint spec. Treat this as a fail until something explains it.")
+             :" That rules out the cheap fakes. It does not rule out a good one \u2014 keep working the checks above."}</div>`:""}
+      ${isGold?`<div class="tagWarn" style="margin-top:9px;font-size:12.5px"><b>Tungsten reads 19.25, gold reads 19.32.</b> Specific gravity cannot tell them apart on a shop scale, and a tungsten core in a gold shell is the fake that matters. On a big gold loan, weight and gravity are not enough \u2014 ping it, or send it out.</div>`:""}
+      <div class="cardHint" style="font-size:12px;margin-top:8px">Spec figures are the mint's own. Silver Eagle 31.103 g / 40.6 mm; Gold Eagle 33.931 g gross (22k) / 32.70 mm; Krugerrand 33.93 g / 32.77 mm; Gold Maple 31.10 g / 30.0 mm; pre-1965 US silver at 90%.</div>
+    </div>`;
+  }
+
+  return `<details class="fold" style="margin-top:12px"${st.specOpen?" open":""} id="specFold">
+    <summary class="foldLine">Check it by the numbers &mdash; weight, size, density</summary>
+    <div class="cardHint" style="margin-top:8px;font-size:13px">A scale and a caliper catch more fakes than any photograph, and this costs nothing: it is arithmetic against the published spec, done here on the device. Leave a box empty and it is simply not checked.</div>
+    <span class="label" style="margin-top:10px">What is it supposed to be?</span>
+    <select id="specPick" class="numIn" style="width:100%;font-size:14px">
+      <option value=""${pick?"":" selected"}>&mdash; pick one &mdash;</option>${opts}
+    </select>
+    ${sp?`<div class="cardHint" style="margin-top:6px;font-size:12.5px">${esc(sp.metal||"")}${sp.note?" &mdash; "+esc(sp.note):""}${sp.grp==="watch"?` <b style="color:var(--ink)">Weight is not scored here</b> &mdash; it moves with how many bracelet links are in it. It is still worth knowing: a steel sports Rolex on a full bracelet is heavy in the hand, and a fake usually feels obviously light.`:""}</div>`:""}
+    <div class="row2" style="margin-top:10px;flex-wrap:wrap;gap:8px">
+      <label style="flex:1;min-width:120px"><span class="label">Weight (g)</span>
+        <input id="spec_g" class="numIn" type="number" inputmode="decimal" step="0.001" value="${esc(String(inp.g||""))}" placeholder="31.103"></label>
+      <label style="flex:1;min-width:120px"><span class="label">${sp&&sp.grp==="watch"?"Case across (mm)":"Diameter (mm)"}</span>
+        <input id="spec_d" class="numIn" type="number" inputmode="decimal" step="0.01" value="${esc(String(inp.d||""))}" placeholder="40.6"></label>
+    </div>
+    <div class="row2" style="margin-top:8px;flex-wrap:wrap;gap:8px">
+      <label style="flex:1;min-width:120px"><span class="label">${sp&&sp.grp==="watch"?"Lug width (mm)":"Thickness (mm)"}</span>
+        <input id="${sp&&sp.grp==="watch"?"spec_lug":"spec_t"}" class="numIn" type="number" inputmode="decimal" step="0.01" value="${esc(String((sp&&sp.grp==="watch"?inp.lug:inp.t)||""))}" placeholder="2.98"></label>
+      <label style="flex:1;min-width:120px"><span class="label">Weight in water (g)</span>
+        <input id="spec_w" class="numIn" type="number" inputmode="decimal" step="0.001" value="${esc(String(inp.w||""))}" placeholder="optional"></label>
+    </div>
+    <div class="cardHint" style="font-size:12.5px;margin-top:5px">For <b style="color:var(--ink)">weight in water</b>: hang it on thread in a cup of water so it touches nothing, and read the scale. That gives the density, which is what most fakes cannot copy.</div>
+    ${out}
+  </details>`;
+}
 const FAKE_BTN=[["pass","Pass"],["unsure","Not sure"],["fail","Fail"]];
 function fakeCardHTML(x){
   const sh=fakeSheet(x); if(!sh)return "";
@@ -3546,6 +3699,7 @@ function fakeCardHTML(x){
     ${sh.lookup.length?`<span class="label" style="margin-top:10px">Look it up free</span>
       <div class="cardHint" style="margin-top:0;font-size:13px">Type the address in yourself. Never scan a QR code on a holder or tag &mdash; fake cases point at copycat sites.</div>
       ${sh.lookup.map(l=>`<div class="cardHint" style="font-size:13px;margin-top:4px">${l.what?`<b style="color:var(--ink)">${esc(l.what)}</b> &mdash; `:""}${esc(l.where)}</div>`).join("")}`:""}
+    ${specCardHTML(sh)}
     ${sh.rule?`<div class="cardHint" style="font-size:13px;margin-top:9px"><b style="color:var(--ink)">Shop rule:</b> ${esc(sh.rule)}</div>`:""}
     ${F.verdict==="fail"?`<div class="tagWarn" style="border-left-color:var(--bad);background:rgba(255,66,87,.12);color:#FFAAB4;margin-top:9px"><b>Set it aside.</b> ${esc(FAKES.law)}</div>`:""}
     <div class="row2" style="margin-top:8px"><button class="ghostBtn" id="fakeClear" style="padding:9px 15px">Start the check over</button></div>
@@ -4359,6 +4513,31 @@ function nextStepHTML(x){
   return `<div class="card nextStep${bare?" bare":""}" id="nextStep"><span class="label">Next step</span><div class="nsGrid">${bare?"":steps}
     <div class="nsMain"><div class="nsH">${h}</div><div class="nsSub">${sub}</div><div class="nsAct">${act}</div></div></div></div>`;
 }
+/* The measurement boxes. Each keystroke re-judges, so the verdict moves as
+   the caliper does - but only the verdict is redrawn, never the input the
+   finger is in, or the number being typed would jump away mid-digit. */
+function wireSpec(){
+  const sel=document.getElementById("specPick");
+  if(sel)sel.onchange=()=>{ st.specPick=sel.value; st.specOpen=true; render(); };
+  const box=document.getElementById("specFold");
+  if(box&&!box.dataset.wired){ box.dataset.wired="1";
+    box.addEventListener("toggle",()=>{ st.specOpen=box.open; }); }
+  [["spec_g","g"],["spec_d","d"],["spec_t","t"],["spec_lug","lug"],["spec_w","w"]].forEach(([id,k])=>{
+    const el=document.getElementById(id); if(!el)return;
+    el.oninput=()=>{ st.specIn=Object.assign({},st.specIn,{[k]:el.value}); repaintSpec(); };
+  });
+}
+function repaintSpec(){
+  const sh=fakeSheet(calcItem()); if(!sh)return;
+  const card=document.getElementById("fakeCard"); if(!card)return;
+  const old=card.querySelector("#specFold"); if(!old)return;
+  /* Swap only the answer block under the inputs. */
+  const tmp=document.createElement("div");
+  tmp.innerHTML=specCardHTML(sh);
+  const fresh=tmp.querySelector("#specFold");
+  const a=old.lastElementChild, b=fresh&&fresh.lastElementChild;
+  if(a&&b&&a.tagName===b.tagName&&!/^(SELECT|INPUT|LABEL)$/.test(a.tagName))a.replaceWith(b);
+}
 function wireNext(){
   if(window.PHONE&&window.wirePhone){ wirePhone(); return; }
   const ns=document.getElementById("nextStep"); if(!ns)return;
@@ -4450,6 +4629,9 @@ function render(){
   else if(st.mode==="device"){v.innerHTML=renderDevice();}
   else if(st.mode==="setup"){v.innerHTML=renderSetup();}
   else {v.innerHTML=renderFlags();}
+  /* The spotting-fakes card shows on the item page and the metal page both,
+     so its measurement boxes are wired after whichever one drew it. */
+  try{ wireSpec(); }catch(e){}
   ["colL","colC","colR"].forEach(c=>{const el=v.querySelector("."+c);if(el&&zones[c]!=null)el.scrollTop=zones[c];});
   window.scrollTo(0,pageY);
   if(_omF&&st.mode==="item"){ const o=document.getElementById("omniIn"); if(o){ o.focus({preventScroll:true}); try{ o.setSelectionRange(_omS[0],_omS[1]); }catch(e){}
