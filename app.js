@@ -985,7 +985,10 @@ function renderItem(){
       <div class="cardHint" style="margin-top:0;font-size:13.5px">Not here? Type it in the search bar at the top. It also searches ${PRICEBOOK.length}+ more items.</div>
       ${cat.items.map((it,ix)=>`<button class="itemBtn${st.picked&&it.id===st.itemId?" on":""}" data-item="${it.id}"><span class="idx">${String(ix+1).padStart(2,"0")}</span><span style="flex:1">${it.name}</span>${ownAvgTag(it.id)}</button>`).join("")}
       <button class="itemBtn${st.picked&&st.itemId===custId(cat.id)?" on":""}" data-item="${custId(cat.id)}"><span class="idx">+</span><span style="flex:1">${st.itemId===custId(cat.id)&&st.bookName?esc(st.bookName):"Not on any list — I set the price"}</span></button>
-    </div></details>${photoCardHTML()}${seenCardHTML()}</div>`;
+    /* On the phone this column is hidden and the camera card is drawn in the
+       visible run instead - drawing it here too would put two of every id on
+       the page, and the handlers would wire to the invisible copy. */
+    </div></details>${window.PHONE?"":photoCardHTML()}${seenCardHTML()}</div>`;
   const ST=stepFlow()==="steps"&&!window.PHONE, LIVE=ST?liveStep(x):0;
   /* A step opened by hand stays open through the re-render a click inside it
      causes - otherwise it shuts under the hand that opened it. It is let go
@@ -1052,6 +1055,20 @@ function renderItem(){
     </div>
     <div class="startTwo">${left.replace('<div class="colL">','<div class="startCol">')}</div>
   </div>`;
+  /* The phone hides the three columns outright, and the camera card lived in
+     one of them - so the phone has had a photo reader built, wired and
+     working that nobody could see. It goes in the visible run instead.
+
+     Before anything is picked it sits directly under the search box, because
+     that is the whole point at a yard sale: you photograph the thing BECAUSE
+     you do not know what it is. Once something is picked it drops below the
+     price, so it never pushes the answer off the screen again. */
+  if(window.PHONE){
+    const cam=photoCardHTML();
+    return st.picked
+      ? omniHTML()+nextStepHTML(x)+`<div id="pin">${pinHTML(x)}</div>`+cam+left+mid+right
+      : omniHTML()+cam+nextStepHTML(x)+`<div id="pin">${pinHTML(x)}</div>`+left+mid+right;
+  }
   return omniHTML()+nextStepHTML(x)+`<div id="pin">${pinHTML(x)}</div>`+left+mid+right;
 }
 function wireItem(){
@@ -1439,6 +1456,13 @@ function renderSetup(){
     <div class="cardHint" style="margin-top:0">Build <b style="color:var(--ink);font-family:var(--mono)">${BUILD||"unknown"}</b>. The number beside SYS.OK at the top says the same thing, so you can tell at a glance whether a device is running what was published.</div>
     <div class="row2" style="margin-top:9px"><button class="ghostBtn" id="pdFresh">Get the newest version</button></div>
   </div>
+  ${pdServer()?"":`<div class="card" style="border:1px dashed var(--e2-hi)"><span class="label">\uD83D\uDCF7 The camera is off on this device</span>
+    <div class="cardHint" style="margin-top:0">Nothing on this device can read a photo yet. Switch it on here, or \u2014 far easier \u2014 open <b style="color:var(--ink)">Setup</b> on the desk computer and point this phone\u2019s camera at the QR code it shows.</div>
+    <div class="cardHint" style="font-size:12.5px">The two lines below are the same ones printed on the desk under Setup. Every device keeps its own copy, which is why this one has to be told too.</div>
+  </div>`}
+  ${pdServer()&&window.PHONE?`<div class="card"><span class="label">\uD83D\uDCF7 Camera</span>
+    <div class="cardHint" style="margin-top:0"><b style="color:var(--accent)">Switched on.</b> Photo lookups work on this device. The camera card is on the <b style="color:var(--ink)">Check a price</b> tab, headed <i>Photograph it</i>.</div>
+  </div>`:""}
   ${window.PHONE?"":`<div class="card"><span class="label">Switching the camera on for another device</span>
     <div class="cardHint" style="margin-top:0">${pdServer()
       ?`This computer is switched on. Every phone and tablet keeps its own copy, so each one has to be told once. On the other device open the price page, find the card headed <b style="color:var(--ink)">\uD83D\uDCF7 Camera &amp; photo lookups &mdash; off</b>, and type these two lines into it.`
@@ -1454,6 +1478,7 @@ function renderSetup(){
     <div class="row2" style="margin-top:9px"><button class="ghostBtn" id="pdCopyConn" title="Copy both lines so you can send them to yourself">Copy both</button></div>
     <div class="cardHint" style="font-size:12.5px">Treat the token like a key to the shop. If a phone goes missing, change PAWN_TOKEN in Railway and switch each device on again.</div>`:""}
   </div>`}
+  ${pdServer()?"":pdConnectHTML()}
   <div class="card"><span class="label">Move the shelf record between devices</span>
     <div class="cardHint" style="margin-top:0">${seenAll().length} tag${seenAll().length===1?"":"s"} on this device. With the service on, <b style="color:var(--ink)">Sync</b> on the pricing page does this by itself &mdash; these are for moving the record by hand, or keeping a copy.</div>
     <div class="row2" style="margin-top:9px;gap:8px;flex-wrap:wrap">
