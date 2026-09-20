@@ -16,6 +16,7 @@ Once it's running you get, on the phone and at the desk:
 
 | File | |
 |---|---|
+| `railway.json` | tells Railway to run `node server.js`, not `npm start` |
 | `core.js` | everything the service does |
 | `server.js` | the Railway host: takes a request, hands it to `core.js` |
 | `store.js` | the shared record — the only file that knows where it is kept |
@@ -108,6 +109,19 @@ protocol, the merge rule and the offline behaviour are unchanged.
 
 Moving to a hosted database later is a change to `store.js` alone — it is the
 only file that knows where the record lives.
+
+## Why not `npm start`
+
+Railway stops a container with SIGTERM on every redeploy. Sent to `npm`, the
+signal is passed down, node exits, and npm then reports its child dying by a
+signal as a failed command - so the platform mails "Deploy Crashed!" for an
+ordinary restart. `railway.json` sets the start command to `node server.js`
+so nothing sits between the signal and the process that handles it. server.js
+closes its listener and exits zero, and the logs say
+`pawn desk service stopping on SIGTERM`.
+
+If Railway ever ignores that file, set the same command by hand in
+**Settings -> Deploy -> Custom Start Command**.
 
 ## Notes
 

@@ -6,6 +6,7 @@
   "description": "Price, photo and shared-record service for The Pawn Desk",
   "main": "server.js",
   "scripts": {
+    "//": "Railway is told to run node directly (railway.json). Going through npm start means Railway's SIGTERM lands on npm, which reports the child dying by a signal as a failed command - and the platform mails a crash notice for an ordinary redeploy.",
     "start": "node server.js"
   },
   "engines": {
