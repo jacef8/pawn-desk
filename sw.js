@@ -1,6 +1,6 @@
 /* keeps the desk working with no signal; always tries for the newest copy first */
-const C="pawndesk-202609222200";
-const CORE=["./","./index.html","./phone.html","./app-head.js","./app.css","./app.js","./prices.json","./fakes.json","./phone.css","./phone.js","./manifest.webmanifest","./manifest-phone.webmanifest","./icon-192.png","./icon-512.png","./apple-touch-icon.png"];
+const C="pawndesk-202609230100";
+const CORE=["./","./index.html","./phone.html","./app-head.js","./app.css","./app.js","./qr.js","./prices.json","./fakes.json","./phone.css","./phone.js","./manifest.webmanifest","./manifest-phone.webmanifest","./icon-192.png","./icon-512.png","./apple-touch-icon.png"];
 self.addEventListener("install",e=>{ self.skipWaiting(); e.waitUntil(caches.open(C).then(c=>c.addAll(CORE))); });
 self.addEventListener("activate",e=>{ e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))).then(()=>self.clients.claim())); });
 self.addEventListener("fetch",e=>{

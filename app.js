@@ -1395,6 +1395,10 @@ function renderSetup(){
     <div class="roOut" style="user-select:all">${esc(pdServer())}</div>
     <span class="label" style="margin-top:10px">Token</span>
     <div class="roOut" style="user-select:all">${esc(pdToken()||"(none set)")}</div>
+    ${typeof qrSVG==="function"?`<div style="margin-top:12px;display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+      <div style="background:#fff;padding:9px;border-radius:10px;line-height:0">${qrSVG(pdHandoffLink(),196)}</div>
+      <div class="cardHint" style="margin:0;flex:1;min-width:190px">Open the phone\u2019s camera and point it at this. Tap the link it offers and the phone switches itself on \u2014 nothing to type, and the token never goes into a text message.<br><br>The link works once per device and wipes itself out of the phone\u2019s address bar as soon as it is read.</div>
+    </div>`:""}
     <div class="row2" style="margin-top:9px"><button class="ghostBtn" id="pdCopyConn" title="Copy both lines so you can send them to yourself">Copy both</button></div>
     <div class="cardHint" style="font-size:12.5px">Treat the token like a key to the shop. If a phone goes missing, change PAWN_TOKEN in Railway and switch each device on again.</div>`:""}
   </div>`}
@@ -1512,6 +1516,29 @@ async function retailLookup(){
     retailBusy=false; render();
     say(((e&&e.code)==="no_server")?"No service connected yet.":"Lookup failed. Type the new price in.");
   }
+}
+/* A device is switched on by opening a link the desk drew as a QR code. The
+   settings ride in the hash, which never leaves the browser - it is not sent
+   to GitHub Pages or anywhere else - and it is wiped from the address bar and
+   from history the instant it is read, so the token does not sit in a
+   bookmark or a back button. */
+function pdReadHandoff(){
+  try{
+    const h=String(location.hash||"");
+    const m=h.match(/[#&]pd=([A-Za-z0-9+/=_-]+)/);
+    if(!m)return false;
+    const txt=decodeURIComponent(escape(atob(m[1].replace(/-/g,"+").replace(/_/g,"/"))));
+    const [srv,tok]=txt.split("\n");
+    if(!/^https?:\/\//.test(srv||""))return false;
+    pdSetServer(srv.trim(),(tok||"").trim());
+    history.replaceState(null,"",location.pathname+location.search);
+    return true;
+  }catch(e){ return false; }
+}
+function pdHandoffLink(){
+  const t=pdServer()+"\n"+pdToken();
+  const b64=btoa(unescape(encodeURIComponent(t))).replace(/\+/g,"-").replace(/\//g,"_");
+  return location.origin+location.pathname.replace(/[^/]*$/,"")+"phone.html#pd="+b64;
 }
 function pdConnectHTML(){
   if(window.claude&&window.claude.use)return "";
@@ -4347,4 +4374,7 @@ function render(){
   document.getElementById("foot").innerHTML=
    `Metal prices refresh automatically each morning (last: ${FEED.date}). Your item prices, lending rates, and any same-day hand edits save on this device only — set them once on the counter tablet. Starting numbers are estimates for rural North Florida — the tool is only as good as what you put in it.<span class="saveNote" id="saveNote"></span>`;
 }
+/* Settings handed over by QR have to land before anything asks whether the
+   service is on, so this runs ahead of the first draw. */
+try{ pdReadHandoff(); }catch(e){}
 render();
