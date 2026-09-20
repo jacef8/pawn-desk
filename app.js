@@ -432,13 +432,40 @@ function calcItem(){
           high:Math.max(5,Math.round(resale*Math.min(100,ltv+8)/100)),
           charge:Math.max(5,target*0.25),margin:resale-target};
 }
+/* The panel that does not move. Everything else on this page walks the
+   counter through a decision; this one just shows where those decisions have
+   landed, and it is short enough to stay on screen while they do - which the
+   1406px loan card never was. */
+function pinHTML(x){
+  const F=fakeState(fakeSheet(x));
+  if(F&&F.blocks)return `<div class="card pin"><span class="label">Where it stands</span>
+    <div class="pinBig" style="color:var(--ink-3)">&mdash;</div>
+    <div class="cardHint" style="margin-top:0">${F.verdict==="fail"?"A check failed. Don't lend on the name.":"Not checked yet — "+F.done+" of "+F.n+"."}</div></div>`;
+  if(!x.checked)return `<div class="card pin"><span class="label">Where it stands</span>
+    <div class="pinBig" style="color:var(--ink-3)">&mdash;</div>
+    <div class="cardHint" style="margin-top:0">No resale value yet. Step 4.</div></div>`;
+  return `<div class="card pin"><span class="label">Where it stands</span>
+    <div class="pinRow"><span>Lend him</span><b class="pinBig">${money(x.target)}</b></div>
+    <div class="pinRow"><span>Or buy it outright</span><b>${money(x.buy)}</b></div>
+    <div class="pinGrid">
+      <div><span>Resale, ${esc(COND_WORDS[st.cond][0].toLowerCase())}</span><b>${money(x.resale)}</b></div>
+      <div><span>Your cushion</span><b>${money(x.margin)}</b></div>
+      <div><span>Fee / 30 days</span><b>${money(x.charge)}</b></div>
+      <div><span>Loan ÷ resale</span><b>${x.ltv}%</b></div>
+    </div>
+    <div class="cardHint" style="margin-top:7px;font-size:12.5px">Range ${money(x.low)}&ndash;${money(x.high)}. Never above the top &mdash; that's your cushion.</div>
+  </div>`;
+}
+function paintPin(x){ const p=document.getElementById("pin"); if(p)p.innerHTML=pinHTML(x||calcItem()); }
 function ticketHTML(x){
   const F=fakeState(fakeSheet(x));
   if(F&&F.blocks)return fakeHoldHTML(F);
   if(!x.checked)return uncheckedTicketHTML(x);
   return `<div class="card">
     <span class="label">7 &middot; Pawn loan &mdash; the cash you lend him</span>
-    ${gauge(x.ltv/100,"Lend him",money(x.target),"pawn loan","gi")}
+    <!-- The ring lived here. It said the same thing as the panel pinned above
+         it, which does not scroll away, so it was three copies of one number
+         on one screen. The percentage it drew is in the pin as a figure. -->
     ${(st.model||st.detail)?`<div class="cardHint" style="text-align:center;margin-top:2px">Pricing: <b style="color:var(--ink)">${[st.model,st.detail].filter(Boolean).map(esc).join(" · ")}</b></div>`:""}
     ${x.spec&&x.spec.stop?`<div class="tagWarn" style="border-left-color:var(--bad);background:rgba(255,66,87,.12);color:#FFAAB4"><b>NO TITLE — NO DEAL.</b> Don't negotiate around a missing title, at any price.</div>`:""}
     <div class="tiles" style="grid-template-columns:1fr 1fr 1fr;margin-top:4px">
@@ -448,6 +475,7 @@ function ticketHTML(x){
     </div>
     <div class="cardHint" style="margin-top:8px">Open at the suggested loan. Go low when cash is tight or the deal feels off; go toward the top for a regular you want back. Never lend above the top — that's your cushion.</div>
     ${buyRowHTML(x)}
+    <details class="fold"${st.openWhy?" open":""} id="whyFold"><summary class="foldLine">The detail &mdash; cushion, fee, and why it is this much</summary>
     ${x.liquidity.adj!==0?`<div class="tagNote">Cut ${Math.abs(x.liquidity.adj)} points because it's a ${x.liquidity.label.toLowerCase()} item here. Your money sits in it longer, so lend less — don't drop the price.</div>`:""}
     <div class="tiles">
       <div class="widget"><div class="l">Resale value in this condition</div><div class="v">${money(x.resale)}</div></div>
@@ -456,9 +484,10 @@ function ticketHTML(x){
       <div class="widget"><div class="l">Loan &divide; resale — the ring above</div><div class="v">${x.ltv}%</div></div>
     </div>
     ${whyHTML("item")}
+    </details>
   </div>
-  <div class="card">
-    <span class="label">8 &middot; After the money moves</span>
+  <details class="card foldCard"${st.openPayback?" open":""} id="paybackFold">
+    <summary><span class="label" style="margin:0">8 &middot; After the money moves</span><span class="foldSub">what he pays back, and the day it becomes ours</span></summary>
     <span class="label" style="margin-bottom:0;color:var(--ink-2)">He pays back</span>
     <div class="ladder">${ladder(x.target,x.charge).map(r=>`<div class="widget rung"><div class="k">${r.k}</div><div class="d">${money(r.due)}</div></div>`).join("")}</div>
     <div style="font-size:12px;line-height:1.5;color:var(--ink-2);margin-top:9px">
@@ -466,7 +495,7 @@ function ticketHTML(x){
     </div>
     <div class="tagWarn"><b>Day 60 it's ours.</b> Maturity is day 30, then we must hold it 30 more. Not redeemed by day 60 and title passes to us automatically — no notice, no letter, no auction. Within the first 30 days only he or his attorney-in-fact may redeem it.</div>
     <div class="fine">&sect; 539.001(11) caps the charge at 25% of the amount financed per 30 days, minimum $5. Overcharging voids the transaction and forfeits twice the charge — but an honest mistake corrected when you catch it carries no penalty. Fix it, don't hide it.</div>
-  </div>`;
+  </details>`;
 }
 /* THE SPEC BOOK — compiled spec economics. Read from the Details/Model text,
    applied as visible multipliers with the reasoning shown. Capped 0.4–1.8. */
@@ -758,7 +787,7 @@ function renderItem(){
     <input type="range" min="15" max="100" value="${x.baseLtv}" id="ltvSlider">
     <div class="sliderScale"><span>15% — tight</span><span>100% — your whole cushion, gone</span></div>
     <div id="ltvSuggest">${ltvSuggestHTML(cat,x.baseLtv)}</div>${buyRateHTML(x)}</div></div>`;
-  const right=`<div class="colR"><div id="ticket">${ticketHTML(x)}</div>${logCardHTML(x)}</div>`;
+  const right=`<div class="colR"><div id="pin">${pinHTML(x)}</div><div id="ticket">${ticketHTML(x)}</div>${logCardHTML(x)}</div>`;
   return omniHTML()+nextStepHTML(x)+left+mid+right;
 }
 function wireItem(){
@@ -768,6 +797,9 @@ function wireItem(){
      category causes. */
   const br=document.getElementById("browseBox");
   if(br)br.ontoggle=()=>{ st.browse=br.open; };
+  for(const [id,key] of [["whyFold","openWhy"],["paybackFold","openPayback"]]){
+    const d=document.getElementById(id); if(d)d.ontoggle=()=>{ st[key]=d.open; };
+  }
   v.querySelectorAll("[data-cat]").forEach(b=>b.onclick=()=>{
     /* Typing something the lists don't carry parks you on a custom item and
        asks what kind of thing it is - and these buttons are the answer on this
@@ -794,7 +826,7 @@ function wireItem(){
     const xx=calcItem();
     const vn=document.getElementById("valNum");if(vn)vn.textContent=money(xx.baseValue*xx.brandMult);
     const vs=document.getElementById("valSub");if(vs)vs.textContent=valSubText(xx).replace(/<[^>]*>/g,"");
-    document.getElementById("ticket").innerHTML=ticketHTML(xx);
+    document.getElementById("ticket").innerHTML=ticketHTML(xx); paintPin(xx);
     refreshStep4();
   };
   v.querySelectorAll("[data-cond]").forEach(b=>b.onclick=()=>{st.cond=b.dataset.cond;st.condSet=true;render();});
@@ -808,7 +840,7 @@ function wireItem(){
     const sv=document.getElementById("specVerdict");if(sv){sv.innerHTML=specVerdictHTML(xx);wireUseSpec();}
     const vn=document.getElementById("valNum");if(vn)vn.textContent=money(xx.baseValue*xx.brandMult*xx.specMult);
     const vs=document.getElementById("valSub");if(vs)vs.textContent=valSubText(xx).replace(/<[^>]*>/g,"");
-    document.getElementById("ticket").innerHTML=ticketHTML(xx);
+    document.getElementById("ticket").innerHTML=ticketHTML(xx); paintPin(xx);
     refreshStep4();
   }
   function wireUseSpec(){
@@ -838,7 +870,7 @@ function wireItem(){
   wireStep4();
   const sl=document.getElementById("ltvSlider"), ln=document.getElementById("ltvNum");
   function ltvRefresh(){
-    document.getElementById("ticket").innerHTML=ticketHTML(calcItem());
+    document.getElementById("ticket").innerHTML=ticketHTML(calcItem()); paintPin(calcItem());
     refreshStep4(); refreshBuyRate();
     const c=CATALOG.find(x=>x.id===st.catId);
     document.getElementById("ltvSuggest").innerHTML=ltvSuggestHTML(c,st.ltvs[st.catId]??c.ltv);
@@ -3077,7 +3109,7 @@ function refreshStep4(){
   const xx=calcItem();
   const s4=document.getElementById("step4"); if(s4&&!st.editing){ s4.innerHTML=step4Inner(xx); wireStep4(); }
   const ns=document.getElementById("nextStep"); if(ns){ ns.outerHTML=nextStepHTML(xx); wireNext(); }
-  const tk=document.getElementById("ticket"); if(tk)tk.innerHTML=ticketHTML(xx);
+  const tk=document.getElementById("ticket"); if(tk)tk.innerHTML=ticketHTML(xx); paintPin(xx);
   const lg=document.getElementById("logCard"); if(lg){ lg.innerHTML=logCardInner(xx); wireLogButton(); }
 }
 function uncheckedTicketHTML(x){

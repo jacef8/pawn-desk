@@ -124,6 +124,28 @@
   .browse[open]>summary::after{transform:rotate(90deg)}
   .browse>summary:hover{background:var(--e2-hi)}
   .browseSub{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);letter-spacing:.04em}
+  /* The panel that does not move - the running total, tax-software style.
+     Short on purpose: a sticky element taller than the window scrolls away,
+     which is exactly how the 1406px loan card failed at this job. */
+  .pin{border:1px solid rgba(0,232,160,.28)}
+  .pinBig{font-family:var(--mono);font-size:30px;font-weight:700;color:var(--accent);line-height:1.1}
+  .pinRow{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-top:6px}
+  .pinRow span{font-size:12.5px;color:var(--ink-3)}
+  .pinRow b{font-family:var(--mono);font-size:17px;color:var(--ink)}
+  .pinGrid{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;margin-top:10px;
+    padding-top:9px;border-top:1px solid rgba(255,255,255,.08)}
+  .pinGrid>div{display:flex;flex-direction:column;gap:1px}
+  .pinGrid span{font-size:11px;color:var(--ink-3);letter-spacing:.02em}
+  .pinGrid b{font-family:var(--mono);font-size:15px;color:var(--ink-2)}
+  @media (min-width:1080px){ .colR>#pin{position:sticky;top:96px;z-index:4} }
+  /* folds: the long tail of a card, shut until wanted */
+  .fold>summary,.foldCard>summary{list-style:none;cursor:pointer}
+  .fold>summary::-webkit-details-marker,.foldCard>summary::-webkit-details-marker{display:none}
+  .foldLine{margin-top:10px;font-size:12.5px;color:var(--accent-2);font-weight:600}
+  .foldLine::after{content:" \203A"}
+  .fold[open]>.foldLine::after{content:" \02C5"}
+  .foldCard>summary{display:flex;flex-direction:column;gap:3px}
+  .foldSub{font-family:var(--mono);font-size:11px;color:var(--ink-3);letter-spacing:.03em}
   /* spotting-fakes checklist */
   .fakeRow{margin-top:11px;padding-top:10px;border-top:1px solid rgba(255,255,255,.07)}
   .fakeRow:first-of-type{border-top:none}
