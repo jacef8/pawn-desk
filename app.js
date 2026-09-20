@@ -2071,6 +2071,20 @@ function specMenuText(){
     id+" | "+SPEC_CHOICES[id].map(g=>g.label+": "+g.options.map(o=>o.t).join(" / ")).join(" | ")
   ).join("\n");
 }
+/* What the counter can tell it that the camera could not: words stamped on
+   the thing, a number, how big it is, what it is made of. A second look with
+   these in hand lands far more often than the first, and they cost nothing
+   to collect - the counter is holding the object. */
+function photoHintText(){
+  const h=st.photoHints||{};
+  const rows=[["words","Words, names or logos on it"],["nums","Numbers or a model stamped on it"],
+              ["size","Roughly how big it is"],["made","What it is made of"],["extra","Anything else"]];
+  const said=rows.filter(([k])=>String(h[k]||"").trim());
+  if(!said.length)return "";
+  return ["","THE COUNTER IS HOLDING THE ITEM AND SAYS:",
+    ...said.map(([k,l])=>"- "+l+": "+String(h[k]).trim().slice(0,160)),
+    "Trust these over your own reading of the photograph - they can turn it over and you cannot.",""].join("\n");
+}
 function photoPrompt(){
   return [
 "You are helping the counter at a small pawn shop in Bristol, Florida identify an item a customer has just set on the counter. You are looking at one photograph of that item.",
@@ -2090,6 +2104,7 @@ catalogText(),
 specMenuText(),
 "",
 "If nothing in the catalog fits, leave catId and itemId empty and instead name the item plainly in \"what\".",
+photoHintText(),
 "",
 "CONDITION — one of: new (sealed), exc (barely used), good (normal wear), fair (heavy wear), rough (needs work). Judge only what the photo shows.",
 "",
@@ -2099,6 +2114,47 @@ specMenuText(),
 '{"what":"plain name of the item","catId":"","itemId":"","brand":"","model":"","detail":"short spec text for the ticket","cond":"good","specs":[{"label":"Gauge","choice":"12 ga"}],"concerns":[],"confidence":"high|medium|low","note":"one sentence on what you could and could not make out"}'
   ].join("\n");
 }
+/* ---- pictures put by ----------------------------------------------------
+   A photograph nobody could place is still worth keeping: at a yard sale you
+   move on, and the research happens that evening. localStorage cannot hold
+   photographs - a few of them would blow its quota - so these live in
+   IndexedDB, on the device, and never go anywhere. */
+const SHOT_DB="pawndesk_shots";
+function shotDB(){
+  return new Promise((res,rej)=>{
+    let rq; try{ rq=indexedDB.open(SHOT_DB,1); }catch(e){ return rej(e); }
+    rq.onupgradeneeded=()=>{ const d=rq.result;
+      if(!d.objectStoreNames.contains("shots"))d.createObjectStore("shots",{keyPath:"id"}); };
+    rq.onsuccess=()=>res(rq.result); rq.onerror=()=>rej(rq.error);
+  });
+}
+async function shotSave(blob,meta){
+  try{
+    const d=await shotDB();
+    const rec=Object.assign({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+                             ts:Date.now(),blob},meta||{});
+    await new Promise((res,rej)=>{ const t=d.transaction("shots","readwrite");
+      t.objectStore("shots").put(rec); t.oncomplete=res; t.onerror=()=>rej(t.error); });
+    return rec.id;
+  }catch(e){ return null; }
+}
+async function shotAll(){
+  try{
+    const d=await shotDB();
+    return await new Promise((res,rej)=>{ const t=d.transaction("shots","readonly");
+      const rq=t.objectStore("shots").getAll();
+      rq.onsuccess=()=>res((rq.result||[]).sort((a,b)=>b.ts-a.ts)); rq.onerror=()=>rej(rq.error); });
+  }catch(e){ return []; }
+}
+async function shotDrop(id){
+  try{ const d=await shotDB();
+    await new Promise((res,rej)=>{ const t=d.transaction("shots","readwrite");
+      t.objectStore("shots").delete(id); t.oncomplete=res; t.onerror=()=>rej(t.error); });
+  }catch(e){}
+}
+let SHOTS=[];
+async function shotsRefresh(){ SHOTS=await shotAll(); try{ render(); }catch(e){} }
+
 async function runPhotoRead(){
   if(!CAP.sample||!photoFile||photoBusy)return;
   photoBusy=true; photoCtl=new AbortController(); st.photoErr=null; render();

@@ -153,6 +153,34 @@ function phoneBoot(){
       _wire.apply(this,arguments);
       const more=document.getElementById("snapMore");
       if(more)more.onclick=()=>{ st.snapDetail=true; render(); };
+      /* The four questions. Kept in state as they are typed, so a re-render
+         never wipes what has been entered. */
+      document.querySelectorAll("[data-hint]").forEach(inp=>{
+        inp.oninput=()=>{ st.photoHints=Object.assign({},st.photoHints,{[inp.dataset.hint]:inp.value}); };
+      });
+      const again=document.getElementById("snapAgain");
+      if(again)again.onclick=()=>{ if(photoFile)runPhotoRead(); };
+      const keep=document.getElementById("snapKeep");
+      if(keep)keep.onclick=async()=>{
+        if(!photoFile)return;
+        keep.disabled=true; keep.textContent="Kept";
+        await shotSave(photoFile,{what:(st.photoRead&&st.photoRead.what)||"",
+                                  hints:Object.assign({},st.photoHints)});
+        shotsRefresh();
+      };
+      const fold=document.getElementById("shotFold");
+      if(fold&&!fold.dataset.w){ fold.dataset.w="1";
+        fold.addEventListener("toggle",()=>{ st.shelfOpen=fold.open; }); }
+      document.querySelectorAll("[data-shot]").forEach(btn=>{
+        btn.onclick=async()=>{
+          const rec=SHOTS.find(z=>z.id===btn.dataset.shot); if(!rec)return;
+          photoFile=rec.blob; st.photoHints=Object.assign({},rec.hints||{});
+          st.photoRead=null; st.photoErr=null; render(); runPhotoRead();
+        };
+      });
+      document.querySelectorAll("[data-shotdrop]").forEach(btn=>{
+        btn.onclick=async()=>{ await shotDrop(btn.dataset.shotdrop); shotsRefresh(); };
+      });
       /* Placing a read-but-unplaced item by hand is the same moment as a
          photo naming one: it now knows what the thing is, so go and price
          it rather than leaving the built-in guess on screen. */
@@ -176,6 +204,7 @@ function phoneBoot(){
     render=function(){ _render(); const i=document.getElementById("omniIn"); if(i)i.placeholder="What are you looking at?"; };
   }catch(x){}
   try{ render(); }catch(x){}
+  try{ shotsRefresh(); }catch(x){}
 }
 document.addEventListener("DOMContentLoaded",phoneBoot);
 
@@ -226,16 +255,8 @@ function snapHTML(){
      camera screen as though nothing had happened. */
   const un=st.photoRead&&st.photoRead.unplaced?st.photoRead:null;
   if(!has) return `<div class="snapWrap">${cam}
-    ${un?`<div class="snapCard" style="border-color:rgba(255,201,143,.45)">
-      <div class="snapLab">I read the picture as</div>
-      <div class="snapName" style="margin-top:6px">${esc(un.what||"\u2014 couldn\u2019t tell \u2014")}</div>
-      <div class="snapSub">${un.what
-        ? "It isn\u2019t on my lists, so I can\u2019t price it by itself. Tap the kind of thing it is and I\u2019ll price it from there."
-        : "The picture didn\u2019t give me enough to go on. Try again closer, with a label, model plate or stamp in the frame."}</div>
-      ${un.note?`<div class="snapSrc">${esc(un.note)}</div>`:""}
-      ${un.what?`<div class="snapCond" style="margin-top:12px">${CATALOG.map(c=>
-        `<button data-cat="${c.id}" style="flex:1 1 45%">${esc(c.label)}</button>`).join("")}</div>`:""}
-    </div>`:""}
+    ${un?snapHelpHTML(un):""}
+    ${snapShelfHTML()}
     <div class="snapOr">or type what it is</div>${omniHTML()}
     <div class="snapTip">Fill the frame. A model plate, a barrel stamp or a label is worth more than the whole object in shot.</div>
   </div>`;
@@ -270,4 +291,51 @@ function snapFootHTML(){
     <button class="ghostBtn" id="pinNew">Price another</button>
     <button class="ghostBtn" id="snapMore">Show all the detail &rsaquo;</button>
   </div>`;
+}
+
+/* ---- when it cannot place it: ask, don't shrug -------------------------
+   The counter is holding the thing. They can read the stamp the camera
+   could not, turn it over, feel the weight. Four short questions put that
+   into the next read, which is a far better use of their ten seconds than
+   scrolling a category list. */
+const SNAP_Q=[["words","Any words, names or logos on it?","Stihl, Craftsman, a logo\u2026"],
+              ["nums","Any numbers or a model on it?","MS 250, 12 GA, a serial\u2026"],
+              ["size","Roughly how big is it?","fits one hand / two feet long\u2026"],
+              ["made","What is it made of?","steel, plastic, wood, gold-coloured\u2026"]];
+function snapHelpHTML(un){
+  const h=st.photoHints||{};
+  return `<div class="snapCard" style="border-color:rgba(255,201,143,.45)">
+    <div class="snapLab">I read the picture as</div>
+    <div class="snapName" style="margin-top:6px">${esc(un.what||"\u2014 couldn\u2019t tell \u2014")}</div>
+    <div class="snapSub">${un.what
+      ? "I can\u2019t place it on my lists, so I can\u2019t price it yet. Tell me what you can see and I\u2019ll look again \u2014 you\u2019re holding it, I\u2019m not."
+      : "The picture didn\u2019t give me enough. Tell me what you can see and I\u2019ll look again, or take another shot closer in."}</div>
+    ${un.note?`<div class="snapSrc">${esc(un.note)}</div>`:""}
+    <div class="snapAsk">
+      ${SNAP_Q.map(([k,q,ph])=>`<label><span>${esc(q)}</span>
+        <input data-hint="${k}" type="text" autocomplete="off" placeholder="${esc(ph)}" value="${esc(String(h[k]||""))}"></label>`).join("")}
+    </div>
+    <div class="snapFoot" style="margin-top:12px">
+      <button class="brassBtn" id="snapAgain"${photoBusy?" disabled":""}>${photoBusy?"Looking again\u2026":"Look again with this"}</button>
+      <button class="ghostBtn" id="snapKeep">Keep the picture for later</button>
+    </div>
+    <div class="snapSrc">Or just tell me the kind of thing it is:</div>
+    <div class="snapCond" style="margin-top:8px">${CATALOG.map(c=>
+      `<button data-cat="${c.id}" style="flex:1 1 45%">${esc(c.label)}</button>`).join("")}</div>
+  </div>`;
+}
+/* Pictures put by, waiting for a quiet evening. */
+function snapShelfHTML(){
+  if(!SHOTS.length)return "";
+  return `<details class="fold"${st.shelfOpen?" open":""} id="shotFold">
+    <summary class="foldLine">${SHOTS.length} picture${SHOTS.length===1?"":"s"} kept for later</summary>
+    <div class="shotGrid">${SHOTS.map(sh=>`<div class="shotItem">
+      <img src="${URL.createObjectURL(sh.blob)}" alt="">
+      <div class="shotWhat">${esc(sh.what||"not identified")}</div>
+      <div class="shotWhen">${new Date(sh.ts).toLocaleDateString()}</div>
+      <div class="row2" style="gap:6px;margin-top:6px">
+        <button class="ghostBtn" data-shot="${sh.id}" style="flex:1;padding:8px 10px;font-size:12px">Try again</button>
+        <button class="ghostBtn" data-shotdrop="${sh.id}" style="padding:8px 10px;font-size:12px">&times;</button>
+      </div></div>`).join("")}</div>
+  </details>`;
 }
