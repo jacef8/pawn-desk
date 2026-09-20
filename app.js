@@ -87,10 +87,10 @@ const CATALOG = [
   complete:{on:true,label:"Racks, shelves, hoses, remote"},
   items:[
    {id:"a1",name:"Range / oven",value:150,liq:"slow"},
-   {id:"a2",name:"Refrigerator",value:200,liq:"slow"},
-   {id:"a3",name:"Washer",value:150,liq:"normal"},
-   {id:"a4",name:"Dryer",value:125,liq:"normal"},
-   {id:"a5",name:"Washer & dryer pair",value:300,liq:"normal"},
+   {id:"a2",name:"Refrigerator",value:240,liq:"slow"},
+   {id:"a3",name:"Washer",value:175,liq:"normal"},
+   {id:"a4",name:"Dryer",value:175,liq:"normal"},
+   {id:"a5",name:"Washer & dryer pair",value:375,liq:"normal"},
    {id:"a6",name:"Chest freezer",value:120,liq:"normal"},
    {id:"a7",name:"Window air conditioner",value:80,liq:"fast"},
    {id:"a8",name:"Microwave",value:35,liq:"slow"},
@@ -127,13 +127,13 @@ const CATALOG = [
   brand:{on:true,hi:"Peloton / NordicTrack / Rogue",mid:"ProForm / Bowflex / Schwinn / Sole",lo:"Weider / Gold's Gym / no name"},
   complete:{on:true,label:"Safety key, pins, all the plates"},
   items:[
-   {id:"f1",name:"Treadmill",value:200,liq:"slow"},
+   {id:"f1",name:"Treadmill",value:300,liq:"slow"},
    {id:"f2",name:"Exercise bike / spin bike",value:150,liq:"slow"},
    {id:"f3",name:"Elliptical",value:150,liq:"slow"},
    {id:"f4",name:"Weight bench",value:60,liq:"normal"},
    {id:"f5",name:"Dumbbells / weight set",value:70,liq:"fast"},
    {id:"f6",name:"Home gym / power rack",value:200,liq:"slow"},
-   {id:"f7",name:"Golf clubs \u2014 full set",value:120,liq:"normal"}]},
+   {id:"f7",name:"Golf clubs \u2014 full set",value:150,liq:"normal"}]},
  /* The name on it carries the price, and so does whether it is real. These
     gate to a spotting-fakes card the same way the luxury watches do. */
  {id:"coll",label:"Cards, coins & collectibles",ltv:40,
@@ -262,6 +262,13 @@ function brandInText(catId,txt){
 /* THE PRICE BOOK — common walk-ins that aren't on the main lists.
    Values are starting resale estimates for rural North Florida, excellent
    condition, mid brand, complete. The counter person is still the judge. */
+/* Checked against the open market on 2026-09-20. What could be reached was
+   live ASKING prices and published resale guides, not completed sales -
+   eBay's sold pages could not be opened from here - so these are treated the
+   way a shelf tag is: the observed ask, one markdown step down. Eleven rows
+   moved. The rest of this list has not been checked against anything and
+   should be read as a starting point until a shelf tag or a logged sale
+   says otherwise. */
 const PRICEBOOK=[
  /* gaps the counter walked into: every one of these was photographed on a
     shelf in Tallahassee and had nowhere to land in this list. Values are
@@ -314,10 +321,10 @@ const PRICEBOOK=[
  ["Bicycle — adult",60,"rolling","normal"],["E-bike",600,"rolling","normal"],
  /* grilling, smoking and camping - the back half of every truck around here */
  ["Gas grill",90,"appl","normal"],["Charcoal grill / kettle",40,"appl","normal"],
- ["Pellet grill / smoker",250,"appl","normal"],["Offset smoker",150,"appl","slow"],
+ ["Pellet grill / smoker",275,"appl","normal"],["Offset smoker",150,"appl","slow"],
  ["Flat-top griddle \u2014 Blackstone class",120,"appl","fast"],["Propane tank \u2014 20lb, full",20,"appl","fast"],
  ["Camp stove",30,"hunt","normal"],["Tent \u2014 4 to 6 person",40,"hunt","normal"],
- ["Sleeping bag",20,"hunt","normal"],["Hard cooler \u2014 Yeti class",150,"hunt","fast"],
+ ["Sleeping bag",20,"hunt","normal"],["Hard cooler \u2014 Yeti class",200,"hunt","fast"],
  ["Soft cooler / tote",35,"hunt","normal"],["Camp chairs \u2014 pair",20,"hunt","normal"],
  /* small kitchen and comfort - cheap each, but they come through the door
     every week and every one of them used to come up empty */
@@ -332,7 +339,7 @@ const PRICEBOOK=[
  ["Dresser / chest of drawers",70,"appl","slow"],["Dining table & chairs",120,"appl","slow"],
  ["TV stand / entertainment center",40,"appl","slow"],["Gun cabinet \u2014 wood",150,"guns","slow"],
  /* farm and ranch */
- ["Post hole digger \u2014 gas",250,"power","slow"],["Fence charger",60,"power","normal"],
+ ["Post hole digger \u2014 gas",140,"power","slow"],["Fence charger",60,"power","normal"],
  ["Sprayer tank \u2014 25 to 55 gal",120,"power","slow"],["Earth auger \u2014 one man",180,"power","normal"],
  ["Livestock water trough",40,"power","slow"],["Chicken coop",120,"power","slow"],
  /* the rest of the shop */
@@ -342,7 +349,7 @@ const PRICEBOOK=[
  ["Drywall lift",120,"tools","slow"],["Battery charger / jump box",40,"tools","fast"],
  ["Transfer pump \u2014 gas",90,"power","normal"],["Grease gun",25,"tools","normal"],
  /* school band. Rental returns turn up every June. */
- ["Clarinet",100,"music","slow"],["Flute",110,"music","slow"],
+ ["Clarinet",80,"music","slow"],["Flute",80,"music","slow"],
  ["Trombone",150,"music","slow"],["French horn",300,"music","slow"],
  ["Cello",300,"music","slow"],["Ukulele",40,"music","normal"],
  /* the rest of the sporting goods */
