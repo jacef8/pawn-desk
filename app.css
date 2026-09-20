@@ -38,7 +38,8 @@
     #view.item,#view.metal{display:grid;gap:clamp(10px,1.1vw,15px);align-items:start;
       grid-template-columns:minmax(0,300px) minmax(0,1fr) minmax(0,320px);
       grid-template-areas:"left center right"}
-    #view.item{grid-template-rows:auto auto auto;grid-template-areas:"omni omni omni" "next next next" "left center right"}
+    #view.item{grid-template-rows:auto auto auto;grid-template-areas:"omni omni omni" "next next pin" "left center right"}
+    #pin{grid-area:pin;align-self:start;position:sticky;top:96px;z-index:5}
     .omni{grid-area:omni}
     .colL{grid-area:left}.colC{grid-area:center}.colR{grid-area:right}
     .colL,.colC,.colR{min-width:0;padding:4px 2px 8px}
@@ -137,7 +138,7 @@
   .pinGrid>div{display:flex;flex-direction:column;gap:1px}
   .pinGrid span{font-size:11px;color:var(--ink-3);letter-spacing:.02em}
   .pinGrid b{font-family:var(--mono);font-size:15px;color:var(--ink-2)}
-  @media (min-width:1080px){ .colR>#pin{position:sticky;top:96px;z-index:4} }
+  @media (max-width:1079px){ #pin{margin-top:14px} }
   /* folds: the long tail of a card, shut until wanted */
   .fold>summary,.foldCard>summary{list-style:none;cursor:pointer}
   .fold>summary::-webkit-details-marker,.foldCard>summary::-webkit-details-marker{display:none}

@@ -789,8 +789,12 @@ function renderItem(){
     <input type="range" min="15" max="100" value="${x.baseLtv}" id="ltvSlider">
     <div class="sliderScale"><span>15% — tight</span><span>100% — your whole cushion, gone</span></div>
     <div id="ltvSuggest">${ltvSuggestHTML(cat,x.baseLtv)}</div>${buyRateHTML(x)}</details></div>`;
-  const right=`<div class="colR"><div id="pin">${pinHTML(x)}</div><div id="ticket">${ticketHTML(x)}</div>${logCardHTML(x)}</div>`;
-  return omniHTML()+nextStepHTML(x)+left+mid+right;
+  const right=`<div class="colR"><div id="ticket">${ticketHTML(x)}</div>${logCardHTML(x)}</div>`;
+  /* The pin sat at the top of the right column, and that column starts below
+     the Next step panel - so the number the counter is working toward was
+     off-screen until they scrolled to it, which is what it existed to avoid.
+     It goes in the top row instead, in the empty half of that panel. */
+  return omniHTML()+nextStepHTML(x)+`<div id="pin">${pinHTML(x)}</div>`+left+mid+right;
 }
 function wireItem(){
   const v=document.getElementById("view");
@@ -1259,10 +1263,10 @@ async function retailLookup(){
 function pdConnectHTML(){
   if(window.claude&&window.claude.use)return "";
   const on=!!pdServer();
-  return '<div class="card" id="pdConnCard"><span class="label">Photo ID &amp; price lookup</span>'+
+  return '<div class="card" id="pdConnCard" style="border:1px dashed var(--e2-hi)"><span class="label">\uD83D\uDCF7 Camera &mdash; photograph the item</span>'+
     '<div class="cardHint">'+(on
       ? "Connected, but the service did not answer. Check that it is running."
-      : "Off. Connect the shop&rsquo;s service and the camera and the new-price lookup work right here.")+'</div>'+
+      : "<b style=\"color:var(--ink)\">This is the camera, and it is off.</b> Connect the shop&rsquo;s service once and this card becomes a Take picture button \u2014 photograph an item and it fills in what it is, or photograph a price tag and it goes in your record.")+'</div>'+
     '<div class="row2" style="margin-top:8px"><button class="ghostBtn" id="pdConnBtn">'+
       (on?"Change the address":"Connect")+'</button>'+
       (on?'<button class="ghostBtn" id="pdConnOff">Disconnect</button>':'')+'</div></div>';
@@ -3632,7 +3636,13 @@ function nextStepHTML(x){
     ${step(1,"What it is",started?esc(what):"not set",s1done)}
     ${step(2,"Resale value",x.checked?money(m.mid)+` <small>${esc(nsSrcShort(m))}</small>`:(m&&m.stale?"list is old":"not checked"),s2done)}
     ${step(3,"Condition",s3done?cw[0]:"not set",s3done)}
-    ${step(4,"Your offer",x.checked&&s3done?`Loan ${money(x.target)}<small>or buy it for ${money(x.buy)}</small>`:"&mdash;",cur===4)}</div>`;
+    ${step(4,"Your offer",x.checked&&s3done
+      /* On the desk the pinned panel is six inches to the right of this row
+         with both figures in it. Saying them again here, side by side, is the
+         same number twice on one line of sight. The phone has no pin. */
+      ?(window.PHONE?`Loan ${money(x.target)}<small>or buy it for ${money(x.buy)}</small>`
+                    :`Ready<small>the numbers are in Where it stands</small>`)
+      :"&mdash;",cur===4)}</div>`;
   let h="",sub="",act="";
   if(cur===1&&!started){
     h=`What are you looking at?`;
