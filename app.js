@@ -783,10 +783,12 @@ function renderItem(){
   }
   mid+=`<span class="label">How fast it moves in Bristol</span><div class="pills" style="border-radius:var(--r-s)">${LIQUIDITY.map(l=>`<button class="${x.liqId===l.id?"on":""}" style="flex:1;padding:7px 5px;font-size:11px" data-liq="${l.id}" title="${l.hint}">${l.label}</button>`).join("")}</div>
   </div>
-  <div class="card"><div class="rateRow"><span class="label">6 &middot; Base lending rate for ${cat.label.toLowerCase()} (%)</span><input id="ltvNum" class="numIn rateNum" type="number" inputmode="numeric" min="15" max="100" value="${x.baseLtv}"></div>
+  <details class="card foldCard"${st.openRates?" open":""} id="rateFold">
+    <summary><span class="label" style="margin:0">6 &middot; Lending and buying rates</span><span class="foldSub">${x.baseLtv}% lend &middot; ${x.buyPct}% buy &mdash; shop policy, rarely per deal</span></summary>
+    <div class="rateRow" style="margin-top:10px"><span class="label">Base lending rate for ${cat.label.toLowerCase()} (%)</span><input id="ltvNum" class="numIn rateNum" type="number" inputmode="numeric" min="15" max="100" value="${x.baseLtv}"></div>
     <input type="range" min="15" max="100" value="${x.baseLtv}" id="ltvSlider">
     <div class="sliderScale"><span>15% — tight</span><span>100% — your whole cushion, gone</span></div>
-    <div id="ltvSuggest">${ltvSuggestHTML(cat,x.baseLtv)}</div>${buyRateHTML(x)}</div></div>`;
+    <div id="ltvSuggest">${ltvSuggestHTML(cat,x.baseLtv)}</div>${buyRateHTML(x)}</details></div>`;
   const right=`<div class="colR"><div id="pin">${pinHTML(x)}</div><div id="ticket">${ticketHTML(x)}</div>${logCardHTML(x)}</div>`;
   return omniHTML()+nextStepHTML(x)+left+mid+right;
 }
@@ -797,7 +799,7 @@ function wireItem(){
      category causes. */
   const br=document.getElementById("browseBox");
   if(br)br.ontoggle=()=>{ st.browse=br.open; };
-  for(const [id,key] of [["whyFold","openWhy"],["paybackFold","openPayback"]]){
+  for(const [id,key] of [["whyFold","openWhy"],["paybackFold","openPayback"],["rateFold","openRates"]]){
     const d=document.getElementById(id); if(d)d.ontoggle=()=>{ st[key]=d.open; };
   }
   v.querySelectorAll("[data-cat]").forEach(b=>b.onclick=()=>{
@@ -3658,6 +3660,14 @@ function nextStepHTML(x){
     h=`What shape is it in?`;
     sub=`Next to a typical used one. The resale value assumes <b>Good</b>, normal wear.`;
     act=CONDITIONS.map(c=>{ const w=COND_WORDS[c.id]||[c.label,""]; return `<button class="nsBtn" data-ncond="${c.id}"><span>${w[0]}</span><b>${w[1]}</b></button>`; }).join("");
+  } else if(!window.PHONE){
+    /* The pinned panel holds the loan and the buy price and does not scroll
+       away, so saying them again here made one figure appear five times on a
+       screen. What it cannot show is where they came from. That is this. */
+    h=`Where those numbers come from.`;
+    sub=`<b>Resale value ${money(m.mid)}</b> used (${esc(nsSrcShort(m))})${Math.round(x.resale)!==m.mid?`, ${money(x.resale)} in ${cw[0].toLowerCase()} shape`:""}.<br>
+      Lend <b>${x.ltv}%</b> of that, buy at <b>${x.buyPct}%</b>. A loan he pays back with the fee to get it back; a buy is yours to sell.<br>
+      The offer is on the right, and it moves as you change the answers.`;
   } else {
     h=`Lend him ${money(x.target)}, or buy it for ${money(x.buy)}.`;
     sub=`<b>Pawn loan ${money(x.target)}</b>: the cash you lend him. He pays it back with the fee to get it back. Room to move: ${money(x.low)} to ${money(x.high)}.<br>
