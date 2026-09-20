@@ -699,15 +699,22 @@ function valSubText(x){
 function renderItem(){
   const x=calcItem(); const cat=x.cat;
   /* the pipeline: 1 category → 2 item → 3 your resale → 4 what changes it → 5 rate → 6 THE LOAN → 7 the rules */
-  const left=`<div class="colL"><div class="card">
-    <span class="label">1 &middot; Category</span>
-    ${CATALOG.map(c=>`<button class="catBtn${c.id===st.catId?" on":""}" data-cat="${c.id}">${c.label}</button>`).join("")}
-  </div>
-  <div class="card"><span class="label">2 &middot; Item</span>
-    <div class="cardHint" style="margin-top:0;font-size:13.5px">Not here? Type it in the search bar at the top. It also searches ${PRICEBOOK.length}+ more items.</div>
-    ${cat.items.map((it,ix)=>`<button class="itemBtn${st.picked&&it.id===st.itemId?" on":""}" data-item="${it.id}"><span class="idx">${String(ix+1).padStart(2,"0")}</span><span style="flex:1">${it.name}</span>${ownAvgTag(it.id)}</button>`).join("")}
-    <button class="itemBtn${st.picked&&st.itemId===custId(cat.id)?" on":""}" data-item="${custId(cat.id)}"><span class="idx">+</span><span style="flex:1">${st.itemId===custId(cat.id)&&st.bookName?esc(st.bookName):"Not on any list — I set the price"}</span></button>
-  </div></div>`;
+  /* The search bar reaches every one of these and the price book besides, so
+     the two columns of buttons are a second way to do what it already does -
+     17 of them, taking the top of the screen before anything has been asked.
+     They fold away. Open once and they stay open for the session: thumbing
+     the lists is a habit, not a one-off. */
+  const left=`<div class="colL"><details class="browse" id="browseBox"${st.browse?" open":""}>
+    <summary><span class="label" style="margin:0">Browse the lists</span><span class="browseSub">${CATALOG.length} groups &middot; ${CATALOG.reduce((a,c)=>a+c.items.length,0)} items &middot; or just type above</span></summary>
+    <div class="card" style="margin-top:10px">
+      <span class="label">1 &middot; Category</span>
+      ${CATALOG.map(c=>`<button class="catBtn${c.id===st.catId?" on":""}" data-cat="${c.id}">${c.label}</button>`).join("")}
+    </div>
+    <div class="card"><span class="label">2 &middot; Item</span>
+      <div class="cardHint" style="margin-top:0;font-size:13.5px">Not here? Type it in the search bar at the top. It also searches ${PRICEBOOK.length}+ more items.</div>
+      ${cat.items.map((it,ix)=>`<button class="itemBtn${st.picked&&it.id===st.itemId?" on":""}" data-item="${it.id}"><span class="idx">${String(ix+1).padStart(2,"0")}</span><span style="flex:1">${it.name}</span>${ownAvgTag(it.id)}</button>`).join("")}
+      <button class="itemBtn${st.picked&&st.itemId===custId(cat.id)?" on":""}" data-item="${custId(cat.id)}"><span class="idx">+</span><span style="flex:1">${st.itemId===custId(cat.id)&&st.bookName?esc(st.bookName):"Not on any list — I set the price"}</span></button>
+    </div></details></div>`;
   let mid=`<div class="colC">${photoCardHTML()}${seenCardHTML()}${compsCardHTML(x)}<div class="card"><span class="label">3 &middot; Brand, make &amp; model</span>
     <div class="driver"><p><b class="go">What sets the price:</b> ${(itemOv()&&itemOv().driver)||cat.driver}</p><p><b class="no">What kills it:</b> ${(itemOv()&&itemOv().killer)||cat.killer}</p></div>`;
   if(cat.brand.on){
@@ -754,6 +761,11 @@ function renderItem(){
 }
 function wireItem(){
   const v=document.getElementById("view");
+  /* Opened once, it stays open for the session - thumbing the lists is a
+     habit, not a one-off, and it must survive the re-render that picking a
+     category causes. */
+  const br=document.getElementById("browseBox");
+  if(br)br.ontoggle=()=>{ st.browse=br.open; };
   v.querySelectorAll("[data-cat]").forEach(b=>b.onclick=()=>{
     /* Typing something the lists don't carry parks you on a custom item and
        asks what kind of thing it is - and these buttons are the answer on this
