@@ -2172,6 +2172,7 @@ function wordHit(tok,words){
   }
   return best;
 }
+const OMNI_MAX=16;
 function omniRows(q){
   const P=omniParse(q), rows=[];
   /* Did anything really match what was typed - a known model, a price-list
@@ -2184,7 +2185,12 @@ function omniRows(q){
   const KEEP=/^(impact|hammer|digital|pro|max|plus|lite|oled|slim|xl|compact|magnum)$/;
   const detail=P.detail.concat(P.modelLabel?P.left:[]).concat(P.words.filter(w=>KEEP.test(w))).join(" ");
   const base={brand:P.brand,model,detail,spec:P.spec,cond:P.cond,complete:P.complete};
-  const add=(e,extra)=>{ if(!e||rows.length>=8)return;
+  /* Eight was too few once the price list started answering too: typing
+     "remington" spent five rows on models and had three left for the ten
+     kinds of firearm Remington makes, so lever-action, the AR, the .22, the
+     pistol, the revolver and the muzzleloader never appeared. The list
+     scrolls; the cap only needs to stop it running away. */
+  const add=(e,extra)=>{ if(!e||rows.length>=OMNI_MAX)return;
     if(rows.some(r=>r.kind===e.kind&&r.name===e.name&&r.catId===e.catId))return;
     rows.push(Object.assign({},e,base,extra||{})); };
   if(P.metal&&!P.modelItem)rows.push({kind:"metal",metal:P.metal,karat:P.karat,q});
@@ -2200,7 +2206,7 @@ function omniRows(q){
       const r0=rows[0], strongId=r0&&r0.strong?((mpFor(r0.kind==="item"?r0.itemId:r0.name,[r0.brand,r0.model,r0.detail].join(" "))||[])[0]):null;
       MODEL_PRICES.map(r=>{ const nw=omniWords(r[2]); let s=0; for(const w of keys){ const h=wordHit(w,nw); if(!h)return null; s+=h; } if(omniNorm(r[2]).indexOf(omniNorm(q))>=0)s+=5; return {r,s}; })
         .filter(Boolean).sort((a,b)=>b.s-a.s||a.r[2].length-b.r[2].length).slice(0,5)
-        .forEach(({r})=>{ if(rows.length>=8||r[0]===strongId)return; const e=findEntry(String(r[1]).split("|")[0]); if(!e)return;
+        .forEach(({r})=>{ if(rows.length>=OMNI_MAX||r[0]===strongId)return; const e=findEntry(String(r[1]).split("|")[0]); if(!e)return;
           rows.push(Object.assign({},e,{kind:"mp",base:e.kind,mp:r,brand:"",model:"",detail:"",spec:{},cond:P.cond,complete:P.complete}));   strong=true; });
     } }
   const inBrand=e=>P.brandCats.some(c=>c.cat===e.catId&&(!c.items||c.items.indexOf(e.kind==="item"?e.itemId:e.name)>=0));
