@@ -139,14 +139,24 @@ function phoneBoot(){
      want in your hand in somebody's driveway. */
   try{
     const _item=renderItem;
-    renderItem=function(){ return snapOn()?snapHTML():_item.apply(this,arguments); };
+    /* The way out of the detailed view used to live only in the tab bar,
+       which scrolls away - so two screens down there was no visible way
+       back and the counter was simply stranded. It rides along the top
+       now, pinned, wherever you are on the page. */
+    renderItem=function(){
+      if(snapOn())return snapHTML();
+      return `<button class="snapPin" id="snapBackTop">&lsaquo; Back to the simple screen</button>`
+             +_item.apply(this,arguments);
+    };
     const _wire=wireItem;
     wireItem=function(){
       _wire.apply(this,arguments);
       const more=document.getElementById("snapMore");
       if(more)more.onclick=()=>{ st.snapDetail=true; render(); };
-      const back=document.getElementById("snapBack");
-      if(back)back.onclick=()=>{ st.snapDetail=false; render(); };
+      ["snapBack","snapBackTop"].forEach(id=>{
+        const back=document.getElementById(id);
+        if(back)back.onclick=()=>{ st.snapDetail=false; window.scrollTo(0,0); render(); };
+      });
     };
     /* When a photo names the thing, go and get its price without being asked. */
     const _apply=applyPhotoRead;
