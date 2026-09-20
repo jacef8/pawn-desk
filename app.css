@@ -437,3 +437,10 @@
     .pop{animation:rise .45s cubic-bezier(.2,.8,.2,1) both}
     @keyframes rise{from{opacity:0;transform:translateY(14px)}}
   }
+
+  /* The camera leading the phone's start screen: this is the move the app
+     exists for out shopping, so the button is thumb-sized and the card does
+     not look like one more row of settings. */
+  .camLead{border:1px solid rgba(0,232,160,.34);background:linear-gradient(160deg,var(--e2-hi),var(--e2))}
+  .camLead .label{font-size:12px;letter-spacing:.1em}
+  .camLead .row2{margin-top:10px}

@@ -40,7 +40,11 @@ function phoneStepHTML(x){
   let h="",sub="",act="";
   if(cur===1&&!started){
     h=`What are you looking at?`;
-    sub=`Search above and tap what it is &mdash; the resale value fills in from there.`;
+    /* The camera sits above this on the start screen, so pointing at the
+       search box as the only way in reads as if it were not there. */
+    sub=(CAP&&CAP.images)
+      ?`<b>Take a picture</b> above and I'll work out what it is \u2014 or search and tap it, if you already know.`
+      :`Search above and tap what it is &mdash; the resale value fills in from there.`;
     act="";
   } else if(cur===1){
     h=`Which ${esc(what)} is it?`;

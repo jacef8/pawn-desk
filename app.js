@@ -1065,9 +1065,16 @@ function renderItem(){
      price, so it never pushes the answer off the screen again. */
   if(window.PHONE){
     const cam=photoCardHTML();
+    /* On a phone with nothing on the go, the camera IS the first move. You
+       see something on a table, you want to shoot it and let the desk work
+       out what it is - being handed a search box first means typing, which
+       is the one thing you cannot do when you do not know what the thing is.
+       So: camera first, search underneath as the way in when you would
+       rather type. Once something is picked the price takes the top and the
+       camera drops below it. */
     return st.picked
       ? omniHTML()+nextStepHTML(x)+`<div id="pin">${pinHTML(x)}</div>`+cam+left+mid+right
-      : omniHTML()+cam+nextStepHTML(x)+`<div id="pin">${pinHTML(x)}</div>`+left+mid+right;
+      : cam+omniHTML()+nextStepHTML(x)+`<div id="pin">${pinHTML(x)}</div>`+left+mid+right;
   }
   return omniHTML()+nextStepHTML(x)+`<div id="pin">${pinHTML(x)}</div>`+left+mid+right;
 }
@@ -1891,9 +1898,14 @@ let photoFile=null, photoBusy=false, photoCtl=null;
 function photoCardHTML(){
   if(!CAP.sample||!CAP.images) return pdConnectHTML();
   const r=st.photoRead;
-  let h=`<div class="card" id="photoCard"><span class="label">Photograph it &mdash; I'll fill in what I can see</span>
+  /* Leading the phone's start screen, this is the main move and is dressed
+     as one. Once an item is on the go it is a tool among tools again. */
+  const lead=window.PHONE&&!st.picked;
+  let h=`<div class="card${lead?" camLead":""}" id="photoCard"><span class="label">${lead
+      ?"Snap it &mdash; I'll work out what it is"
+      :"Photograph it &mdash; I'll fill in what I can see"}</span>
     <div class="row2" style="gap:9px;flex-wrap:wrap">
-      ${camButtonHTML()}
+      ${camButtonHTML(lead)}
       <label class="ghostBtn" style="display:inline-block;cursor:pointer;margin:0">
         ${photoFile?"Choose another":"Choose photo"}
         <input id="photoIn" type="file" accept="image/jpeg,image/png,image/webp" style="display:none">
@@ -1902,7 +1914,10 @@ function photoCardHTML(){
       ${photoBusy?`<button id="photoStop" class="ghostBtn" style="padding:9px 14px">Stop</button>`:""}
     </div>
     ${photoFile?`<div class="photoWrap"><img id="photoPrev" alt="the item"></div>`:""}
-    <div class="cardHint" id="photoMsg">${photoBusy?"Reading the picture — 10 to 30 seconds.":(isTouch()?"Tap Take picture and the photo goes straight in. ":"Choose a photo, or drag one onto this card. ")+"Fill the frame and get the model plate or barrel stamp in focus."}</div>`;
+    <div class="cardHint" id="photoMsg">${photoBusy?"Reading the picture — 10 to 30 seconds."
+      :(isTouch()?"The photo goes straight in - nothing else to press. ":"Choose a photo, or drag one onto this card. ")
+        +"Fill the frame and get the model plate or barrel stamp in focus."
+        +(lead?" Or type it in the box below if you already know what it is.":"")}</div>`;
   if(r){
     h+=`<div class="tagWarn" style="background:rgba(0,217,255,.10);color:var(--ink-2)">
       <b style="color:var(--accent-2)">Read from the photo &mdash; check every field.</b>
@@ -3146,8 +3161,11 @@ function camLiveOK(){
        if(pol&&typeof pol.allowsFeature==="function")return !!pol.allowsFeature("camera"); }catch(e){}
   return true;
 }
-function camButtonHTML(){
-  if(isTouch())return `<label class="brassBtn camBtn" style="cursor:pointer;margin:0;padding:10px 18px;display:inline-flex;align-items:center">Take picture<input id="photoCam" type="file" accept="image/*" capture="environment" style="display:none"></label>`;
+/* lead: this is the phone's first move, so the target is thumb-sized. The
+   padding is set here rather than in a stylesheet rule because the inline
+   style on this label would win over one anyway. */
+function camButtonHTML(lead){
+  if(isTouch())return `<label class="brassBtn camBtn${lead?" camBtnLead":""}" style="cursor:pointer;margin:0;padding:${lead?"18px 24px":"10px 18px"};display:inline-flex;align-items:center;justify-content:center;${lead?"flex:1;min-width:190px;font-size:17px;":""}">${lead?"\uD83D\uDCF7 Take a picture":"Take picture"}<input id="photoCam" type="file" accept="image/*" capture="environment" style="display:none"></label>`;
   if(camLiveOK())return `<button id="camLive" class="brassBtn" style="padding:10px 18px">Use camera</button>`;
   return "";
 }
