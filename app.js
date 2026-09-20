@@ -77,6 +77,25 @@ const CATALOG = [
    {id:"e5",name:"Game console — current gen",value:225,liq:"fast"},
    {id:"e6",name:"Bluetooth speaker",value:50,liq:"normal"},
    {id:"e7",name:"Car audio — amp & sub",value:80,liq:"slow"}]},
+ /* Big, heavy, and slow to move - a pawn shop is not an appliance store.
+    They are worth taking, but at a fraction of what they cost, and the offer
+    has to carry the cost of having it sit on the floor. */
+ {id:"appl",label:"Appliances & household",ltv:33,
+  driver:"Age and whether it runs. Anything over ten years old is scrap with a cord on it.",
+  killer:"Won't power up, or it's built-in and you'd have to pull it out of a wall. Rust, mold, smell \u2014 pass.",
+  brand:{on:true,hi:"Speed Queen / Sub-Zero / Bosch",mid:"Whirlpool / Maytag / LG / Samsung / GE",lo:"Kenmore / Frigidaire / Amana / Hotpoint / no name"},
+  complete:{on:true,label:"Racks, shelves, hoses, remote"},
+  items:[
+   {id:"a1",name:"Range / oven",value:150,liq:"slow"},
+   {id:"a2",name:"Refrigerator",value:200,liq:"slow"},
+   {id:"a3",name:"Washer",value:150,liq:"normal"},
+   {id:"a4",name:"Dryer",value:125,liq:"normal"},
+   {id:"a5",name:"Washer & dryer pair",value:300,liq:"normal"},
+   {id:"a6",name:"Chest freezer",value:120,liq:"normal"},
+   {id:"a7",name:"Window air conditioner",value:80,liq:"fast"},
+   {id:"a8",name:"Microwave",value:35,liq:"slow"},
+   {id:"a9",name:"Sewing machine",value:70,liq:"slow"},
+   {id:"a10",name:"Vacuum cleaner",value:60,liq:"normal"}]},
  {id:"music",label:"Instruments",ltv:35,
   driver:"Brand and model, more than anything else on this list.",
   killer:"Cracked neck, warped top. Unfixable and unsellable.",
@@ -145,6 +164,10 @@ const BRANDBOOK={
   hi:["Stihl","Husqvarna","Echo","Honda","Shindaiwa","RedMax","John Deere","Kubota","Exmark","Scag","Gravely","Ferris","Wright"],
   mid:["Toro","Cub Cadet","Troy-Bilt","Snapper","Bad Boy","DeWalt","Milwaukee","EGO","Ryobi","Generac","Champion","Ariens","Simplicity","Makita","Kawasaki"],
   lo:["Poulan","Craftsman","Murray","Weed Eater","Hyper Tough","PowerSmart","Predator","Black Max","Remington outdoor","Wild Badger","SENIX","Greenworks"]},
+ appl:{
+  hi:["Speed Queen","Sub-Zero","Wolf","Viking","Thermador","Bosch","Miele","Fisher & Paykel","KitchenAid","Monogram","Cafe"],
+  mid:["Whirlpool","Maytag","LG","Samsung","GE","Electrolux","Frigidaire Gallery","Bosch 300","Dyson","Shark","Singer","Brother","Janome"],
+  lo:["Kenmore","Frigidaire","Amana","Hotpoint","Roper","Insignia","Hisense","Magic Chef","Danby","Avanti","Galanz","Bissell","Hoover","Black+Decker"]},
  tools:{
   hi:["DeWalt","Milwaukee","Makita","Snap-on","Festool","Hilti","Bosch","Mac Tools","Matco","Ingersoll Rand","Lincoln Electric","Miller","Fluke","Knipex"],
   mid:["Ryobi","Ridgid","Craftsman","Kobalt","Hart","Skil","Porter-Cable","Metabo","Metabo HPT","Husky","Flex","Dremel","Hobart","Stanley","Irwin","Klein","Channellock","Campbell Hausfeld"],
@@ -588,6 +611,13 @@ const CH_GRADE={label:"Grade",options:[
    read best in size order, and reading order and neutral only ever coincided
    by luck. */
 function specBase(g){ const i=g.options.findIndex(o=>(o.m||1)===1); return i<0?0:i; }
+/* Appliances die on age more than anything else - a ten-year-old washer is
+   a repair call waiting to happen, and everyone at the counter knows it. */
+const CH_APPL_AGE={label:"Age",options:[
+ {t:"Under 3 yr",m:1.2,note:"nearly new: +20%"},
+ {t:"3\u20137 yr",m:1},
+ {t:"8\u201312 yr",m:.7,note:"getting old: \u221230%"},
+ {t:"Over 12 yr / unknown",m:.45,note:"old or unknown age \u2014 it is scrap with a cord on it"}]};
 const SPEC_CHOICES={
  g1:[CH_GAUGE,CH_BARREL],g2:[CH_GAUGE,CH_BARREL],
  g3:[CH_CALIBER,CH_OPTIC],g4:[CH_CALIBER,CH_OPTIC],
@@ -636,6 +666,15 @@ const SPEC_CHOICES={
      {label:"Controls",options:[{t:"Tiller",m:1},{t:"Remote w/ controls & cables",m:1.1,note:"remote rig: +10%"}]}],
  e1:[{label:"Screen size",options:[{t:"Under 43 in",m:.5,note:"small screen: about half"},{t:"43–49 in",m:.75,note:"smaller panel: −25%"},{t:"50–65 in",m:1},{t:"66 in +",m:1.4,note:"big screen: +40%"}]},
      {label:"Age",options:[{t:"Under 2 yr",m:1},{t:"2–3 yr",m:.85,note:"2-3 years: −15%"},{t:"3–5 yr",m:.7,note:"3-5 years: −30%"},{t:"5 yr +",m:.5,note:"old panel: half"}]}],
+ a1:[{label:"Fuel",options:[{t:"Electric",m:1},{t:"Gas",m:1.1,note:"gas range \u2014 easier sale here: +10%"}]},CH_APPL_AGE],
+ a2:[{label:"Style",options:[{t:"Top freezer",m:1},{t:"Side-by-side",m:1.15,note:"side-by-side: +15%"},{t:"French door",m:1.35,note:"french door: +35%"},{t:"Mini / dorm",m:.4,note:"mini fridge \u2014 small money"}]},CH_APPL_AGE],
+ a3:[{label:"Style",options:[{t:"Top load",m:1},{t:"Front load",m:1.15,note:"front load: +15%"}]},CH_APPL_AGE],
+ a4:[{label:"Fuel",options:[{t:"Electric",m:1},{t:"Gas",m:.9,note:"gas dryer \u2014 fewer hookups around here: \u221210%"}]},CH_APPL_AGE],
+ a5:[{label:"Match",options:[{t:"Matching set",m:1},{t:"Mismatched",m:.85,note:"mismatched pair: \u221215%"}]},CH_APPL_AGE],
+ a6:[{label:"Size",options:[{t:"Under 7 cu ft",m:.8,note:"small freezer: \u221220%"},{t:"7\u201315 cu ft",m:1},{t:"15 cu ft +",m:1.15,note:"big freezer: +15%"}]},CH_APPL_AGE],
+ a7:[{label:"Size",options:[{t:"Under 8,000 BTU",m:.75,note:"small unit: \u221225%"},{t:"8,000\u201312,000 BTU",m:1},{t:"12,000 BTU +",m:1.3,note:"big unit: +30%"}]},CH_APPL_AGE],
+ a9:[{label:"Type",options:[{t:"Household machine",m:1},{t:"Serger / embroidery",m:1.4,note:"serger or embroidery machine: +40%"},{t:"Vintage cabinet model",m:.6,note:"vintage cabinet \u2014 slow, bulky: \u221240%"}]}],
+ a10:[{label:"Type",options:[{t:"Upright / canister",m:1},{t:"Cordless stick",m:1.2,note:"cordless stick: +20%"},{t:"Shop vac",m:.8,note:"shop vac: \u221220%"}]}],
  e2:[CH_AGE,{label:"Class",options:[{t:"Standard",m:1},{t:"Gaming / workstation",m:1.3,note:"gaming class: +30%"}]}],
  e3:[CH_AGE],
  e4:[{label:"Age",options:[{t:"Under 2 yr, flagship-class",m:1},{t:"2–3 yr",m:.8,note:"2-3 years old: −20%"},{t:"3–5 yr",m:.6,note:"3-5 years old: −40%"},{t:"5 yr +",m:.4,note:"old phone — accessory money"}]},
@@ -1952,6 +1991,16 @@ const ITEM_SYN={
  j2:"seiko citizen tissot tag heuer movado bulova fossil timex invicta watch watches wristwatch chronograph dive quartz automatic eco-drive ecodrive kinetic",
  j3:"tiffany david yurman pandora james avery van cleef bulgari designer jewelry necklace bracelet cuff pendant earrings ring charm",
  j4:"diamond engagement bridal wedding solitaire halo gia certified stone ring",
+ a1:"range oven stove cooktop cook top electric range gas range appliance kitchen",
+ a2:"refrigerator fridge icebox freezer side by side french door appliance kitchen",
+ a3:"washer washing machine clothes washer front load top load appliance laundry",
+ a4:"dryer clothes dryer gas dryer electric dryer appliance laundry",
+ a5:"washer dryer pair set matching laundry pair appliance laundry",
+ a6:"chest freezer deep freeze deep freezer upright freezer appliance",
+ a7:"window air conditioner ac unit window unit window ac air conditioner appliance",
+ a8:"microwave over the range countertop appliance kitchen",
+ a9:"sewing machine serger singer brother embroidery machine",
+ a10:"vacuum cleaner vac shop vac upright vacuum dyson bissell hoover",
  m1:"acoustic guitar",m2:"electric guitar",m3:"amplifier guitar amp",
  r1:"utility trailer",r2:"atv four wheeler 4 wheeler fourwheeler quad"};
 const BOOK_SYN={"Wireless earbuds":"airpods air pods earbuds buds earphones galaxy buds","DSLR / mirrorless camera":"dslr slr mirrorless canon nikon sony rebel eos t6 t7 d3500 alpha","Band saw \u2014 benchtop":"bandsaw band saw","Audio mixer \u2014 PA board":"mixer mixing board soundboard sound board zed behringer yamaha mackie","TIG / stick welder":"tig stick arc welder weldpro everlast","Zero-turn mower":"zero turn zturn ztr","Golf cart":"golf cart","Kayak — sit-on-top":"kayak yak",
@@ -3474,7 +3523,7 @@ const COND_WORDS=Object.fromEntries(CONDITIONS.map(c=>{
    so the ticket-to-regular ratios say more about their markdown policy than
    about what a used one is worth here. A real sold price overrides all of
    this, which is why the card says so every time it shows the estimate. */
-const RETAIL_PCT={guns:65,jewel:55,power:55,tools:50,hunt:45,elec:45,music:45,rolling:60};
+const RETAIL_PCT={guns:65,jewel:55,power:55,tools:50,hunt:45,elec:45,music:45,rolling:60,appl:35};
 /* Shelf tags photographed 19 Sep 2026, second batch. Within one category the
    brand moves the number more than the category does: a Stihl MS180C asks
    $199.95 against about $229 new, a Husqvarna 455 Rancher $374.95 against the
@@ -3978,11 +4027,16 @@ function nextStepHTML(x){
   /* The lookup is the one thing that does the work instead of handing the
      counter a page to read, and it was only drawn on the step that happened
      to be showing. It belongs in the action row whatever step that is. */
-  if(CAP.sample&&st.picked&&!findBusy&&!(act||"").includes("pdFindGo"))
+  /* Not while it is still asking what kind of thing this is. The category
+     picks the search sources and the share of new to work from, so a lookup
+     fired before that answer searches as whatever was priced last - and the
+     line above it says in plain words that nothing is priced yet. */
+  const asking=st.needKind&&!window.PHONE;
+  if(CAP.sample&&st.picked&&!asking&&!findBusy&&!(act||"").includes("pdFindGo"))
     act=`<button class="nsBtn${x.checked?" ghost":" on"}" id="pdFindGo" title="Searches eBay sold and Google Shopping used at the same time and brings the middle price back. You do not have to open or read anything.\u000aFor firearms it searches GunWatcher, auction results and GunBroker instead \u2014 eBay bans gun sales."><span>${x.checked?"Check it live \u2014 search the sold prices":"Look up what it sells for used"}</span></button>`+act;
-  else if(CAP.sample&&findBusy&&!(act||"").includes("pdFindGo"))
+  else if(CAP.sample&&!asking&&findBusy&&!(act||"").includes("pdFindGo"))
     act=`<button class="nsBtn on" id="pdFindGo" disabled><span>Looking it up&hellip;</span></button>`+act;
-  if(CAP.sample&&st.picked)act+=`<div class="cardHint" id="pdFindMsg" style="flex-basis:100%">${esc(findMsg||"")}</div>`;
+  if(CAP.sample&&st.picked&&!asking)act+=`<div class="cardHint" id="pdFindMsg" style="flex-basis:100%">${esc(findMsg||"")}</div>`;
   /* In step-at-a-time the run down the middle already carries the steps with
      their answers, and the strip carries the numbers. Repeating the list here
      is a third copy of the same progress, and it is what pushes the loan card
@@ -4021,7 +4075,7 @@ function wireNext(){
 /* ================= BUY OUTRIGHT — you own it, no loan =================
    Starting rates Jace approved 9/19: about 5 points over the lending rate,
    same as the loan for seasonal outdoor power. */
-var BUY_DEFAULT={guns:55,hunt:45,jewel:45,power:45,tools:40,music:40,rolling:40,elec:30};
+var BUY_DEFAULT={guns:55,hunt:45,jewel:45,power:45,tools:40,music:40,rolling:40,elec:30,appl:35};
 var BUY_WHY={guns:"guns sell fast here and hold their value",jewel:"a proven one holds its price, but it sits until the right buyer walks in",hunt:"steady seller in season",tools:"steady seller",
   music:"they sell, just slower",rolling:"big dollars, needs a clean title, sells slower",
   power:"seasonal and often needs a carb cleaned, but it sells and the shelves around here ask real money for it",elec:"loses value fast and can come in locked"};
