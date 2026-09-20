@@ -454,12 +454,14 @@ const ladder = (p,c) => [
 /* ---------------- state ---------------- */
 const KEY="pawndesk:web:v1";
 let st={mode:"item",catId:"guns",itemId:"g1",picked:false,cond:"good",brand:"mid",complete:true,liq:null,brandTyped:"",model:"",detail:"",specSel:{},
-        overrides:{},ltvs:{},buys:{},payPct:70,payTouched:false,loanPct:48,loanTouched:false,editing:false,
+        overrides:{},ltvs:{},buys:{},buyFloor:25,buyMult:2,payPct:70,payTouched:false,loanPct:48,loanTouched:false,editing:false,
         manual:null, /* {date, spot:{gold,silver}, avg90:{gold,silver}} — a same-day hand edit beats the feed */
         deal:"buy",metal:"gold",karat:"14k",grams:"",whyOpen:false,photoRead:null,bookQ:"",bookName:""};
 try{
   const s=JSON.parse(localStorage.getItem(KEY)||"null");
   if(s){ st.overrides=s.overrides||{}; st.ltvs=s.ltvs||{}; st.buys=s.buys||{};
+    if(s.buyFloor!=null)st.buyFloor=Math.max(0,Number(s.buyFloor)||0);
+    if(s.buyMult!=null)st.buyMult=Math.max(1,Number(s.buyMult)||1);
          /* A hand-set pay rate wins only for the day it was set — tomorrow's
             feed brings new numbers, so the rate goes back to following them. */
          if(s.payDate===FEED.date && typeof s.payPct==="number"){ st.payPct=s.payPct; st.payTouched=!!s.payTouched; }
@@ -476,7 +478,8 @@ try{
 let saveTimer=null;
 function persist(){
   try{
-    localStorage.setItem(KEY,JSON.stringify({overrides:st.overrides,ltvs:st.ltvs,buys:st.buys,payPct:st.payPct,
+    localStorage.setItem(KEY,JSON.stringify({overrides:st.overrides,ltvs:st.ltvs,buys:st.buys,
+      buyFloor:st.buyFloor,buyMult:st.buyMult,payPct:st.payPct,
       payTouched:st.payTouched,loanPct:st.loanPct,loanTouched:st.loanTouched,payDate:FEED.date,manual:st.manual}));
     flashSave("Saved");
   }catch(e){ flashSave("Couldn't save"); }
@@ -567,17 +570,51 @@ function calcItem(){
   const target=Math.max(5,Math.round(resale*ltv/100));
   const buyBase=(st.buys&&st.buys[st.catId]!=null)?st.buys[st.catId]:((typeof BUY_DEFAULT!=="undefined"&&BUY_DEFAULT[st.catId]!=null)?BUY_DEFAULT[st.catId]:Math.min(90,baseLtv+5));
   const buyPct=Math.max(10,Math.min(90,buyBase+liquidity.adj));
-  const buy=Math.max(5,Math.round(resale*buyPct/100));
+  /* Three things cap what you can pay, and the tightest one wins.
+
+     The RATE is a share of resale, and it is the only one that bites on
+     expensive things - it is what stops you paying $1,650 for a $3,000 saw
+     because doubling your money still technically worked.
+
+     The FLOOR is the least you will clear in dollars, and it bites at the
+     bottom: it stops the $30 item you haul home, photograph, list and ship
+     for nine dollars of profit.
+
+     The MULTIPLE is how many times your money has to come back, and it bites
+     in the middle, where a percentage looks reasonable and the dollars are
+     thin.
+
+     Whichever leaves the most profit decides, and the desk says which it
+     was - because "why only $85?" is the question you ask standing in
+     somebody's driveway. */
+  const buyFloor=Math.max(0,Number(st.buyFloor)||0);
+  const buyMult=Math.max(1,Number(st.buyMult)||1);
+  const capRate ={k:"rate", pay:resale*buyPct/100};
+  const capFloor={k:"floor",pay:resale-buyFloor};
+  const capMult ={k:"mult", pay:resale/buyMult};
+  const cap=[capRate,capFloor,capMult].sort((a,b)=>a.pay-b.pay)[0];
+  const buyCapBy=cap.k;
+  /* Below this there is nothing left to make: clearing the floor would cost
+     more than the thing sells for. */
+  const buyTooThin=cap.pay<1;
+  const buy=Math.max(1,Math.round(cap.pay));
   return {cat,item,baseValue,baseLtv,condition,liquidity,liqId,resale,ltv,target,market,checked,buyBase,buyPct,buy,
           brandMult,brandName:cat.brand.on?(((ITEM_OVERRIDES[st.itemId]||{}).tiers)||cat.brand)[st.brand]:null,spec,specMult:spec.mult,
           low:Math.max(5,Math.round(resale*Math.max(8,ltv-12)/100)),
           high:Math.max(5,Math.round(resale*Math.min(100,ltv+8)/100)),
-          charge:Math.max(5,target*0.25),margin:resale-target,buyMargin:resale-buy};
+          charge:Math.max(5,target*0.25),margin:resale-target,buyMargin:resale-buy,
+          buyCapBy,buyTooThin,buyFloor,buyMult};
 }
 /* The panel that does not move. Everything else on this page walks the
    counter through a decision; this one just shows where those decisions have
    landed, and it is short enough to stay on screen while they do - which the
    1406px loan card never was. */
+/* Why the buy price is what it is, in the words you would use out loud. */
+function buyCapWhy(x){
+  return x.buyCapBy==="rate"  ? x.buyPct+"% of resale, your "+x.cat.label.toLowerCase()+" rate"
+       : x.buyCapBy==="floor" ? "leaving you the "+money(x.buyFloor)+" you asked to clear"
+       :                        x.buyMult+"\u00d7 your money back";
+}
 function pinHTML(x){
   const F=fakeState(fakeSheet(x));
   const bare=t=>`<div class="pinStrip"><span class="pinLab">Where it stands</span><span class="pinNote">${t}</span></div>`;
@@ -594,17 +631,21 @@ function pinHTML(x){
      resale percentage are pawn-counter mechanics and mean nothing over a
      folding table, so the phone does not carry them at all. */
   const P=!!window.PHONE;
-  return `<div class="pinStrip">
+  return `<div class="pinStrip${P&&x.buyTooThin?" thin":""}">
     <span class="pinLab">${P?"What it's worth to you":"Where it stands"}</span>
     <button class="pinNew" id="pinNew" type="button" title="Clear this item and start the next one. Your rates, shelf record, listings and deal log are kept.">Start over</button>
-    ${P?cell("buy","Pay up to",money(x.buy),1)+cell("lend","Or lend on it",money(x.target),1)
+    ${P?(x.buyTooThin?cell("buy","Not worth buying","Walk away",1)
+                     :cell("buy","Pay up to",money(x.buy),1))
+        +cell("lend","Or lend on it",money(x.target),1)
        :cell("lend","Lend him",money(x.target),1)+cell("buy","Or buy outright",money(x.buy),1)}
     ${cell("resale",P?"Resells for":"Resale, "+esc(COND_WORDS[st.cond][0].toLowerCase()),money(x.resale))}
-    ${P?cell("gain","You'd make",money(x.buyMargin)):""}
+    ${P&&!x.buyTooThin?cell("gain","You'd make",money(x.buyMargin)):""}
     ${cell("cushion","Your cushion",money(x.margin))}
     ${cell("fee","Fee / 30 days",money(x.charge))}
     ${cell("ltv","Loan \u00f7 resale",x.ltv+"%")}
-    <span class="pinNote">${P?`Anything over ${money(x.buy)} eats the ${money(x.buyMargin)}.`
+    <span class="pinNote">${P?(x.buyTooThin
+        ?`It doesn\u2019t sell for enough to clear the ${money(x.buyFloor)} you want out of a buy.`
+        :`Capped by ${esc(buyCapWhy(x))}. Over ${money(x.buy)} and you\u2019re eating the ${money(x.buyMargin)}.`)
       :`Range ${money(x.low)}&ndash;${money(x.high)}. Never above the top.`}${x.buy===x.target?` Buy and lend match in ${esc(x.cat.label.toLowerCase())} on purpose \u2014 ${esc(BUY_WHY[x.cat.id]||"")}.`:""}</span>
   </div>`;
 }
@@ -4358,10 +4399,13 @@ function buyRateHTML(x){
     <div class="rateRow"><span class="label">Buy-outright rate for ${x.cat.label.toLowerCase()} (%)</span><input id="buyNum" class="numIn rateNum" type="number" inputmode="numeric" min="10" max="90" value="${x.buyBase}"></div>
     <input type="range" min="10" max="90" value="${x.buyBase}" id="buySlider">
     <div class="sliderScale"><span>10% &mdash; lowball</span><span>90% &mdash; almost no profit</span></div>
+    <div class="rateRow" style="margin-top:16px"><span class="label">Least you\u2019ll clear on any buy ($)</span><input id="buyFloorNum" class="numIn rateNum" type="number" inputmode="numeric" min="0" max="500" value="${x.buyFloor}"></div>
+    <div class="rateRow" style="margin-top:8px"><span class="label">Times your money back (\u00d7)</span><input id="buyMultNum" class="numIn rateNum" type="number" inputmode="decimal" min="1" max="10" step="0.1" value="${x.buyMult}"></div>
+    <div class="cardHint" style="font-size:13px">These two apply everywhere rather than per category, and the tightest of the three decides. The rate bites on expensive things; the ${money(x.buyFloor)} floor stops the cheap item you haul home for nothing; the ${x.buyMult}\u00d7 bites in the middle, where a percentage looks fine and the dollars are thin. <b style="color:var(--ink)">On this one: ${esc(buyCapWhy(x))}.</b></div>
     <div class="cardHint" style="font-size:13.5px;color:var(--ink-2)">What you pay to buy it outright, as a share of the resale value. ${(()=>{ const d=BUY_DEFAULT[x.cat.id]; if(d==null)return ""; return set&&x.buyBase!==d?`Suggested: <b style="color:var(--ink)">${d}%</b> (${BUY_WHY[x.cat.id]||""}). <button id="buyReset" class="ghostBtn" style="padding:5px 12px;font-size:12px;margin-left:4px">Use ${d}%</button>`:`Suggested: <b style="color:var(--ink)">${d}%</b> &mdash; ${BUY_WHY[x.cat.id]||""}.`; })()} You carry the risk and hold it 30 days before you can sell.</div></div>`;
 }
 function buyRowHTML(x){
-  return `<div class="buyRow"><div><div class="l">Or buy it outright</div><div class="s">${x.buyPct}% of the ${money(Math.round(x.resale))} resale value. You own it &mdash; no loan to pay back.</div></div><div class="v">${money(x.buy)}</div></div>`;
+  return `<div class="buyRow"><div><div class="l">Or buy it outright</div><div class="s">${esc(buyCapWhy(x))} &mdash; the tightest of your three buying rules, against ${money(Math.round(x.resale))} resale. You own it, no loan to pay back.</div></div><div class="v">${money(x.buy)}</div></div>`;
 }
 function refreshBuyRate(){
   if(st.buys&&st.buys[st.catId]!=null)return;
@@ -4369,6 +4413,9 @@ function refreshBuyRate(){
   br.outerHTML=buyRateHTML(calcItem()); wireBuy();
 }
 function wireBuy(){
+  const fl=document.getElementById("buyFloorNum"), mu=document.getElementById("buyMultNum");
+  if(fl)fl.onchange=()=>{ st.buyFloor=Math.max(0,Number(fl.value)||0); persist(); render(); };
+  if(mu)mu.onchange=()=>{ st.buyMult=Math.max(1,Number(mu.value)||1); persist(); render(); };
   const sl=document.getElementById("buySlider"), n=document.getElementById("buyNum");
   if(!sl)return;
   try{ paintSlider(sl); }catch(e){}

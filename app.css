@@ -182,6 +182,13 @@
     /* out shopping, this is the whole question: what can I pay for it */
     .pinCell[data-k="buy"] span{font-size:12px;letter-spacing:.06em;text-transform:uppercase}
     .pinCell[data-k="buy"] b{font-size:46px;line-height:1}
+    /* "Walk away" is a sentence, not a figure, and it is bad news */
+    .pinStrip.thin .pinCell[data-k="buy"] b{font-size:34px;color:var(--bad)}
+    .pinStrip.thin{grid-template-areas:"lab  new"
+                                       "buy  buy"
+                                       "res  res"
+                                       "lend lend"
+                                       "note note"}
     .pinCell[data-k="resale"] b,.pinCell[data-k="gain"] b{font-size:19px}
     /* there is no loan to make over a folding table - keep it, quietly */
     .pinCell[data-k="lend"]{flex-direction:row;align-items:baseline;gap:8px;
