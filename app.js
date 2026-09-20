@@ -1385,8 +1385,8 @@ function compsCardHTML(x){
     <div class="cardHint" id="compMsg" style="min-height:18px;margin-top:9px"></div>
     <div id="compFallback"></div>
     ${shotZoneHTML(x)}
-    <span class="label" style="margin-top:8px">Search text</span>
-    <div class="row2"><input id="compQ" class="numIn" readonly value="${esc(q)}" style="flex:1;min-width:0;font-family:var(--mono);font-size:13px;padding:10px 12px"><button id="compCopy" class="ghostBtn" style="padding:10px 15px">Copy</button></div>
+    <span class="label" style="margin-top:8px">What those buttons search for</span>
+    <div class="row2"><input id="compQ" class="roOut" readonly tabindex="-1" aria-label="What those buttons search for" value="${esc(q)}" style="flex:1;min-width:0;font-size:13px"><button id="compCopy" class="ghostBtn" style="padding:10px 15px">Copy</button></div>
     <div class="cardHint">Sold prices, not asking prices. An item listed at $400 that nobody bought is worth nothing to you. On WatchCount, a Best Offer sale shows what the seller actually took &mdash; use that number, never the crossed-out one.${guns?" eBay doesn't sell guns &mdash; GunBroker completed auctions is the only real firearm comp.":""}</div>
   </div>`;
 }
