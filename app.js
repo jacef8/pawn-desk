@@ -584,16 +584,19 @@ function pinHTML(x){
   if(F&&F.blocks)return bare(F.verdict==="fail"?"A check failed \u2014 don't lend on the name."
     :"Not checked yet \u2014 "+F.done+" of "+F.n+" on the "+esc(F.sh.title.toLowerCase())+" sheet.");
   if(!x.checked)return bare("No resale value yet \u2014 step 4 sets it.");
-  const cell=(l,v,big)=>`<div class="pinCell${big?" big":""}"><span>${l}</span><b>${v}</b></div>`;
+  /* Each figure is named so a narrow screen can lay them out as a grid with
+     the loan on top. On the desk they stay a single row and the name is
+     ignored. */
+  const cell=(k,l,v,big)=>`<div class="pinCell${big?" big":""}" data-k="${k}"><span>${l}</span><b>${v}</b></div>`;
   return `<div class="pinStrip">
     <span class="pinLab">Where it stands</span>
     <button class="pinNew" id="pinNew" type="button" title="Clear this item and start the next customer. Your rates, shelf record, listings and deal log are kept.">Start over</button>
-    ${cell("Lend him",money(x.target),1)}
-    ${cell("Or buy outright",money(x.buy),1)}
-    ${cell("Resale, "+esc(COND_WORDS[st.cond][0].toLowerCase()),money(x.resale))}
-    ${cell("Your cushion",money(x.margin))}
-    ${cell("Fee / 30 days",money(x.charge))}
-    ${cell("Loan \u00f7 resale",x.ltv+"%")}
+    ${cell("lend","Lend him",money(x.target),1)}
+    ${cell("buy","Or buy outright",money(x.buy),1)}
+    ${cell("resale","Resale, "+esc(COND_WORDS[st.cond][0].toLowerCase()),money(x.resale))}
+    ${cell("cushion","Your cushion",money(x.margin))}
+    ${cell("fee","Fee / 30 days",money(x.charge))}
+    ${cell("ltv","Loan \u00f7 resale",x.ltv+"%")}
     <span class="pinNote">Range ${money(x.low)}&ndash;${money(x.high)}. Never above the top.${x.buy===x.target?` Buy and lend match in ${esc(x.cat.label.toLowerCase())} on purpose \u2014 ${esc(BUY_WHY[x.cat.id]||"")}.`:""}</span>
   </div>`;
 }
