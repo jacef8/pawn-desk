@@ -1139,11 +1139,15 @@ function wireItem(){
     /* Typing something the lists don't carry parks you on a custom item and
        asks what kind of thing it is - and these buttons are the answer on this
        page. Answering must not throw away what was typed. */
-    const typed=(st.mpNone&&isCustom()&&st.bookName)?st.bookName:"";
+    /* A photo that was read but could not be placed is the same situation:
+       the name is known, the kind of thing is not. Keep the name. */
+    const un=(st.photoRead&&st.photoRead.unplaced&&st.photoRead.what)?st.photoRead.what:"";
+    const typed=un||((st.mpNone&&isCustom()&&st.bookName)?st.bookName:"");
     st.catId=b.dataset.cat;st.market=null;st.omniDone="";st.mpPin=null;st.condSet=false;st.cond="good";
     if(typed){ st.itemId=custId(st.catId); st.bookName=typed; st.mpNone=true; }
     else { st.mpNone=false; const c=CATALOG.find(x=>x.id===st.catId); st.itemId=c.items[0].id; st.bookName=""; }
     st.needKind=false;
+    if(un&&st.photoRead)st.photoRead=Object.assign({},st.photoRead,{unplaced:false});
     st.liq=null;st.brandTyped="";st.model="";st.detail="";st.complete=true;st.editing=false;
     const h=typed?brandInText(st.catId,typed):null; st.brand=h?h.tier:"mid";
     render();});
@@ -2169,7 +2173,23 @@ function applyPhotoRead(r){
       persist(); render(); return;
     }
   }
-  if(cat){
+  /* A read that came back fine but matched nothing used to fall through
+     here: no category, so no itemId, so nothing counted as picked, so the
+     screen quietly returned to the camera button having said nothing at all.
+     A successful call that produces silence is worse than a failure - at
+     least a failure explains itself. Say what was read and let the counter
+     place it. */
+  if(!cat){
+    const what=String(r.what||"").trim();
+    st.photoRead={what:what.slice(0,90),confidence:String(r.confidence||"").slice(0,10),
+      unplaced:true,
+      note:String(r.note||"").slice(0,160),
+      concerns:(Array.isArray(r.concerns)?r.concerns:[]).slice(0,6).map(c=>String(c).slice(0,120))};
+    /* Put what it read into the search box so one tap finishes the job. */
+    if(what)st.omniQ=what;
+    render(); return;
+  }
+  {
     st.catId=cat.id;
     const it=cat.items.find(i=>i.id===String(r.itemId||""));
     st.itemId = it ? it.id : cat.items[0].id;

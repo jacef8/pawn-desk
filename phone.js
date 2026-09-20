@@ -153,6 +153,13 @@ function phoneBoot(){
       _wire.apply(this,arguments);
       const more=document.getElementById("snapMore");
       if(more)more.onclick=()=>{ st.snapDetail=true; render(); };
+      /* Placing a read-but-unplaced item by hand is the same moment as a
+         photo naming one: it now knows what the thing is, so go and price
+         it rather than leaving the built-in guess on screen. */
+      document.querySelectorAll(".snapCard [data-cat]").forEach(btn=>{
+        const prev=btn.onclick;
+        btn.onclick=ev=>{ if(prev)prev(ev); setTimeout(()=>{ try{ snapPriceAfterPhoto(); }catch(e){} },0); };
+      });
       ["snapBack","snapBackTop"].forEach(id=>{
         const back=document.getElementById(id);
         if(back)back.onclick=()=>{ st.snapDetail=false; window.scrollTo(0,0); render(); };
@@ -215,7 +222,20 @@ function snapHTML(){
        </div>`
     : pdConnectHTML();
 
+  /* Read, but not placed: say what was seen rather than showing an empty
+     camera screen as though nothing had happened. */
+  const un=st.photoRead&&st.photoRead.unplaced?st.photoRead:null;
   if(!has) return `<div class="snapWrap">${cam}
+    ${un?`<div class="snapCard" style="border-color:rgba(255,201,143,.45)">
+      <div class="snapLab">I read the picture as</div>
+      <div class="snapName" style="margin-top:6px">${esc(un.what||"\u2014 couldn\u2019t tell \u2014")}</div>
+      <div class="snapSub">${un.what
+        ? "It isn\u2019t on my lists, so I can\u2019t price it by itself. Tap the kind of thing it is and I\u2019ll price it from there."
+        : "The picture didn\u2019t give me enough to go on. Try again closer, with a label, model plate or stamp in the frame."}</div>
+      ${un.note?`<div class="snapSrc">${esc(un.note)}</div>`:""}
+      ${un.what?`<div class="snapCond" style="margin-top:12px">${CATALOG.map(c=>
+        `<button data-cat="${c.id}" style="flex:1 1 45%">${esc(c.label)}</button>`).join("")}</div>`:""}
+    </div>`:""}
     <div class="snapOr">or type what it is</div>${omniHTML()}
     <div class="snapTip">Fill the frame. A model plate, a barrel stamp or a label is worth more than the whole object in shot.</div>
   </div>`;
