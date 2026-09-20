@@ -2272,7 +2272,8 @@ function omniRows(q){
 
 function isTouch(){ try{ return matchMedia("(pointer:coarse)").matches; }catch(e){ return false; } }
 function omniHintHTML(){
-  if(st.omniDone)return `Filled in <b>${esc(st.omniDone)}</b>. Follow <b>Next step</b> below.`;
+  /* The box holds what was chosen now, so this stopped saying it twice. */
+  if(st.omniDone)return `Follow <b>Next step</b> below. Type here again to price something else.`;
   return `Try <b>stihl 271</b>, <b>remington 870 12 gauge</b>, <b>kayak</b> or <b>14k ring</b>.${isTouch()?"":" On a computer you can just start typing."}`;
 }
 const SEARCH_SVG=`<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="#00E8A0" stroke-width="2.6"/><path d="M15.5 15.5L21 21" stroke="#00E8A0" stroke-width="2.6" stroke-linecap="round"/></svg>`;
@@ -2352,7 +2353,7 @@ function applySpecPicks(spec,text){
 function omniPick(r){
   if(!r||r.kind==="sold")return;
   if(r.kind==="own"){
-    st.omniQ=""; st.omniHl=0; st.mode="item"; st.itemId=custId(st.catId); st.bookName=r.q;
+    st.omniQ=r.q; st.omniHl=0; st.mode="item"; st.itemId=custId(st.catId); st.bookName=r.q;
     st.brandTyped=""; st.model=""; st.detail=""; st.brand="mid"; st.liq=null; st.market=null;
     st.mpPin=null; st.mpNone=true; st.condSet=false; st.phKindsOpen=true; st.omniDone=r.q;
     render();
@@ -2384,6 +2385,10 @@ function omniPick(r){
   st.specSel={}; applySpecPicks(r.spec,st.detail+" "+st.model);
   st.editing=(r.kind==="custom");
   st.photoRead=null; st.compRead=null; st.market=null; st.mpPin=null; st.mpNone=false; st.condSet=!!r.cond; if(!r.cond)st.cond="good";
+  /* Leave the chosen thing in the box. Emptying it and saying underneath what
+     was filled in meant reading a sentence to learn what the box could have
+     just shown. Clicking it selects the lot, so typing still replaces. */
+  st.omniQ=[r.brand||"",r.model||"",r.name||""].map(t=>String(t).trim()).filter(Boolean).join(" ").slice(0,80);
   st.omniDone=[r.brand,r.model,r.name].filter(Boolean).join(" ");
   render();
   if(st.editing){ const vi=document.getElementById("valIn"); if(vi)vi.focus(); }
@@ -2396,7 +2401,7 @@ function wireOmni(){
     if(st.omniDone){ st.omniDone=""; const h=document.getElementById("omniHint"); if(h)h.innerHTML=omniHintHTML(); }
     omniShow();
   };
-  inp.onfocus=()=>omniShow();
+  inp.onfocus=()=>{ if(st.omniDone||!st.omniQ)inp.select(); omniShow(); };
   inp.onblur=()=>setTimeout(()=>{ const l=document.getElementById("omniList"), i2=document.getElementById("omniIn");
     if(l&&document.activeElement!==i2){ l.hidden=true; if(i2)i2.setAttribute("aria-expanded","false"); } },150);
   inp.onkeydown=e=>{
@@ -3183,7 +3188,7 @@ function step4Inner(x){
       <div class="row2" style="gap:8px;margin-top:10px;flex-wrap:wrap"><button class="ghostBtn" id="valEdit">Type my own number</button>${m.kind!=="list"?`<button class="ghostBtn" id="mkClear">Clear it</button>`:""}</div>`;
   } else {
     h+=`<div class="mkNo"><b>Not checked yet.</b> ${m&&m.stale?`The price list for ${esc(m.name)} is ${m.age} days old.`:`There's no market price for ${esc(who?who+" ":"")}${esc(name.toLowerCase())} yet.`}</div>
-      <ol class="mkSteps"><li>${isTouch()?"Tap a sold-price button above, screenshot the sold results, and read them.":(pdBridge?"Click a sold-price button above. The sold page reads itself and the price lands here.":"Click a sold-price button above. On the sold page, click your <b>Pawn price</b> favorite &mdash; the price comes back here by itself.")}</li><li>${who?"":`Or type the brand and model in step 3 &mdash; about ${mpCount()} common models have prices built in. `}Or type what these really sell for.</li></ol>
+      <ol class="mkSteps"><li>${pdBridge?"Click a sold-price button above. The sold page reads itself and the price lands here.":isTouch()?"Tap a sold-price button above, screenshot the sold results, and read the screenshot here.":"Open a sold-price button above, look at what these <b>actually sold for</b>, and type the middle price in."}</li><li>${who?"":`Or type the brand and model in step 3 &mdash; about ${mpCount()} common models have prices built in. `}Or type what these really sell for.</li></ol>
       <button class="brassBtn" id="valEdit" style="padding:11px 18px">Type the real price</button>
 `;
   }
@@ -3746,7 +3751,11 @@ function nextStepHTML(x){
        +`<button class="nsBtn ghost" id="nsNone"><span>Not one of these</span></button>`;
   } else if(cur===2){
     h=m&&m.stale?`The price list for ${esc(m.name)} is ${m.age} days old. Check what it sells for now.`:`Check what it actually sold for.`;
-    sub=(!CAP.sample&&isTouch())?"Tap a button and look at the sold prices. Then tap <b>I know the price</b> and type the middle one.":pdBridge?"Click a button. The sold page opens, reads itself, and the price lands here.":(isTouch()?"Tap a button, screenshot the sold results, and add the screenshot below.":"Click a button. On the sold page, click your <b>Pawn price</b> favorite and the price lands here.");
+    /* The "Pawn price favorite" is a browser button that has to be installed
+       first. Telling everyone to click one they may not have is telling them
+       to do something they cannot. It is mentioned only once it is there. */
+    sub=pdBridge?"Click a button. The sold page opens, reads itself, and the price lands here."
+      :"Open one and look at what the thing <b>actually sold for</b> &mdash; not what it was listed at. Then come back and type the middle price into the box.";
     act=compTargets(x).map(t=>`<a class="nsBtn nsSold" data-label="${t.name}" href="${esc(t.url)}" target="_blank" rel="opener" referrerpolicy="no-referrer"><span>${t.name}</span><b>&#8599;</b></a>`).join("")
        /* A button saying "type it" that jumped the page 900px down to a box
           somewhere else. The box belongs here, beside the one for the new
