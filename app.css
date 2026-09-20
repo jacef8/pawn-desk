@@ -145,6 +145,10 @@
     padding:10px clamp(12px,1.3vw,18px);border-radius:var(--r);
     background:linear-gradient(160deg,var(--e2-hi),var(--e2));
     border:1px solid rgba(0,232,160,.30);box-shadow:var(--sh)}
+  .pinNew{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--ink-3);background:var(--recess);border:none;border-radius:999px;padding:5px 11px;
+    cursor:pointer;box-shadow:var(--well-sh)}
+  .pinNew:hover{color:var(--ink)}
   .pinLab{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--ink-3);text-transform:uppercase}
   .pinCell{display:flex;flex-direction:column;gap:1px;line-height:1.15}
   .pinCell span{font-size:10.5px;color:var(--ink-3);letter-spacing:.02em;white-space:nowrap}

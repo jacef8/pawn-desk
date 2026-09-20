@@ -446,6 +446,7 @@ function pinHTML(x){
   const cell=(l,v,big)=>`<div class="pinCell${big?" big":""}"><span>${l}</span><b>${v}</b></div>`;
   return `<div class="pinStrip">
     <span class="pinLab">Where it stands</span>
+    <button class="pinNew" id="pinNew" type="button">Start over</button>
     ${cell("Lend him",money(x.target),1)}
     ${cell("Or buy outright",money(x.buy),1)}
     ${cell("Resale, "+esc(COND_WORDS[st.cond][0].toLowerCase()),money(x.resale))}
@@ -1339,6 +1340,8 @@ function pdConnectHTML(){
     '<div class="cardHint" id="pdConnMsg" style="min-height:16px"></div></div>';
 }
 document.addEventListener("click",e=>{
+  const so=e.target&&e.target.closest?e.target.closest("#pinNew"):null;
+  if(so){ startOver(); return; }
   const fr=e.target&&e.target.closest?e.target.closest("#pdFresh"):null;
   if(fr){ fr.textContent="Fetching\u2026"; fr.disabled=true; forceUpdate(); return; }
   const f=e.target&&e.target.closest?e.target.closest("[data-fake],[data-mkind],[data-flow],#fakeClear"):null;
@@ -2372,6 +2375,21 @@ function applySpecPicks(spec,text){
     const oi=g.options.findIndex(o=>o.t===want); if(oi>=0)st.specSel[st.itemId+":"+gi]=oi;
   });
 }
+/* Back to an empty counter. Everything about the thing being priced goes -
+   what it is, what it is worth, its condition, the fake-check answers, the
+   asking price. What belongs to the shop stays: the rates, the shelf record,
+   the listings, the deal log, and the service this device is connected to. */
+function startOver(){
+  st.omniQ=""; st.omniDone=""; st.omniHl=null;
+  st.picked=false; st.bookName=""; st.brandTyped=""; st.model=""; st.detail="";
+  st.brand="mid"; st.liq=null; st.market=null; st.mpPin=null; st.mpNone=false;
+  st.cond="good"; st.condSet=false; st.complete=true; st.specSel={}; st.editing=false;
+  st.ask=0; st.askKey=""; st.photoRead=null; st.compRead=null;
+  st.fakeAns={}; st.fakeKey=""; st.stepAt=0; st.openS3=st.openS4=st.openS5=false;
+  photoFile=null; findMsg="";
+  render();
+  const o=document.getElementById("omniIn"); if(o)o.focus();
+}
 function omniPick(r){
   if(!r||r.kind==="sold")return;
   if(r.kind==="own"){
@@ -2442,7 +2460,11 @@ function wireOmni(){
     else if(e.key==="Escape"){ if(inp.value){ st.omniQ=""; inp.value=""; omniShow(); } else inp.blur(); }
   };
   const clr=document.getElementById("omniClr");
-  if(clr){ clr.onmousedown=e=>e.preventDefault(); clr.onclick=()=>{ st.omniQ=""; inp.value=""; inp.focus(); omniShow(); }; }
+  /* With something priced, the X was clearing the words and leaving the item,
+     its price, its condition and its checks standing - so there was no way
+     back to a clean start short of reloading. It clears the deal now. */
+  if(clr){ clr.onmousedown=e=>e.preventDefault();
+    clr.onclick=()=>{ st.omniQ=""; inp.value=""; if(st.picked)startOver(); else { inp.focus(); omniShow(); } }; }
 }
 /* on a computer: start typing anywhere on the item page and it lands in the search bar */
 document.addEventListener("keydown",e=>{
