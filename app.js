@@ -202,8 +202,8 @@ const BRANDBOOK={
   lo:["Weider","Gold's Gym","Everlast","Sunny Health","Marcy","Body Champ","Top Flite","Strata","no name"]},
  coll:{
   hi:["PSA","BGS","Beckett","SGC","CGC","CBCS","NGC","PCGS"],
-  mid:["Topps","Bowman","Panini","Upper Deck","Fleer","Marvel","DC","Zippo","Morgan","Peace"],
-  lo:["Donruss","Score","Pro Set","Leaf","Ronson","common","bulk","reprint"]},
+  mid:["Topps","Bowman","Panini","Upper Deck","Fleer","Marvel","DC","Morgan","Peace"],
+  lo:["Donruss","Score","Pro Set","Leaf","common","bulk","reprint"]},
  tools:{
   hi:["DeWalt","Milwaukee","Makita","Snap-on","Festool","Hilti","Bosch","Mac Tools","Matco","Ingersoll Rand","Lincoln Electric","Miller","Fluke","Knipex"],
   mid:["Ryobi","Ridgid","Craftsman","Kobalt","Hart","Skil","Porter-Cable","Metabo","Metabo HPT","Husky","Flex","Dremel","Hobart","Stanley","Irwin","Klein","Channellock","Campbell Hausfeld"],
