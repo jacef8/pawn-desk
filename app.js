@@ -2121,9 +2121,12 @@ async function runPhotoRead(){
 }
 function photoErrHTML(){
   const e=st.photoErr; if(!e)return "";
+  const i=st.photoInfo, mb=n=>(n/1e6).toFixed(2)+"MB";
   return `<div class="tagWarn" style="border-left-color:var(--bad);background:rgba(255,66,87,.12);color:#FFAAB4;margin-top:9px">
     <b>The photo didn\u2019t read.</b> ${esc(e.text)}
-    <div style="font-family:var(--mono);font-size:11.5px;opacity:.75;margin-top:6px">reason code: ${esc(e.code)}</div></div>`;
+    <div style="font-family:var(--mono);font-size:11.5px;opacity:.75;margin-top:6px">reason code: ${esc(e.code)}
+    ${i?`<br>photo: ${esc(i.type)} &middot; ${mb(i.was)} \u2192 ${mb(i.sent)} sent${i.shrunk?"":" (NOT shrunk)"}`:""}
+    <br>from: ${esc(location.origin)}<br>to: ${esc(pdServer()||"(none)")}</div></div>`;
 }
 function photoErrCopy(code){
   switch(code){
@@ -3339,7 +3342,14 @@ function camButtonHTML(lead){
 }
 async function setPhoto(f){
   if(!f)return;
-  photoFile=await normImage(f); st.photoRead=null; render();
+  photoFile=await normImage(f);
+  /* Kept so a failure can say what it was carrying. A read that dies without
+     saying how big the picture was, or what format it was in, costs another
+     round trip to find out - and HEIC from a phone camera is exactly the
+     case that slips through the shrinking step untouched. */
+  st.photoInfo={type:f.type||"(unknown)",was:f.size,sent:(photoFile&&photoFile.size)||0,
+                shrunk:!!(photoFile&&photoFile!==f)};
+  st.photoRead=null; render();
   runPhotoRead();
 }
 async function openCam(){
