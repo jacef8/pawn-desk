@@ -181,13 +181,18 @@
   /* Before anything is chosen: the search box and the ways in, nothing else.
      Drawing the three columns empty is what filled the first screen with
      blank boxes waiting on an answer nobody had given yet. */
-  /* One column, centred. The first go at this was a two-up grid, which left
-     a hole under the short card and made three cards of three widths - the
-     ragged look is worse than the blank boxes it replaced. */
+  /* The headline across the top, the three ways in side by side under it.
+     One centred column was tidy and wasted 1,400px of width to buy a scroll;
+     the first two-up attempt was ragged because the cards were different
+     heights. Stretching them fixes that and the width does the work. */
   #view.item.start{display:block!important}
-  .startPane{display:grid;gap:clamp(10px,1.1vw,15px);max-width:720px;margin:0 auto}
+  .startPane{display:grid;gap:clamp(10px,1.1vw,15px);max-width:1180px;margin:0 auto}
   .startH{font-family:var(--sans);font-size:clamp(20px,2.4vw,26px);font-weight:800;color:var(--ink);margin:2px 0 6px}
   .startTwo,.startCol{display:grid;gap:clamp(10px,1.1vw,15px);align-content:start}
+  @media (min-width:1080px){
+    .startCol{grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch}
+    .startCol>.card,.startCol>details{margin-top:0;align-self:stretch}
+  }
   .startCol>.card{margin-top:0}
   /* spotting-fakes checklist */
   .fakeRow{margin-top:11px;padding-top:10px;border-top:1px solid rgba(255,255,255,.07)}

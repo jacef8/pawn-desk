@@ -1794,9 +1794,16 @@ function logCardInner(x){
   if(!x.checked)return `<div class="card"><span class="label">Deal log</span>
       <div class="cardHint" style="font-size:13.5px;color:var(--ink-2)">Check the market first (step 4), so the log only keeps real numbers.</div></div>`;
   const s=soldStats(itemKey());
+  /* The ticket number is the one thing that ties this record to the pawn
+     system, and it is the only number on a ticket that is not about the
+     customer - no name, no address, no ID. Without it, matching a row here
+     to the item in Bravo means going by the date and the description. */
   return `<div class="card"><span class="label">Deal log</span>
+    <div class="row2" style="margin-bottom:9px"><input id="logTicket" class="numIn" type="text" inputmode="numeric"
+      autocomplete="off" placeholder="Ticket # (optional)" value="${esc(st.ticket||"")}"
+      style="flex:1;min-width:0;font-family:var(--mono);font-size:14px"></div>
     <button id="logDeal" class="brassBtn" style="width:100%;padding:11px 0">Log this deal</button>
-    <div class="cardHint" id="logMsg">Records the item, your estimate and the offer &mdash; nothing about the customer. Mark it sold later and it teaches the next appraisal.${s?` You've sold ${s.n} of these.`:""}</div>
+    <div class="cardHint" id="logMsg">Records the item, your estimate, the offer and the ticket number &mdash; nothing else off the ticket. No name, no address, no ID. Mark it sold later and it teaches the next appraisal.${s?` You've sold ${s.n} of these.`:""}</div>
   </div>`;
 }
 function logCardHTML(x){ return `<div id="logCard">${logCardInner(x)}</div>`; }
@@ -1818,6 +1825,7 @@ async function saveDeal(){
       specs: specTxt, cond: st.cond, complete: !!st.complete, liq: x.liqId,
       market: x.market?x.market.kind:"", marketMid: x.market?x.market.mid:null,
       resale: Math.round(x.resale), ltv: x.ltv, loan: x.target, charge: Math.round(x.charge),
+      ticket: String((document.getElementById("logTicket")||{}).value||"").trim().slice(0,24),
       status: "open", soldPrice: null, soldTs: null
     });
     if(msg)msg.textContent="Logged. Mark it sold from the Deal log tab when it moves.";
@@ -1827,6 +1835,8 @@ async function saveDeal(){
   }
 }
 function wireLogButton(){
+  const tk=document.getElementById("logTicket");
+  if(tk)tk.oninput=()=>{ st.ticket=tk.value; };
   const b=document.getElementById("logDeal");
   if(b)b.onclick=saveDeal;
 }
@@ -1849,7 +1859,7 @@ function renderLog(){
       <div class="valRow" style="align-items:flex-start">
         <div style="min-width:0">
           <div style="font-weight:700;font-size:14px">${esc(title)}</div>
-          <div class="feedTag" style="margin-top:3px">${esc(d.day||"")} &middot; ${esc(d.catLabel||"")}${d.specs?" &middot; "+esc(d.specs):""}</div>
+          <div class="feedTag" style="margin-top:3px">${esc(d.day||"")}${d.ticket?` &middot; <b style="color:var(--ink-2)">#${esc(d.ticket)}</b>`:""} &middot; ${esc(d.catLabel||"")}${d.specs?" &middot; "+esc(d.specs):""}</div>
           <div class="feedTag" style="margin-top:2px">Est. resale ${money(d.resale||0)} &middot; lent ${money(d.loan||0)}${d.status==="sold"&&d.soldPrice?` &middot; <b style="color:var(--accent)">sold ${money(d.soldPrice)}</b>`:""}${d.status==="redeemed"?` &middot; <b style="color:var(--accent-2)">redeemed</b>`:""}</div>
         </div>
         <button class="ghostBtn" style="padding:6px 12px;font-size:11.5px" data-del="${esc(d._id)}">Delete</button>
@@ -2439,7 +2449,7 @@ function startOver(){
   st.picked=false; st.bookName=""; st.brandTyped=""; st.model=""; st.detail="";
   st.brand="mid"; st.liq=null; st.market=null; st.mpPin=null; st.mpNone=false;
   st.cond="good"; st.condSet=false; st.complete=true; st.specSel={}; st.editing=false;
-  st.ask=0; st.askKey=""; st.photoRead=null; st.compRead=null;
+  st.ask=0; st.askKey=""; st.ticket=""; st.photoRead=null; st.compRead=null;
   st.fakeAns={}; st.fakeKey=""; st.stepAt=0; st.openS3=st.openS4=st.openS5=false;
   photoFile=null; findMsg="";
   render();
