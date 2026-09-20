@@ -409,7 +409,7 @@ function calcItem(){
   const _ch=SPEC_CHOICES[item.id];
   if(_ch){
     spec={mult:1,notes:[],stop:false,absSuggest:null};
-    _ch.forEach((g,gi)=>{const sel=st.specSel[item.id+":"+gi]??0;const o=g.options[sel]||g.options[0];
+    _ch.forEach((g,gi)=>{const sel=st.specSel[item.id+":"+gi]??specBase(g);const o=g.options[sel]||g.options[specBase(g)];
       spec.mult*=o.m;if(o.note)spec.notes.push(o.note);if(o.stop)spec.stop=true;});
     const gw=genWatts(item.name,st.model+" "+st.detail);
     if(gw){spec.absSuggest=gw.abs;spec.notes.push(gw.note);}
@@ -531,6 +531,11 @@ const CH_GRADE={label:"Grade",options:[
   {t:"Homeowner",m:1},
   {t:"Farm / ranch",m:1.1,note:"farm grade: +10%"},
   {t:"Pro / commercial",m:1.25,note:"pro grade: +25%"}]};
+/* Which option stands when nobody has answered yet: the neutral one, the one
+   that does not move the price. Never "whichever is listed first" - the bands
+   read best in size order, and reading order and neutral only ever coincided
+   by luck. */
+function specBase(g){ const i=g.options.findIndex(o=>(o.m||1)===1); return i<0?0:i; }
 const SPEC_CHOICES={
  g1:[CH_GAUGE,CH_BARREL],g2:[CH_GAUGE,CH_BARREL],
  g3:[CH_CALIBER,CH_OPTIC],g4:[CH_CALIBER,CH_OPTIC],
@@ -719,7 +724,7 @@ function renderItem(){
   const dh=(_ov&&_ov.detail)||DETAIL_HINTS[cat.id]||{ph:"",hint:""};
   const _sc=SPEC_CHOICES[st.itemId];
   if(_sc)_sc.forEach((g,gi)=>{
-    const sel=st.specSel[st.itemId+":"+gi]??0;
+    const sel=st.specSel[st.itemId+":"+gi]??specBase(g);
     mid+=`<span class="label">${g.label}</span><div class="pills mb14" style="border-radius:var(--r-s)">${g.options.map((o,oi)=>`<button class="${sel===oi?"on":""}" style="flex:1;padding:7px 5px;font-size:11px" data-spec="${gi}:${oi}">${o.t}</button>`).join("")}</div>`;
   });
   mid+=`<span class="label">Model (optional)</span>
@@ -1629,7 +1634,7 @@ async function saveDeal(){
   const x=calcItem();
   const msg=document.getElementById("logMsg");
   const specTxt=(SPEC_CHOICES[st.itemId]||[]).map((g,gi)=>{
-    const o=g.options[st.specSel[st.itemId+":"+gi]??0]||g.options[0];
+    const o=g.options[st.specSel[st.itemId+":"+gi]??specBase(g)]||g.options[specBase(g)];
     return g.label+": "+o.t;
   }).join(" · ");
   try{

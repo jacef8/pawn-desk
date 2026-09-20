@@ -26,17 +26,22 @@
   /* shell */
   .dash{position:relative;z-index:1;min-height:100dvh;padding:clamp(11px,1.3vw,18px);display:grid;
     gap:clamp(10px,1.1vw,15px);grid-template-columns:minmax(0,1fr)}
+  /* Three columns on a wide screen, but the PAGE scrolls. This used to be a
+     fixed 100dvh shell with each column scrolling inside itself, which meant
+     the wheel did nothing unless the pointer was in a column, and the columns
+     were only ever as tall as what the search box and Next step left over. It
+     never fit: on a 1400px-tall screen the centre column still had to hide
+     1,100px of itself. The counter does not need it all on one screen, it
+     needs to be able to get to it. */
   @media (min-width:1080px){
-    body{overflow:hidden}
-    .dash{height:100dvh;grid-template-rows:auto minmax(0,1fr)}
-    .bar{grid-column:1/-1}
-    #view.item,#view.metal{display:grid;gap:clamp(10px,1.1vw,15px);min-height:0;
+    .bar{grid-column:1/-1;position:sticky;top:0;z-index:6}
+    #view.item,#view.metal{display:grid;gap:clamp(10px,1.1vw,15px);align-items:start;
       grid-template-columns:minmax(0,300px) minmax(0,1fr) minmax(0,320px);
       grid-template-areas:"left center right"}
-    #view.item{grid-template-rows:auto auto minmax(0,1fr);grid-template-areas:"omni omni omni" "next next next" "left center right"}
+    #view.item{grid-template-rows:auto auto auto;grid-template-areas:"omni omni omni" "next next next" "left center right"}
     .omni{grid-area:omni}
     .colL{grid-area:left}.colC{grid-area:center}.colR{grid-area:right}
-    .colL,.colC,.colR{min-height:0;overflow-y:auto;scrollbar-width:thin;padding:4px 2px 8px}
+    .colL,.colC,.colR{min-width:0;padding:4px 2px 8px}
     .foot{display:none}
   }
   @media (max-width:1079px){#view.item,#view.metal{display:block}.colL,.colC,.colR{margin-top:14px}}
