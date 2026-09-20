@@ -3,6 +3,16 @@
 window.PHONE=true;
 function phAskNow(){ return (st.askKey===mkKey()&&st.ask>0)?st.ask:0; }
 function phVerdictHTML(x){
+  /* The gate is the desk's ticket; the phone answers in this box instead, so
+     it has to hold the same line or the counter just uses the phone. */
+  const F=fakeState(fakeSheet(x));
+  if(F&&F.blocks)return `<div class="phVerdict pass"><div class="phWord">${F.verdict==="fail"?"Stop":"Not checked"}</div>
+    <div class="phLine">${F.verdict==="fail"
+      ? `A check on the <b>${esc(F.sh.title.toLowerCase())}</b> sheet failed. Don't lend on the brand name — lend on what you can prove, or pass.`
+      : F.verdict==="unsure"
+      ? `${F.unsure} check${F.unsure===1?"":"s"} on the <b>${esc(F.sh.title.toLowerCase())}</b> sheet unresolved. Price only what you can verify today, not the name.`
+      : `${F.done} of ${F.n} checks done on the <b>${esc(F.sh.title.toLowerCase())}</b> sheet. No price until they are answered.`}</div></div>`
+    +fakeCardHTML(x);
   const ask=phAskNow(); if(!ask||!x.checked)return "";
   const resale=Math.round(x.resale), buy=x.buy, pct=Math.round(ask/resale*100), left=resale-ask;
   const catName=x.cat.label.toLowerCase();

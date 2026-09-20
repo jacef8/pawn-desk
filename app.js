@@ -433,6 +433,8 @@ function calcItem(){
           charge:Math.max(5,target*0.25),margin:resale-target};
 }
 function ticketHTML(x){
+  const F=fakeState(fakeSheet(x));
+  if(F&&F.blocks)return fakeHoldHTML(F);
   if(!x.checked)return uncheckedTicketHTML(x);
   return `<div class="card">
     <span class="label">7 &middot; Pawn loan &mdash; the cash you lend him</span>
@@ -715,7 +717,7 @@ function renderItem(){
       ${cat.items.map((it,ix)=>`<button class="itemBtn${st.picked&&it.id===st.itemId?" on":""}" data-item="${it.id}"><span class="idx">${String(ix+1).padStart(2,"0")}</span><span style="flex:1">${it.name}</span>${ownAvgTag(it.id)}</button>`).join("")}
       <button class="itemBtn${st.picked&&st.itemId===custId(cat.id)?" on":""}" data-item="${custId(cat.id)}"><span class="idx">+</span><span style="flex:1">${st.itemId===custId(cat.id)&&st.bookName?esc(st.bookName):"Not on any list — I set the price"}</span></button>
     </div></details></div>`;
-  let mid=`<div class="colC">${photoCardHTML()}${seenCardHTML()}${compsCardHTML(x)}<div class="card"><span class="label">3 &middot; Brand, make &amp; model</span>
+  let mid=`<div class="colC">${fakeCardHTML(x)}${photoCardHTML()}${seenCardHTML()}${compsCardHTML(x)}<div class="card"><span class="label">3 &middot; Brand, make &amp; model</span>
     <div class="driver"><p><b class="go">What sets the price:</b> ${(itemOv()&&itemOv().driver)||cat.driver}</p><p><b class="no">What kills it:</b> ${(itemOv()&&itemOv().killer)||cat.killer}</p></div>`;
   if(cat.brand.on){
     const ov=itemOv();
@@ -1073,7 +1075,7 @@ function renderMetal(){
     <div class="cardHint">Auto-filled by the morning feed. Buys price off today's spot (scrap ships fast — the spread is the profit). Loans are a 60-day bet, so they price off the LOWER of spot or this average — if today is a peak, the loan is sized as if the peak never happened.</div>
   </div></div>`;
   const rb=rateBounds();
-  const mid=`<div class="colC"><div class="card"><span class="label">4 &middot; Weight in grams</span>
+  const mid=`<div class="colC">${fakeCardHTML(null)}<div class="card"><span class="label">4 &middot; Weight in grams</span>
     <input id="gramsIn" type="number" inputmode="decimal" placeholder="0.0" value="${esc(st.grams)}" class="numIn big">
     <div class="cardHint">Pull stones, clasps, and anything that isn't the metal. On a diamond ring, the setting is the money — resale on the stone is 20&ndash;30% of retail.</div>
   </div>
@@ -1232,6 +1234,12 @@ function pdConnectHTML(){
       (on?'<button class="ghostBtn" id="pdConnOff">Disconnect</button>':'')+'</div></div>';
 }
 document.addEventListener("click",e=>{
+  const f=e.target&&e.target.closest?e.target.closest("[data-fake],[data-mkind],#fakeClear"):null;
+  if(f){
+    if(f.id==="fakeClear"){ st.fakeAns={}; st.fakeKey=mkKey(); render(); return; }
+    if(f.dataset.mkind){ st.metalKind=f.dataset.mkind; st.fakeAns={}; st.fakeKey=mkKey(); render(); return; }
+    const [id,i,v]=String(f.dataset.fake).split(":"); fakeSet(id,i,v); return;
+  }
   const b=e.target&&e.target.closest?e.target.closest("#pdConnBtn,#pdConnOff,#pdRetGo"):null; if(!b)return;
   if(b.id==="pdRetGo"){ retailLookup(); return; }
   if(b.id==="pdConnOff"){ pdSetServer("",""); location.reload(); return; }
@@ -2087,7 +2095,7 @@ function omniRows(q){
   const add=(e,extra)=>{ if(!e||rows.length>=8)return;
     if(rows.some(r=>r.kind===e.kind&&r.name===e.name&&r.catId===e.catId))return;
     rows.push(Object.assign({},e,base,extra||{})); };
-  if(P.metal&&!P.modelItem)rows.push({kind:"metal",metal:P.metal,karat:P.karat});
+  if(P.metal&&!P.modelItem)rows.push({kind:"metal",metal:P.metal,karat:P.karat,q});
   if(P.modelItem){ add(findEntry(P.modelItem),{strong:true}); strong=true; }
   { const bw=omniWords(P.brand||""), mq=omniWords(q).filter(w=>!STOP.has(w)&&bw.indexOf(w)<0);
     /* The brand words come out so that "husqvarna 455" is matched on 455
@@ -2257,6 +2265,11 @@ function omniPick(r){
   st.omniQ=""; st.omniHl=0;
   if(r.kind==="metal"){
     st.mode="metal";
+    /* Arriving from words that name bullion - "silver eagle", "krugerrand" -
+       starts on the coin check rather than making the counter say so. */
+    const bl=FAKES&&FAKES.sheets.find(z=>z.id==="bullion");
+    if(bl){ const t=" "+String(r.q||st.omniQ||"").toLowerCase()+" ";
+      st.metalKind=bl.match.some(w=>t.indexOf(w)>=0)?"bullion":"jewelry"; }
     if(st.metal!==r.metal){ st.metal=r.metal; st.payTouched=false; st.loanTouched=false; }
     if(r.metal==="gold"&&r.karat&&PURITY.some(p=>p.k===r.karat))st.karat=r.karat;
     st.omniDone=""; render(); return;
@@ -2867,6 +2880,121 @@ async function refreshPrices(){
     MP_BY_ID=Object.fromEntries(MODEL_PRICES.map(r=>[r[0],r]));
     try{ render(); }catch(e){}
   }catch(e){}
+}
+/* ---- spotting fakes -------------------------------------------------------
+   The counter cheat sheets, as data. The printed sheets in the binder are the
+   full version; these are their 60-second checks, and fakes.json is the one
+   copy the tool reads - nothing about them is typed out in here.
+
+   Four sheets GATE: Rolex and luxury watches, graded cards, coins and bullion,
+   and Apple. On those the tool gives no price until every check is answered,
+   because a fake one is not worth a fraction of a real one - it is worth
+   nothing, and taking it in knowing is a crime (§831.032). The other seven
+   advise: the checks show, the price does not wait on them. */
+let FAKES=null;
+function fakesOk(j){ return !!(j&&Array.isArray(j.sheets)&&j.sheets.length
+  &&j.sheets.every(x=>x&&typeof x.id==="string"&&Array.isArray(x.checks)&&Array.isArray(x.match))); }
+async function loadFakes(){
+  try{ const r=await fetch("fakes.json",{cache:"no-store"}); if(!r.ok)return;
+    const j=await r.json(); if(!fakesOk(j))return; FAKES=j; try{ render(); }catch(e){}
+  }catch(e){}
+}
+/* What is on the counter, in the words available - whatever the counter
+   typed, plus the name of the thing it was filed as. */
+function fakeText(x){
+  /* The item words on the metal page are whatever was last priced on the
+     other tab - a Charizard does not follow a customer to the scale. */
+  return (" "+[st.bookName||"",st.brandTyped||"",st.model||"",st.detail||"",
+    x?displayName(x):""].join(" ")+" ").toLowerCase();
+}
+function fakeSheet(x){
+  if(!FAKES)return null;
+  /* A scale cannot tell a chain from a Krugerrand, and the two sheets differ
+     on whether a price waits: bullion gates, jewelry advises. Guessing would
+     put a mandatory checklist on every gold chain, so the metal page asks.
+     Jewelry until told otherwise, because that is most of what comes in. */
+  if(st.mode==="metal")return FAKES.sheets.find(z=>z.id===(st.metalKind==="bullion"?"bullion":"jewelry"))||null;
+  const t=fakeText(x);
+  let best=null;
+  for(const sh of FAKES.sheets){
+    for(const w of sh.match){
+      if(t.indexOf(" "+w)>=0||t.indexOf(w+" ")>=0){
+        /* longest match wins, so "airpods pro" beats "ipad" in a jumble */
+        if(!best||w.length>best.w.length)best={sh,w};
+        break;
+      }
+    }
+  }
+  return best?best.sh:null;
+}
+/* The answers belong to the thing on the counter, not to the sheet. When the
+   item changes they are gone - the next Rolex through the door has not been
+   checked just because the last one was. */
+function fakeAns(id){
+  if(!st.fakeAns||st.fakeKey!==mkKey())return {};
+  return st.fakeAns[id]||{};
+}
+function fakeSet(id,i,v){
+  if(st.fakeKey!==mkKey()){ st.fakeAns={}; st.fakeKey=mkKey(); }
+  st.fakeAns=st.fakeAns||{};
+  const a=st.fakeAns[id]=Object.assign({},st.fakeAns[id]);
+  if(a[i]===v)delete a[i]; else a[i]=v;     /* tapping the same answer clears it */
+  render();
+}
+/* pass / unsure / fail, per check. Nothing assumed: an unanswered check is
+   not a pass, which is the whole point of the gate. */
+function fakeState(sh){
+  if(!sh)return null;
+  const a=fakeAns(sh.id), n=sh.checks.length;
+  let pass=0,unsure=0,fail=0;
+  for(let i=0;i<n;i++){ const v=a[i]; if(v==="pass")pass++; else if(v==="unsure")unsure++; else if(v==="fail")fail++; }
+  const done=pass+unsure+fail;
+  return {sh,n,pass,unsure,fail,done,
+    verdict: fail?"fail" : done<n ? "open" : unsure?"unsure" : "clear",
+    blocks: !!sh.gate && (fail>0 || done<n || unsure>0)};
+}
+const FAKE_BTN=[["pass","Pass"],["unsure","Not sure"],["fail","Fail"]];
+function fakeCardHTML(x){
+  const sh=fakeSheet(x); if(!sh)return "";
+  const F=fakeState(sh), a=fakeAns(sh.id);
+  const tone=F.verdict==="fail"?"var(--bad)":F.verdict==="clear"?"var(--accent)":F.verdict==="unsure"?"#FFC98F":"var(--ink-3)";
+  const head=sh.gate
+    ? (F.verdict==="open"?`<b>No price until this is checked.</b> ${F.done} of ${F.n} done.`
+      :F.verdict==="fail"?`<b style="color:#FFAAB4">A check failed.</b> Don't lend on the name.`
+      :F.verdict==="unsure"?`<b style="color:#FFC98F">Not proven.</b> Price only what you can verify.`
+      :`<b style="color:var(--accent)">All ${F.n} checks pass.</b>`)
+    : `Worth a look &mdash; this one advises, it does not hold the price. ${F.done} of ${F.n} done.`;
+  return `<div class="card" id="fakeCard" style="border-left:3px solid ${tone}">
+    <span class="label">Spotting fakes &middot; ${esc(sh.title)}</span>
+    ${st.mode==="metal"?`<div class="pills mb14" style="border-radius:var(--r-s);margin-top:6px">
+      <button class="${st.metalKind!=="bullion"?"on":""}" style="flex:1;padding:8px 6px;font-size:11.5px" data-mkind="jewelry">Jewelry</button>
+      <button class="${st.metalKind==="bullion"?"on":""}" style="flex:1;padding:8px 6px;font-size:11.5px" data-mkind="bullion">Coin or bar</button>
+    </div>`:""}
+    <div class="cardHint" style="margin-top:0;font-size:13.5px;color:var(--ink-2)">${esc(sh.why||"")}</div>
+    <div class="cardHint" style="font-size:13.5px">${head}</div>
+    ${sh.checks.map((c,i)=>`<div class="fakeRow${a[i]?" done":""}">
+      <div class="fakeQ">${esc(c)}</div>
+      <div class="pills" style="border-radius:var(--r-s);margin-top:6px">${FAKE_BTN.map(([v,l])=>
+        `<button class="${a[i]===v?"on "+v:""}" style="flex:1;padding:7px 5px;font-size:11px" data-fake="${sh.id}:${i}:${v}">${l}</button>`).join("")}</div>
+    </div>`).join("")}
+    ${sh.lookup.length?`<span class="label" style="margin-top:10px">Look it up free</span>
+      <div class="cardHint" style="margin-top:0;font-size:13px">Type the address in yourself. Never scan a QR code on a holder or tag &mdash; fake cases point at copycat sites.</div>
+      ${sh.lookup.map(l=>`<div class="cardHint" style="font-size:13px;margin-top:4px">${l.what?`<b style="color:var(--ink)">${esc(l.what)}</b> &mdash; `:""}${esc(l.where)}</div>`).join("")}`:""}
+    ${sh.rule?`<div class="cardHint" style="font-size:13px;margin-top:9px"><b style="color:var(--ink)">Shop rule:</b> ${esc(sh.rule)}</div>`:""}
+    ${F.verdict==="fail"?`<div class="tagWarn" style="border-left-color:var(--bad);background:rgba(255,66,87,.12);color:#FFAAB4;margin-top:9px"><b>Set it aside.</b> ${esc(FAKES.law)}</div>`:""}
+    <div class="row2" style="margin-top:8px"><button class="ghostBtn" id="fakeClear" style="padding:9px 15px">Start the check over</button></div>
+  </div>`;
+}
+/* What stands in for the loan while a gating check is unanswered. */
+function fakeHoldHTML(F){
+  const t=F.verdict==="fail"
+    ? `<b>A check on the ${esc(F.sh.title.toLowerCase())} sheet failed.</b> Don't lend on the brand name. Lend on what you can prove &mdash; the metal, a no-name value &mdash; or pass.`
+    : F.verdict==="unsure"
+    ? `<b>Not proven.</b> ${F.unsure} check${F.unsure===1?" is":"s are"} unresolved. Price only what you can verify today, not the name.`
+    : `<b>Not checked yet.</b> ${F.done} of ${F.n} checks answered. Work the spotting-fakes card first &mdash; a fake is not worth a share of the real one, it is worth nothing.`;
+  return `<div class="card unchecked"><span class="label">7 &middot; Pawn loan &mdash; the cash you lend him</span>
+    ${gauge(0,"Lend him","&mdash;",F.verdict==="fail"?"failed the check":"not checked yet","gi")}
+    <div class="mkNo" style="margin-top:6px">${t}</div></div>`;
 }
 const MP_STALE_DAYS=45;
 function mpFor(cur,text){

@@ -1,0 +1,486 @@
+{
+ "updated": "2026-09-20",
+ "source": "Lamar's Counter Cheat Sheets - Spotting Fakes (Business Plan and Operations). That document is the full version; these are its 60-second checks.",
+ "law": "Selling or offering goods under a counterfeit trademark, knowing it, is a crime in Florida (§831.032). It is a felony at 100 items or $2,500 of retail value.",
+ "sheets": [
+  {
+   "id": "ground",
+   "n": 1,
+   "title": "Ground rules for anything with a big name on it",
+   "gate": false,
+   "why": "Brand names are what fakers copy, and a fake costs whatever was paid for it. These rules apply to every sheet that follows.",
+   "match": [],
+   "checks": [
+    "The name is not the collateral until it is proven. Price what you can verify today: the metal, the weight, a cert that matches. Everything else is a no-name item.",
+    "Ask where it came from and how long he has had it. A real owner answers easily. Write the answer on the ticket.",
+    "Check the price against the market. \"New\" at half price is the most common tell on every sheet.",
+    "Run the sheet for that item. Use the free lookup it lists, and type the number in yourself."
+   ],
+   "lookup": [
+    {
+     "what": "Graded coins",
+     "where": "ngccoin.com/certlookup · pcgs.com/cert"
+    },
+    {
+     "what": "Diamond reports",
+     "where": "GIA Report Check (gia.edu) · IGI · GCAL"
+    },
+    {
+     "what": "Graded cards",
+     "where": "psacard.com/cert · Beckett · SGC · CGC"
+    },
+    {
+     "what": "Autographs",
+     "where": "PSA/DNA · JSA · Beckett · MLB · Fanatics"
+    },
+    {
+     "what": "Optics",
+     "where": "Trijicon serial lookup · call Leupold, Aimpoint, EOTech"
+    },
+    {
+     "what": "Apple",
+     "where": "checkcoverage.apple.com · Parts and Service History"
+    }
+   ],
+   "rule": "a fake found after intake is set aside, never tagged for the floor under the brand name, and handled as the pawn rules require for that ticket."
+  },
+  {
+   "id": "jewelry",
+   "n": 2,
+   "title": "Gold and silver jewelry",
+   "gate": false,
+   "why": "Fakes are plated base metal, sometimes tungsten, stamped 14K, 18K or 925. We pay by metal weight, so a fake costs everything paid.",
+   "match": [
+    "gold chain",
+    "gold ring",
+    "silver ring",
+    "sterling",
+    "james avery",
+    "tiffany",
+    "pandora",
+    "david yurman",
+    "14k",
+    "10k",
+    "18k",
+    "925",
+    "necklace",
+    "bracelet",
+    "earring"
+   ],
+   "checks": [
+    "Weigh it in grams.",
+    "Loupe the stamp for a karat or 925 mark plus a maker's mark. US law requires both, so a missing one is a warning sign.",
+    "Magnet: if the piece is pulled (not just the clasp spring), no gold price.",
+    "File a notch and put acid in the notch. Plating passes a surface test."
+   ],
+   "lookup": [
+    {
+     "what": "",
+     "where": "No serial lookup exists, and Tiffany doesn't authenticate. Compare the design on jamesavery.com (\"Designs From Our Archives\"), tiffany.com, pandora.net or davidyurman.com."
+    }
+   ],
+   "rule": "pay nothing extra for a brand name, and no notch allowed means no deal."
+  },
+  {
+   "id": "bullion",
+   "n": 3,
+   "title": "Gold and silver coins and bars (bullion)",
+   "gate": true,
+   "why": "Chinese fakers copy Eagles, Morgans and bars, and even the grading holders. We pay close to melt, so one fake costs nearly everything paid.",
+   "match": [
+    "gold eagle",
+    "silver eagle",
+    "krugerrand",
+    "maple leaf",
+    "morgan dollar",
+    "peace dollar",
+    "bullion",
+    "bar of gold",
+    "silver bar",
+    "gold bar",
+    "junk silver",
+    "coin",
+    "coins"
+   ],
+   "checks": [
+    "Weigh it in grams and check the table. Fakes are often a little off. A 1 oz Gold Eagle or Krugerrand weighs about 33.93 g, not 31.1 g, because it is 22K alloy.",
+    "Calipers: diameter against the table, thickness against a coin you know is real.",
+    "Magnet: nothing should stick. On silver, do the slide test: tilt the piece about 45 degrees and set the magnet on it. On real silver it slides down slowly instead of sticking.",
+    "Sigma verifier, if the store buys one (coins and bars only, from $999): set the metal and size, then test both sides. It reads through flips, slabs and assay cards. Without one, lean harder on weight, calipers and the slab lookup.",
+    "Loupe the date and mint mark (the small letter for the mint that made it). Check that the pair exists (see \"Dates that exist\")."
+   ],
+   "lookup": [
+    {
+     "what": "NGC Cert Lookup",
+     "where": "ngccoin.com/certlookup. Enter the cert number and grade. Most coins graded since 2008 have photos."
+    },
+    {
+     "what": "PCGS Cert Verification",
+     "where": "pcgs.com/cert, or the free PCGS app (barcode scan or NFC tap). NGC also has a free app."
+    },
+    {
+     "what": "PAMP Veriscan app",
+     "where": "scan a Veriscan-marked PAMP bar."
+    },
+    {
+     "what": "PCGS CoinFacts (pcgs.com/coinfacts)",
+     "where": "check that a date and mint mark exist."
+    }
+   ],
+   "rule": "buy gold bars over 1 oz only after an outside test. Even a Sigma can't see a deep tungsten core."
+  },
+  {
+   "id": "stones",
+   "n": 4,
+   "title": "Diamonds and gemstones",
+   "gate": false,
+   "why": "A claimed diamond may be moissanite (a lab-made look-alike), cubic zirconia (CZ), glass, white sapphire or lab-grown (real diamond, factory-made); Lamar's does not pay for stones, but know what you hold.",
+   "match": [
+    "diamond",
+    "sapphire",
+    "ruby",
+    "emerald",
+    "gemstone",
+    "engagement ring"
+   ],
+   "checks": [
+    "Say the rule first: we pay on the metal; the stone rides free.",
+    "Multi-tester (reads heat and electrical flow). Stone clean, dry, room temperature. Fingers on the tester's metal grips. Tip square to the table (big top facet), firm pressure. Loose stone: set it on the metal rest and hold the rest.",
+    "Diamond: natural or lab-grown. It cannot tell them apart.",
+    "Moissanite: moissanite, the tip touched metal, or rarely a lab-grown diamond. Retest.",
+    "Neither: CZ, glass, white sapphire or similar.",
+    "Loupe the band. \"CZ\" stamped means cubic zirconia. A stone set in silver (925, STER) is usually an imitation. Metal is a clue, not proof."
+   ],
+   "lookup": [
+    {
+     "what": "",
+     "where": "GIA Report Check at gia.edu"
+    },
+    {
+     "what": "",
+     "where": "IGI Verify Your Report at igi.org"
+    },
+    {
+     "what": "",
+     "where": "Verify Your GCAL Certificate at gcalusa.com"
+    }
+   ],
+   "rule": null
+  },
+  {
+   "id": "watch",
+   "n": 5,
+   "title": "Rolex and luxury watches",
+   "gate": true,
+   "why": "Fake Rolexes are common, the best (\"superclones\") pass most counter checks, and one bad loan costs thousands.",
+   "match": [
+    "rolex",
+    "omega",
+    "tag heuer",
+    "breitling",
+    "cartier",
+    "submariner",
+    "datejust",
+    "daytona",
+    "seamaster",
+    "speedmaster"
+   ],
+   "checks": [
+    "Seconds hand. A modern Rolex sweeps in small, fast steps. One tick a second means quartz: fake, unless a real Oysterquartz.",
+    "Back. Most models: solid and plain. A clear back is rare (the 1908 has one).",
+    "Cyclops (magnifying bubble over the date): date fills it, dead center. Small or off-center date means fake.",
+    "Loupe the dial. Printing crisp and slightly raised, markers straight. Fuzzy or crooked: fake."
+   ],
+   "lookup": [
+    {
+     "what": "rolex.com",
+     "where": "the model's photos; locator for Official Rolex Jewelers."
+    },
+    {
+     "what": "Omega Master Chronometer",
+     "where": "certificate number at omegawatches.com."
+    },
+    {
+     "what": "Breitling digital passport",
+     "where": "in the owner's Breitling account."
+    }
+   ],
+   "rule": "lend nothing on the brand name until a watchmaker has opened it; lend as on a no-name watch, or pass."
+  },
+  {
+   "id": "cards",
+   "n": 6,
+   "title": "Sports cards and Pokémon cards",
+   "gate": true,
+   "why": "Graded cases, vintage stars, modern autograph cards and Pokémon cards are all faked, and even a real card's price depends on its condition.",
+   "match": [
+    "psa",
+    "bgs",
+    "sgc",
+    "cgc",
+    "pokemon",
+    "pokémon",
+    "baseball card",
+    "basketball card",
+    "football card",
+    "sports card",
+    "graded card",
+    "trading card",
+    "charizard"
+   ],
+   "checks": [
+    "Slab (sealed grading case): enter the cert number in the grader's free lookup. Card, year and grade must match the label.",
+    "The lookup photo must match the card in hand: centering, print specks, corner nicks. Fakers reuse real cert numbers. Older certs may lack photos.",
+    "Squeeze the case. Real ones are stiff; flex, cloudy seams, cracks or glue mean it was opened.",
+    "Raw (ungraded) vintage card: under the loupe, real post-war cards show a crisp rosette (a honeycomb of color dots). Blurry, muddy or pixel-like dots mean a copy."
+   ],
+   "lookup": [
+    {
+     "what": "PSA",
+     "where": "psacard.com/cert (type the number in; don't trust a QR code on a slab)"
+    },
+    {
+     "what": "BGS",
+     "where": "beckett.com/grading/card-lookup"
+    },
+    {
+     "what": "SGC",
+     "where": "gosgc.com or the SGC Grading app (photos)"
+    },
+    {
+     "what": "CGC",
+     "where": "cgccards.com/certlookup (photos)"
+    },
+    {
+     "what": "Pokémon",
+     "where": "pokemon.com/us/pokemon-tcg/pokemon-cards (check name, HP, attacks)"
+    }
+   ],
+   "rule": "lend only on cards graded by PSA, BGS, SGC or CGC whose cert and photo match the card."
+  },
+  {
+   "id": "auto",
+   "n": 7,
+   "title": "Autographs and memorabilia",
+   "gate": false,
+   "why": "Signed balls, photos, jerseys and \"game-used\" gear are forged in bulk, often with printed certificates to match, and a fake signature leaves an item worth only what it would be unsigned.",
+   "match": [
+    "autograph",
+    "signed ball",
+    "signed bat",
+    "signed jersey",
+    "signed photo",
+    "memorabilia",
+    "jsa",
+    "psa/dna"
+   ],
+   "checks": [
+    "Find the authenticator's sticker or hologram and its matching card or letter. Only five count: PSA/DNA, JSA, Beckett (BAS), MLB Authentication and Fanatics.",
+    "Look up the number free (below). The signer and the kind of item (ball, bat, photo, jersey) must match. A real number from another item means a fake.",
+    "A sticker that looks peeled, cut, lifted or reprinted fails. Real PSA/DNA stickers break apart if moved (older ones show a checkerboard). MLB holograms show tampering if removed.",
+    "None of the five? Value it as unsigned."
+   ],
+   "lookup": [
+    {
+     "what": "PSA/DNA",
+     "where": "psacard.com/cert (often text only, so check the signer and item)"
+    },
+    {
+     "what": "JSA",
+     "where": "spenceloa.com, Verify Authenticity page"
+    },
+    {
+     "what": "Beckett (BAS)",
+     "where": "beckett-authentication.com"
+    },
+    {
+     "what": "MLB",
+     "where": "mlb.com/authentication (two letters, the number, and the validation code if there is one)"
+    },
+    {
+     "what": "Fanatics",
+     "where": "fanatics.com/fansecure (two letters and the number, e.g. CV123456; type it in rather than scanning a code)"
+    }
+   ],
+   "rule": "value anything without a real third-party cert (one of the five, matching on lookup) as if unsigned."
+  },
+  {
+   "id": "optics",
+   "n": 8,
+   "title": "Red dots, holographic sights and scopes",
+   "gate": false,
+   "why": "Airsoft copies of EOTech, Aimpoint, Trijicon and big-name scopes look right on a rifle, and a loan on one is a total loss.",
+   "match": [
+    "eotech",
+    "aimpoint",
+    "trijicon",
+    "leupold",
+    "vortex",
+    "holosun",
+    "red dot",
+    "holographic",
+    "thermal",
+    "rmr",
+    "acog"
+   ],
+   "checks": [
+    "Dot color. Aimpoint: red only. EOTech: red or green, never switchable. A red/green switch means fake.",
+    "Front glass. EOTech: flat and dark; fakes are curved and mirror the room lights. Aimpoint: looks red (maybe orange or green), never blue or clear. A visible LED inside means fake.",
+    "Serial. Aimpoint: engraved on the side, same as the box. EOTech: sticker on the bottom. Missing or crude means fake.",
+    "Battery. EOTech takes only CR123, AA or N cell. Hearing-aid button cells, or a solar panel on an \"Aimpoint,\" mean fake."
+   ],
+   "lookup": [
+    {
+     "what": "Trijicon Serial Number Lookup (trijicon.com)",
+     "where": "says whether Trijicon made that serial; not a guarantee."
+    },
+    {
+     "what": "Leupold",
+     "where": "call 1-800-LEUPOLD with the serial and ask if it is authentic."
+    },
+    {
+     "what": "Aimpoint",
+     "where": "serial tool at aimpoint.us (sign-in), or (703) 263-9795, option 6."
+    },
+    {
+     "what": "Pulsar",
+     "where": "email the serial to support@pulsar-vision.com; they verify it."
+    },
+    {
+     "what": "No online check found",
+     "where": "call EOTech (734) 356-8030, Vortex 1-800-4VORTEX, Nightforce (208) 476-9814 ext. 3."
+    }
+   ],
+   "rule": "no loan on the brand until the maker has checked the serial; otherwise lend as a no-name optic, or pass."
+  },
+  {
+   "id": "battery",
+   "n": 9,
+   "title": "Power tool batteries and tools",
+   "gate": false,
+   "why": "Counterfeit Milwaukee M18, DeWalt 20V, Makita 18V and Ryobi ONE+ packs sell cheap online, hold far less than the label says, and can catch fire.",
+   "match": [
+    "m18",
+    "m12",
+    "flexvolt",
+    "20v max",
+    "battery pack",
+    "dewalt battery",
+    "milwaukee battery",
+    "makita battery",
+    "ryobi battery"
+   ],
+   "checks": [
+    "Labels. Blurry, off-center, peeling or misspelled print, or commas in web addresses (DeWalt), mean fake.",
+    "Screws (DeWalt): genuine are silver and domed; fakes are flatter with a black coating.",
+    "Makita: black; logo and \"Lithium-Ion\" on both sides; logo and a white plug on the bottom; a red stripe inside the pressed latch.",
+    "Ryobi: the R and B in \"RYOBI\" have indents; model, serial and safety marks printed on it.",
+    "Fuel gauge (Milwaukee): genuine lights step up one by one; a fake lights all at once, dimmer."
+   ],
+   "lookup": [
+    {
+     "what": "Milwaukee 1-800-729-3878",
+     "where": "warranty runs on the date code; no registration needed."
+    },
+    {
+     "what": "DeWalt 800-433-9258",
+     "where": "ask whether the part number is real."
+    },
+    {
+     "what": "",
+     "where": "Makita (800) 4-MAKITA."
+    },
+    {
+     "what": "",
+     "where": "Ryobi 1-800-525-2579."
+    }
+   ],
+   "rule": "a pack with fake tells gets $0 and goes back to the customer, never onto the shelf (the Power Tool Institute calls counterfeits illegal). Every other pack is priced on its load test."
+  },
+  {
+   "id": "apple",
+   "n": 10,
+   "title": "Apple and electronics",
+   "gate": true,
+   "why": "Fake AirPods, Apple Watches and Beats look right in the box, and a used iPhone can hide non-Apple parts.",
+   "match": [
+    "airpod",
+    "iphone",
+    "apple watch",
+    "ipad",
+    "macbook",
+    "beats",
+    "airpods pro"
+   ],
+   "checks": [
+    "Serial in Settings = serial on the item = serial on the box. Where to look: table below.",
+    "Apple Check Coverage (checkcoverage.apple.com): type the serial and the code shown; no sign-in needed. No record means pass.",
+    "AirPods: connect them to an iPhone. A \"Cannot Verify AirPods\" alert (\"could not be verified as genuine\") means fake."
+   ],
+   "lookup": [
+    {
+     "what": "Apple Check Coverage (checkcoverage.apple.com)",
+     "where": "serial and code."
+    },
+    {
+     "what": "Parts and Service History",
+     "where": "on the iPhone itself."
+    },
+    {
+     "what": "stolenphonechecker.org",
+     "where": "IMEI blacklist (store rule)."
+    }
+   ],
+   "rule": "Apple Watch follows the phone rule: buy only; he unpairs it at the counter, then it must pair fresh."
+  },
+  {
+   "id": "other",
+   "n": 11,
+   "title": "Other things that get faked",
+   "gate": false,
+   "why": "YETI, Oakley, Ray-Ban, designer bags, Jordans and premium knives are copied well enough to pass a glance; these checks catch only lazy fakes.",
+   "match": [
+    "yeti",
+    "oakley",
+    "ray-ban",
+    "rayban",
+    "louis vuitton",
+    "gucci",
+    "coach",
+    "jordan",
+    "air jordan",
+    "benchmade",
+    "chris reeve",
+    "spyderco"
+   ],
+   "checks": [
+    "Price. \"New\" at a big discount is the top tell. Chris Reeve never discounts, Louis Vuitton rarely does, and Ray-Ban's owner sets minimum advertised prices.",
+    "Print and spelling. Logos crisp, words spelled right. A misspelling means fake.",
+    "Maker's marks where they belong (below). Missing is a warning sign."
+   ],
+   "lookup": [
+    {
+     "what": "YETI",
+     "where": "\"Register Your Gear\" on yeti.com takes the serial; store locator lists authorized dealers."
+    },
+    {
+     "what": "Oakley",
+     "where": "email Customer Care (oakley.com) clear photos and where it was bought; Oakley says it will tell you if it's real. Phone 1-800-403-7449."
+    },
+    {
+     "what": "Chris Reeve",
+     "where": "Authorized Dealers list on chrisreeve.com, or call (208) 375-0367 to verify."
+    },
+    {
+     "what": "Spyderco",
+     "where": "dealer locator; post photos on forum.spyderco.com; 1-800-525-7770."
+    },
+    {
+     "what": "Benchmade",
+     "where": "dealer locator on benchmade.com; 1-833-557-2526."
+    }
+   ],
+   "rule": "Lamar's does not lend on handbags or sneakers without paid third-party authentication. All work from photos:"
+  }
+ ]
+}
