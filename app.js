@@ -1346,8 +1346,12 @@ function watchCountUrl(q){
 }
 function compTargets(x){
   const q=compQuery(x), e=encodeURIComponent(q), t=[], guns=(st.catId==="guns");
-  if(guns)t.push({id:"gb",name:"GunBroker",sub:"then tick Completed &mdash; the real gun comp",
-    url:"https://www.gunbroker.com/All/search?Keywords="+e});
+  if(guns){
+    t.push({id:"gw",name:"GunWatcher",sub:"sold prices, no sign-in",
+      url:"https://gunwatcher.com/gun-value-sold-information/market-price?itemName="+e.replace(/%20/g,"+")});
+    t.push({id:"gb",name:"GunBroker",sub:"then tick Completed &mdash; the real gun comp",
+      url:"https://www.gunbroker.com/All/search?Keywords="+e});
+  }
   t.push({id:"wc",name:"WatchCount &mdash; eBay sold",
     sub:guns?"parts &amp; optics only &mdash; eBay bans guns":"real Best Offer prices, no eBay sign-in",
     url:watchCountUrl(q)});
@@ -3196,12 +3200,24 @@ function compStats(rows){
    together rather than in turn - coverage costs a call each, it does not have
    to cost the wait as well - and one failing does not lose the others. */
 function findPasses(x){
+  /* Firearms get their own places entirely. eBay bans gun sales, so an eBay
+     or Shopping pass on "Remington 870" comes back with barrels, stocks,
+     optics and airsoft - priced like the gun and wrong by a factor of five.
+     The card has always said so; the lookup was still asking. And GunBroker's
+     completed auctions sit behind a login no search can reach, so asking for
+     them by name returns nothing: what can be read is GunWatcher, which
+     publishes the sold prices, and GunBroker's live listings as asks. */
+  if(st.catId==="guns") return [
+    {name:"GunWatcher", where:"GunWatcher",
+     say:"gunwatcher.com, which publishes sold prices gathered from completed GunBroker auctions - use its sold or average sold figures, not asking prices"},
+    {name:"Auction results", where:"Auction",
+     say:"published results from gun auction houses and sold-price archives - Rock Island, Morphy, Proxibid, GunsAmerica sold - for what the gun actually brought"},
+    {name:"GunBroker, asking", where:"GunBroker",
+     say:"current GunBroker listings, which are asking prices rather than sales - mark every one of these \"asking\""}];
   const p=[{name:"eBay sold",   where:"eBay",
             say:"completed, sold eBay listings - the price it actually went for, not what it was listed at"}];
-  if(st.catId==="guns") p.push({name:"GunBroker", where:"GunBroker",
-            say:"completed GunBroker auctions that ended in a sale"});
   p.push({name:"Shopping, used", where:"Shopping",
-            say:"used-condition listings currently for sale on Google Shopping and the marketplaces"});
+          say:"used-condition listings currently for sale on Google Shopping and the marketplaces"});
   return p;
 }
 function findPrompt(q,pass){
