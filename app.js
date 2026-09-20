@@ -86,6 +86,20 @@ const CATALOG = [
    {id:"m1",name:"Acoustic guitar",value:110,liq:"slow"},
    {id:"m2",name:"Electric guitar",value:150,liq:"slow"},
    {id:"m3",name:"Amplifier",value:100,liq:"slow"}]},
+ /* Jewellery and watches where the NAME carries the value. Plain gold with
+    no name on it belongs on the Gold & silver tab, priced by weight - this is
+    for the pieces the scale badly under-values. Four of these five sheets
+    gate: a fake Rolex is not worth a fraction of a real one. */
+ {id:"jewel",label:"Jewelry & watches",ltv:40,
+  driver:"The name, then the condition of the case and band. A real one is worth many times its metal; a fake is worth nothing.",
+  killer:"Cannot be proven. Run the spotting-fakes card first \u2014 lend on the metal or pass.",
+  brand:{on:true,hi:"Rolex / Cartier / Tiffany",mid:"TAG / Seiko / James Avery",lo:"Fashion / no name"},
+  complete:{on:true,label:"Box, papers, extra links"},
+  items:[
+   {id:"j1",name:"Watch \u2014 luxury",value:1800,liq:"slow"},
+   {id:"j2",name:"Watch \u2014 name brand",value:120,liq:"normal"},
+   {id:"j3",name:"Designer jewelry piece",value:150,liq:"slow"},
+   {id:"j4",name:"Engagement / bridal set",value:400,liq:"slow"}]},
  {id:"rolling",label:"Trailers & ATVs",ltv:35,
   driver:"Title, before you look at anything else. Then condition.",
   killer:"No title. No deal, at any price. Don't negotiate around it.",
@@ -143,6 +157,10 @@ const BRANDBOOK={
   hi:["Apple","Samsung","Sony","Nintendo","Bose","Sonos","JL Audio","Alienware","ASUS ROG"],
   mid:["Microsoft","Xbox","Dell","HP","Lenovo","LG","Google","Pixel","Motorola","OnePlus","JBL","Beats","Klipsch","Kicker","Rockford Fosgate","Alpine","Pioneer","Acer","Asus","MSI","Vizio","TCL"],
   lo:["Onn","RCA","Element","Westinghouse","Sceptre","Hisense","Boss Audio","Pyle","Dual","Insignia","Blackweb","Coby","Sylvania"]},
+ jewel:{
+  hi:["Rolex","Cartier","Omega","Tiffany","Tiffany & Co","Patek Philippe","Audemars Piguet","Van Cleef","Bulgari","David Yurman","Tudor","Breitling","Grand Seiko","IWC","Jaeger-LeCoultre","Panerai","Hublot","Vacheron"],
+  mid:["TAG Heuer","Tissot","Longines","Seiko","Citizen","Hamilton","Oris","Rado","Movado","James Avery","Pandora","John Hardy","Kendra Scott","Swarovski","Bulova","Shinola"],
+  lo:["Fossil","Michael Kors","Invicta","MVMT","Armitron","Timex","Guess","Anne Klein","Stuhrling","Daniel Wellington","Skagen"]},
  music:{
   hi:["Fender","Gibson","Martin","Taylor","PRS","Rickenbacker","Mesa Boogie","Gretsch"],
   mid:["Squier","Epiphone","Yamaha","Ibanez","Jackson","ESP","LTD","Schecter","Takamine","Seagull","Alvarez","Peavey","Orange","Marshall","Boss","Line 6","Blackstar","Fender Squier","Mitchell"],
@@ -155,6 +173,10 @@ function brandLookup(catId,txt){
   let best=null;
   for(const tier of["hi","mid","lo"]) for(const b of book[tier]){
     const bl=b.toLowerCase();
+    /* An exact name wins outright. Without this the longest containing name
+       won instead, so "seiko" answered Grand Seiko and a $90 watch was filed
+       as a premium maker. */
+    if(bl===t)return {tier,name:b};
     if(bl.includes(t)||t.includes(bl)){
       if(!best||b.length>best.name.length)best={tier,name:b};
     }
@@ -217,9 +239,9 @@ const PRICEBOOK=[
  /* electronics */
  ["Soundbar",60,"elec","fast"],["AV receiver",80,"elec","slow"],["Turntable",70,"elec","normal"],
  ["Gaming desktop PC",550,"elec","normal"],["Monitor — 27in",80,"elec","fast"],["Camera drone",300,"elec","normal"],
- ["GoPro / action camera",90,"elec","fast"],["Smart watch",120,"elec","fast"],["VR headset",180,"elec","normal"],
+ ["GoPro / action camera",90,"elec","fast"],["Smartwatch \u2014 Apple / Galaxy",120,"elec","fast"],["VR headset",180,"elec","normal"],
  ["Handheld game console",170,"elec","fast"],["Video game — current title",25,"elec","fast"],["Projector",120,"elec","normal"],
- ["Two-way radios — pair",40,"elec","normal"],["Wristwatch — quartz, name brand",60,"elec","slow"],["DJ controller",120,"elec","slow"],
+ ["Two-way radios — pair",40,"elec","normal"],["Wristwatch — quartz, name brand",60,"jewel","slow"],["DJ controller",120,"elec","slow"],
  /* instruments */
  ["Bass guitar",120,"music","slow"],["Keyboard — 61 key",90,"music","normal"],["Digital piano — 88 key",350,"music","slow"],
  ["Banjo",120,"music","slow"],["Mandolin",90,"music","slow"],["Fiddle / violin",100,"music","slow"],
@@ -241,6 +263,7 @@ const LTV_BOOK={
  tools:{p:35,why:"plentiful supply, and cordless value dies with the battery"},
  hunt:{p:40,why:"good glass holds money, but it's seasonal — thin in spring"},
  elec:{p:25,why:"fastest-depreciating thing you take in — two model years is half the value"},
+ jewel:{p:40,why:"a real one holds its price, but it must be proven first and it sells slowly"},
  music:{p:35,why:"holds value but sits on the shelf for months"},
  rolling:{p:35,why:"real money but title friction and a slow, local buyer pool"}};
 function ltvSuggestHTML(cat,cur){
@@ -621,6 +644,17 @@ const SPEC_CHOICES={
      {label:"Controllers",options:[{t:"One",m:1},{t:"Two +",m:1.05,note:"extra controller: +5%"}]}],
  e6:[{label:"Size",options:[{t:"Standard portable",m:1},{t:"Party-size",m:1.2,note:"big speaker: +20%"}]}],
  e7:[{label:"Setup",options:[{t:"Amp + sub combo",m:1},{t:"Sub only",m:.8,note:"sub without amp: −20%"}]}],
+ /* Two questions each, and neither of them prices a stone by itself - the
+    shop's rule is that the metal is what is paid on and the stone rides free
+    unless there is a report to read. Sheet 4 says so; this follows it. */
+ j1:[{label:"Movement",options:[{t:"Automatic / mechanical",m:1},{t:"Quartz",m:.55,note:"quartz in a luxury case \u2014 far less: \u221245%"}]},
+     {label:"Papers",options:[{t:"Box and papers",m:1},{t:"Watch only",m:.8,note:"no box or papers: \u221220%"}]}],
+ j2:[{label:"Movement",options:[{t:"Quartz",m:1},{t:"Automatic",m:1.25,note:"automatic: +25%"}]},
+     {label:"Case",options:[{t:"Clean",m:1},{t:"Scratched / worn band",m:.75,note:"worn case and band: \u221225%"}]}],
+ j3:[{label:"Metal",options:[{t:"Sterling silver",m:1},{t:"Gold",m:2.4,note:"gold rather than silver: more than double"}]},
+     {label:"Marks",options:[{t:"Maker's mark reads clean",m:1},{t:"Faint or missing",m:.6,note:"unproven mark \u2014 price it as no-name: \u221240%"}]}],
+ j4:[{label:"Report",options:[{t:"No report",m:1},{t:"GIA or IGI report in hand",m:1.4,note:"a report you can look up: +40%"}]},
+     {label:"Center stone",options:[{t:"Under 0.5 ct",m:.8,note:"small center stone: \u221220%"},{t:"0.5\u20131 ct",m:1},{t:"Over 1 ct",m:1.5,note:"over a carat: +50%, and get the report"}]}],
  m1:[{label:"Type",options:[{t:"Steel-string",m:1},{t:"Acoustic-electric",m:1.15,note:"pickup built in: +15%"},{t:"Classical / nylon",m:.8,note:"nylon-string — slow here: −20%"}]},
      {label:"Wood",options:[{t:"Laminate",m:1},{t:"Solid top",m:1.2,note:"solid top: +20%"}]}],
  m2:[{label:"Orientation",options:[{t:"Right-handed",m:1},{t:"Left-handed",m:.8,note:"lefty — tiny buyer pool: −20%, consider Slow"}]},
@@ -703,6 +737,7 @@ const DETAIL_HINTS={
  tools:{ph:"voltage / drive — 20V, 1/2in drive",hint:"Higher-voltage platforms and 1/2in drive carry more; a bare 12V tool is nearly worthless."},
  hunt:{ph:"magnification / length / draw — 3-9x40, 7ft, 70lb",hint:"Standard specs sell fastest; extreme specs shrink the buyer pool — consider setting speed to Slow."},
  elec:{ph:"size / year / storage — 65in, 2024, 256GB",hint:"Size and model year ARE the price on TVs and phones — two model years old is half of new."},
+ jewel:{ph:"model / metal / size — Datejust 36, 14k, 7in",hint:"The reference or model number is most of the price on a watch. Metal and stone weight matter on jewelry."},
  music:{ph:"type / size — dreadnought, 4-string",hint:""},
  rolling:{ph:"year / title — 2019, clean title in hand",hint:"No title, no deal — at any price."}};
 function specVerdictHTML(x){
@@ -1883,11 +1918,15 @@ const ITEM_SYN={
  e1:"tv television smart flat screen",e2:"laptop notebook computer chromebook",e3:"tablet",
  e4:"smartphone phone cell cellphone android",e5:"game console gaming playstation xbox",
  e6:"bluetooth speaker",e7:"car audio amp sub subwoofer",
+ j1:"rolex omega cartier submariner datejust daytona seamaster speedmaster tudor breitling luxury watch wristwatch",
+ j2:"seiko citizen tissot tag heuer movado bulova fossil timex invicta watch watches wristwatch chronograph dive quartz automatic eco-drive ecodrive kinetic",
+ j3:"tiffany david yurman pandora james avery van cleef bulgari designer jewelry necklace bracelet cuff pendant earrings ring charm",
+ j4:"diamond engagement bridal wedding solitaire halo gia certified stone ring",
  m1:"acoustic guitar",m2:"electric guitar",m3:"amplifier guitar amp",
  r1:"utility trailer",r2:"atv four wheeler 4 wheeler fourwheeler quad"};
 const BOOK_SYN={"Wireless earbuds":"airpods air pods earbuds buds earphones galaxy buds","DSLR / mirrorless camera":"dslr slr mirrorless canon nikon sony rebel eos t6 t7 d3500 alpha","Band saw \u2014 benchtop":"bandsaw band saw","Audio mixer \u2014 PA board":"mixer mixing board soundboard sound board zed behringer yamaha mackie","TIG / stick welder":"tig stick arc welder weldpro everlast","Zero-turn mower":"zero turn zturn ztr","Golf cart":"golf cart","Kayak — sit-on-top":"kayak yak",
  "Jon boat — 12ft, no motor":"jon boat johnboat","UTV / side-by-side":"utv side by side sxs","Dirt bike":"motorcycle",
- "E-bike":"ebike electric bike","Camera drone":"drone","Smart watch":"smartwatch watch","Handheld game console":"handheld",
+ "E-bike":"ebike electric bike","Camera drone":"drone","Smartwatch \u2014 Apple / Galaxy":"smartwatch smart watch apple watch galaxy watch fitbit","Handheld game console":"handheld",
  "Gaming desktop PC":"desktop pc computer tower","Air rifle / pellet gun":"bb gun pellet air rifle",
  "AK-pattern rifle":"ak ak47 ak-47","Deer feeder — barrel":"feeder","Cellular game camera":"cellular trail cam cell cam",
  "Fish finder":"depth finder sonar","Stand mixer — KitchenAid class":"kitchenaid mixer","Log splitter":"wood splitter",
@@ -2081,7 +2120,7 @@ const MODELBOOK=[
  /* electronics */
  MB(/\biphone\s*(\d{1,2}|se|xs|xr|x)?(\s*(pro\s*max|pro|plus|mini|max|e))?\b/,"Apple","e4",{label:m=>"iPhone"+(m[1]?" "+m[1].toUpperCase():"")+(m[2]?" "+pretty(m[2]):"")}),
  MB(/\bgalaxy\s*tab(\s*[a-z]?\d+\w*)?(\s*(ultra|plus|\+|fe))?\b/,"Samsung","e3",{label:m=>"Galaxy Tab"+(m[1]?" "+m[1].trim().toUpperCase():"")+(m[2]?" "+pretty(m[2]):"")}),
- MB(/\bgalaxy\s*watch(\s*\d+)?\b/,"Samsung","Smart watch",{label:m=>"Galaxy Watch"+(m[1]||"")}),
+ MB(/\bgalaxy\s*watch(\s*\d+)?\b/,"Samsung","Smartwatch \u2014 Apple / Galaxy",{label:m=>"Galaxy Watch"+(m[1]||"")}),
  MB(/\bgalaxy\s*(s\d{1,2}|note\s*\d{1,2}|z\s*(fold|flip)\s*\d*|a\d{2})(\s*(ultra|plus|\+|fe))?\b/,"Samsung","e4",{label:m=>"Galaxy "+pretty(m[1])+(m[3]?" "+pretty(m[3]):"")}),
  MB(/\bapple\s*watch(\s*(series\s*\d+|ultra\s*\d*|se))?\b/,"Apple","Smart watch",{label:m=>"Apple Watch"+(m[1]?" "+pretty(m[1]):"")}),
  MB(/\bpixel\s*\d{1,2}a?(\s*(pro\s*xl|pro|xl|fold))?\b/,"Google","e4"),
@@ -2147,6 +2186,9 @@ const COND_RE=[[/\b(new\s*in\s*box|nib|sealed|brand\s*new)\b/,"new"],[/\b(excell
  [/\b(rough|broken|needs\s*work|not\s*working|doesn\s*t\s*work|won\s*t\s*(start|run)|for\s*parts|parts\s*only)\b/,"rough"]];
 const INCOMPLETE_RE=/\b(missing\s*\w+|no\s*(battery|charger|case|mag|magazine)|bare\s*tool|tool\s*only)\b/;
 const STOP=new Set(["a","an","the","for","with","and","or","of","on","to","my","his","her","some","old","used","nice","w","w/","it","one","this","that","has","have","came","comes"]);
+/* Built from the jewellery brand book, so adding a maker there is enough. */
+const NAMED_JEWEL=new RegExp("\\b("+["Rolex","Cartier","Omega","Tiffany","Patek","Audemars","Van Cleef","Bulgari","David Yurman","Tudor","Breitling","Seiko","Citizen","Tissot","TAG","Longines","Movado","James Avery","Pandora","John Hardy","Kendra Scott","Swarovski","Fossil","Michael Kors","Invicta","Shinola","Hamilton","Bulova"]
+  .map(b=>b.toLowerCase().replace(/[^a-z0-9 ]/g,"")).join("|")+")\\b","i");
 const METAL_RE=/\b(gold|silver|sterling|925|karat|carat|ring|rings|necklace|bracelet|earrings?|jewelry|jewellery|pendant|bullion|scrap|coin|coins|(10|14|18|22|24)\s*(k|kt|karat))\b/;
 
 function omniParse(q){
@@ -2154,7 +2196,13 @@ function omniParse(q){
   const P={raw,brand:"",brandCats:[],modelLabel:"",modelItem:null,spec:{},detail:[],words:[],left:[],cond:null,complete:true,metal:null,karat:null,hints:[]};
   if(!raw)return P;
   let t=" "+raw+" ";
-  if(METAL_RE.test(t)){
+  /* "bracelet" alone is metal on a scale. "tiffany bracelet" is not: the name
+     is most of what it is worth, and weighing it would under-value it badly.
+     A named maker from the jewellery book wins over the scale - unless the
+     karat is spelled out, which is someone weighing a marked piece. */
+  const byName=(NAMED_JEWEL.test(t)||/\b(diamond|engagement|bridal|solitaire|halo)\b/i.test(t))
+    &&!/\b(10|14|18|22|24)\s*(k|kt|karat)\b/.test(t);
+  if(METAL_RE.test(t)&&!byName){
     P.metal=/silver|sterling|925/.test(t)?"silver":"gold";
     const k=t.match(/\b(10|14|18|22|24)\s*(k|kt|karat)\b/); if(k)P.karat=k[1]+"k";
   }
@@ -2238,7 +2286,13 @@ function omniRows(q){
   if(P.words.length){
     let sc=[];
     const score=(e,and)=>{ let s=0; for(const w of P.words){ const h=wordHit(w,e.words); if(!h&&and)return 0; s+=h; } return s; };
-    OMNI_IDX.forEach(e=>{ const s=score(e,true); if(s)sc.push({e,s:s+(inBrand(e)?3:0)+(e.kind==="item"?.5:0)}); });
+    /* The maker is taken out of the words before scoring, so on "seiko watch"
+       only "watch" is left and the two watch rows tie - and the tie-break,
+       shorter name first, handed a Seiko to the luxury row. An entry that
+       names the maker itself is the better answer. */
+    const brandW=omniWords(P.brand||"");
+    const namesBrand=e=>brandW.length&&brandW.some(w=>wordHit(w,e.words)>=2);
+    OMNI_IDX.forEach(e=>{ const s=score(e,true); if(s)sc.push({e,s:s+(inBrand(e)?3:0)+(namesBrand(e)?4:0)+(e.kind==="item"?.5:0)}); });
     /* Nothing matched every word, so fall back to matching any of them - but
        remember that we did. A loose match is how "airpods pro" reaches
        Projector on the strength of three letters, and it must not sit above
@@ -2381,6 +2435,7 @@ function applySpecPicks(spec,text){
    the listings, the deal log, and the service this device is connected to. */
 function startOver(){
   st.omniQ=""; st.omniDone=""; st.omniHl=null;
+  st.mode="item";                 /* from the scale too, not just the item page */
   st.picked=false; st.bookName=""; st.brandTyped=""; st.model=""; st.detail="";
   st.brand="mid"; st.liq=null; st.market=null; st.mpPin=null; st.mpNone=false;
   st.cond="good"; st.condSet=false; st.complete=true; st.specSel={}; st.editing=false;
@@ -3387,7 +3442,7 @@ const COND_WORDS=Object.fromEntries(CONDITIONS.map(c=>{
    so the ticket-to-regular ratios say more about their markdown policy than
    about what a used one is worth here. A real sold price overrides all of
    this, which is why the card says so every time it shows the estimate. */
-const RETAIL_PCT={guns:65,power:55,tools:50,hunt:45,elec:45,music:45,rolling:60};
+const RETAIL_PCT={guns:65,jewel:55,power:55,tools:50,hunt:45,elec:45,music:45,rolling:60};
 /* Shelf tags photographed 19 Sep 2026, second batch. Within one category the
    brand moves the number more than the category does: a Stihl MS180C asks
    $199.95 against about $229 new, a Husqvarna 455 Rancher $374.95 against the
@@ -3918,8 +3973,8 @@ function wireNext(){
 /* ================= BUY OUTRIGHT — you own it, no loan =================
    Starting rates Jace approved 9/19: about 5 points over the lending rate,
    same as the loan for seasonal outdoor power. */
-var BUY_DEFAULT={guns:55,hunt:45,tools:40,music:40,rolling:40,power:35,elec:30};
-var BUY_WHY={guns:"guns sell fast here and hold their value",hunt:"steady seller in season",tools:"steady seller",
+var BUY_DEFAULT={guns:55,hunt:45,jewel:45,tools:40,music:40,rolling:40,power:35,elec:30};
+var BUY_WHY={guns:"guns sell fast here and hold their value",jewel:"a proven one holds its price, but it sits until the right buyer walks in",hunt:"steady seller in season",tools:"steady seller",
   music:"they sell, just slower",rolling:"big dollars, needs a clean title, sells slower",
   power:"seasonal and often needs a carb cleaned, so pay no more than you'd lend",elec:"loses value fast and can come in locked"};
 function buyRateHTML(x){
