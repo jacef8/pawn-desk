@@ -469,7 +469,7 @@ function pinHTML(x){
   const cell=(l,v,big)=>`<div class="pinCell${big?" big":""}"><span>${l}</span><b>${v}</b></div>`;
   return `<div class="pinStrip">
     <span class="pinLab">Where it stands</span>
-    <button class="pinNew" id="pinNew" type="button">Start over</button>
+    <button class="pinNew" id="pinNew" type="button" title="Clear this item and start the next customer. Your rates, shelf record, listings and deal log are kept.">Start over</button>
     ${cell("Lend him",money(x.target),1)}
     ${cell("Or buy outright",money(x.buy),1)}
     ${cell("Resale, "+esc(COND_WORDS[st.cond][0].toLowerCase()),money(x.resale))}
@@ -887,10 +887,11 @@ function wireItem(){
     st.catId=b.dataset.cat;st.market=null;st.omniDone="";st.mpPin=null;st.condSet=false;st.cond="good";
     if(typed){ st.itemId=custId(st.catId); st.bookName=typed; st.mpNone=true; }
     else { st.mpNone=false; const c=CATALOG.find(x=>x.id===st.catId); st.itemId=c.items[0].id; st.bookName=""; }
+    st.needKind=false;
     st.liq=null;st.brandTyped="";st.model="";st.detail="";st.complete=true;st.editing=false;
     const h=typed?brandInText(st.catId,typed):null; st.brand=h?h.tier:"mid";
     render();});
-  v.querySelectorAll("[data-item]").forEach(b=>b.onclick=()=>{st.itemId=b.dataset.item;st.market=null;st.omniDone="";st.mpPin=null;st.mpNone=false;st.condSet=false;st.cond="good";st.bookName="";st.liq=null;st.brand="mid";st.brandTyped="";st.model="";st.detail="";st.complete=true;
+  v.querySelectorAll("[data-item]").forEach(b=>b.onclick=()=>{st.needKind=false;st.itemId=b.dataset.item;st.market=null;st.omniDone="";st.mpPin=null;st.mpNone=false;st.condSet=false;st.cond="good";st.bookName="";st.liq=null;st.brand="mid";st.brandTyped="";st.model="";st.detail="";st.complete=true;
     /* picking "Something else" with no saved value drops you straight into the price box */
     st.editing=(st.itemId===custId(st.catId));
     render();if(st.editing)document.getElementById("valIn")?.focus();});
@@ -1802,7 +1803,7 @@ function logCardInner(x){
     <div class="row2" style="margin-bottom:9px"><input id="logTicket" class="numIn" type="text" inputmode="numeric"
       autocomplete="off" placeholder="Ticket # (optional)" value="${esc(st.ticket||"")}"
       style="flex:1;min-width:0;font-family:var(--mono);font-size:14px"></div>
-    <button id="logDeal" class="brassBtn" style="width:100%;padding:11px 0">Log this deal</button>
+    <button id="logDeal" class="brassBtn" title="Saves the item, your estimate, the offer and the ticket number. Mark it Sold later and the desk prices the next one from what it actually brought." style="width:100%;padding:11px 0">Log this deal</button>
     <div class="cardHint" id="logMsg">Records the item, your estimate, the offer and the ticket number &mdash; nothing else off the ticket. No name, no address, no ID. Mark it sold later and it teaches the next appraisal.${s?` You've sold ${s.n} of these.`:""}</div>
   </div>`;
 }
@@ -2451,7 +2452,7 @@ function startOver(){
   st.picked=false; st.bookName=""; st.brandTyped=""; st.model=""; st.detail="";
   st.brand="mid"; st.liq=null; st.market=null; st.mpPin=null; st.mpNone=false;
   st.cond="good"; st.condSet=false; st.complete=true; st.specSel={}; st.editing=false;
-  st.ask=0; st.askKey=""; st.ticket=""; st.photoRead=null; st.compRead=null;
+  st.ask=0; st.askKey=""; st.ticket=""; st.needKind=false; st.photoRead=null; st.compRead=null;
   st.fakeAns={}; st.fakeKey=""; st.stepAt=0; st.openS3=st.openS4=st.openS5=false;
   photoFile=null; findMsg="";
   render();
@@ -2463,6 +2464,7 @@ function omniPick(r){
     st.omniQ=r.q; st.omniHl=0; st.mode="item"; st.itemId=custId(st.catId); st.bookName=r.q;
     st.brandTyped=""; st.model=""; st.detail=""; st.brand="mid"; st.liq=null; st.market=null;
     st.mpPin=null; st.mpNone=true; st.condSet=false; st.phKindsOpen=true; st.omniDone=r.q;
+    st.needKind=true;               /* nothing is priced until this is answered */
     render();
     const k=document.querySelector(".phKinds"); if(k&&k.scrollIntoView)k.scrollIntoView({block:"center"});
     return;
@@ -2484,6 +2486,7 @@ function omniPick(r){
   if(r.kind==="item"){ st.itemId=r.itemId; st.bookName=""; st.liq=null; }
   else if(r.kind==="book"){ st.itemId=custId(r.catId); st.bookName=r.name; st.overrides[custId(r.catId)]=r.value; st.liq=r.liq; persist(); }
   else { st.itemId=custId(r.catId); st.bookName=r.name; st.liq=null; }
+  st.needKind=false;
   st.brandTyped=r.brand||"";
   const hit=st.brandTyped?brandLookup(st.catId,st.brandTyped):null; st.brand=hit?hit.tier:"mid";
   st.model=r.model||""; st.detail=r.detail||"";
@@ -3897,6 +3900,13 @@ function nextStepHTML(x){
     sub=`Pick one and the desk fills in its <b>resale value</b> &mdash; what it sells for used. Each one comes from a real sales source you can open and check.`;
     act=cands.map(r=>`<button class="nsBtn" data-mp="${esc(r[0])}"><span>${esc(r[2])}</span><b>${money(r[3])}&ndash;${money(r[4])}</b><i>resale</i></button>`).join("")
        +`<button class="nsBtn ghost" id="nsNone"><span>Not one of these</span></button>`;
+  } else if(st.needKind&&!window.PHONE){
+    /* Until this is answered the category is whatever was last used, so the
+       sources, the percentages and the buy rate all belong to the wrong kind
+       of thing - a recliner was being offered GunBroker. */
+    h=`What kind of thing is <b>${esc(st.bookName||"it")}</b>?`;
+    sub=`Pick one and the desk knows where to look for prices and what share of new to work from. Nothing is priced until it does.`;
+    act=CATALOG.map(c=>`<button class="nsBtn" data-cat="${c.id}"><span>${esc(c.label)}</span></button>`).join("");
   } else if(cur===2){
     h=m&&m.stale?`The price list for ${esc(m.name)} is ${m.age} days old. Check what it sells for now.`:`Check what it actually sold for.`;
     /* The "Pawn price favorite" is a browser button that has to be installed
@@ -3905,15 +3915,15 @@ function nextStepHTML(x){
     sub=CAP.sample?"<b>Look up what it sells for used</b> searches the sold pages for you and brings the middle price back &mdash; you do not have to read them. The buttons below are there for when you want to look yourself."
       :pdBridge?"Click a button. The sold page opens, reads itself, and the price lands here."
       :"Open one and look at what the thing <b>actually sold for</b> &mdash; not what it was listed at. Then come back and type the middle price into the box.";
-    act=compTargets(x).map(t=>`<a class="nsBtn nsSold" data-label="${t.name}" href="${esc(t.url)}" target="_blank" rel="opener" referrerpolicy="no-referrer"><span>${t.name}</span><b>&#8599;</b></a>`).join("")
+    act=compTargets(x).map(t=>`<a class="nsBtn nsSold" title="Opens ${esc(t.name)} in a new tab so you can look at what these actually sold for. Come back and type the middle price in." data-label="${t.name}" href="${esc(t.url)}" target="_blank" rel="opener" referrerpolicy="no-referrer"><span>${t.name}</span><b>&#8599;</b></a>`).join("")
        /* A button saying "type it" that jumped the page 900px down to a box
           somewhere else. The box belongs here, beside the one for the new
           price, which has worked this way all along. */
-       +`<div class="row2" style="margin-top:8px;grid-column:1/-1"><input id="nsVal" class="numIn" type="number" inputmode="decimal" placeholder="I know the price \u2014 type what it sells for used" style="flex:1;min-width:0"><button class="ghostBtn" id="nsValGo" style="padding:10px 15px">Use it</button></div>`
+       +`<div class="row2" style="margin-top:8px;grid-column:1/-1"><input id="nsVal" class="numIn" title="What ONE OF THESE sells for used \u2014 not what you will lend, and not what it cost new." type="number" inputmode="decimal" placeholder="I know the price \u2014 type what it sells for used" style="flex:1;min-width:0"><button class="ghostBtn" id="nsValGo" title="Use the price you typed as the resale value" style="padding:10px 15px">Use it</button></div>`
        +altSourcesHTML(x)
        +`<div class="label" style="margin-top:14px">No sold prices? Use what it costs new</div>`
-       +(CAP.sample?`<button class="nsBtn on" id="pdRetGo"><span>${retailBusy?"Looking it up&hellip;":"Look up the new price"}</span></button><div class="cardHint" id="pdRetMsg"></div>`:retailTargets(compQuery(x)).map(t=>`<a class="nsBtn nsRetail" data-label="${esc(t.name)}" href="${esc(t.url)}" target="_blank" rel="opener" referrerpolicy="no-referrer"><span>${esc(t.name)}</span><b>&#8599;</b></a>`).join(""))
-       +`<div class="row2" style="margin-top:8px"><input id="nsRet" class="numIn" type="number" inputmode="decimal" placeholder="What it costs new" style="flex:1;min-width:0"><button class="ghostBtn" id="nsRetGo" style="padding:10px 15px">Use it</button></div>`
+       +(CAP.sample?`<button class="nsBtn on" id="pdRetGo"><span>${retailBusy?"Looking it up&hellip;":"Look up the new price"}</span></button><div class="cardHint" id="pdRetMsg"></div>`:retailTargets(compQuery(x)).map(t=>`<a class="nsBtn nsRetail" title="Opens ${esc(t.name)} to find what it costs NEW. Use this only when there are no sold prices." data-label="${esc(t.name)}" href="${esc(t.url)}" target="_blank" rel="opener" referrerpolicy="no-referrer"><span>${esc(t.name)}</span><b>&#8599;</b></a>`).join(""))
+       +`<div class="row2" style="margin-top:8px"><input id="nsRet" class="numIn" title="What it costs NEW today. The desk takes it down to a used price using the share for this category \u2014 a last resort when the sold pages come up empty." type="number" inputmode="decimal" placeholder="What it costs new" style="flex:1;min-width:0"><button class="ghostBtn" id="nsRetGo" title="Take the new price down to a used estimate" style="padding:10px 15px">Use it</button></div>`
        +`<div class="cardHint">In ${esc(x.cat.label.toLowerCase())}, a used one books at about <b>${retailPct(x)}%</b> of new here &mdash; $100 new lands at ${money(Math.round(retailPct(x)))}. A real sold price beats this every time, so use this only when the sold pages come up empty.</div>`;
   } else if(cur===3){
     h=`What shape is it in?`;
@@ -3943,7 +3953,7 @@ function nextStepHTML(x){
      counter a page to read, and it was only drawn on the step that happened
      to be showing. It belongs in the action row whatever step that is. */
   if(CAP.sample&&st.picked&&!findBusy&&!(act||"").includes("pdFindGo"))
-    act=`<button class="nsBtn${x.checked?" ghost":" on"}" id="pdFindGo"><span>${x.checked?"Check it live \u2014 search the sold prices":"Look up what it sells for used"}</span></button>`+act;
+    act=`<button class="nsBtn${x.checked?" ghost":" on"}" id="pdFindGo" title="Searches eBay sold and Google Shopping used at the same time and brings the middle price back. You do not have to open or read anything.\u000aFor firearms it searches GunWatcher, auction results and GunBroker instead \u2014 eBay bans gun sales."><span>${x.checked?"Check it live \u2014 search the sold prices":"Look up what it sells for used"}</span></button>`+act;
   else if(CAP.sample&&findBusy&&!(act||"").includes("pdFindGo"))
     act=`<button class="nsBtn on" id="pdFindGo" disabled><span>Looking it up&hellip;</span></button>`+act;
   if(CAP.sample&&st.picked)act+=`<div class="cardHint" id="pdFindMsg" style="flex-basis:100%">${esc(findMsg||"")}</div>`;
