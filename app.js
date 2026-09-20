@@ -119,6 +119,34 @@ const CATALOG = [
    {id:"j2",name:"Watch \u2014 name brand",value:120,liq:"normal"},
    {id:"j3",name:"Designer jewelry piece",value:150,liq:"slow"},
    {id:"j4",name:"Engagement / bridal set",value:400,liq:"slow"}]},
+ /* Bulky, seasonal, and half of it was bought on a New Year's resolution -
+    but it walks in constantly and it did not have anywhere to land. */
+ {id:"fit",label:"Fitness & sporting",ltv:25,
+  driver:"Whether it folds and whether it powers up. A treadmill nobody can move is worth what it weighs.",
+  killer:"Broken deck or motor, a subscription bike with a dead account, anything you cannot get through a door.",
+  brand:{on:true,hi:"Peloton / NordicTrack / Rogue",mid:"ProForm / Bowflex / Schwinn / Sole",lo:"Weider / Gold's Gym / no name"},
+  complete:{on:true,label:"Safety key, pins, all the plates"},
+  items:[
+   {id:"f1",name:"Treadmill",value:200,liq:"slow"},
+   {id:"f2",name:"Exercise bike / spin bike",value:150,liq:"slow"},
+   {id:"f3",name:"Elliptical",value:150,liq:"slow"},
+   {id:"f4",name:"Weight bench",value:60,liq:"normal"},
+   {id:"f5",name:"Dumbbells / weight set",value:70,liq:"fast"},
+   {id:"f6",name:"Home gym / power rack",value:200,liq:"slow"},
+   {id:"f7",name:"Golf clubs \u2014 full set",value:120,liq:"normal"}]},
+ /* The name on it carries the price, and so does whether it is real. These
+    gate to a spotting-fakes card the same way the luxury watches do. */
+ {id:"coll",label:"Cards, coins & collectibles",ltv:40,
+  driver:"Grade, then the name. Two of the same card can be $8 and $800 \u2014 the slab is the difference.",
+  killer:"Cannot be proven, or it is a reprint. Run the fakes card first, and never lend on a raw card at slab money.",
+  brand:{on:true,hi:"PSA / BGS / SGC graded",mid:"Raw, named player or set",lo:"Common / bulk / reprint"},
+  complete:{on:true,label:"Slab, case, certificate"},
+  items:[
+   {id:"c1",name:"Sports card \u2014 graded single",value:60,liq:"slow"},
+   {id:"c2",name:"Card lot \u2014 sports or Pok\u00e9mon",value:60,liq:"slow"},
+   {id:"c3",name:"Comic books \u2014 long box",value:80,liq:"slow"},
+   {id:"c4",name:"Coin collection \u2014 numismatic",value:150,liq:"slow"},
+   {id:"c5",name:"Zippo / collectible lighter",value:20,liq:"slow"}]},
  {id:"rolling",label:"Trailers & ATVs",ltv:35,
   driver:"Title, before you look at anything else. Then condition.",
   killer:"No title. No deal, at any price. Don't negotiate around it.",
@@ -168,6 +196,14 @@ const BRANDBOOK={
   hi:["Speed Queen","Sub-Zero","Wolf","Viking","Thermador","Bosch","Miele","Fisher & Paykel","KitchenAid","Monogram","Cafe"],
   mid:["Whirlpool","Maytag","LG","Samsung","GE","Electrolux","Frigidaire Gallery","Bosch 300","Dyson","Shark","Singer","Brother","Janome"],
   lo:["Kenmore","Frigidaire","Amana","Hotpoint","Roper","Insignia","Hisense","Magic Chef","Danby","Avanti","Galanz","Bissell","Hoover","Black+Decker"]},
+ fit:{
+  hi:["Peloton","NordicTrack","Rogue","Life Fitness","Precor","Concept2","Hydrow","Tonal","Titleist","Callaway","TaylorMade","Ping","Scotty Cameron"],
+  mid:["ProForm","Bowflex","Schwinn","Sole","Horizon","Echelon","Cybex","Cap Barbell","Rep Fitness","Cobra","Wilson","Mizuno","Cleveland"],
+  lo:["Weider","Gold's Gym","Everlast","Sunny Health","Marcy","Body Champ","Top Flite","Strata","no name"]},
+ coll:{
+  hi:["PSA","BGS","Beckett","SGC","CGC","CBCS","NGC","PCGS"],
+  mid:["Topps","Bowman","Panini","Upper Deck","Fleer","Marvel","DC","Zippo","Morgan","Peace"],
+  lo:["Donruss","Score","Pro Set","Leaf","Ronson","common","bulk","reprint"]},
  tools:{
   hi:["DeWalt","Milwaukee","Makita","Snap-on","Festool","Hilti","Bosch","Mac Tools","Matco","Ingersoll Rand","Lincoln Electric","Miller","Fluke","Knipex"],
   mid:["Ryobi","Ridgid","Craftsman","Kobalt","Hart","Skil","Porter-Cable","Metabo","Metabo HPT","Husky","Flex","Dremel","Hobart","Stanley","Irwin","Klein","Channellock","Campbell Hausfeld"],
@@ -275,7 +311,52 @@ const PRICEBOOK=[
  ["Lawn / dump trailer cart",120,"rolling","fast"],["Enclosed trailer — 6x12",2800,"rolling","slow"],
  ["UTV / side-by-side",6000,"rolling","normal"],["Jet ski with trailer",3500,"rolling","slow"],
  ["Truck toolbox",90,"rolling","fast"],["ATV winch",60,"rolling","normal"],["Truck rims & tires — set",300,"rolling","normal"],
- ["Bicycle — adult",60,"rolling","normal"],["E-bike",600,"rolling","normal"]
+ ["Bicycle — adult",60,"rolling","normal"],["E-bike",600,"rolling","normal"],
+ /* grilling, smoking and camping - the back half of every truck around here */
+ ["Gas grill",90,"appl","normal"],["Charcoal grill / kettle",40,"appl","normal"],
+ ["Pellet grill / smoker",250,"appl","normal"],["Offset smoker",150,"appl","slow"],
+ ["Flat-top griddle \u2014 Blackstone class",120,"appl","fast"],["Propane tank \u2014 20lb, full",20,"appl","fast"],
+ ["Camp stove",30,"hunt","normal"],["Tent \u2014 4 to 6 person",40,"hunt","normal"],
+ ["Sleeping bag",20,"hunt","normal"],["Hard cooler \u2014 Yeti class",150,"hunt","fast"],
+ ["Soft cooler / tote",35,"hunt","normal"],["Camp chairs \u2014 pair",20,"hunt","normal"],
+ /* small kitchen and comfort - cheap each, but they come through the door
+    every week and every one of them used to come up empty */
+ ["Air fryer",35,"appl","fast"],["Pressure cooker \u2014 Instant Pot class",35,"appl","normal"],
+ ["Blender",30,"appl","normal"],["Coffee maker",25,"appl","normal"],
+ ["Space heater",25,"appl","normal"],["Box fan / tower fan",15,"appl","normal"],
+ ["Dehumidifier",80,"appl","normal"],["Portable air conditioner",120,"appl","normal"],
+ ["Dishwasher",75,"appl","slow"],["Garbage disposal",25,"appl","slow"],
+ /* furniture. Mattresses, car seats and strollers are deliberately not here
+    - they are on the Walk away list instead. */
+ ["Recliner",80,"appl","slow"],["Sofa / couch",120,"appl","slow"],
+ ["Dresser / chest of drawers",70,"appl","slow"],["Dining table & chairs",120,"appl","slow"],
+ ["TV stand / entertainment center",40,"appl","slow"],["Gun cabinet \u2014 wood",150,"guns","slow"],
+ /* farm and ranch */
+ ["Post hole digger \u2014 gas",250,"power","slow"],["Fence charger",60,"power","normal"],
+ ["Sprayer tank \u2014 25 to 55 gal",120,"power","slow"],["Earth auger \u2014 one man",180,"power","normal"],
+ ["Livestock water trough",40,"power","slow"],["Chicken coop",120,"power","slow"],
+ /* the rest of the shop */
+ ["Paint sprayer \u2014 airless",180,"tools","normal"],["Laser level",90,"tools","normal"],
+ ["OBD scan tool",50,"tools","fast"],["Scaffolding \u2014 section",80,"tools","slow"],
+ ["Wheelbarrow",35,"tools","normal"],["Mechanic's creeper",20,"tools","fast"],
+ ["Drywall lift",120,"tools","slow"],["Battery charger / jump box",40,"tools","fast"],
+ ["Transfer pump \u2014 gas",90,"power","normal"],["Grease gun",25,"tools","normal"],
+ /* school band. Rental returns turn up every June. */
+ ["Clarinet",100,"music","slow"],["Flute",110,"music","slow"],
+ ["Trombone",150,"music","slow"],["French horn",300,"music","slow"],
+ ["Cello",300,"music","slow"],["Ukulele",40,"music","normal"],
+ /* the rest of the sporting goods */
+ ["Bowling ball",20,"fit","slow"],["Skateboard",40,"fit","normal"],
+ ["Surfboard",150,"fit","slow"],["Paddle board \u2014 SUP",250,"fit","normal"],
+ ["Life jackets \u2014 set",30,"hunt","normal"],
+ /* devices that are not the trail camera they kept matching */
+ ["Ring / smart doorbell",40,"elec","normal"],["Dash camera",40,"elec","normal"],
+ ["Security camera system",120,"elec","normal"],["Wifi router / modem",30,"elec","normal"],
+ ["Printer \u2014 all in one",40,"elec","slow"],["Record player / turntable set",70,"elec","normal"],
+ ["Karaoke machine",50,"elec","slow"],["E-reader \u2014 Kindle class",40,"elec","normal"],
+ ["Power wheels / ride-on toy",60,"rolling","normal"],["Wet tile saw",100,"tools","slow"],
+ ["Scooter / moped",400,"rolling","normal"],["Pop-up camper",1800,"rolling","slow"],
+ ["Boat anchor & rode",30,"hunt","normal"]
 ];
 const CATLABEL=Object.fromEntries(CATALOG.map(c=>[c.id,c.label]));
 /* Compiled suggested lending rates — pawn-industry norms (loans run 25-60% of
@@ -319,6 +400,13 @@ const FLAGS=[
  "Won't hold still for the transaction form",
  "Price doesn't matter to him — takes any offer",
  "Wants to stay in his vehicle — no drive-up transactions, ever"];
+/* Not red flags about the person - these are items that are simply more
+   trouble than they are worth. Kept out of the price lists on purpose. */
+const NO_TAKE=[
+ ["Mattresses and box springs","Bedbugs, stains and state bedding law. You cannot resell a used one in Florida without it being sanitised and tagged, and nobody is set up for that. No price is low enough."],
+ ["Car seats and boosters","They expire, they are recalled constantly, and one that has been in a wreck looks exactly like one that has not. If a child is hurt in a seat you sold, that is yours."],
+ ["Strollers, cribs, playpens","Same recall problem, and drop-side cribs are outright banned. Small money, real liability."],
+ ["Anything with a ground-off serial","Already on the walk-away list above, and it is worth repeating: that is a felony waiting on the counter."]];
 const DEVICE_STEPS=[
  {t:"Dial *#06# and check the IMEI",d:"Free at stolenphonechecker.org. Blacklisted means reported stolen OR unpaid carrier financing — either way it won't activate on any US carrier and it's worth nothing."},
  {t:"He removes the lock — at the counter, not later",d:"iPhone: Settings → his name → Find My → Find My iPhone → off. Needs his Apple ID password. Android: Settings → Accounts → remove the Google account BEFORE any reset."},
@@ -1320,6 +1408,10 @@ function renderDevice(){
 function renderFlags(){
   return `<div class="narrow"><div class="card"><p style="font-size:14px;line-height:1.6;margin:0;color:var(--ink-2)">Any one of these and the answer is no. A stolen item costs you the loan, the goods, and a conversation with the sheriff.</p></div>
   ${FLAGS.map(f=>`<div class="card flag" style="display:flex;gap:12px;align-items:center"><span class="x">&times;</span><span>${f}</span></div>`).join("")}
+  <div class="card"><span class="label">Things we don't take, whatever the price</span>
+    <div class="cardHint" style="margin-top:0">Nothing wrong with the customer &mdash; these just cost more than they make. They are kept off the price lists on purpose, so nothing here quotes you a number for one.</div>
+    ${NO_TAKE.map(n=>`<div class="rules sect"><span class="hd"><b>${n[0]}</b></span> ${n[1]}</div>`).join("")}
+  </div>
   <div class="card">
     <div class="rules">Every transaction goes to the sheriff's office on the approved state form. Photo ID, <b>right</b> thumbprint, serial numbers, full description — no exceptions, no favors, no matter who's standing there.</div>
     <div class="rules sect"><span class="hd"><b>By the end of the next business day.</b></span> Yesterday's forms go to the sheriff today — &sect; 539.001(9)(a). Keep our copies on the premises a year, and don't destroy any of them for three.</div>
@@ -2001,9 +2093,87 @@ const ITEM_SYN={
  a8:"microwave over the range countertop appliance kitchen",
  a9:"sewing machine serger singer brother embroidery machine",
  a10:"vacuum cleaner vac shop vac upright vacuum dyson bissell hoover",
+ f1:"treadmill running machine walking pad",
+ f2:"exercise bike spin bike stationary bike peloton recumbent",
+ f3:"elliptical cross trainer",
+ f4:"weight bench workout bench incline bench press bench",
+ f5:"dumbbells dumbells weights weight set barbell plates kettlebell free weights",
+ f6:"home gym power rack squat rack smith machine cage universal",
+ f7:"golf clubs golf set irons driver putter callaway taylormade ping",
+ c1:"sports card graded card slab psa bgs sgc rookie baseball football basketball topps bowman panini",
+ c2:"card lot pokemon pokémon cards magic gathering yugioh trading cards collection binder",
+ c3:"comic books comics long box marvel dc golden age silver age cgc",
+ c4:"coin collection numismatic morgan peace wheat penny proof set mint set silver dollar bullion",
+ c5:"zippo lighter collectible lighter ronson dupont",
  m1:"acoustic guitar",m2:"electric guitar",m3:"amplifier guitar amp",
  r1:"utility trailer",r2:"atv four wheeler 4 wheeler fourwheeler quad"};
-const BOOK_SYN={"Wireless earbuds":"airpods air pods earbuds buds earphones galaxy buds","DSLR / mirrorless camera":"dslr slr mirrorless canon nikon sony rebel eos t6 t7 d3500 alpha","Band saw \u2014 benchtop":"bandsaw band saw","Audio mixer \u2014 PA board":"mixer mixing board soundboard sound board zed behringer yamaha mackie","TIG / stick welder":"tig stick arc welder weldpro everlast","Zero-turn mower":"zero turn zturn ztr","Golf cart":"golf cart","Kayak — sit-on-top":"kayak yak",
+const BOOK_SYN={"Reciprocating saw":"sawzall saws all recip saw",
+ "Scooter / moped":"scooter moped vespa 50cc ruckus",
+ "Pop-up camper":"camper pop up popup travel trailer rv teardrop",
+ "Boat anchor & rode":"anchor rode boat anchor",
+ "Flat-top griddle \u2014 Blackstone class":"blackstone griddle flat top flattop grill",
+ "Pellet grill / smoker":"traeger pit boss pellet smoker bbq barbeque barbecue",
+ "Offset smoker":"smoker bbq barbeque barbecue stick burner",
+ "Gas grill":"bbq barbeque barbecue propane grill weber char broil",
+ "Charcoal grill / kettle":"weber kettle charcoal bbq barbeque barbecue",
+ "Propane tank \u2014 20lb, full":"propane tank bottle lp gas",
+ "Hard cooler \u2014 Yeti class":"yeti cooler rtic igloo coleman ice chest",
+ "Soft cooler / tote":"soft cooler bag tote",
+ "Pressure cooker \u2014 Instant Pot class":"instant pot instapot pressure cooker crock pot crockpot slow cooker ninja foodi",
+ "Air fryer":"airfryer ninja air fryer",
+ "Box fan / tower fan":"box fan tower fan pedestal fan floor fan",
+ "TV stand / entertainment center":"tv stand entertainment center media console",
+ "Dining table & chairs":"dining table kitchen table dinette table and chairs",
+ "Dresser / chest of drawers":"dresser chest of drawers bureau armoire",
+ "Sofa / couch":"sofa couch loveseat sectional futon",
+ "Recliner":"recliner lazy boy lazyboy la-z-boy armchair easy chair",
+ "Gun cabinet \u2014 wood":"gun cabinet gun case wood cabinet rack",
+ "Post hole digger \u2014 gas":"post hole digger posthole auger fence post",
+ "Earth auger \u2014 one man":"auger earth drill ice auger",
+ "Sprayer tank \u2014 25 to 55 gal":"sprayer tank boom sprayer atv sprayer spot sprayer",
+ "Fence charger":"fence charger electric fence fencer energizer",
+ "Livestock water trough":"trough stock tank water tank cattle",
+ "Chicken coop":"chicken coop hen house rabbit hutch",
+ "Paint sprayer \u2014 airless":"paint sprayer airless graco wagner titan",
+ "OBD scan tool":"obd obd2 scanner scan tool code reader diagnostic autel",
+ "Mechanic's creeper":"creeper mechanic crawler",
+ "Battery charger / jump box":"battery charger jump box jump starter booster trickle charger",
+ "Transfer pump \u2014 gas":"transfer pump water pump trash pump utility pump",
+ "Grease gun":"grease gun lube gun",
+ "Wet tile saw":"wet saw tile saw wet tile",
+ "Drywall lift":"drywall lift panel lift sheetrock",
+ "Scaffolding \u2014 section":"scaffolding scaffold baker frame",
+ "Laser level":"laser level rotary laser self leveling",
+ "Ring / smart doorbell":"ring doorbell smart doorbell video doorbell nest hello blink",
+ "Dash camera":"dash cam dashcam backup camera reverse camera",
+ "Security camera system":"security camera nvr dvr surveillance cctv blink arlo wyze",
+ "Wifi router / modem":"wifi router modem netgear eero orbi mesh internet",
+ "Printer \u2014 all in one":"printer all in one scanner copier inkjet laser hp epson brother canon",
+ "Record player / turntable set":"record player turntable vinyl victrola crosley",
+ "Karaoke machine":"karaoke singing machine",
+ "E-reader \u2014 Kindle class":"kindle ereader e reader nook paperwhite",
+ "Power wheels / ride-on toy":"power wheels ride on toy kids electric car battery car",
+ "Bowling ball":"bowling ball",
+ "Paddle board \u2014 SUP":"paddle board paddleboard sup stand up paddle",
+ "Life jackets \u2014 set":"life jacket life vest pfd float coat",
+ "Camp chairs \u2014 pair":"camp chair folding chair lawn chair",
+ "Tent \u2014 4 to 6 person":"tent camping tent pop up tent canopy",
+ "Sleeping bag":"sleeping bag bedroll",
+ "Camp stove":"camp stove coleman stove propane stove backpacking stove",
+ "Dishwasher":"dishwasher",
+ "Garbage disposal":"garbage disposal insinkerator disposer",
+ "Portable air conditioner":"portable ac portable air conditioner rolling ac",
+ "Dehumidifier":"dehumidifier",
+ "Space heater":"space heater electric heater kerosene heater mr heater",
+ "Ukulele":"ukulele uke",
+ "Cello":"cello",
+ "French horn":"french horn",
+ "Trombone":"trombone",
+ "Clarinet":"clarinet",
+ "Flute":"flute piccolo",
+ "Surfboard":"surfboard surf board",
+ "Skateboard":"skateboard skate board longboard",
+ "Wireless earbuds":"airpods air pods earbuds buds earphones galaxy buds","DSLR / mirrorless camera":"dslr slr mirrorless canon nikon sony rebel eos t6 t7 d3500 alpha","Band saw \u2014 benchtop":"bandsaw band saw","Audio mixer \u2014 PA board":"mixer mixing board soundboard sound board zed behringer yamaha mackie","TIG / stick welder":"tig stick arc welder weldpro everlast","Zero-turn mower":"zero turn zturn ztr","Golf cart":"golf cart","Kayak — sit-on-top":"kayak yak",
  "Jon boat — 12ft, no motor":"jon boat johnboat","UTV / side-by-side":"utv side by side sxs","Dirt bike":"motorcycle",
  "E-bike":"ebike electric bike","Camera drone":"drone","Smartwatch \u2014 Apple / Galaxy":"smartwatch smart watch apple watch galaxy watch fitbit","Handheld game console":"handheld",
  "Gaming desktop PC":"desktop pc computer tower","Air rifle / pellet gun":"bb gun pellet air rifle",
@@ -2268,6 +2438,7 @@ const STOP=new Set(["a","an","the","for","with","and","or","of","on","to","my","
 /* Built from the jewellery brand book, so adding a maker there is enough. */
 const NAMED_JEWEL=new RegExp("\\b("+["Rolex","Cartier","Omega","Tiffany","Patek","Audemars","Van Cleef","Bulgari","David Yurman","Tudor","Breitling","Seiko","Citizen","Tissot","TAG","Longines","Movado","James Avery","Pandora","John Hardy","Kendra Scott","Swarovski","Fossil","Michael Kors","Invicta","Shinola","Hamilton","Bulova"]
   .map(b=>b.toLowerCase().replace(/[^a-z0-9 ]/g,"")).join("|")+")\\b","i");
+const NOT_METAL=/\b(ring\s*(doorbell|camera|cam|light|alarm|security|video|floodlight)|(door|key|tow|snap|piston|boxing|lifting|split|o|d)\s*-?\s*rings?|ring\s*gear|coin\s*(op|operated|machine|laundry|counter|sorter)|silver\s*(bullet|lake)|gold\s*(gym|club\s*member))\b/;
 const METAL_RE=/\b(gold|silver|sterling|925|karat|carat|ring|rings|necklace|bracelet|earrings?|jewelry|jewellery|pendant|bullion|scrap|coin|coins|(10|14|18|22|24)\s*(k|kt|karat))\b/;
 
 function omniParse(q){
@@ -2281,7 +2452,10 @@ function omniParse(q){
      karat is spelled out, which is someone weighing a marked piece. */
   const byName=(NAMED_JEWEL.test(t)||/\b(diamond|engagement|bridal|solitaire|halo)\b/i.test(t))
     &&!/\b(10|14|18|22|24)\s*(k|kt|karat)\b/.test(t);
-  if(METAL_RE.test(t)&&!byName){
+  /* "ring" and "coin" carry the scale page with them, which is right for a
+     class ring and wrong for a Ring doorbell or a coin-operated washer. The
+     compounds below are the item, not the metal in it. */
+  if(METAL_RE.test(t)&&!byName&&!NOT_METAL.test(t)){
     P.metal=/silver|sterling|925/.test(t)?"silver":"gold";
     const k=t.match(/\b(10|14|18|22|24)\s*(k|kt|karat)\b/); if(k)P.karat=k[1]+"k";
   }
@@ -2315,12 +2489,17 @@ function omniParse(q){
   });
   return P;
 }
+const WORD_END=/^(s|es|ed|ing|er|ers|s\u2019|'s)$/;
 function wordHit(tok,words){
   let best=0;
   for(const w of words){
     if(w===tok)return 3;
     if(tok.length>=3&&w.startsWith(tok))best=Math.max(best,2);
-    else if(tok.length>=4&&w.length>=4&&tok.startsWith(w))best=Math.max(best,1);
+    /* The typed word running past a catalog word is meant for word endings -
+       "chainsaws" reaching "chainsaw", "drills" reaching "drill". Any old
+       remainder let "cello" reach "cell" and put a Smartphone at the top of
+       the list for a musical instrument. Only real endings count. */
+    else if(tok.length>=4&&w.length>=4&&tok.startsWith(w)&&WORD_END.test(tok.slice(w.length)))best=Math.max(best,1);
   }
   return best;
 }
@@ -3523,7 +3702,7 @@ const COND_WORDS=Object.fromEntries(CONDITIONS.map(c=>{
    so the ticket-to-regular ratios say more about their markdown policy than
    about what a used one is worth here. A real sold price overrides all of
    this, which is why the card says so every time it shows the estimate. */
-const RETAIL_PCT={guns:65,jewel:55,power:55,tools:50,hunt:45,elec:45,music:45,rolling:60,appl:35};
+const RETAIL_PCT={guns:65,jewel:55,power:55,tools:50,hunt:45,elec:45,music:45,rolling:60,appl:35,fit:35,coll:60};
 /* Shelf tags photographed 19 Sep 2026, second batch. Within one category the
    brand moves the number more than the category does: a Stihl MS180C asks
    $199.95 against about $229 new, a Husqvarna 455 Rancher $374.95 against the
@@ -4075,7 +4254,7 @@ function wireNext(){
 /* ================= BUY OUTRIGHT — you own it, no loan =================
    Starting rates Jace approved 9/19: about 5 points over the lending rate,
    same as the loan for seasonal outdoor power. */
-var BUY_DEFAULT={guns:55,hunt:45,jewel:45,power:45,tools:40,music:40,rolling:40,elec:30,appl:35};
+var BUY_DEFAULT={guns:55,hunt:45,jewel:45,power:45,tools:40,music:40,rolling:40,elec:30,appl:35,fit:28,coll:40};
 var BUY_WHY={guns:"guns sell fast here and hold their value",jewel:"a proven one holds its price, but it sits until the right buyer walks in",hunt:"steady seller in season",tools:"steady seller",
   music:"they sell, just slower",rolling:"big dollars, needs a clean title, sells slower",
   power:"seasonal and often needs a carb cleaned, but it sells and the shelves around here ask real money for it",elec:"loses value fast and can come in locked"};
