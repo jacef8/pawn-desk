@@ -1338,6 +1338,18 @@ function compQuery(x){
   const bits=[st.brandTyped||"", st.model||"", displayName(x).replace(/\s*—.*$/,""), st.detail||""];
   return bits.map(s=>String(s).trim()).filter(Boolean).join(" ").slice(0,120);
 }
+/* GunWatcher looks a gun up by model name. The category word the keyword
+   searches want - "Pump shotgun" on the end of "Remington 870 Express" - only
+   blurs it, and so does the gauge. Brand and model, nothing else. When a
+   built-in price row is in play its own name is better still: that is the
+   name GunWatcher published the sold prices under. */
+function gunQuery(x){
+  const row=st.mpPin&&MP_BY_ID[st.mpPin.id];
+  if(row)return String(row[2]).slice(0,80);
+  if(String(st.model||"").trim())
+    return [st.brandTyped||"",st.model||""].map(t=>String(t).trim()).filter(Boolean).join(" ").slice(0,80);
+  return compQuery(x);
+}
 function watchCountUrl(q){
   /* WatchCount puts the search words in the path, so a slash would split it
      into the wrong route — turn slashes into spaces (10/22 still finds 10/22). */
@@ -1348,7 +1360,7 @@ function compTargets(x){
   const q=compQuery(x), e=encodeURIComponent(q), t=[], guns=(st.catId==="guns");
   if(guns){
     t.push({id:"gw",name:"GunWatcher",sub:"sold prices, no sign-in",
-      url:"https://gunwatcher.com/gun-value-sold-information/market-price?itemName="+e.replace(/%20/g,"+")});
+      url:"https://gunwatcher.com/gun-value-sold-information/market-price?itemName="+encodeURIComponent(gunQuery(x)).replace(/%20/g,"+")});
     t.push({id:"gb",name:"GunBroker",sub:"then tick Completed &mdash; the real gun comp",
       url:"https://www.gunbroker.com/All/search?Keywords="+e});
   }
@@ -3208,7 +3220,7 @@ function findPasses(x){
      them by name returns nothing: what can be read is GunWatcher, which
      publishes the sold prices, and GunBroker's live listings as asks. */
   if(st.catId==="guns") return [
-    {name:"GunWatcher", where:"GunWatcher",
+    {name:"GunWatcher", where:"GunWatcher", q:gunQuery(x),
      say:"gunwatcher.com, which publishes sold prices gathered from completed GunBroker auctions - use its sold or average sold figures, not asking prices"},
     {name:"Auction results", where:"Auction",
      say:"published results from gun auction houses and sold-price archives - Rock Island, Morphy, Proxibid, GunsAmerica sold - for what the gun actually brought"},
@@ -3237,7 +3249,9 @@ async function priceFind(){
   findBusy=true; render();
   const say=t=>{ const el=document.getElementById("pdFindMsg"); if(el)el.textContent=t; };
   say("Searching "+passes.length+" places\u2026");
-  const out=await Promise.allSettled(passes.map(p=>CAP.sample.json(findPrompt(q,p),{search:true})));
+  /* A pass may want the name put differently - GunWatcher by model alone.
+     What comes back is still filed under the item's own search text. */
+  const out=await Promise.allSettled(passes.map(p=>CAP.sample.json(findPrompt(p.q||q,p),{search:true})));
   findBusy=false;
   const got=[], tally=[];
   let failed=0;
