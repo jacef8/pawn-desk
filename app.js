@@ -1280,7 +1280,7 @@ function pdConnectHTML(){
 }
 document.addEventListener("click",e=>{
   const fr=e.target&&e.target.closest?e.target.closest("#pdFresh"):null;
-  if(fr){ forceUpdate(); return; }
+  if(fr){ fr.textContent="Fetching\u2026"; fr.disabled=true; forceUpdate(); return; }
   const f=e.target&&e.target.closest?e.target.closest("[data-fake],[data-mkind],#fakeClear"):null;
   if(f){
     if(f.id==="fakeClear"){ st.fakeAns={}; st.fakeKey=mkKey(); render(); return; }
@@ -3061,10 +3061,16 @@ async function readBuild(){
 /* Clear everything cached and come back with whatever the site is serving.
    The service worker already asks the network first, so this is for the
    browser's own copy - the one a plain reload can keep for ten minutes. */
+const CORE_FILES=["app.js","app-head.js","app.css","phone.js","phone.css","sw.js","prices.json","fakes.json"];
 async function forceUpdate(){
   try{
     if(window.caches){ for(const k of await caches.keys())await caches.delete(k); }
     if(navigator.serviceWorker){ const rs=await navigator.serviceWorker.getRegistrations(); for(const r of rs)await r.unregister(); }
+    /* Clearing the worker's caches is not enough on its own: the browser
+       keeps its OWN copy in front of them, and GitHub Pages tells it to hold
+       these files for ten minutes. cache:"reload" is what goes past that -
+       it refetches and replaces what the browser is holding. */
+    await Promise.allSettled(CORE_FILES.map(f=>fetch(f,{cache:"reload"})));
   }catch(e){}
   location.replace(location.pathname+"?v="+Date.now());
 }
