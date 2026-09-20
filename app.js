@@ -951,7 +951,53 @@ function valSubText(x){
    the same run the Next step panel reads: what it is, then what it resells
    for, then what shape it is in. A step that is not live folds to a line
    carrying its answer, and any line opens on a click. */
-function stepFlow(){ return st.flow==="all"?"all":"steps"; }
+/* Three layouts. "pages" is the default: one job on the screen at a time,
+   cycled with a bar across the top, because everything at once is thirteen
+   cards and three and a half thousand pixels of them. */
+function stepFlow(){ return st.flow==="all"?"all":st.flow==="steps"?"steps":"pages"; }
+
+/* Which page each card belongs to. Every card carries a stable id, so this
+   is a lookup rather than a guess at its wording. */
+const ITEM_PAGES=[
+  ["what",  "What it is",  ["browseBox","photoCard","s3"]],
+  ["check", "Checks",      ["fakeCard"]],
+  ["worth", "Worth",       ["compsCard","s4","seenCard"]],
+  ["cond",  "Condition",   ["s5"]],
+  ["offer", "Your offer",  ["ticket","rateFold","paybackFold","logCard"]]
+];
+function pagesOn(){ return stepFlow()==="pages"&&st.mode==="item"&&st.picked; }
+/* A page with nothing on it is not offered - the fakes card is only there for
+   the sheets that gate, and the deal log only once there is a service. */
+function livePages(v){
+  return ITEM_PAGES.filter(([id,,ids])=>ids.some(i=>v.querySelector("#"+i)));
+}
+function applyPages(){
+  const v=document.getElementById("view"); if(!v)return;
+  v.classList.toggle("paged",pagesOn());
+  const old=v.querySelector("#pageNav"); if(old)old.remove();
+  if(!pagesOn())return;
+  const pages=livePages(v); if(!pages.length)return;
+  if(!pages.some(p=>p[0]===st.page))st.page=pages[0][0];
+  const at=pages.findIndex(p=>p[0]===st.page);
+  /* Hide, never remove: the inputs keep their values and their handlers, and
+     a card that is off-screen is still wired when you page back to it. */
+  ITEM_PAGES.forEach(([id,,ids])=>ids.forEach(i=>{
+    const el=v.querySelector("#"+i); if(el)el.classList.toggle("pgOff",id!==st.page);
+  }));
+  const nav=document.createElement("div");
+  nav.id="pageNav"; nav.className="pageNav";
+  nav.innerHTML=`<div class="pageTabs">${pages.map(([id,label],i)=>
+      `<button class="${id===st.page?"on":""}" data-page="${id}"><i>${i+1}</i>${esc(label)}</button>`).join("")}</div>
+    <div class="pageStep">
+      <button class="ghostBtn" data-pgmove="-1"${at<=0?" disabled":""}>&larr; Back</button>
+      <span class="pageWhere">${at+1} of ${pages.length}</span>
+      <button class="brassBtn" data-pgmove="1"${at>=pages.length-1?" disabled":""}>Next &rarr;</button>
+    </div>`;
+  const pin=v.querySelector("#pin");
+  if(pin&&pin.nextSibling)v.insertBefore(nav,pin.nextSibling); else v.appendChild(nav);
+}
+function goPage(id){ st.page=id; render(); const v=document.getElementById("view");
+  const n=v&&v.querySelector("#pageNav"); if(n)n.scrollIntoView({block:"start",behavior:"instant"}); }
 function liveStep(x){
   /* Without a resale value nothing downstream means anything, so that is the
      step. After it, condition - and it stays the live one, because it is what
@@ -994,7 +1040,7 @@ function renderItem(){
      causes - otherwise it shuts under the hand that opened it. It is let go
      when the work moves to a different step. */
   if(ST&&st.stepAt!==LIVE){ st.openS3=st.openS4=st.openS5=false; st.stepAt=LIVE; }
-  let mid=`<div class="colC">${fakeCardHTML(x)}${compsCardHTML(x)}${ST?`<details class="card stepCard" id="s3"${st.openS3?" open":""}>`+stepHead(3,"Brand, make &amp; model",brandAnswer(x),false):`<div class="card"><span class="label">3 &middot; Brand, make &amp; model</span>`}
+  let mid=`<div class="colC">${fakeCardHTML(x)}${compsCardHTML(x)}${ST?`<details class="card stepCard" id="s3"${st.openS3?" open":""}>`+stepHead(3,"Brand, make &amp; model",brandAnswer(x),false):`<div class="card" id="s3"><span class="label">3 &middot; Brand, make &amp; model</span>`}
     <div class="driver"><p><b class="go">What sets the price:</b> ${(itemOv()&&itemOv().driver)||cat.driver}</p><p><b class="no">What kills it:</b> ${(itemOv()&&itemOv().killer)||cat.killer}</p></div>`;
   if(cat.brand.on){
     const ov=itemOv();
@@ -1022,9 +1068,9 @@ function renderItem(){
     <div class="cardHint">${dh.hint?dh.hint+" ":""}The exact model and specs can move money more than anything else on this page — when they matter, check sold listings and put the real number in step 4.</div>
   ${ST?"</details>":"</div>"}
   ${ST?`<details class="card stepCard" id="s4"${LIVE===4||st.openS4?" open":""}>`+stepHead(4,"Resale value",x.checked?money(Math.round(x.resale)):"not checked",LIVE===4)+`<div id="step4">${step4Inner(x)}</div>`
-      :`<div class="card" id="step4">${step4Inner(x)}`}`;
+      :`<div class="card" id="s4"><div id="step4">${step4Inner(x)}</div>`}`;
   mid+=`${ST?"</details>":"</div>"}${ST?`<details class="card stepCard" id="s5"${LIVE===5||st.openS5?" open":""}>`+stepHead(5,"Condition &amp; speed",esc(COND_WORDS[st.cond][0]),LIVE===5)
-      :`<div class="card"><span class="label">5 &middot; Condition, completeness &amp; speed</span>`}`;
+      :`<div class="card" id="s5"><span class="label">5 &middot; Condition, completeness &amp; speed</span>`}`;
   mid+=`<span class="label">Condition${x.checked?" &mdash; next to a typical used one":""}</span><div class="pills mb14" style="border-radius:var(--r-s)">${CONDITIONS.map(c=>`<button class="${c.id===st.cond?"on":""}" style="flex:1;padding:7px 5px;font-size:11px" data-cond="${c.id}" title="${c.hint}">${c.label.replace("New in box","New")}</button>`).join("")}</div>`;
   if(cat.complete.on){
     mid+=`<span class="label">${cat.complete.label}</span><div class="pills mb14" style="border-radius:var(--r-s)">
@@ -1494,11 +1540,12 @@ function renderSetup(){
     </div>
   </div>
 ${window.PHONE?"":`  <div class="card"><span class="label">How the pricing page is laid out</span>
-    <div class="pills mb14" style="border-radius:var(--r-s);margin-top:8px">
-      <button class="${stepFlow()==="steps"?"on":""}" style="flex:1;padding:9px 6px;font-size:12px" data-flow="steps">One step at a time</button>
-      <button class="${stepFlow()==="all"?"on":""}" style="flex:1;padding:9px 6px;font-size:12px" data-flow="all">Everything open</button>
+    <div class="pills mb14" style="border-radius:var(--r-s);margin-top:8px;flex-wrap:wrap">
+      <button class="${stepFlow()==="pages"?"on":""}" style="flex:1;padding:9px 6px;font-size:12px;min-width:110px" data-flow="pages">One page at a time</button>
+      <button class="${stepFlow()==="steps"?"on":""}" style="flex:1;padding:9px 6px;font-size:12px;min-width:110px" data-flow="steps">One step at a time</button>
+      <button class="${stepFlow()==="all"?"on":""}" style="flex:1;padding:9px 6px;font-size:12px;min-width:110px" data-flow="all">Everything open</button>
     </div>
-    <div class="cardHint" style="margin-top:0"><b style="color:var(--ink)">One step at a time</b> shows the step you are on and folds the rest to a line carrying its answer &mdash; click any line to open it. The way the phone works, and it puts an item on about one screen.<br><b style="color:var(--ink)">Everything open</b> is the old layout, every step expanded at once.</div>
+    <div class="cardHint" style="margin-top:0"><b style="color:var(--ink)">One page at a time</b> puts one job on the screen &mdash; what it is, what it is worth, condition, your offer &mdash; with a bar to move between them and the price always on top. The default, because everything at once is thirteen cards.<br><b style="color:var(--ink)">One step at a time</b> shows the step you are on and folds the rest to a line carrying its answer &mdash; click any line to open it. The way the phone works, and it puts an item on about one screen.<br><b style="color:var(--ink)">Everything open</b> is the old layout, every step expanded at once.</div>
     <div class="cardHint" style="font-size:12.5px">Throws away everything this browser has cached and reloads from the site. Nothing you have recorded is touched &mdash; the shelf tags, listings and deal log are kept separately.</div>
   </div>`}
 </div>`;
@@ -1658,6 +1705,14 @@ document.addEventListener("click",e=>{
   if(so){ startOver(); return; }
   const fr=e.target&&e.target.closest?e.target.closest("#pdFresh"):null;
   if(fr){ fr.textContent="Fetching\u2026"; fr.disabled=true; forceUpdate(); return; }
+  const pv=e.target&&e.target.closest?e.target.closest("[data-page],[data-pgmove]"):null;
+  if(pv){
+    if(pv.dataset.page)return goPage(pv.dataset.page);
+    const v=document.getElementById("view"), pages=livePages(v);
+    const at=pages.findIndex(p=>p[0]===st.page)+Number(pv.dataset.pgmove);
+    if(pages[at])goPage(pages[at][0]);
+    return;
+  }
   const sf=e.target&&e.target.closest?e.target.closest("#specFold>summary"):null;
   if(sf){ st.specOpen=!st.specOpen; return; }   /* the browser toggles it; just remember */
   const f=e.target&&e.target.closest?e.target.closest("[data-fake],[data-mkind],[data-flow],#fakeClear"):null;
@@ -4675,6 +4730,7 @@ function render(){
   /* The spotting-fakes card shows on the item page and the metal page both,
      so its measurement boxes are wired after whichever one drew it. */
   try{ wireSpec(); }catch(e){}
+  try{ applyPages(); }catch(e){}
   ["colL","colC","colR"].forEach(c=>{const el=v.querySelector("."+c);if(el&&zones[c]!=null)el.scrollTop=zones[c];});
   window.scrollTo(0,pageY);
   if(_omF&&st.mode==="item"){ const o=document.getElementById("omniIn"); if(o){ o.focus({preventScroll:true}); try{ o.setSelectionRange(_omS[0],_omS[1]); }catch(e){}
