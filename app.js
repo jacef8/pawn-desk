@@ -1609,13 +1609,32 @@ async function pdJSON(prompt,opts){
   opts=opts||{};
   let imgs=opts.images||[]; if(imgs&&!Array.isArray(imgs))imgs=[imgs];
   const parts=[]; for(const f of imgs){ if(f)parts.push(await pdPart(f)); }
-  let r;
+  /* There was no timeout here at all. If the service stopped answering - it
+     had died, Railway was asleep, the phone lost signal mid-read - the fetch
+     sat there until the browser gave up minutes later, and what came back
+     was an anonymous failure. A read that has not answered in this long is
+     not going to. Searching is allowed longer because it really does go and
+     read pages. */
+  const MS=opts.search?120000:90000;
+  let r, timedOut=false;
+  const ctl=new AbortController();
+  const timer=setTimeout(()=>{ timedOut=true; ctl.abort(); },MS);
+  const onCancel=()=>ctl.abort();
+  if(opts.signal){ if(opts.signal.aborted)ctl.abort();
+                   else opts.signal.addEventListener("abort",onCancel,{once:true}); }
   try{
     r=await fetch(pdBase()+"/json",{method:"POST",
       headers:{"content-type":"application/json","x-pawn-token":pdToken()},
       body:JSON.stringify({prompt:String(prompt||""),images:parts,search:!!opts.search}),
-      signal:opts.signal});
-  }catch(e){ throw pdErr(e&&e.name==="AbortError"?"cancelled":"upstream_error"); }
+      signal:ctl.signal});
+  }catch(e){
+    throw pdErr(timedOut?"timeout"
+      :(e&&e.name==="AbortError")?"cancelled"
+      :"no_answer");
+  }finally{
+    clearTimeout(timer);
+    if(opts.signal)opts.signal.removeEventListener("abort",onCancel);
+  }
   let j=null; try{ j=await r.json(); }catch(e){}
   if(!j||!j.ok)throw pdErr((j&&j.code)||"upstream_error");
   return j.data;
@@ -1969,6 +1988,7 @@ function photoCardHTML(){
       ${photoBusy?`<button id="photoStop" class="ghostBtn" style="padding:9px 14px">Stop</button>`:""}
     </div>
     ${photoFile?`<div class="photoWrap"><img id="photoPrev" alt="the item"></div>`:""}
+    ${photoErrHTML()}
     <div class="cardHint" id="photoMsg">${photoBusy?"Reading the picture — 10 to 30 seconds."
       :(isTouch()?"The photo goes straight in - nothing else to press. ":"Choose a photo, or drag one onto this card. ")
         +"Fill the frame and get the model plate or barrel stamp in focus."
@@ -2024,7 +2044,7 @@ specMenuText(),
 }
 async function runPhotoRead(){
   if(!CAP.sample||!photoFile||photoBusy)return;
-  photoBusy=true; photoCtl=new AbortController(); render();
+  photoBusy=true; photoCtl=new AbortController(); st.photoErr=null; render();
   try{
     const r=await CAP.sample.json(photoPrompt(),{
       images:photoFile, modelTier:"default", signal:photoCtl.signal
@@ -2035,10 +2055,22 @@ async function runPhotoRead(){
     photoBusy=false;
     const code=(err&&err.code)||"upstream_error";
     if(code==="cancelled"){ render(); return; }
-    st.photoRead=null; render();
-    const m=document.getElementById("photoMsg");
-    if(m)m.innerHTML=`<span style="color:var(--warn)">${esc(photoErrCopy(code))}</span>`;
+    /* This used to be written straight into #photoMsg - a node that only
+       exists on the desk's photo card. The phone's snap screen has no such
+       node, so a failed read wrote its reason into nothing and the screen
+       just went back to the camera button, having explained itself to no
+       one. It goes into state instead, and one function renders it, so no
+       screen can quietly drop it again. The code is shown as well: it is
+       the one thing that separates an out-of-credit key from a refused
+       picture from a service that never answered. */
+    st.photoRead=null; st.photoErr={code,text:photoErrCopy(code)}; render();
   }
+}
+function photoErrHTML(){
+  const e=st.photoErr; if(!e)return "";
+  return `<div class="tagWarn" style="border-left-color:var(--bad);background:rgba(255,66,87,.12);color:#FFAAB4;margin-top:9px">
+    <b>The photo didn\u2019t read.</b> ${esc(e.text)}
+    <div style="font-family:var(--mono);font-size:11.5px;opacity:.75;margin-top:6px">reason code: ${esc(e.code)}</div></div>`;
 }
 function photoErrCopy(code){
   switch(code){
@@ -2047,7 +2079,15 @@ function photoErrCopy(code){
     case "image_rejected": return "Couldn't use that picture — try another, under 20MB.";
     case "invalid_json": return "The answer came back garbled. Try the photo again.";
     case "session_expired": return "Signed out — sign back in and try again.";
-    case "refused": return "It wouldn't read that picture. Fill the form in by hand.";
+    case "refused": return "It wouldn't read that picture. Try another angle.";
+    case "no_key": return "The service has no API key, or Anthropic rejected it. Check ANTHROPIC_API_KEY in Railway, and that the balance isn't empty.";
+    case "bad_token": case "unauthorized": case "forbidden": return "The service refused the token. Check PAWN_TOKEN in Railway matches what you typed in.";
+    case "too_big": return "That photo was too large for the service. Try a smaller one.";
+    case "timeout": case "upstream_timeout": return "The service took too long and gave up. Try again - if it keeps happening, Railway may be asleep or overloaded.";
+    case "server_error": return "The service hit an error reading it. Try again, then look at the Railway logs.";
+    case "no_answer": return "Couldn't reach the service at all. Check the phone has signal, and that the address under Setup is right.";
+    case "no_server": return "No service address saved on this device. Switch it on under Setup.";
+    case "upstream_error": return "The service answered, but the read failed upstream. Usually an empty Anthropic balance or a bad key - check Railway.";
     default: return "The read failed. Fill the form in by hand — the tool works fine without it.";
   }
 }

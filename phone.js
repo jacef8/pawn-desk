@@ -201,6 +201,7 @@ function snapHTML(){
         ${photoBusy
           ? `<div class="snapBusy">Reading the picture\u2026 <button class="ghostBtn" id="photoStop">Stop</button></div>`
           : `<label class="snapAlt">or choose one already on the phone<input id="photoIn" type="file" accept="image/jpeg,image/png,image/webp" style="display:none"></label>`}
+        ${photoErrHTML()}
        </div>`
     : pdConnectHTML();
 
