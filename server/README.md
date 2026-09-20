@@ -123,6 +123,30 @@ closes its listener and exits zero, and the logs say
 If Railway ever ignores that file, set the same command by hand in
 **Settings -> Deploy -> Custom Start Command**.
 
+## Checking the price lists against the market
+
+`tools/verify-prices.js` runs the same two searches the green **Look up what
+it sells for used** button runs, but over every row in the lists at once, and
+reports which ones are off. It talks to this service, so it searches from
+here - with the key, and with the open internet.
+
+```
+PAWN_SERVER=https://your-address PAWN_TOKEN=your-token \
+  node tools/verify-prices.js --cat appl            # dry run: prints the plan
+PAWN_SERVER=... PAWN_TOKEN=... \
+  node tools/verify-prices.js --cat appl --go       # actually searches
+```
+
+Without `--go` nothing is spent. `--limit N`, `--only WORD` and `--cat ID`
+narrow it down, so a first run can cost pennies. Progress is saved after every
+row, so a run that is stopped or dies picks up where it left off rather than
+paying twice.
+
+It never edits the lists. It prints what is off and by how much - a row more
+than a third away from the book either way - and the decision stays yours. A
+row with few listings, or none marked *sold*, is weak evidence and says so.
+The full detail lands in `tools/price-check.json`, which is not committed.
+
 ## Notes
 
 - The key lives only in the host's variables. Never in this repository, never
