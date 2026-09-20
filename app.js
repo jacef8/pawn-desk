@@ -447,6 +447,7 @@ function pinHTML(x){
   return `<div class="card pin"><span class="label">Where it stands</span>
     <div class="pinRow"><span>Lend him</span><b class="pinBig">${money(x.target)}</b></div>
     <div class="pinRow"><span>Or buy it outright</span><b>${money(x.buy)}</b></div>
+    ${x.buy===x.target?`<div class="cardHint" style="margin-top:3px;font-size:12px">Same number on purpose: in ${esc(x.cat.label.toLowerCase())} you buy at the same rate you lend &mdash; ${esc(BUY_WHY[x.cat.id]||"")}.</div>`:""}
     <div class="pinGrid">
       <div><span>Resale, ${esc(COND_WORDS[st.cond][0].toLowerCase())}</span><b>${money(x.resale)}</b></div>
       <div><span>Your cushion</span><b>${money(x.margin)}</b></div>
