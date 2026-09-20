@@ -1828,7 +1828,7 @@ async function saveDeal(){
       ticket: String((document.getElementById("logTicket")||{}).value||"").trim().slice(0,24),
       status: "open", soldPrice: null, soldTs: null
     });
-    if(msg)msg.textContent="Logged. Mark it sold from the Deal log tab when it moves.";
+    if(msg)msg.textContent="Logged. It sits under Not settled yet in the Deal log until you mark it Sold or Redeemed.";
   }catch(err){
     const code=(err&&err.code)||"unavailable";
     if(msg)msg.innerHTML=`<span style="color:var(--warn)">${esc(code==="quota_exceeded"?"The log is full — clear out old deals.":"Couldn't save that one. Try again.")}</span>`;
@@ -1873,8 +1873,10 @@ function renderLog(){
   };
   return `<div class="narrow">
     <div class="card"><p style="font-size:14px;line-height:1.6;margin:0;color:var(--ink-2)">Your own sold history. Item facts only &mdash; no names, no ID numbers, nothing off the state form. That record lives in the pawn system, not here.</p></div>
-    ${open.length?`<div class="card" style="padding:12px 15px"><span class="label" style="margin:0">Still out &mdash; ${open.length}</span></div>${open.map(row).join("")}`:""}
-    ${done.length?`<div class="card" style="padding:12px 15px"><span class="label" style="margin:0">Closed &mdash; ${done.length}</span></div>${done.map(row).join("")}`:""}
+    ${open.length?`<div class="card" style="padding:12px 15px"><span class="label" style="margin:0">Not settled yet &mdash; ${open.length}</span>
+      <div class="cardHint" style="margin-top:4px;font-size:12.5px">Logged, and nothing has happened since. On a pawn that means your money is still out; on a buy it means the item has not sold. Close it with <b style="color:var(--ink)">Sold</b> or <b style="color:var(--ink)">Redeemed</b> and it starts teaching the next appraisal.</div></div>${open.map(row).join("")}`:""}
+    ${done.length?`<div class="card" style="padding:12px 15px"><span class="label" style="margin:0">Settled &mdash; ${done.length}</span>
+      <div class="cardHint" style="margin-top:4px;font-size:12.5px">Sold, or redeemed by the customer. These are what the desk prices from next time.</div></div>${done.map(row).join("")}`:""}
   </div>`;
 }
 function wireLog(){
