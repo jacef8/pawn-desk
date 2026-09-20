@@ -1387,6 +1387,17 @@ function renderSetup(){
     <div class="cardHint" style="margin-top:0">Build <b style="color:var(--ink);font-family:var(--mono)">${BUILD||"unknown"}</b>. The number beside SYS.OK at the top says the same thing, so you can tell at a glance whether a device is running what was published.</div>
     <div class="row2" style="margin-top:9px"><button class="ghostBtn" id="pdFresh">Get the newest version</button></div>
   </div>
+  ${window.PHONE?"":`<div class="card"><span class="label">Switching the camera on for another device</span>
+    <div class="cardHint" style="margin-top:0">${pdServer()
+      ?`This computer is switched on. Every phone and tablet keeps its own copy, so each one has to be told once. On the other device open the price page, find the card headed <b style="color:var(--ink)">\uD83D\uDCF7 Camera &amp; photo lookups &mdash; off</b>, and type these two lines into it.`
+      :`Nothing is switched on yet, here or anywhere. Switch this computer on first, using the <b style="color:var(--ink)">\uD83D\uDCF7 Camera &amp; photo lookups</b> card on the price page \u2014 then this panel will print what to type into the phone.`}</div>
+    ${pdServer()?`<span class="label" style="margin-top:12px">Service address</span>
+    <div class="roOut" style="user-select:all">${esc(pdServer())}</div>
+    <span class="label" style="margin-top:10px">Token</span>
+    <div class="roOut" style="user-select:all">${esc(pdToken()||"(none set)")}</div>
+    <div class="row2" style="margin-top:9px"><button class="ghostBtn" id="pdCopyConn" title="Copy both lines so you can send them to yourself">Copy both</button></div>
+    <div class="cardHint" style="font-size:12.5px">Treat the token like a key to the shop. If a phone goes missing, change PAWN_TOKEN in Railway and switch each device on again.</div>`:""}
+  </div>`}
   <div class="card"><span class="label">Move the shelf record between devices</span>
     <div class="cardHint" style="margin-top:0">${seenAll().length} tag${seenAll().length===1?"":"s"} on this device. With the service on, <b style="color:var(--ink)">Sync</b> on the pricing page does this by itself &mdash; these are for moving the record by hand, or keeping a copy.</div>
     <div class="row2" style="margin-top:9px;gap:8px;flex-wrap:wrap">
@@ -1509,7 +1520,7 @@ function pdConnectHTML(){
      it uses the one in this device. What has to be switched on is the shop's
      service, because reading a photo needs the API key and the key cannot
      live in a web page. Say that. */
-  return '<div class="card" id="pdConnCard" style="border:1px dashed var(--e2-hi)"><span class="label">\uD83D\uDCF7 Photo lookups are off</span>'+
+  return '<div class="card" id="pdConnCard" style="border:1px dashed var(--e2-hi)"><span class="label">\uD83D\uDCF7 Camera &amp; photo lookups \u2014 off</span>'+
     '<div class="cardHint">'+(on
       ? "Switched on, but the shop&rsquo;s service did not answer. Check that it is running."
       : "Switch on the shop&rsquo;s service and this device will <b style=\"color:var(--ink)\">photograph an item and price it</b>, read another shop&rsquo;s tag, and look up sold prices for you.")+'</div>'+
@@ -1524,7 +1535,8 @@ function pdConnectHTML(){
     '<span class="label" style="margin-top:10px">Token</span>'+
     '<input id="pdTokIn" class="numIn" type="text" autocomplete="off" spellcheck="false" '+
       'style="font-family:var(--mono);font-size:14px" placeholder="the PAWN_TOKEN you set in Railway" value="'+esc(pdToken()||"")+'">'+
-    '<div class="cardHint" style="font-size:12.5px">Switch tabs to copy them if you need to &mdash; what you have typed stays put.</div>'+
+    '<div class="cardHint" style="font-size:12.5px">Switch tabs to copy them if you need to &mdash; what you have typed stays put.'+
+      (window.PHONE?" <b style=\"color:var(--ink)\">Already switched on at the desk?</b> Both are printed on the desk computer under <b style=\"color:var(--ink)\">Setup</b> &mdash; this phone keeps its own copy, so it has to be told once too.":"")+'</div>'+
     '<div class="row2" style="margin-top:8px"><button class="brassBtn" id="pdConnBtn" style="padding:10px 18px">'+
       (on?"Save and reconnect":"Switch it on")+'</button>'+
       (on?'<button class="ghostBtn" id="pdConnOff">Disconnect</button>':'')+'</div>'+
@@ -4058,11 +4070,19 @@ document.addEventListener("change",e=>{
   if(t&&t.id==="seenImp"&&t.files&&t.files[0]){ seenImport(t.files[0]); t.value=""; }
 },true);
 document.addEventListener("click",e=>{
-  const b=e.target&&e.target.closest?e.target.closest("#seenHand,#seenOut,#seenUse,#seenSync,#pdFindGo,#foundUse"):null; if(!b)return;
+  const b=e.target&&e.target.closest?e.target.closest("#seenHand,#seenOut,#seenUse,#seenSync,#pdFindGo,#foundUse,#pdCopyConn"):null; if(!b)return;
   if(b.id==="pdFindGo"){ priceFind(); return; }
   if(b.id==="foundUse"){ useComps(compStats(compsMatch(calcItem()))); return; }
   if(b.id==="seenSync"){ pdSync(); return; }
   if(b.id==="seenOut"){ seenExport(); return; }
+  /* Typing a Railway address and a token on a phone keyboard is where this
+     gets abandoned. Copy them here, send them to yourself, paste there. */
+  if(b.id==="pdCopyConn"){
+    const t=pdServer()+"\n"+pdToken();
+    const said=ok=>{ b.textContent=ok?"Copied \u2014 now paste it on the phone":"Select the two lines above and copy them";
+                     setTimeout(()=>{ b.textContent="Copy both"; },4000); };
+    try{ navigator.clipboard.writeText(t).then(()=>said(true),()=>said(false)); }catch(e){ said(false); }
+    return; }
   if(b.id==="seenUse"){
     const est=seenEstimate(seenMatch(calcItem()));
     if(est){ st.market={kind:"seen",key:mkKey(),n:est.n,ask:est.ask,lo:est.lo,hi:est.hi,mid:est.mid}; render(); }
