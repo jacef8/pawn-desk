@@ -572,7 +572,7 @@ function calcItem(){
           brandMult,brandName:cat.brand.on?(((ITEM_OVERRIDES[st.itemId]||{}).tiers)||cat.brand)[st.brand]:null,spec,specMult:spec.mult,
           low:Math.max(5,Math.round(resale*Math.max(8,ltv-12)/100)),
           high:Math.max(5,Math.round(resale*Math.min(100,ltv+8)/100)),
-          charge:Math.max(5,target*0.25),margin:resale-target};
+          charge:Math.max(5,target*0.25),margin:resale-target,buyMargin:resale-buy};
 }
 /* The panel that does not move. Everything else on this page walks the
    counter through a decision; this one just shows where those decisions have
@@ -588,16 +588,24 @@ function pinHTML(x){
      the loan on top. On the desk they stay a single row and the name is
      ignored. */
   const cell=(k,l,v,big)=>`<div class="pinCell${big?" big":""}" data-k="${k}"><span>${l}</span><b>${v}</b></div>`;
+  /* The phone goes to yard sales and thrift stores, where there is no loan to
+     make - you pay their price or you walk. So it leads with the most you
+     should pay, and the loan drops to an aside. The fee and the loan-to-
+     resale percentage are pawn-counter mechanics and mean nothing over a
+     folding table, so the phone does not carry them at all. */
+  const P=!!window.PHONE;
   return `<div class="pinStrip">
-    <span class="pinLab">Where it stands</span>
-    <button class="pinNew" id="pinNew" type="button" title="Clear this item and start the next customer. Your rates, shelf record, listings and deal log are kept.">Start over</button>
-    ${cell("lend","Lend him",money(x.target),1)}
-    ${cell("buy","Or buy outright",money(x.buy),1)}
-    ${cell("resale","Resale, "+esc(COND_WORDS[st.cond][0].toLowerCase()),money(x.resale))}
+    <span class="pinLab">${P?"What it's worth to you":"Where it stands"}</span>
+    <button class="pinNew" id="pinNew" type="button" title="Clear this item and start the next one. Your rates, shelf record, listings and deal log are kept.">Start over</button>
+    ${P?cell("buy","Pay up to",money(x.buy),1)+cell("lend","Or lend on it",money(x.target),1)
+       :cell("lend","Lend him",money(x.target),1)+cell("buy","Or buy outright",money(x.buy),1)}
+    ${cell("resale",P?"Resells for":"Resale, "+esc(COND_WORDS[st.cond][0].toLowerCase()),money(x.resale))}
+    ${P?cell("gain","You'd make",money(x.buyMargin)):""}
     ${cell("cushion","Your cushion",money(x.margin))}
     ${cell("fee","Fee / 30 days",money(x.charge))}
     ${cell("ltv","Loan \u00f7 resale",x.ltv+"%")}
-    <span class="pinNote">Range ${money(x.low)}&ndash;${money(x.high)}. Never above the top.${x.buy===x.target?` Buy and lend match in ${esc(x.cat.label.toLowerCase())} on purpose \u2014 ${esc(BUY_WHY[x.cat.id]||"")}.`:""}</span>
+    <span class="pinNote">${P?`Anything over ${money(x.buy)} eats the ${money(x.buyMargin)}.`
+      :`Range ${money(x.low)}&ndash;${money(x.high)}. Never above the top.`}${x.buy===x.target?` Buy and lend match in ${esc(x.cat.label.toLowerCase())} on purpose \u2014 ${esc(BUY_WHY[x.cat.id]||"")}.`:""}</span>
   </div>`;
 }
 function paintPin(x){ const p=document.getElementById("pin"); if(p)p.innerHTML=pinHTML(x||calcItem()); }

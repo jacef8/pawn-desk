@@ -166,28 +166,27 @@
     .pinStrip{display:grid;grid-template-columns:1fr 1fr;column-gap:14px;row-gap:10px;
       align-items:end;padding:13px 15px;
       grid-template-areas:"lab  new"
-                          "lend lend"
                           "buy  buy"
-                          "res  cush"
-                          "fee  ltv"
+                          "res  gain"
+                          "lend lend"
                           "note note"}
     .pinLab{grid-area:lab;align-self:center}
     .pinNew{grid-area:new;justify-self:end;align-self:center}
     .pinCell[data-k="lend"]{grid-area:lend}
     .pinCell[data-k="buy"]{grid-area:buy}
     .pinCell[data-k="resale"]{grid-area:res}
-    .pinCell[data-k="cushion"]{grid-area:cush}
-    .pinCell[data-k="fee"]{grid-area:fee}
-    .pinCell[data-k="ltv"]{grid-area:ltv}
-    .pinNote{grid-area:note;min-width:0;font-size:12.5px;
-      border-top:1px solid var(--ink-3);padding-top:9px;opacity:.85}
-    /* the one number the whole screen exists to produce */
-    .pinCell[data-k="lend"] span{font-size:12px;letter-spacing:.06em;text-transform:uppercase}
-    .pinCell[data-k="lend"] b{font-size:46px;line-height:1}
-    /* second, and it has to look second */
-    .pinCell[data-k="buy"] b{font-size:26px}
-    .pinCell[data-k="resale"] b,.pinCell[data-k="cushion"] b,
-    .pinCell[data-k="fee"] b,.pinCell[data-k="ltv"] b{font-size:17px}
+    .pinCell[data-k="gain"]{grid-area:gain}
+    /* loan mechanics: nothing to do with buying at a yard sale */
+    .pinCell[data-k="cushion"],.pinCell[data-k="fee"],.pinCell[data-k="ltv"]{display:none}
+    .pinNote{grid-area:note;min-width:0;font-size:12.5px;opacity:.85}
+    /* out shopping, this is the whole question: what can I pay for it */
+    .pinCell[data-k="buy"] span{font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+    .pinCell[data-k="buy"] b{font-size:46px;line-height:1}
+    .pinCell[data-k="resale"] b,.pinCell[data-k="gain"] b{font-size:19px}
+    /* there is no loan to make over a folding table - keep it, quietly */
+    .pinCell[data-k="lend"]{flex-direction:row;align-items:baseline;gap:8px;
+      border-top:1px solid var(--ink-3);padding-top:9px;opacity:.7}
+    .pinCell[data-k="lend"] b{font-size:17px;color:var(--ink-2)}
     .pinCell span{font-size:11px}
     /* a bare strip has no cells to place, so let it stay one line */
     .pinStrip:not(:has(.pinCell)){display:flex;flex-wrap:wrap}
