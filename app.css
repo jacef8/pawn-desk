@@ -151,6 +151,16 @@
   .fold[open]>.foldLine::after{content:" \02C5"}
   .foldCard>summary{display:flex;flex-direction:column;gap:3px}
   .foldSub{font-family:var(--mono);font-size:11px;color:var(--ink-3);letter-spacing:.03em}
+  /* Before anything is chosen: the search box and the ways in, nothing else.
+     Drawing the three columns empty is what filled the first screen with
+     blank boxes waiting on an answer nobody had given yet. */
+  #view.item.start{display:block!important}
+  .startPane{display:grid;gap:clamp(10px,1.1vw,15px);max-width:1000px;margin:0 auto}
+  .startH{font-family:var(--sans);font-size:clamp(20px,2.4vw,27px);font-weight:800;color:var(--ink);margin:2px 0 6px}
+  .startTwo{display:grid;gap:clamp(10px,1.1vw,15px)}
+  .startCol{display:grid;gap:clamp(10px,1.1vw,15px);align-content:start}
+  @media (min-width:1080px){ .startCol{grid-template-columns:1fr 1fr;align-items:start} }
+  .startCol>.card{margin-top:0}
   /* spotting-fakes checklist */
   .fakeRow{margin-top:11px;padding-top:10px;border-top:1px solid rgba(255,255,255,.07)}
   .fakeRow:first-of-type{border-top:none}

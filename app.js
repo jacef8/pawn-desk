@@ -20,7 +20,8 @@ const CATALOG = [
    {id:"g6",name:".22 rifle",value:175,liq:"fast"},
    {id:"g7",name:"Semi-auto pistol",value:300,liq:"fast"},
    {id:"g8",name:"Revolver",value:325,liq:"fast"},
-   {id:"g9",name:"Muzzleloader",value:150,liq:"slow"}]},
+   {id:"g9",name:"Muzzleloader",value:150,liq:"slow"},
+   {id:"g10",name:"Semi-auto rifle — hunting",value:450,liq:"normal"}]},
  {id:"power",label:"Outdoor power",ltv:35,
   driver:"Brand tier first, then does it start. Pro saws are worth three of a box-store saw.",
   killer:"Won't start. Then it's parts, not a tool.",
@@ -576,6 +577,7 @@ const SPEC_CHOICES={
  g7:[CH_CALIBER,{label:"Size",options:[{t:"Full / compact",m:1},{t:"Pocket (.25/.380 junk-class)",m:.8,note:"pocket-class: −20%"}]}],
  g8:[CH_CALIBER,{label:"Barrel",options:[{t:"3–6 in",m:1},{t:"Snub 2 in",m:1},{t:"7 in + hunter",m:.9,note:"long hunter barrel — narrower market: −10%"}]}],
  g9:[{label:"Type",options:[{t:"In-line (modern)",m:1},{t:"Sidelock / traditional",m:.8,note:"traditional — thin buyer pool: −20%"}]},CH_OPTIC],
+ g10:[CH_CALIBER,CH_OPTIC],
  p1:[{label:"Bar length",options:[{t:"Under 16 in",m:.85,note:"short bar — homeowner saw: −15%"},{t:"16–18 in",m:1},{t:"19 in +",m:1.15,note:"pro-length bar: +15%, slower buyer"}]},CH_GRADE],
  p2:[CH_PWR,CH_GRADE],p3:[CH_PWR,CH_GRADE],
  p4:[{label:"Drive",options:[{t:"Gas push",m:1},{t:"Self-propelled",m:1.15,note:"self-propelled: +15%"},{t:"Battery — with battery",m:.9,note:"battery mower: −10%"},{t:"Corded electric",m:.5,note:"corded: about half"}]},
@@ -795,6 +797,18 @@ function renderItem(){
      the Next step panel - so the number the counter is working toward was
      off-screen until they scrolled to it, which is what it existed to avoid.
      It goes in the top row instead, in the empty half of that panel. */
+  /* Nothing has been chosen yet, so there is no price, no loan and nothing
+     to check it against - and drawing the whole machinery empty is what was
+     filling the first screen with blank boxes. Until step 1 is answered the
+     page is the search box and the two other ways in. */
+  if(!st.picked&&!window.PHONE)return omniHTML()+`<div class="startPane">
+    <div class="card"><span class="label">Start here</span>
+      <div class="startH">What's on the counter?</div>
+      <div class="cardHint" style="font-size:14px">Type it in the box above &mdash; a brand, a model, or just what the thing is. Tap what it is and the desk fills in what it resells for, then walks you to the loan.</div>
+      <div class="cardHint" style="font-size:13px">It knows ${CATALOG.reduce((a,c)=>a+c.items.length,0)} kinds of thing, ${mpCount()} models by name, and the price book besides. If it has none of them, type it anyway and set the price yourself.</div>
+    </div>
+    <div class="startTwo">${left.replace('<div class="colL">','<div class="startCol">')}</div>
+  </div>`;
   return omniHTML()+nextStepHTML(x)+`<div id="pin">${pinHTML(x)}</div>`+left+mid+right;
 }
 function wireItem(){
@@ -1801,6 +1815,7 @@ const ITEM_SYN={
  g5:"ar ar15 m4 carbine black rifle msr gun firearm",g6:"22 rimfire 22lr squirrel rifle gun firearm",
  g7:"pistol handgun semi auto sidearm carry gun firearm",g8:"revolver wheelgun six shooter handgun gun firearm",
  g9:"muzzleloader muzzle loader black powder blackpowder inline gun firearm",
+ g10:"semi auto semiauto autoloading rifle woodsmaster 7400 750 742 four bar browning mini-14 mini14 mini-30 sks m1a garand hunting rifle gun firearm",
  p1:"chainsaw chain saw",p2:"string trimmer weed eater weedeater weed wacker weedwacker whacker",
  p3:"backpack blower leaf blower",p4:"push mower lawn mower lawnmower",
  p5:"riding mower rider lawn tractor riding lawnmower",p6:"pressure washer power washer",p7:"generator genny",
@@ -3800,7 +3815,10 @@ function render(){
   /* keep the user's place — no jump to top, no column reset */
   const pageY=window.scrollY, zones={};
   ["colL","colC","colR"].forEach(c=>{const el=v.querySelector("."+c);if(el)zones[c]=el.scrollTop;});
-  v.className=st.mode;
+  /* The start state is not the three-column layout - it is one pane. The
+     class says so, because without it the pane lands in the 300px column the
+     grid reserves for the lists. */
+  v.className=st.mode+((st.mode==="item"&&!st.picked&&!window.PHONE)?" start":"");
   const sy=document.getElementById("sysline");
   if(sy)sy.textContent="SYS.OK · Updated "+fmtDay(FEED.date)+" · Gold $"+Math.round(FEED.gold).toLocaleString("en-US")+" · Silver $"+Number(FEED.silver).toFixed(2)+(BUILD?" · build "+BUILD:"");
   if(st.mode==="item"){v.innerHTML=renderItem();wireItem();}
