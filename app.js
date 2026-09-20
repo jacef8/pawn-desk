@@ -2178,12 +2178,25 @@ function omniRowHTML(r,i){
   if(r.kind==="custom")bits.push("not on any list &mdash; you set the price");
   return `<button type="button" class="omniRow${hl}" data-omni="${i}" role="option"><span class="ot"><span class="on1">${esc(head)}</span><span class="on2">${bits.map(b=>b.indexOf("&mdash;")>=0?b:esc(b)).join(" &middot; ")}</span></span>${mp?`<span class="ov">${money(mp[3])}&ndash;${money(mp[4])}<small>resale</small></span>`:""}</button>`;
 }
+/* Which row, if any, Enter should take. Typing a brand is not choosing a
+   model: "husq" brings up four Husqvarnas and arming the first of them makes
+   a backpack blower look like something already picked - the same thing the
+   old shotgun default did. So a row is armed only when the typing actually
+   points at one: a model number, or a single thing on the list that matches.
+   Otherwise nothing is highlighted and the arrows are there to choose with. */
+function omniArm(rows,q){
+  const isPick=r=>!!r&&(r.kind==="item"||r.kind==="book"||r.kind==="mp"||r.kind==="metal"||r.kind==="custom");
+  const first=rows.findIndex(isPick); if(first<0)return -1;
+  if(/\d/.test(q))return first;
+  return rows.filter(isPick).length===1?first:-1;
+}
 function omniShow(){
   const list=document.getElementById("omniList"), inp=document.getElementById("omniIn"); if(!list||!inp)return;
   const q=st.omniQ||"";
   if(q.trim().length<2){ list.hidden=true; inp.setAttribute("aria-expanded","false"); omniRowsCache=[]; return; }
   const rows=omniRows(q).rows; omniRowsCache=rows;
-  if(st.omniHl>=rows.length)st.omniHl=0;
+  if(st.omniHl===null)st.omniHl=omniArm(rows,q);
+  if(st.omniHl>=rows.length)st.omniHl=omniArm(rows,q);
   const real=rows.some(r=>r.kind!=="sold");
   list.innerHTML=(real?"":`<div class="omniEmpty">Nothing on the lists or in the price book for that. Pick a category on the left and tap <b>Not on any list</b>, or see what it sold for:</div>`)
     +rows.map(omniRowHTML).join("");
@@ -2250,7 +2263,7 @@ function omniPick(r){
 function wireOmni(){
   const inp=document.getElementById("omniIn"); if(!inp)return;
   inp.oninput=()=>{
-    st.omniQ=inp.value; st.omniHl=0;
+    st.omniQ=inp.value; st.omniHl=null;   /* omniShow decides what, if anything, is armed */
     if(st.omniDone){ st.omniDone=""; const h=document.getElementById("omniHint"); if(h)h.innerHTML=omniHintHTML(); }
     omniShow();
   };
@@ -2259,11 +2272,16 @@ function wireOmni(){
     if(l&&document.activeElement!==i2){ l.hidden=true; if(i2)i2.setAttribute("aria-expanded","false"); } },150);
   inp.onkeydown=e=>{
     const n=omniRowsCache.length, list=document.getElementById("omniList"), open=list&&!list.hidden;
-    if(e.key==="ArrowDown"&&open&&n){ e.preventDefault(); st.omniHl=(st.omniHl+1)%n; omniHlPaint(); }
-    else if(e.key==="ArrowUp"&&open&&n){ e.preventDefault(); st.omniHl=(st.omniHl-1+n)%n; omniHlPaint(); }
+    const hl=st.omniHl==null?-1:st.omniHl;
+    if(e.key==="ArrowDown"&&open&&n){ e.preventDefault(); st.omniHl=hl<0?0:(hl+1)%n; omniHlPaint(); }
+    else if(e.key==="ArrowUp"&&open&&n){ e.preventDefault(); st.omniHl=hl<0?n-1:(hl-1+n)%n; omniHlPaint(); }
     else if(e.key==="Enter"&&open&&n){
-      e.preventDefault(); const r=omniRowsCache[st.omniHl];
-      if(r&&r.kind==="sold"){ const a=list.querySelector('[data-omni="'+st.omniHl+'"]'); if(a)a.click(); } else omniPick(r);
+      e.preventDefault();
+      /* Nothing armed: Enter highlights rather than picks, so a brand name
+         cannot become an item by reflex. A second Enter takes it. */
+      if(hl<0){ st.omniHl=0; omniHlPaint(); return; }
+      const r=omniRowsCache[hl];
+      if(r&&r.kind==="sold"){ const a=list.querySelector('[data-omni="'+hl+'"]'); if(a)a.click(); } else omniPick(r);
     }
     else if(e.key==="Escape"){ if(inp.value){ st.omniQ=""; inp.value=""; omniShow(); } else inp.blur(); }
   };
