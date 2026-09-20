@@ -2658,8 +2658,14 @@ document.addEventListener("paste",e=>{
 let camStream=null, camDevices=[], camIdx=-1, camFailed=false;
 function camLiveOK(){
   if(camFailed||isTouch()||!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return false;
-  try{ const pol=document.permissionsPolicy||document.featurePolicy; if(pol&&typeof pol.allowsFeature==="function")return !!pol.allowsFeature("camera"); }catch(e){}
-  return false;
+  /* Ask the permissions policy only if the browser has one to ask. It used to
+     fall through to false when it did not, which is every browser but Chrome
+     - so a camera plugged into the desk was never offered there at all. If
+     it cannot be checked, offer it: getUserMedia says no soon enough, and a
+     refusal sets camFailed and takes the button away. */
+  try{ const pol=document.permissionsPolicy||document.featurePolicy;
+       if(pol&&typeof pol.allowsFeature==="function")return !!pol.allowsFeature("camera"); }catch(e){}
+  return true;
 }
 function camButtonHTML(){
   if(isTouch())return `<label class="brassBtn camBtn" style="cursor:pointer;margin:0;padding:10px 18px;display:inline-flex;align-items:center">Take picture<input id="photoCam" type="file" accept="image/*" capture="environment" style="display:none"></label>`;
