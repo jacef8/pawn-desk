@@ -38,8 +38,9 @@
     #view.item,#view.metal{display:grid;gap:clamp(10px,1.1vw,15px);align-items:start;
       grid-template-columns:minmax(0,300px) minmax(0,1fr) minmax(0,320px);
       grid-template-areas:"left center right"}
-    #view.item{grid-template-rows:auto auto auto;grid-template-areas:"omni omni omni" "next next pin" "left center right"}
-    #pin{grid-area:pin;align-self:start;position:sticky;top:96px;z-index:5}
+    #view.item{grid-template-rows:auto auto auto auto;
+      grid-template-areas:"omni omni omni" "pin pin pin" "next next next" "left center right"}
+    #pin{grid-area:pin;position:sticky;top:96px;z-index:5}
     .omni{grid-area:omni}
     .colL{grid-area:left}.colC{grid-area:center}.colR{grid-area:right}
     .colL,.colC,.colR{min-width:0;padding:4px 2px 8px}
@@ -128,21 +129,19 @@
   /* The panel that does not move - the running total, tax-software style.
      Short on purpose: a sticky element taller than the window scrolls away,
      which is exactly how the 1406px loan card failed at this job. */
-  /* It floats over the column beneath it once it sticks, so it has to read
-     as floating - an opaque face and a shadow deep enough that the card
-     sliding under it is obviously behind, not cut in half. */
-  .pin{border:1px solid rgba(0,232,160,.32);background:var(--e1);
-    box-shadow:0 18px 30px -12px rgba(0,0,0,.92),0 0 0 1px rgba(0,0,0,.5),var(--raise)}
-  .pinBig{font-family:var(--mono);font-size:30px;font-weight:700;color:var(--accent);line-height:1.1}
-  .pinRow{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-top:6px}
-  .pinRow span{font-size:12.5px;color:var(--ink-3)}
-  .pinRow b{font-family:var(--mono);font-size:17px;color:var(--ink)}
-  .pinGrid{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;margin-top:10px;
-    padding-top:9px;border-top:1px solid rgba(255,255,255,.08)}
-  .pinGrid>div{display:flex;flex-direction:column;gap:1px}
-  .pinGrid span{font-size:11px;color:var(--ink-3);letter-spacing:.02em}
-  .pinGrid b{font-family:var(--mono);font-size:15px;color:var(--ink-2)}
-  @media (max-width:1079px){ #pin{margin-top:14px} }
+  /* Not a card that floats over other cards - a strip in the chrome, under
+     the top bar, the way a frozen header row reads. It spans the page, so
+     nothing of the page is hidden behind it. */
+  .pinStrip{display:flex;align-items:center;gap:clamp(10px,1.6vw,26px);flex-wrap:wrap;
+    padding:10px clamp(12px,1.3vw,18px);border-radius:var(--r);
+    background:linear-gradient(160deg,var(--e2-hi),var(--e2));
+    border:1px solid rgba(0,232,160,.30);box-shadow:var(--sh)}
+  .pinLab{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--ink-3);text-transform:uppercase}
+  .pinCell{display:flex;flex-direction:column;gap:1px;line-height:1.15}
+  .pinCell span{font-size:10.5px;color:var(--ink-3);letter-spacing:.02em;white-space:nowrap}
+  .pinCell b{font-family:var(--mono);font-size:16px;color:var(--ink-2)}
+  .pinCell.big b{font-size:23px;color:var(--accent)}
+  .pinNote{font-size:12px;color:var(--ink-3);flex:1;min-width:190px}
   /* folds: the long tail of a card, shut until wanted */
   .fold>summary,.foldCard>summary{list-style:none;cursor:pointer}
   .fold>summary::-webkit-details-marker,.foldCard>summary::-webkit-details-marker{display:none}

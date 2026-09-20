@@ -439,23 +439,20 @@ function calcItem(){
    1406px loan card never was. */
 function pinHTML(x){
   const F=fakeState(fakeSheet(x));
-  if(F&&F.blocks)return `<div class="card pin"><span class="label">Where it stands</span>
-    <div class="pinBig" style="color:var(--ink-3)">&mdash;</div>
-    <div class="cardHint" style="margin-top:0">${F.verdict==="fail"?"A check failed. Don't lend on the name.":"Not checked yet — "+F.done+" of "+F.n+"."}</div></div>`;
-  if(!x.checked)return `<div class="card pin"><span class="label">Where it stands</span>
-    <div class="pinBig" style="color:var(--ink-3)">&mdash;</div>
-    <div class="cardHint" style="margin-top:0">No resale value yet. Step 4.</div></div>`;
-  return `<div class="card pin"><span class="label">Where it stands</span>
-    <div class="pinRow"><span>Lend him</span><b class="pinBig">${money(x.target)}</b></div>
-    <div class="pinRow"><span>Or buy it outright</span><b>${money(x.buy)}</b></div>
-    ${x.buy===x.target?`<div class="cardHint" style="margin-top:3px;font-size:12px">Same number on purpose: in ${esc(x.cat.label.toLowerCase())} you buy at the same rate you lend &mdash; ${esc(BUY_WHY[x.cat.id]||"")}.</div>`:""}
-    <div class="pinGrid">
-      <div><span>Resale, ${esc(COND_WORDS[st.cond][0].toLowerCase())}</span><b>${money(x.resale)}</b></div>
-      <div><span>Your cushion</span><b>${money(x.margin)}</b></div>
-      <div><span>Fee / 30 days</span><b>${money(x.charge)}</b></div>
-      <div><span>Loan ÷ resale</span><b>${x.ltv}%</b></div>
-    </div>
-    <div class="cardHint" style="margin-top:7px;font-size:12.5px">Range ${money(x.low)}&ndash;${money(x.high)}. Never above the top &mdash; that's your cushion.</div>
+  const bare=t=>`<div class="pinStrip"><span class="pinLab">Where it stands</span><span class="pinNote">${t}</span></div>`;
+  if(F&&F.blocks)return bare(F.verdict==="fail"?"A check failed \u2014 don't lend on the name."
+    :"Not checked yet \u2014 "+F.done+" of "+F.n+" on the "+esc(F.sh.title.toLowerCase())+" sheet.");
+  if(!x.checked)return bare("No resale value yet \u2014 step 4 sets it.");
+  const cell=(l,v,big)=>`<div class="pinCell${big?" big":""}"><span>${l}</span><b>${v}</b></div>`;
+  return `<div class="pinStrip">
+    <span class="pinLab">Where it stands</span>
+    ${cell("Lend him",money(x.target),1)}
+    ${cell("Or buy outright",money(x.buy),1)}
+    ${cell("Resale, "+esc(COND_WORDS[st.cond][0].toLowerCase()),money(x.resale))}
+    ${cell("Your cushion",money(x.margin))}
+    ${cell("Fee / 30 days",money(x.charge))}
+    ${cell("Loan \u00f7 resale",x.ltv+"%")}
+    <span class="pinNote">Range ${money(x.low)}&ndash;${money(x.high)}. Never above the top.${x.buy===x.target?` Buy and lend match in ${esc(x.cat.label.toLowerCase())} on purpose \u2014 ${esc(BUY_WHY[x.cat.id]||"")}.`:""}</span>
   </div>`;
 }
 function paintPin(x){ const p=document.getElementById("pin"); if(p)p.innerHTML=pinHTML(x||calcItem()); }
@@ -465,9 +462,7 @@ function ticketHTML(x){
   if(!x.checked)return uncheckedTicketHTML(x);
   return `<div class="card">
     <span class="label">7 &middot; Pawn loan &mdash; the cash you lend him</span>
-    <!-- The ring lived here. It said the same thing as the panel pinned above
-         it, which does not scroll away, so it was three copies of one number
-         on one screen. The percentage it drew is in the pin as a figure. -->
+    ${gauge(x.ltv/100,"Lend him",money(x.target),"pawn loan","gi")}
     ${(st.model||st.detail)?`<div class="cardHint" style="text-align:center;margin-top:2px">Pricing: <b style="color:var(--ink)">${[st.model,st.detail].filter(Boolean).map(esc).join(" · ")}</b></div>`:""}
     ${x.spec&&x.spec.stop?`<div class="tagWarn" style="border-left-color:var(--bad);background:rgba(255,66,87,.12);color:#FFAAB4"><b>NO TITLE — NO DEAL.</b> Don't negotiate around a missing title, at any price.</div>`:""}
     <div class="tiles" style="grid-template-columns:1fr 1fr 1fr;margin-top:4px">
