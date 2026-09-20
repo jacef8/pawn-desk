@@ -1322,9 +1322,21 @@ function pdConnectHTML(){
       ? "Switched on, but the shop&rsquo;s service did not answer. Check that it is running."
       : "Switch on the shop&rsquo;s service and this device will <b style=\"color:var(--ink)\">photograph an item and price it</b>, read another shop&rsquo;s tag, and look up sold prices for you.")+'</div>'+
     '<div class="cardHint" style="font-size:12.5px">No camera to buy \u2014 it uses the one in this phone or tablet (a desk PC needs a webcam, or just use the phone). Switching on means pasting the service address and token once; that is where the key lives, and it never touches this page.</div>'+
+    /* These used to be two browser prompt() boxes. A prompt is torn down the
+       moment the tab loses focus - and the token lives in another tab, so
+       going to fetch it closed the box you were pasting into. Fields on the
+       page survive switching tabs, which is the whole job. */
+    '<span class="label" style="margin-top:12px">Service address</span>'+
+    '<input id="pdSrvIn" class="numIn" type="url" inputmode="url" autocomplete="off" spellcheck="false" '+
+      'style="font-family:var(--mono);font-size:14px" placeholder="https://your-service.up.railway.app" value="'+esc(pdServer()||"")+'">'+
+    '<span class="label" style="margin-top:10px">Token</span>'+
+    '<input id="pdTokIn" class="numIn" type="text" autocomplete="off" spellcheck="false" '+
+      'style="font-family:var(--mono);font-size:14px" placeholder="the PAWN_TOKEN you set in Railway" value="'+esc(pdToken()||"")+'">'+
+    '<div class="cardHint" style="font-size:12.5px">Switch tabs to copy them if you need to &mdash; what you have typed stays put.</div>'+
     '<div class="row2" style="margin-top:8px"><button class="brassBtn" id="pdConnBtn" style="padding:10px 18px">'+
-      (on?"Change the address":"Switch it on")+'</button>'+
-      (on?'<button class="ghostBtn" id="pdConnOff">Disconnect</button>':'')+'</div></div>';
+      (on?"Save and reconnect":"Switch it on")+'</button>'+
+      (on?'<button class="ghostBtn" id="pdConnOff">Disconnect</button>':'')+'</div>'+
+    '<div class="cardHint" id="pdConnMsg" style="min-height:16px"></div></div>';
 }
 document.addEventListener("click",e=>{
   const fr=e.target&&e.target.closest?e.target.closest("#pdFresh"):null;
@@ -1339,11 +1351,16 @@ document.addEventListener("click",e=>{
   const b=e.target&&e.target.closest?e.target.closest("#pdConnBtn,#pdConnOff,#pdRetGo"):null; if(!b)return;
   if(b.id==="pdRetGo"){ retailLookup(); return; }
   if(b.id==="pdConnOff"){ pdSetServer("",""); location.reload(); return; }
-  const u=prompt("Address of the shop's service (from Railway):",pdServer()||"https://");
-  if(u===null)return;
-  const t=prompt("Its token (blank if you did not set one):",pdToken()||"");
-  if(t===null)return;
-  pdSetServer(String(u).trim(),String(t).trim());
+  const si=document.getElementById("pdSrvIn"), ti=document.getElementById("pdTokIn");
+  const msg=document.getElementById("pdConnMsg");
+  const say=t=>{ if(msg)msg.innerHTML='<span style="color:var(--warn)">'+esc(t)+'</span>'; };
+  let u=String((si&&si.value)||"").trim().replace(/\/+$/,"");
+  const t=String((ti&&ti.value)||"").trim();
+  if(!u){ say("Put the service address in first."); if(si)si.focus(); return; }
+  if(!/^https?:\/\//i.test(u))u="https://"+u;
+  /* A trailing /limits is the address people have in a tab from testing it. */
+  u=u.replace(/\/(limits|sync|json)$/i,"");
+  pdSetServer(u,t);
   location.reload();
 });
 const CAP = {sample:null, images:false, imgLimits:null, db:null, dbErr:""};
