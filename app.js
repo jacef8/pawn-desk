@@ -1249,6 +1249,13 @@ function renderDevice(){
     <div class="cardHint" style="margin-top:0">Build <b style="color:var(--ink);font-family:var(--mono)">${BUILD||"unknown"}</b>. The number beside SYS.OK at the top says the same thing, so you can tell at a glance whether a device is running what was published.</div>
     <div class="row2" style="margin-top:9px"><button class="ghostBtn" id="pdFresh">Get the newest version</button></div>
   </div>
+  <div class="card"><span class="label">Move the shelf record between devices</span>
+    <div class="cardHint" style="margin-top:0">${seenAll().length} tag${seenAll().length===1?"":"s"} on this device. With the service on, <b style="color:var(--ink)">Sync</b> on the pricing page does this by itself &mdash; these are for moving the record by hand, or keeping a copy.</div>
+    <div class="row2" style="margin-top:9px;gap:8px;flex-wrap:wrap">
+      <button class="ghostBtn" id="seenOut" title="Save every recorded tag to a file">Export</button>
+      <label class="ghostBtn" style="margin:0;cursor:pointer" title="Load tags from a file exported on another device">Import<input id="seenImp" type="file" accept="application/json,.json" style="display:none"></label>
+    </div>
+  </div>
   <div class="card"><span class="label">How the pricing page is laid out</span>
     <div class="pills mb14" style="border-radius:var(--r-s);margin-top:8px">
       <button class="${stepFlow()==="steps"?"on":""}" style="flex:1;padding:9px 6px;font-size:12px" data-flow="steps">One step at a time</button>
@@ -3793,8 +3800,9 @@ function seenCardHTML(){
         '<input id="seenIn" type="file" accept="image/*" capture="environment" style="display:none"></label>':'')+
       '<button class="ghostBtn" id="seenHand">Type one in</button>'+
       (pdServer()?'<button class="ghostBtn" id="seenSync">'+(syncBusy?"Syncing&hellip;":"Sync")+'</button>':'')+
-      '<button class="ghostBtn" id="seenOut">Export</button>'+
-      '<label class="ghostBtn" style="margin:0;cursor:pointer">Import<input id="seenImp" type="file" accept="application/json,.json" style="display:none"></label>'+
+      /* Export and Import moved to Phones & devices. Moving the record
+         between devices is a setup job, not a counter job - Sync does it by
+         itself once the service is on. */
     '</div>'+
     (syncNote?'<div class="cardHint">'+esc(syncNote)+'</div>':'')+
     '</div>';
