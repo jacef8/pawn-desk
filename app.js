@@ -3089,13 +3089,33 @@ let shotFiles=[], shotBusy=false, shotCtl=null, pasteTo="shot";
 const IMG_OK=["image/jpeg","image/png","image/webp","image/gif"];
 function imgAccept(){ const t=CAP.imgLimits&&CAP.imgLimits.mediaTypes; return (t&&t.length?t:IMG_OK).join(","); }
 function shotMax(){ const n=CAP.imgLimits&&CAP.imgLimits.maxCount; return Math.max(1,Math.min(4,n||4)); }
+/* Every phone photo is shrunk before it is sent, and that is not a nicety.
+
+   This used to hand anything under 15MB straight through. A modern phone
+   takes 3-12MB pictures; base64 adds a third; the service stops reading at
+   8MB and kills the connection, so the browser saw a dead socket rather than
+   an answer and reported that it could not reach the service at all. A photo
+   read failed while a price search from the same phone worked, because a
+   search sends no picture.
+
+   Nothing is lost by shrinking. Claude never sees more than 2576px on the
+   long edge - anything past that is discarded at the far end after being
+   paid for in upload time on a phone signal. 2600px at quality 0.85 lands
+   around half a megabyte. */
+const IMG_MAX_EDGE=2600, IMG_MAX_BYTES=1.2e6;
 async function normImage(f){
-  if(IMG_OK.indexOf(f.type)>=0&&f.size<15e6)return f;
   try{
-    const b=await createImageBitmap(f); const s=Math.min(1,Math.sqrt(12e6/(b.width*b.height)));
-    const c=document.createElement("canvas"); c.width=Math.round(b.width*s); c.height=Math.round(b.height*s);
+    /* from-image so a picture taken sideways arrives the right way up. */
+    let b=null;
+    try{ b=await createImageBitmap(f,{imageOrientation:"from-image"}); }
+    catch(e){ b=await createImageBitmap(f); }
+    const big=Math.max(b.width,b.height);
+    if(big<=IMG_MAX_EDGE&&f.size<=IMG_MAX_BYTES&&IMG_OK.indexOf(f.type)>=0)return f;
+    const k=Math.min(1,IMG_MAX_EDGE/big);
+    const c=document.createElement("canvas");
+    c.width=Math.max(1,Math.round(b.width*k)); c.height=Math.max(1,Math.round(b.height*k));
     c.getContext("2d").drawImage(b,0,0,c.width,c.height);
-    const out=await new Promise(r=>c.toBlob(r,"image/jpeg",0.9));
+    const out=await new Promise(r=>c.toBlob(r,"image/jpeg",0.85));
     return out?new File([out],"image.jpg",{type:"image/jpeg"}):f;
   }catch(e){ return f; }
 }

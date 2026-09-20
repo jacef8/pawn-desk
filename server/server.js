@@ -7,15 +7,21 @@ import { handle, corsHeaders } from "./core.js";
 const PORT = process.env.PORT || 3000;
 const MAX_BODY = 8 * 1024 * 1024;   /* four photographs, comfortably */
 
+/* Destroying the socket the moment the body ran long meant the caller never
+ * got the 413 - the connection simply died under it, and a browser reports
+ * that as "could not reach the service", which sends you looking for a
+ * service that is running perfectly well. Stop reading, keep the socket open
+ * long enough to say why, and let the handler answer. */
 const readBody = (req) => new Promise((resolve, reject) => {
-  let n = 0; const chunks = [];
+  let n = 0, over = false; const chunks = [];
   req.on("data", (c) => {
+    if (over) return;
     n += c.length;
-    if (n > MAX_BODY) { reject(new Error("too_big")); req.destroy(); return; }
+    if (n > MAX_BODY) { over = true; chunks.length = 0; reject(new Error("too_big")); return; }
     chunks.push(c);
   });
-  req.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
-  req.on("error", reject);
+  req.on("end", () => { if (!over) resolve(Buffer.concat(chunks).toString("utf8")); });
+  req.on("error", (e) => { if (!over) reject(e); });
 });
 
 const srv = createServer(async (req, res) => {
