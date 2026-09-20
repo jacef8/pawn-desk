@@ -3303,9 +3303,33 @@ document.addEventListener("paste",e=>{
 
 
 /* ================= NEXT STEP — one place that says where you are and what to do ================= */
+/* Whose model is this. Most rows lead with the maker - "Stihl MS 250" - but
+   the ones that do not are the ones that matter here: a MacBook says nothing
+   about Apple, so a Sony laptop was being offered two of them. A row whose
+   maker cannot be told is left in; only a row that plainly belongs to someone
+   else is dropped. */
+const MP_FAMILY={macbook:"apple",imac:"apple",ipad:"apple",iphone:"apple",airpod:"apple",beats:"apple",
+  galaxy:"samsung",pixel:"google",thinkpad:"lenovo",inspiron:"dell",latitude:"dell",
+  xbox:"microsoft",playstation:"sony",switch:"nintendo",wingmaster:"remington",rancher:"husqvarna"};
+function mpBrandOf(text){
+  const t=" "+omniNorm(text)+" ";
+  for(const k of Object.keys(MP_FAMILY)) if(t.indexOf(k)>=0)return MP_FAMILY[k];
+  for(const cat of Object.keys(BRANDBOOK)){ const bk=BRANDBOOK[cat];
+    for(const tier of ["hi","mid","lo"]) for(const b of bk[tier]){
+      const bl=omniNorm(b); if(bl.length>=3&&t.indexOf(" "+bl+" ")>=0)return bl; } }
+  return null;
+}
 function mpCandidates(){
   const ref=curItemRef(); let rows=MODEL_PRICES.filter(r=>String(r[1]).split("|").indexOf(ref)>=0);
-  const words=omniWords([st.brandTyped,st.model].join(" ")).filter(w=>!STOP.has(w));
+  /* When the maker is known and the price list has none of theirs, the answer
+     is none - not "here is everyone else's". It offered a Sony laptop two
+     MacBooks, because an empty filter fell back to the unfiltered rows. */
+  const want=st.brandTyped?mpBrandOf(st.brandTyped):null;
+  if(want){
+    rows=rows.filter(r=>{ const b=mpBrandOf(r[2]); return !b||b===want; });
+    if(!rows.length)return [];
+  }
+  const words=omniWords(st.model||"").filter(w=>!STOP.has(w));
   if(words.length){ const f=rows.filter(r=>{ const nw=omniWords(r[2]); return words.some(w=>wordHit(w,nw)>=2); }); if(f.length)rows=f; }
   return rows.slice(0,8);
 }
@@ -3906,7 +3930,12 @@ function render(){
   else {v.innerHTML=renderFlags();}
   ["colL","colC","colR"].forEach(c=>{const el=v.querySelector("."+c);if(el&&zones[c]!=null)el.scrollTop=zones[c];});
   window.scrollTo(0,pageY);
-  if(_omF&&st.mode==="item"){ const o=document.getElementById("omniIn"); if(o){ o.focus({preventScroll:true}); try{ o.setSelectionRange(_omS[0],_omS[1]); }catch(e){} omniShow(); } }
+  if(_omF&&st.mode==="item"){ const o=document.getElementById("omniIn"); if(o){ o.focus({preventScroll:true}); try{ o.setSelectionRange(_omS[0],_omS[1]); }catch(e){}
+    /* Something was just picked, so do not reopen the list over the answer.
+       The box keeps the name; typing again opens it. */
+    if(st.omniDone){ const l=document.getElementById("omniList");
+      if(l){ l.hidden=true; o.setAttribute("aria-expanded","false"); } }
+    else omniShow(); } }
   document.getElementById("foot").innerHTML=
    `Metal prices refresh automatically each morning (last: ${FEED.date}). Your item prices, lending rates, and any same-day hand edits save on this device only — set them once on the counter tablet. Starting numbers are estimates for rural North Florida — the tool is only as good as what you put in it.<span class="saveNote" id="saveNote"></span>`;
 }
