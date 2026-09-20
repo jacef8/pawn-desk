@@ -49,7 +49,8 @@ function phoneStepHTML(x){
        +`<button class="nsBtn ghost" id="nsNone"><span>Not one of these</span></button>`;
   } else if(cur===2){
     h=`What does it sell for, used?`;
-    sub=`Tap a button to see what these actually sold for. Then type the middle price here.`;
+    sub=CAP.sample?`Tap <b>Look up what it sells for used</b> and the desk searches the sold pages for you. The links below are for looking yourself.`
+                  :`Tap a button to see what these actually sold for. Then type the middle price here.`;
     act=compTargets(x).map(t=>`<a class="nsBtn nsSold" data-label="${t.name}" href="${esc(t.url)}" target="_blank" rel="opener" referrerpolicy="no-referrer"><span>${t.name}</span><b>&#8599;</b></a>`).join("")
        +`<div class="phIn"><span>$</span><input id="phVal" type="number" inputmode="decimal" placeholder="What it sells for"><button class="nsBtn on" id="phValGo"><span>Use it</span></button></div>`
        +altSourcesHTML(x)
@@ -67,6 +68,12 @@ function phoneStepHTML(x){
       <div id="phVerdictBox">${phVerdictHTML(x)}</div>
       <button class="nsBtn ghost" id="nsCond" data-ncond="${st.cond}"><span>Condition: ${cw[0]} &mdash; change</span></button>`;
   }
+  /* Once there is a price this card moves past step 2, and with it went the
+     one button that does the searching. It belongs on every step after the
+     item is known, the same as on the desk. */
+  if(CAP.sample&&started&&cur!==2)
+    act=`<button class="nsBtn${x.checked?" ghost":" on"}" id="pdFindGo"><span>${findBusy?"Looking it up&hellip;":x.checked?"Check it live \u2014 search the sold prices":"Look up what it sells for used"}</span></button>`
+        +`<div class="cardHint" id="pdFindMsg">${esc(findMsg||"")}</div>`+act;
   const src=x.checked?`<div class="phSrc">Resale value from ${m.kind==="list"?`<b>${esc(srcName(m.src))}</b>, checked ${esc(fmtDay(m.date))}. ${srcLink(m.src)}`:m.kind==="shot"?`${m.n} sold on ${esc(m.site||"the sold page")}. ${srcLink(m.url,"See those sales")}`:m.kind==="retail"?`${money(m.retail)} new retail, taken to ${(m.pct||retailPct())}% for used. Not a sold price.`:m.kind==="found"?`${m.n} listing${m.n===1?"":"s"} on file, middle one ${money(m.med)} (middle half ${money(m.lo)}&ndash;${money(m.hi)})${m.mostlyAsks?", mostly asks rather than sales":""}.${m.from?` From ${esc(m.from)}.`:""}`:m.kind==="seen"?`${m.n} shelf tag${m.n===1?"":"s"} you recorded, asking ${money(m.lo)}&ndash;${money(m.hi)} \u2014 what a used one goes for at a shop near you.`:"the price you typed."}</div>`:"";
   const kinds=`<details class="phKinds"${st.phKindsOpen?" open":""}><summary>${st.phKindsOpen?"What kind of thing is it?":"Wrong kind of item?"}</summary><div class="phKindRow">${CATALOG.map(c=>`<button class="nsBtn${c.id===st.catId?" on":""}" data-phcat="${c.id}"><span>${c.label}</span></button>`).join("")}</div></details>`;
   return `<div class="card nextStep" id="nextStep"><div class="nsGrid">${steps}

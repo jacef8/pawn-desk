@@ -3543,14 +3543,17 @@ function findPrompt(q,pass){
     'Only listings for the same thing - not parts, not accessories, not multi-item lots. '+
     'If you find none, reply {"comps":[]}.';
 }
-let findBusy=false;
+let findBusy=false, findMsg="";
 async function priceFind(){
   if(findBusy||!CAP.sample)return;
   const x=calcItem(), q=compQuery(x);
   if(!q)return;
   const passes=findPasses(x);
   findBusy=true; render();
-  const say=t=>{ const el=document.getElementById("pdFindMsg"); if(el)el.textContent=t; };
+  /* Keep it in state and let the render put it on screen. Writing straight
+     into the node loses the message whenever anything re-renders afterwards,
+     which is exactly what happens when the lookup lands a price. */
+  const say=t=>{ findMsg=t; const el=document.getElementById("pdFindMsg"); if(el)el.textContent=t; };
   say("Searching "+passes.length+" places\u2026");
   /* A pass may want the name put differently - GunWatcher by model alone.
      What comes back is still filed under the item's own search text. */
@@ -3692,7 +3695,11 @@ function altSourcesHTML(x){
   const T=compStats(compsMatch(x));
   if(T) h+=`<div class="label" style="margin-top:14px">Listings on file</div>`
          +`<button class="nsBtn on" id="foundUse"><span>${T.n} listing${T.n===1?"":"s"}${T.sold?", "+T.sold+" sold":""} &middot; middle half ${money(T.lo)}&ndash;${money(T.hi)}</span><b>${money(T.mid)}</b><i>use this</i></button>`;
-  if(CAP.sample)
+  /* The desk carries this in the Next step panel, where it is on screen
+     whatever step is showing. Two of them would mean two elements with one
+     id, and the message would be written to whichever came first - which is
+     how it ended up being written to a hidden one. */
+  if(CAP.sample&&window.PHONE)
     h+=`<button class="nsBtn${T?"":" on"}" id="pdFindGo" style="margin-top:8px"><span>${findBusy?"Looking it up&hellip;":"Look up what it sells for used"}</span></button>`
       +`<div class="cardHint" id="pdFindMsg"></div>`;
   /* Google Shopping's used filter: asking prices for used ones, which sits
@@ -3754,7 +3761,8 @@ function nextStepHTML(x){
     /* The "Pawn price favorite" is a browser button that has to be installed
        first. Telling everyone to click one they may not have is telling them
        to do something they cannot. It is mentioned only once it is there. */
-    sub=pdBridge?"Click a button. The sold page opens, reads itself, and the price lands here."
+    sub=CAP.sample?"<b>Look up what it sells for used</b> searches the sold pages for you and brings the middle price back &mdash; you do not have to read them. The buttons below are there for when you want to look yourself."
+      :pdBridge?"Click a button. The sold page opens, reads itself, and the price lands here."
       :"Open one and look at what the thing <b>actually sold for</b> &mdash; not what it was listed at. Then come back and type the middle price into the box.";
     act=compTargets(x).map(t=>`<a class="nsBtn nsSold" data-label="${t.name}" href="${esc(t.url)}" target="_blank" rel="opener" referrerpolicy="no-referrer"><span>${t.name}</span><b>&#8599;</b></a>`).join("")
        /* A button saying "type it" that jumped the page 900px down to a box
@@ -3784,9 +3792,20 @@ function nextStepHTML(x){
       <b>Buy price ${money(x.buy)}</b>: you pay him once and it's yours to sell.<br>
       Both come from the <b>resale value</b>, ${money(m.mid)} used (${esc(nsSrcShort(m))})${Math.round(x.resale)!==m.mid?`, about ${money(x.resale)} in ${cw[0].toLowerCase()} shape`:""}. Lend ${x.ltv}% of it, buy at ${x.buyPct}%.`;
     const u=m.kind==="list"?m.src:m.url;
+    /* The live lookup lives in step 4, which is folded shut once there is a
+       price - so the one thing that does the work for you was out of sight
+       exactly when you would want to check the figure it found. */
     act=(srcLink(u,m.kind==="list"?"Check "+srcName(u):"See those sales").replace('class="srcLink"','class="srcLink nsBtn ghost"'))
        +`<button class="nsBtn ghost" data-ncond="${st.cond}" id="nsCond"><span>Change condition</span></button>`;
   }
+  /* The lookup is the one thing that does the work instead of handing the
+     counter a page to read, and it was only drawn on the step that happened
+     to be showing. It belongs in the action row whatever step that is. */
+  if(CAP.sample&&st.picked&&!findBusy&&!(act||"").includes("pdFindGo"))
+    act=`<button class="nsBtn${x.checked?" ghost":" on"}" id="pdFindGo"><span>${x.checked?"Check it live \u2014 search the sold prices":"Look up what it sells for used"}</span></button>`+act;
+  else if(CAP.sample&&findBusy&&!(act||"").includes("pdFindGo"))
+    act=`<button class="nsBtn on" id="pdFindGo" disabled><span>Looking it up&hellip;</span></button>`+act;
+  if(CAP.sample&&st.picked)act+=`<div class="cardHint" id="pdFindMsg" style="flex-basis:100%">${esc(findMsg||"")}</div>`;
   return `<div class="card nextStep" id="nextStep"><span class="label">Next step</span><div class="nsGrid">${steps}
     <div class="nsMain"><div class="nsH">${h}</div><div class="nsSub">${sub}</div><div class="nsAct">${act}</div></div></div></div>`;
 }
