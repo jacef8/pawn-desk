@@ -42,6 +42,9 @@
     .omni{grid-area:omni}
     .colL{grid-area:left}.colC{grid-area:center}.colR{grid-area:right}
     .colL,.colC,.colR{min-width:0;padding:4px 2px 8px}
+    /* Pinning the loan card was tried here and removed: at 1406px it is
+       taller than the window, so a sticky element scrolls anyway. The length
+       is the problem, not where the card sits. */
     .foot{display:none}
   }
   @media (max-width:1079px){#view.item,#view.metal{display:block}.colL,.colC,.colR{margin-top:14px}}

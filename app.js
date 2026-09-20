@@ -716,8 +716,8 @@ function renderItem(){
       <div class="cardHint" style="margin-top:0;font-size:13.5px">Not here? Type it in the search bar at the top. It also searches ${PRICEBOOK.length}+ more items.</div>
       ${cat.items.map((it,ix)=>`<button class="itemBtn${st.picked&&it.id===st.itemId?" on":""}" data-item="${it.id}"><span class="idx">${String(ix+1).padStart(2,"0")}</span><span style="flex:1">${it.name}</span>${ownAvgTag(it.id)}</button>`).join("")}
       <button class="itemBtn${st.picked&&st.itemId===custId(cat.id)?" on":""}" data-item="${custId(cat.id)}"><span class="idx">+</span><span style="flex:1">${st.itemId===custId(cat.id)&&st.bookName?esc(st.bookName):"Not on any list — I set the price"}</span></button>
-    </div></details></div>`;
-  let mid=`<div class="colC">${fakeCardHTML(x)}${photoCardHTML()}${seenCardHTML()}${compsCardHTML(x)}<div class="card"><span class="label">3 &middot; Brand, make &amp; model</span>
+    </div></details>${photoCardHTML()}${seenCardHTML()}</div>`;
+  let mid=`<div class="colC">${fakeCardHTML(x)}${compsCardHTML(x)}<div class="card"><span class="label">3 &middot; Brand, make &amp; model</span>
     <div class="driver"><p><b class="go">What sets the price:</b> ${(itemOv()&&itemOv().driver)||cat.driver}</p><p><b class="no">What kills it:</b> ${(itemOv()&&itemOv().killer)||cat.killer}</p></div>`;
   if(cat.brand.on){
     const ov=itemOv();
