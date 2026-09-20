@@ -142,6 +142,21 @@
   .pinCell b{font-family:var(--mono);font-size:16px;color:var(--ink-2)}
   .pinCell.big b{font-size:23px;color:var(--accent)}
   .pinNote{font-size:12px;color:var(--ink-3);flex:1;min-width:190px}
+  /* one step at a time: a step that is not live folds to a line with its
+     answer on it, and any line opens on a click */
+  .stepCard>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:12px}
+  .stepCard>summary::-webkit-details-marker{display:none}
+  .stepSum .stepN{font-family:var(--mono);font-size:12px;color:var(--ink-3);
+    width:24px;height:24px;flex:none;display:grid;place-items:center;border-radius:50%;
+    background:var(--recess);box-shadow:var(--well-sh)}
+  .stepSum .stepT{font-family:var(--mono);font-size:12px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--ink-3)}
+  .stepSum .stepA{margin-left:auto;font-size:14.5px;font-weight:700;color:var(--ink);text-align:right}
+  .stepSum.live .stepN{background:var(--accent);color:#04120C;box-shadow:none}
+  .stepSum.live .stepT{color:var(--ink-2)}
+  .stepCard[open]>summary{margin-bottom:11px;padding-bottom:10px;
+    border-bottom:1px solid rgba(255,255,255,.08)}
+  .stepCard[open] .stepA{color:var(--ink-3);font-weight:600}
   /* folds: the long tail of a card, shut until wanted */
   .fold>summary,.foldCard>summary{list-style:none;cursor:pointer}
   .fold>summary::-webkit-details-marker,.foldCard>summary::-webkit-details-marker{display:none}
@@ -153,12 +168,13 @@
   /* Before anything is chosen: the search box and the ways in, nothing else.
      Drawing the three columns empty is what filled the first screen with
      blank boxes waiting on an answer nobody had given yet. */
+  /* One column, centred. The first go at this was a two-up grid, which left
+     a hole under the short card and made three cards of three widths - the
+     ragged look is worse than the blank boxes it replaced. */
   #view.item.start{display:block!important}
-  .startPane{display:grid;gap:clamp(10px,1.1vw,15px);max-width:1000px;margin:0 auto}
-  .startH{font-family:var(--sans);font-size:clamp(20px,2.4vw,27px);font-weight:800;color:var(--ink);margin:2px 0 6px}
-  .startTwo{display:grid;gap:clamp(10px,1.1vw,15px)}
-  .startCol{display:grid;gap:clamp(10px,1.1vw,15px);align-content:start}
-  @media (min-width:1080px){ .startCol{grid-template-columns:1fr 1fr;align-items:start} }
+  .startPane{display:grid;gap:clamp(10px,1.1vw,15px);max-width:720px;margin:0 auto}
+  .startH{font-family:var(--sans);font-size:clamp(20px,2.4vw,26px);font-weight:800;color:var(--ink);margin:2px 0 6px}
+  .startTwo,.startCol{display:grid;gap:clamp(10px,1.1vw,15px);align-content:start}
   .startCol>.card{margin-top:0}
   /* spotting-fakes checklist */
   .fakeRow{margin-top:11px;padding-top:10px;border-top:1px solid rgba(255,255,255,.07)}

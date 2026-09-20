@@ -725,6 +725,26 @@ function valSubText(x){
   if(bits.length)return `${bits.join(" + ")} applied — standard baseline ${money(x.baseValue)}; condition from step 5 comes off next. Change edits the baseline`;
   return st.overrides[x.item.id]?"Your number":"Starting estimate — replace it with what you actually sell these for";
 }
+/* One step at a time, the way the phone works. Which one is live follows
+   the same run the Next step panel reads: what it is, then what it resells
+   for, then what shape it is in. A step that is not live folds to a line
+   carrying its answer, and any line opens on a click. */
+function stepFlow(){ return st.flow==="all"?"all":"steps"; }
+function liveStep(x){
+  /* Without a resale value nothing downstream means anything, so that is the
+     step. After it, condition - and it stays the live one, because it is what
+     gets adjusted while the customer is standing there, and slamming it shut
+     the instant it is answered would be worse than leaving it open. */
+  return x.checked?5:4;
+}
+function stepHead(n,title,answer,live){
+  return `<summary class="stepSum${live?" live":""}"><span class="stepN">${n}</span>`
+    +`<span class="stepT">${title}</span><span class="stepA">${answer||"&mdash;"}</span></summary>`;
+}
+function brandAnswer(x){
+  const bits=[st.brandTyped||(x.brandName||""),st.model||"",st.detail||""].map(t=>String(t).trim()).filter(Boolean);
+  return bits.length?esc(bits.join(" \u00b7 ")):"not set";
+}
 function renderItem(){
   const x=calcItem(); const cat=x.cat;
   /* the pipeline: 1 category → 2 item → 3 your resale → 4 what changes it → 5 rate → 6 THE LOAN → 7 the rules */
@@ -744,7 +764,12 @@ function renderItem(){
       ${cat.items.map((it,ix)=>`<button class="itemBtn${st.picked&&it.id===st.itemId?" on":""}" data-item="${it.id}"><span class="idx">${String(ix+1).padStart(2,"0")}</span><span style="flex:1">${it.name}</span>${ownAvgTag(it.id)}</button>`).join("")}
       <button class="itemBtn${st.picked&&st.itemId===custId(cat.id)?" on":""}" data-item="${custId(cat.id)}"><span class="idx">+</span><span style="flex:1">${st.itemId===custId(cat.id)&&st.bookName?esc(st.bookName):"Not on any list — I set the price"}</span></button>
     </div></details>${photoCardHTML()}${seenCardHTML()}</div>`;
-  let mid=`<div class="colC">${fakeCardHTML(x)}${compsCardHTML(x)}<div class="card"><span class="label">3 &middot; Brand, make &amp; model</span>
+  const ST=stepFlow()==="steps"&&!window.PHONE, LIVE=ST?liveStep(x):0;
+  /* A step opened by hand stays open through the re-render a click inside it
+     causes - otherwise it shuts under the hand that opened it. It is let go
+     when the work moves to a different step. */
+  if(ST&&st.stepAt!==LIVE){ st.openS3=st.openS4=st.openS5=false; st.stepAt=LIVE; }
+  let mid=`<div class="colC">${fakeCardHTML(x)}${compsCardHTML(x)}${ST?`<details class="card stepCard" id="s3"${st.openS3?" open":""}>`+stepHead(3,"Brand, make &amp; model",brandAnswer(x),false):`<div class="card"><span class="label">3 &middot; Brand, make &amp; model</span>`}
     <div class="driver"><p><b class="go">What sets the price:</b> ${(itemOv()&&itemOv().driver)||cat.driver}</p><p><b class="no">What kills it:</b> ${(itemOv()&&itemOv().killer)||cat.killer}</p></div>`;
   if(cat.brand.on){
     const ov=itemOv();
@@ -770,9 +795,11 @@ function renderItem(){
     <div class="cardHint" id="specVerdict">${specVerdictHTML(x)}</div>
     ${_sc&&!x.checked?`<div class="cardHint" style="opacity:.8">This item prices from the pickers above — the text boxes are for the ticket record${/gener/i.test(x.item.name)?" (watts typed here still compute a value)":""}.</div>`:""}
     <div class="cardHint">${dh.hint?dh.hint+" ":""}The exact model and specs can move money more than anything else on this page — when they matter, check sold listings and put the real number in step 4.</div>
-  </div>
-  <div class="card" id="step4">${step4Inner(x)}`;
-  mid+=`</div><div class="card"><span class="label">5 &middot; Condition, completeness &amp; speed</span>`;
+  ${ST?"</details>":"</div>"}
+  ${ST?`<details class="card stepCard" id="s4"${LIVE===4||st.openS4?" open":""}>`+stepHead(4,"Resale value",x.checked?money(Math.round(x.resale)):"not checked",LIVE===4)+`<div id="step4">${step4Inner(x)}</div>`
+      :`<div class="card" id="step4">${step4Inner(x)}`}`;
+  mid+=`${ST?"</details>":"</div>"}${ST?`<details class="card stepCard" id="s5"${LIVE===5||st.openS5?" open":""}>`+stepHead(5,"Condition &amp; speed",esc(COND_WORDS[st.cond][0]),LIVE===5)
+      :`<div class="card"><span class="label">5 &middot; Condition, completeness &amp; speed</span>`}`;
   mid+=`<span class="label">Condition${x.checked?" &mdash; next to a typical used one":""}</span><div class="pills mb14" style="border-radius:var(--r-s)">${CONDITIONS.map(c=>`<button class="${c.id===st.cond?"on":""}" style="flex:1;padding:7px 5px;font-size:11px" data-cond="${c.id}" title="${c.hint}">${c.label.replace("New in box","New")}</button>`).join("")}</div>`;
   if(cat.complete.on){
     mid+=`<span class="label">${cat.complete.label}</span><div class="pills mb14" style="border-radius:var(--r-s)">
@@ -780,7 +807,7 @@ function renderItem(){
       <button class="${!st.complete?"on":""}" style="flex:1" data-comp="0">Pieces missing</button></div>`;
   }
   mid+=`<span class="label">How fast it moves in Bristol</span><div class="pills" style="border-radius:var(--r-s)">${LIQUIDITY.map(l=>`<button class="${x.liqId===l.id?"on":""}" style="flex:1;padding:7px 5px;font-size:11px" data-liq="${l.id}" title="${l.hint}">${l.label}</button>`).join("")}</div>
-  </div>
+  ${ST?"</details>":"</div>"}
   <details class="card foldCard"${st.openRates?" open":""} id="rateFold">
     <summary><span class="label" style="margin:0">6 &middot; Lending and buying rates</span><span class="foldSub">${x.baseLtv}% lend &middot; ${x.buyPct}% buy &mdash; shop policy, rarely per deal</span></summary>
     <div class="rateRow" style="margin-top:10px"><span class="label">Base lending rate for ${cat.label.toLowerCase()} (%)</span><input id="ltvNum" class="numIn rateNum" type="number" inputmode="numeric" min="15" max="100" value="${x.baseLtv}"></div>
@@ -799,8 +826,7 @@ function renderItem(){
   if(!st.picked&&!window.PHONE)return omniHTML()+`<div class="startPane">
     <div class="card"><span class="label">Start here</span>
       <div class="startH">What's on the counter?</div>
-      <div class="cardHint" style="font-size:14px">Type it in the box above &mdash; a brand, a model, or just what the thing is. Tap what it is and the desk fills in what it resells for, then walks you to the loan.</div>
-      <div class="cardHint" style="font-size:13px">It knows ${CATALOG.reduce((a,c)=>a+c.items.length,0)} kinds of thing, ${mpCount()} models by name, and the price book besides. If it has none of them, type it anyway and set the price yourself.</div>
+      <div class="cardHint" style="font-size:14px">Type it above &mdash; a brand, a model, or just what the thing is. It knows ${CATALOG.reduce((a,c)=>a+c.items.length,0)} kinds of thing and ${mpCount()} models by name; anything else, type it anyway and set the price yourself.</div>
     </div>
     <div class="startTwo">${left.replace('<div class="colL">','<div class="startCol">')}</div>
   </div>`;
@@ -813,7 +839,8 @@ function wireItem(){
      category causes. */
   const br=document.getElementById("browseBox");
   if(br)br.ontoggle=()=>{ st.browse=br.open; };
-  for(const [id,key] of [["whyFold","openWhy"],["paybackFold","openPayback"],["rateFold","openRates"]]){
+  for(const [id,key] of [["whyFold","openWhy"],["paybackFold","openPayback"],["rateFold","openRates"],
+                         ["s3","openS3"],["s4","openS4"],["s5","openS5"]]){
     const d=document.getElementById(id); if(d)d.ontoggle=()=>{ st[key]=d.open; };
   }
   v.querySelectorAll("[data-cat]").forEach(b=>b.onclick=()=>{
@@ -1184,6 +1211,13 @@ function renderDevice(){
   <div class="card"><span class="label">This copy of the tool</span>
     <div class="cardHint" style="margin-top:0">Build <b style="color:var(--ink);font-family:var(--mono)">${BUILD||"unknown"}</b>. The number beside SYS.OK at the top says the same thing, so you can tell at a glance whether a device is running what was published.</div>
     <div class="row2" style="margin-top:9px"><button class="ghostBtn" id="pdFresh">Get the newest version</button></div>
+  </div>
+  <div class="card"><span class="label">How the pricing page is laid out</span>
+    <div class="pills mb14" style="border-radius:var(--r-s);margin-top:8px">
+      <button class="${stepFlow()==="steps"?"on":""}" style="flex:1;padding:9px 6px;font-size:12px" data-flow="steps">One step at a time</button>
+      <button class="${stepFlow()==="all"?"on":""}" style="flex:1;padding:9px 6px;font-size:12px" data-flow="all">Everything open</button>
+    </div>
+    <div class="cardHint" style="margin-top:0"><b style="color:var(--ink)">One step at a time</b> shows the step you are on and folds the rest to a line carrying its answer &mdash; click any line to open it. The way the phone works, and it puts an item on about one screen.<br><b style="color:var(--ink)">Everything open</b> is the old layout, every step expanded at once.</div>
     <div class="cardHint" style="font-size:12.5px">Throws away everything this browser has cached and reloads from the site. Nothing you have recorded is touched &mdash; the shelf tags, listings and deal log are kept separately.</div>
   </div>
   <div class="card"><p style="font-size:14px;line-height:1.6;margin:0;color:var(--ink-2)">Do all of this before money changes hands. A locked phone is worth nothing and there is no fixing it afterward.</p></div>
@@ -1282,7 +1316,7 @@ function pdConnectHTML(){
   return '<div class="card" id="pdConnCard" style="border:1px dashed var(--e2-hi)"><span class="label">\uD83D\uDCF7 Camera &mdash; photograph the item</span>'+
     '<div class="cardHint">'+(on
       ? "Connected, but the service did not answer. Check that it is running."
-      : "<b style=\"color:var(--ink)\">This is the camera, and it is off.</b> Connect the shop&rsquo;s service once and this card becomes a Take picture button \u2014 photograph an item and it fills in what it is, or photograph a price tag and it goes in your record.")+'</div>'+
+      : "<b style=\"color:var(--ink)\">This is the camera, and it is off.</b> Connect the shop&rsquo;s service once and this becomes a Take picture button \u2014 for an item, or for another shop&rsquo;s price tag.")+'</div>'+
     '<div class="row2" style="margin-top:8px"><button class="ghostBtn" id="pdConnBtn">'+
       (on?"Change the address":"Connect")+'</button>'+
       (on?'<button class="ghostBtn" id="pdConnOff">Disconnect</button>':'')+'</div></div>';
@@ -1290,10 +1324,11 @@ function pdConnectHTML(){
 document.addEventListener("click",e=>{
   const fr=e.target&&e.target.closest?e.target.closest("#pdFresh"):null;
   if(fr){ fr.textContent="Fetching\u2026"; fr.disabled=true; forceUpdate(); return; }
-  const f=e.target&&e.target.closest?e.target.closest("[data-fake],[data-mkind],#fakeClear"):null;
+  const f=e.target&&e.target.closest?e.target.closest("[data-fake],[data-mkind],[data-flow],#fakeClear"):null;
   if(f){
     if(f.id==="fakeClear"){ st.fakeAns={}; st.fakeKey=mkKey(); render(); return; }
     if(f.dataset.mkind){ st.metalKind=f.dataset.mkind; st.fakeAns={}; st.fakeKey=mkKey(); render(); return; }
+    if(f.dataset.flow){ st.flow=f.dataset.flow; try{ persist(); }catch(e){} render(); return; }
     const [id,i,v]=String(f.dataset.fake).split(":"); fakeSet(id,i,v); return;
   }
   const b=e.target&&e.target.closest?e.target.closest("#pdConnBtn,#pdConnOff,#pdRetGo"):null; if(!b)return;
