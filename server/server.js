@@ -18,7 +18,7 @@ const readBody = (req) => new Promise((resolve, reject) => {
   req.on("error", reject);
 });
 
-createServer(async (req, res) => {
+const srv = createServer(async (req, res) => {
   const cors = corsHeaders(process.env);
   const send = (status, obj) =>
     res.writeHead(status, { "content-type": "application/json", ...cors }).end(JSON.stringify(obj));
@@ -47,4 +47,19 @@ createServer(async (req, res) => {
        restart and the counter would see a dead service. */
     send(500, { ok: false, code: "server_error" });
   }
-}).listen(PORT, () => console.log("pawn desk service listening on " + PORT));
+});
+
+srv.listen(PORT, () => console.log("pawn desk service listening on " + PORT));
+
+/* Railway stops the container with SIGTERM on every redeploy. Without this,
+ * node dies by the signal, npm reports "command failed / signal SIGTERM",
+ * and the platform mails "Deploy Crashed" for an ordinary restart - which
+ * sends you reading logs for a fault that is not there. Close up and leave
+ * with a zero, and give an in-flight photo lookup a few seconds to land. */
+for (const sig of ["SIGTERM", "SIGINT"]) {
+  process.on(sig, () => {
+    console.log("pawn desk service stopping on " + sig);
+    srv.close(() => process.exit(0));
+    setTimeout(() => process.exit(0), 8000).unref();
+  });
+}

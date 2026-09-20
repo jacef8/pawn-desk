@@ -3485,7 +3485,10 @@ function nextStepHTML(x){
     h=m&&m.stale?`The price list for ${esc(m.name)} is ${m.age} days old. Check what it sells for now.`:`Check what it actually sold for.`;
     sub=(!CAP.sample&&isTouch())?"Tap a button and look at the sold prices. Then tap <b>I know the price</b> and type the middle one.":pdBridge?"Click a button. The sold page opens, reads itself, and the price lands here.":(isTouch()?"Tap a button, screenshot the sold results, and add the screenshot below.":"Click a button. On the sold page, click your <b>Pawn price</b> favorite and the price lands here.");
     act=compTargets(x).map(t=>`<a class="nsBtn nsSold" data-label="${t.name}" href="${esc(t.url)}" target="_blank" rel="opener" referrerpolicy="no-referrer"><span>${t.name}</span><b>&#8599;</b></a>`).join("")
-       +`<button class="nsBtn ghost" id="nsType"><span>I know the price &mdash; type it</span></button>`
+       /* A button saying "type it" that jumped the page 900px down to a box
+          somewhere else. The box belongs here, beside the one for the new
+          price, which has worked this way all along. */
+       +`<div class="row2" style="margin-top:8px;grid-column:1/-1"><input id="nsVal" class="numIn" type="number" inputmode="decimal" placeholder="I know the price \u2014 type what it sells for used" style="flex:1;min-width:0"><button class="ghostBtn" id="nsValGo" style="padding:10px 15px">Use it</button></div>`
        +altSourcesHTML(x)
        +`<div class="label" style="margin-top:14px">No sold prices? Use what it costs new</div>`
        +(CAP.sample?`<button class="nsBtn on" id="pdRetGo"><span>${retailBusy?"Looking it up&hellip;":"Look up the new price"}</span></button><div class="cardHint" id="pdRetMsg"></div>`:retailTargets(compQuery(x)).map(t=>`<a class="nsBtn nsRetail" data-label="${esc(t.name)}" href="${esc(t.url)}" target="_blank" rel="opener" referrerpolicy="no-referrer"><span>${esc(t.name)}</span><b>&#8599;</b></a>`).join(""))
@@ -3521,7 +3524,12 @@ function wireNext(){
   const useRetail=()=>{ const n=parseFloat(ri&&ri.value);
     if(n>0){ const p=retailPct(calcItem()); st.market={kind:"retail",key:mkKey(),retail:Math.round(n),pct:p,mid:Math.max(5,Math.round(n*p/100/5)*5)}; render(); } };
   if(rg)rg.onclick=useRetail; if(ri)ri.onkeydown=e=>{ if(e.key==="Enter")useRetail(); };
-  const ty=document.getElementById("nsType"); if(ty)ty.onclick=()=>{ st.editing=true; render(); const v=document.getElementById("valIn"); if(v){ if(v.scrollIntoView)v.scrollIntoView({block:"center"}); v.focus(); } };
+  const vi=document.getElementById("nsVal"), vg=document.getElementById("nsValGo");
+  /* Same shape as the new-price box beside it, and the same place the step-4
+     box writes to, so it makes no difference which one is used. */
+  const useTyped=()=>{ const n=parseFloat(vi&&vi.value);
+    if(n>0){ st.market={kind:"hand",key:mkKey(),mid:Math.round(n)}; st.editing=false; render(); } };
+  if(vg)vg.onclick=useTyped; if(vi)vi.onkeydown=e=>{ if(e.key==="Enter")useTyped(); };
   ns.querySelectorAll("[data-ncond]").forEach(b=>b.onclick=()=>{
     if(b.id==="nsCond"){ st.condSet=false; render(); return; }
     st.cond=b.dataset.ncond; st.condSet=true; render();
