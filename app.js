@@ -2078,9 +2078,15 @@ function omniRows(q){
   if(P.metal&&!P.modelItem)rows.push({kind:"metal",metal:P.metal,karat:P.karat});
   if(P.modelItem){ add(findEntry(P.modelItem),{strong:true}); strong=true; }
   { const bw=omniWords(P.brand||""), mq=omniWords(q).filter(w=>!STOP.has(w)&&bw.indexOf(w)<0);
-    if(mq.length){
+    /* The brand words come out so that "husqvarna 455" is matched on 455
+       rather than made to carry the brand into every comparison. When the
+       brand is ALL that was typed there is nothing left to search with, and
+       this step used to be skipped - so typing the whole brand showed fewer
+       models than typing half of it. With nothing left, search the brand. */
+    const keys=mq.length?mq:bw;
+    if(keys.length){
       const r0=rows[0], strongId=r0&&r0.strong?((mpFor(r0.kind==="item"?r0.itemId:r0.name,[r0.brand,r0.model,r0.detail].join(" "))||[])[0]):null;
-      MODEL_PRICES.map(r=>{ const nw=omniWords(r[2]); let s=0; for(const w of mq){ const h=wordHit(w,nw); if(!h)return null; s+=h; } if(omniNorm(r[2]).indexOf(omniNorm(q))>=0)s+=5; return {r,s}; })
+      MODEL_PRICES.map(r=>{ const nw=omniWords(r[2]); let s=0; for(const w of keys){ const h=wordHit(w,nw); if(!h)return null; s+=h; } if(omniNorm(r[2]).indexOf(omniNorm(q))>=0)s+=5; return {r,s}; })
         .filter(Boolean).sort((a,b)=>b.s-a.s||a.r[2].length-b.r[2].length).slice(0,5)
         .forEach(({r})=>{ if(rows.length>=8||r[0]===strongId)return; const e=findEntry(String(r[1]).split("|")[0]); if(!e)return;
           rows.push(Object.assign({},e,{kind:"mp",base:e.kind,mp:r,brand:"",model:"",detail:"",spec:{},cond:P.cond,complete:P.complete}));   strong=true; });
