@@ -1716,10 +1716,63 @@ function pdConnectHTML(){
       (window.PHONE?" <b style=\"color:var(--ink)\">Already switched on at the desk?</b> Both are printed on the desk computer under <b style=\"color:var(--ink)\">Setup</b> &mdash; this phone keeps its own copy, so it has to be told once too.":"")+'</div>'+
     '<div class="row2" style="margin-top:8px"><button class="brassBtn" id="pdConnBtn" style="padding:10px 18px">'+
       (on?"Save and reconnect":"Switch it on")+'</button>'+
+      '<button class="ghostBtn" id="pdConnTest">Test the connection</button>'+
       (on?'<button class="ghostBtn" id="pdConnOff">Disconnect</button>':'')+'</div>'+
     '<div class="cardHint" id="pdConnMsg" style="min-height:16px"></div></div>';
 }
+/* "Couldn't reach the service" has three quite different causes and the
+   browser reports all of them the same way: a thrown fetch. This tells them
+   apart and says which, instead of leaving the counter to guess.
+
+   A no-cors request still completes when the server is alive but refusing
+   the browser's origin - so if the plain request dies and the opaque one
+   lives, it is CORS, which means ALLOW_ORIGIN, not a dead service. */
+async function pdTestConn(){
+  const out=document.getElementById("pdConnMsg");
+  const srvEl=document.getElementById("pdSrvIn"), tokEl=document.getElementById("pdTokIn");
+  let u=String((srvEl&&srvEl.value)||pdServer()||"").trim().replace(/\/+$/,"");
+  const tok=String((tokEl&&tokEl.value)||pdToken()||"").trim();
+  const say=(tone,t)=>{ if(out)out.innerHTML='<span style="color:'+tone+'">'+t+'</span>'; };
+  if(!u){ say("var(--warn)","Put the service address in first."); return; }
+  if(!/^https?:\/\//i.test(u))u="https://"+u;
+  if(/^http:\/\//i.test(u)&&location.protocol==="https:"){
+    say("var(--bad)","That address starts with <b>http://</b>. This page is https, so the phone blocks it before it leaves. Change it to <b>https://</b>.");
+    return; }
+  say("var(--ink-3)","Testing\u2026");
+  /* 1. is anything there at all? */
+  let limits=null, threw=null;
+  try{
+    const r=await fetch(u+"/limits",{signal:AbortSignal.timeout(15000)});
+    limits={status:r.status}; try{ limits.body=await r.json(); }catch(e){}
+  }catch(e){ threw=e; }
+  if(threw){
+    let opaque=false;
+    try{ await fetch(u+"/limits",{mode:"no-cors",signal:AbortSignal.timeout(15000)}); opaque=true; }catch(e){}
+    if(opaque) say("var(--bad)","The service is <b>alive</b> but refusing this page. That is <b>ALLOW_ORIGIN</b> in Railway \u2014 set it to <b>"+esc(location.origin)+"</b> and redeploy.");
+    else       say("var(--bad)","<b>Nothing answered at that address.</b> Either it is wrong, or the service is not running. Open <b>"+esc(u)+"/limits</b> in this phone's browser: a line of JSON means it is alive, an error page means Railway is down or asleep.");
+    return;
+  }
+  if(limits.status!==200||!limits.body||!limits.body.ok){
+    say("var(--bad)","Something answered at that address, but it is not the pawn service (HTTP "+limits.status+"). Check the address.");
+    return; }
+  /* 2. it is there - does it accept the token? */
+  if(!tok){ say("var(--warn)","The service is up and reachable. Now put the token in."); return; }
+  try{
+    const r=await fetch(u+"/json",{method:"POST",
+      headers:{"content-type":"application/json","x-pawn-token":tok},
+      body:JSON.stringify({prompt:"Reply with JSON and nothing else: {\"ok\":1}",images:[]}),
+      signal:AbortSignal.timeout(30000)});
+    const j=await r.json().catch(()=>null);
+    if(j&&j.ok) say("var(--accent)","<b>All good.</b> The service is up, the token works and it can reach Claude.");
+    else{
+      const c=(j&&j.code)||("http_"+r.status);
+      say("var(--bad)","Reached it, but it answered <b>"+esc(c)+"</b>. "+esc(photoErrCopy(c)));
+    }
+  }catch(e){ say("var(--bad)","Reached the service, but the test read timed out. Railway may be waking up \u2014 try once more."); }
+}
 document.addEventListener("click",e=>{
+  const tst=e.target&&e.target.closest?e.target.closest("#pdConnTest"):null;
+  if(tst){ pdTestConn(); return; }
   const so=e.target&&e.target.closest?e.target.closest("#pinNew"):null;
   if(so){ startOver(); return; }
   const fr=e.target&&e.target.closest?e.target.closest("#pdFresh"):null;
