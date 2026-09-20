@@ -126,6 +126,7 @@ function phoneBoot(){
     renderTabs=function(){
       const btn=([id,l])=>`<button class="${st.mode===id?"on":""}" data-tab="${id}">${l}</button>`;
       document.getElementById("tabs").innerHTML=`<div class="pills">${[["item","Check a price"],["metal","Gold & silver"]].map(btn).join("")}</div>`
+        +(st.snapDetail&&st.mode==="item"?`<div class="pills ref"><button id="snapBack">&lsaquo; Simple view</button></div>`:"")
         /* The shelf tags are photographed on this thing. Without the Setup
            tab here, Export/Import lives only on the desk - and a phone with
            no service has no way to get its record across at all. */
@@ -133,6 +134,25 @@ function phoneBoot(){
     };
   }catch(x){}
   if(st.mode!=="item"&&st.mode!=="metal"&&st.mode!=="setup")st.mode="item";
+  /* Snap -> price replaces the whole item page here. The detailed one is a
+     tap away and everything in it still works; it is simply not what you
+     want in your hand in somebody's driveway. */
+  try{
+    const _item=renderItem;
+    renderItem=function(){ return snapOn()?snapHTML():_item.apply(this,arguments); };
+    const _wire=wireItem;
+    wireItem=function(){
+      _wire.apply(this,arguments);
+      const more=document.getElementById("snapMore");
+      if(more)more.onclick=()=>{ st.snapDetail=true; render(); };
+      const back=document.getElementById("snapBack");
+      if(back)back.onclick=()=>{ st.snapDetail=false; render(); };
+    };
+    /* When a photo names the thing, go and get its price without being asked. */
+    const _apply=applyPhotoRead;
+    applyPhotoRead=function(r){ _apply.apply(this,arguments);
+      if(snapOn())setTimeout(()=>{ try{ snapPriceAfterPhoto(); }catch(e){} },0); };
+  }catch(x){}
   /* search: anything not on the lists can still be checked */
   try{
     const _render=render;
@@ -142,3 +162,81 @@ function phoneBoot(){
 }
 document.addEventListener("DOMContentLoaded",phoneBoot);
 
+/* ================= SNAP -> PRICE ==========================================
+   What this is for, in one line: you are walking a yard sale, you see
+   something, you photograph it, and the phone tells you the most you should
+   pay. That is the whole job. Everything else the desk can do - categories,
+   rates, the deal log, the step cards - is behind one fold, because on a
+   driveway it is in the way.
+
+   The desk is untouched. This replaces renderItem on the phone only. */
+function snapOn(){ return window.PHONE && !st.snapDetail; }
+
+/* After a photo names the thing, price it without being asked. Tapping a
+   second button to find out what it is worth is the tap this screen exists
+   to remove. One lookup, and it reuses listings already on file. */
+let snapAuto=false;
+async function snapPriceAfterPhoto(){
+  if(snapAuto||!CAP.sample||!st.picked)return;
+  const x=calcItem(); if(x.checked)return;
+  snapAuto=true;
+  try{ await priceFind(); }catch(e){}
+  snapAuto=false;
+  render();
+}
+
+function snapHTML(){
+  const x=calcItem();
+  const has=st.picked, F=fakeState(fakeSheet(x));
+  const name=[st.brandTyped,st.model].filter(Boolean).join(" ")||(has?displayName(x):"");
+  const bits=[st.detail,COND_WORDS[st.cond]&&COND_WORDS[st.cond][0]].filter(Boolean).join(" \u00b7 ");
+
+  /* The camera, full width, before anything else. */
+  /* Written out rather than reusing camButtonHTML: that one carries an inline
+     style, and an inline style beats any rule aimed at it - which is how the
+     button ended up sharing a row instead of owning one. */
+  const cam=(CAP.sample&&CAP.images)
+    ? `<div class="snapCam">
+        <label class="brassBtn camBtn snapShoot">\uD83D\uDCF7 Take a picture<input id="photoCam" type="file" accept="image/*" capture="environment" style="display:none"></label>
+        ${photoBusy
+          ? `<div class="snapBusy">Reading the picture\u2026 <button class="ghostBtn" id="photoStop">Stop</button></div>`
+          : `<label class="snapAlt">or choose one already on the phone<input id="photoIn" type="file" accept="image/jpeg,image/png,image/webp" style="display:none"></label>`}
+       </div>`
+    : pdConnectHTML();
+
+  if(!has) return `<div class="snapWrap">${cam}
+    <div class="snapOr">or type what it is</div>${omniHTML()}
+    <div class="snapTip">Fill the frame. A model plate, a barrel stamp or a label is worth more than the whole object in shot.</div>
+  </div>`;
+
+  /* A gated sheet means no price until it is worked - the phone must hold the
+     same line the desk does, or the counter just uses the phone. */
+  if(F&&F.blocks) return `<div class="snapWrap">${cam}
+    <div class="snapName">${esc(name)}</div>
+    ${phVerdictHTML(x)}
+    ${snapFootHTML()}</div>`;
+
+  const priced=x.checked;
+  const busy=(typeof findBusy!=="undefined"&&findBusy)||snapAuto;
+  const big = x.buyTooThin ? `<div class="snapNo">Walk away</div>
+        <div class="snapSub">It doesn\u2019t sell for enough to clear the ${money(x.buyFloor)} you want out of a buy.</div>`
+    : `<div class="snapLab">Pay up to</div><div class="snapBig">${money(x.buy)}</div>
+       <div class="snapSub">Resells for <b>${money(Math.round(x.resale))}</b> \u00b7 you\u2019d make <b>${money(x.buyMargin)}</b></div>`;
+
+  return `<div class="snapWrap">${cam}
+    <div class="snapName">${esc(name)}${bits?`<span>${esc(bits)}</span>`:""}</div>
+    ${busy?`<div class="snapCard busy"><div class="snapLab">Checking what it sells for\u2026</div>
+        <div class="snapBig dim">${money(x.buy)}</div>
+        <div class="snapSub">From the built-in list for now. The live price lands in a moment.</div></div>`
+      :`<div class="snapCard${x.buyTooThin?" bad":""}">${big}
+        <div class="snapSrc">${priced?esc(nsSrcShort(x.market)):"Built-in list \u2014 no live prices found"}${priced?"":""}</div></div>`}
+    <div class="snapCond">${CONDITIONS.map(c=>`<button class="${c.id===st.cond?"on":""}" data-cond="${c.id}">${c.label.replace("New in box","New")}</button>`).join("")}</div>
+    ${snapFootHTML()}
+  </div>`;
+}
+function snapFootHTML(){
+  return `<div class="snapFoot">
+    <button class="ghostBtn" id="pinNew">Price another</button>
+    <button class="ghostBtn" id="snapMore">Show all the detail &rsaquo;</button>
+  </div>`;
+}
