@@ -399,7 +399,7 @@ function gauge(pct,label,big,small,id){
 
 /* ---------------- tabs ---------------- */
 const PRICE_TABS=[["item","Price an item"],["metal","Gold & silver"]];
-const REF_TABS=[["log","Deal log"],["device","Phones & devices"],["flags","Walk away"]];
+const REF_TABS=[["log","Deal log"],["device","Phones & devices"],["flags","Walk away"],["setup","Setup"]];
 function renderTabs(){
   const btn=([id,l])=>`<button class="${st.mode===id?"on":""}" data-tab="${id}">${l}</button>`;
   document.getElementById("tabs").innerHTML =
@@ -1243,8 +1243,12 @@ function wireMetal(){
 }
 
 /* ---------------- device + flags tabs ---------------- */
-function renderDevice(){
+/* Everything about this copy of the tool rather than about an item: which
+   build it is running, how the pricing page is laid out, and moving the
+   shelf record by hand. None of it is part of buying or lending. */
+function renderSetup(){
   return `<div class="narrow">
+
   <div class="card"><span class="label">This copy of the tool</span>
     <div class="cardHint" style="margin-top:0">Build <b style="color:var(--ink);font-family:var(--mono)">${BUILD||"unknown"}</b>. The number beside SYS.OK at the top says the same thing, so you can tell at a glance whether a device is running what was published.</div>
     <div class="row2" style="margin-top:9px"><button class="ghostBtn" id="pdFresh">Get the newest version</button></div>
@@ -1256,14 +1260,20 @@ function renderDevice(){
       <label class="ghostBtn" style="margin:0;cursor:pointer" title="Load tags from a file exported on another device">Import<input id="seenImp" type="file" accept="application/json,.json" style="display:none"></label>
     </div>
   </div>
-  <div class="card"><span class="label">How the pricing page is laid out</span>
+${window.PHONE?"":`  <div class="card"><span class="label">How the pricing page is laid out</span>
     <div class="pills mb14" style="border-radius:var(--r-s);margin-top:8px">
       <button class="${stepFlow()==="steps"?"on":""}" style="flex:1;padding:9px 6px;font-size:12px" data-flow="steps">One step at a time</button>
       <button class="${stepFlow()==="all"?"on":""}" style="flex:1;padding:9px 6px;font-size:12px" data-flow="all">Everything open</button>
     </div>
     <div class="cardHint" style="margin-top:0"><b style="color:var(--ink)">One step at a time</b> shows the step you are on and folds the rest to a line carrying its answer &mdash; click any line to open it. The way the phone works, and it puts an item on about one screen.<br><b style="color:var(--ink)">Everything open</b> is the old layout, every step expanded at once.</div>
     <div class="cardHint" style="font-size:12.5px">Throws away everything this browser has cached and reloads from the site. Nothing you have recorded is touched &mdash; the shelf tags, listings and deal log are kept separately.</div>
-  </div>
+  </div>`}
+</div>`;
+}
+/* Taking in a phone: what to check before money changes hands. Setup does
+   not belong on this tab - it is a counter checklist, not a settings drawer. */
+function renderDevice(){
+  return `<div class="narrow">
   <div class="card"><p style="font-size:14px;line-height:1.6;margin:0;color:var(--ink-2)">Do all of this before money changes hands. A locked phone is worth nothing and there is no fixing it afterward.</p></div>
   ${DEVICE_STEPS.map((s,i)=>
     `<div class="card step"><div style="display:flex;gap:12px;align-items:flex-start"><span class="n">${String(i+1).padStart(2,"0")}</span><div><div class="t">${s.t}</div><div class="d">${s.d}</div></div></div></div>`).join("")}</div>`;
@@ -3920,19 +3930,27 @@ function nextStepHTML(x){
     /* The "Pawn price favorite" is a browser button that has to be installed
        first. Telling everyone to click one they may not have is telling them
        to do something they cannot. It is mentioned only once it is there. */
-    sub=CAP.sample?"<b>Look up what it sells for used</b> searches the sold pages for you and brings the middle price back &mdash; you do not have to read them. The buttons below are there for when you want to look yourself."
+    sub=CAP.sample?"Tap <b>Look up what it sells for used</b>. It searches eBay sold and Google Shopping used together and brings the middle price back here &mdash; you do not open or read anything. Already know the price? Type it in the box."
       :pdBridge?"Click a button. The sold page opens, reads itself, and the price lands here."
       :"Open one and look at what the thing <b>actually sold for</b> &mdash; not what it was listed at. Then come back and type the middle price into the box.";
-    act=compTargets(x).map(t=>`<a class="nsBtn nsSold" title="Opens ${esc(t.name)} in a new tab so you can look at what these actually sold for. Come back and type the middle price in." data-label="${t.name}" href="${esc(t.url)}" target="_blank" rel="opener" referrerpolicy="no-referrer"><span>${t.name}</span><b>&#8599;</b></a>`).join("")
-       /* A button saying "type it" that jumped the page 900px down to a box
-          somewhere else. The box belongs here, beside the one for the new
-          price, which has worked this way all along. */
-       +`<div class="row2" style="margin-top:8px;grid-column:1/-1"><input id="nsVal" class="numIn" title="What ONE OF THESE sells for used \u2014 not what you will lend, and not what it cost new." type="number" inputmode="decimal" placeholder="I know the price \u2014 type what it sells for used" style="flex:1;min-width:0"><button class="ghostBtn" id="nsValGo" title="Use the price you typed as the resale value" style="padding:10px 15px">Use it</button></div>`
-       +altSourcesHTML(x)
-       +`<div class="label" style="margin-top:14px">No sold prices? Use what it costs new</div>`
+    const solds=compTargets(x).map(t=>`<a class="nsBtn nsSold" title="Opens ${esc(t.name)} in a new tab so you can look at what these actually sold for. Come back and type the middle price in." data-label="${t.name}" href="${esc(t.url)}" target="_blank" rel="opener" referrerpolicy="no-referrer"><span>${t.name}</span><b>&#8599;</b></a>`).join("");
+    /* A button saying "type it" that jumped the page 900px down to a box
+       somewhere else. The box belongs here, beside the one for the new
+       price, which has worked this way all along. */
+    const typeIt=`<div class="row2" style="margin-top:8px;flex-basis:100%"><input id="nsVal" class="numIn" title="What ONE OF THESE sells for used \u2014 not what you will lend, and not what it cost new." type="number" inputmode="decimal" placeholder="I know the price \u2014 type what it sells for used" style="flex:1;min-width:0"><button class="ghostBtn" id="nsValGo" title="Use the price you typed as the resale value" style="padding:10px 15px">Use it</button></div>`;
+    const rest=altSourcesHTML(x)
+       +`<div class="label" style="margin-top:14px;flex-basis:100%">No sold prices? Use what it costs new</div>`
        +(CAP.sample?`<button class="nsBtn on" id="pdRetGo"><span>${retailBusy?"Looking it up&hellip;":"Look up the new price"}</span></button><div class="cardHint" id="pdRetMsg"></div>`:retailTargets(compQuery(x)).map(t=>`<a class="nsBtn nsRetail" title="Opens ${esc(t.name)} to find what it costs NEW. Use this only when there are no sold prices." data-label="${esc(t.name)}" href="${esc(t.url)}" target="_blank" rel="opener" referrerpolicy="no-referrer"><span>${esc(t.name)}</span><b>&#8599;</b></a>`).join(""))
-       +`<div class="row2" style="margin-top:8px"><input id="nsRet" class="numIn" title="What it costs NEW today. The desk takes it down to a used price using the share for this category \u2014 a last resort when the sold pages come up empty." type="number" inputmode="decimal" placeholder="What it costs new" style="flex:1;min-width:0"><button class="ghostBtn" id="nsRetGo" title="Take the new price down to a used estimate" style="padding:10px 15px">Use it</button></div>`
+       +`<div class="row2" style="margin-top:8px;flex-basis:100%"><input id="nsRet" class="numIn" title="What it costs NEW today. The desk takes it down to a used price using the share for this category \u2014 a last resort when the sold pages come up empty." type="number" inputmode="decimal" placeholder="What it costs new" style="flex:1;min-width:0"><button class="ghostBtn" id="nsRetGo" title="Take the new price down to a used estimate" style="padding:10px 15px">Use it</button></div>`
        +`<div class="cardHint">In ${esc(x.cat.label.toLowerCase())}, a used one books at about <b>${retailPct(x)}%</b> of new here &mdash; $100 new lands at ${money(Math.round(retailPct(x)))}. A real sold price beats this every time, so use this only when the sold pages come up empty.</div>`;
+    /* When the service can do the looking, a row of buttons that only open a
+       tab sits beside the one that does the work and looks exactly like it -
+       so the counter taps "eBay sold", lands on eBay, and nothing comes back.
+       Shut them away: the green button, and a box for a price already known,
+       are the whole step. */
+    act=CAP.sample
+      ?typeIt+`<details class="fold" style="flex-basis:100%"><summary class="foldLine">Rather look yourself &mdash; open the sold pages, or work from the new price</summary><div class="nsAct">${solds+rest}</div></details>`
+      :solds+typeIt+rest;
   } else if(cur===3){
     h=`What shape is it in?`;
     sub=`Next to a typical used one. The resale value assumes <b>Good</b>, normal wear.`;
@@ -4056,6 +4074,7 @@ function render(){
   else if(st.mode==="metal"){v.innerHTML=renderMetal();wireMetal();}
   else if(st.mode==="log"){v.innerHTML=renderLog();wireLog();}
   else if(st.mode==="device"){v.innerHTML=renderDevice();}
+  else if(st.mode==="setup"){v.innerHTML=renderSetup();}
   else {v.innerHTML=renderFlags();}
   ["colL","colC","colR"].forEach(c=>{const el=v.querySelector("."+c);if(el&&zones[c]!=null)el.scrollTop=zones[c];});
   window.scrollTo(0,pageY);

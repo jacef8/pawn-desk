@@ -121,10 +121,14 @@ function phoneBoot(){
   try{
     renderTabs=function(){
       const btn=([id,l])=>`<button class="${st.mode===id?"on":""}" data-tab="${id}">${l}</button>`;
-      document.getElementById("tabs").innerHTML=`<div class="pills">${[["item","Check a price"],["metal","Gold & silver"]].map(btn).join("")}</div>`;
+      document.getElementById("tabs").innerHTML=`<div class="pills">${[["item","Check a price"],["metal","Gold & silver"]].map(btn).join("")}</div>`
+        /* The shelf tags are photographed on this thing. Without the Setup
+           tab here, Export/Import lives only on the desk - and a phone with
+           no service has no way to get its record across at all. */
+        +`<div class="pills ref">${[["setup","Setup"]].map(btn).join("")}</div>`;
     };
   }catch(x){}
-  if(st.mode!=="item"&&st.mode!=="metal")st.mode="item";
+  if(st.mode!=="item"&&st.mode!=="metal"&&st.mode!=="setup")st.mode="item";
   /* search: anything not on the lists can still be checked */
   try{
     const _render=render;
