@@ -3856,7 +3856,10 @@ function render(){
      grid reserves for the lists. */
   v.className=st.mode+((st.mode==="item"&&!st.picked&&!window.PHONE)?" start":"");
   const sy=document.getElementById("sysline");
-  if(sy)sy.textContent="SYS.OK · Updated "+fmtDay(FEED.date)+" · Gold $"+Math.round(FEED.gold).toLocaleString("en-US")+" · Silver $"+Number(FEED.silver).toFixed(2)+(BUILD?" · build "+BUILD:"");
+  /* Short enough to sit on the same row as the title and the tabs. It used
+     to wrap onto a second row, which left a gap beside the title and another
+     beside itself. The green dot already says SYS.OK, so the words went. */
+  if(sy)sy.textContent=fmtDay(FEED.date)+" · Gold $"+Math.round(FEED.gold).toLocaleString("en-US")+" · Silver $"+Number(FEED.silver).toFixed(2)+(BUILD?" · build "+BUILD:"");
   if(st.mode==="item"){v.innerHTML=renderItem();wireItem();}
   else if(st.mode==="metal"){v.innerHTML=renderMetal();wireMetal();}
   else if(st.mode==="log"){v.innerHTML=renderLog();wireLog();}

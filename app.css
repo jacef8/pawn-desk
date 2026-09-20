@@ -24,8 +24,13 @@
   /* flat, sharp surface — no ambient wash, no grain overlay */
   button:focus-visible,input:focus-visible{outline:2px solid var(--accent-2);outline-offset:2px}
   /* shell */
+  /* align-content:start matters more than it looks. The shell is a grid with
+     min-height:100dvh, and a grid's rows stretch to fill leftover height by
+     default - so on a short page the header was inflated from 57px to 195px
+     and the space inside it read as a hole beside the title. Rows keep their
+     own height now; the slack stays at the bottom where it belongs. */
   .dash{position:relative;z-index:1;min-height:100dvh;padding:clamp(11px,1.3vw,18px);display:grid;
-    gap:clamp(10px,1.1vw,15px);grid-template-columns:minmax(0,1fr)}
+    align-content:start;gap:clamp(10px,1.1vw,15px);grid-template-columns:minmax(0,1fr)}
   /* Three columns on a wide screen, but the PAGE scrolls. This used to be a
      fixed 100dvh shell with each column scrolling inside itself, which meant
      the wheel did nothing unless the pointer was in a column, and the columns
@@ -51,13 +56,17 @@
   }
   @media (max-width:1079px){#view.item,#view.metal{display:block}.colL,.colC,.colR{margin-top:14px}}
   /* top bar */
-  .bar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
-    padding:12px 16px;border-radius:var(--r);
+  /* Title, tabs, status - one row. The tabs take the slack in the middle so
+     there is no hole beside the title, and the status sits hard right. */
+  .bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+    padding:11px 16px;border-radius:var(--r);
     background:linear-gradient(158deg,var(--e1-hi),var(--e1) 70%);
     border:1px solid rgba(255,255,255,.07);box-shadow:var(--raise)}
+  .tabwrap{flex:1 1 auto;display:flex;justify-content:center}
+  @media (max-width:1079px){ .tabwrap{justify-content:flex-start} .sys{margin-left:0} }
   .brand .eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.19em;text-transform:uppercase;color:var(--ink-3)}
   h1{font-family:var(--disp);font-size:22px;font-weight:800;letter-spacing:-.03em;margin:2px 0 0;line-height:1}
-  .sys{font-family:var(--mono);font-size:13px;color:var(--ink-2);letter-spacing:.1em;display:flex;align-items:center;gap:7px}
+  .sys{margin-left:auto;font-family:var(--mono);font-size:12.5px;color:var(--ink-2);letter-spacing:.1em;display:flex;align-items:center;gap:7px}
   .sys .dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
   /* tabs: pricing modes in the accent well; reference pages quieter beside them */
   .tabwrap{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
