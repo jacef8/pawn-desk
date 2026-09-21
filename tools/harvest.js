@@ -24,6 +24,14 @@
  *   --out FILE   where findings are kept (default tools/harvest.json)
  *   --merge      merge findings into prices.json (no searching, no spending)
  *   --min N      merge only rows built on at least N listings (default 4)
+ *   --wild       merge rows the sanity band flagged too (see below)
+ *
+ * The sanity band: a harvested price is compared against what the catalog
+ * says that kind of thing is worth. A search that came back with parts, a
+ * lot, or the wrong model usually lands far outside it - a $12 chainsaw or a
+ * $4,000 drill - and at 600 rows nobody reads every line. Anything past 4x or
+ * under a quarter is marked wild, kept in the findings, and left out of the
+ * merge unless you ask for it.
  *
  * Progress is written after every target, so a run that is stopped or dies
  * picks up where it left off and never pays for the same search twice.
@@ -45,6 +53,35 @@ const OUT    = arg("out",  join(HERE, "harvest.json"));
 const SEED   = arg("seed", join(HERE, "seed-models.json"));
 const PRICES = join(ROOT, "prices.json");
 const MIN    = Number(arg("min", 4));
+const WILD_HI = 4, WILD_LO = 0.25;
+
+/* What the catalog reckons this kind of thing is worth, read straight out of
+   app.js - the same trick tools/verify-prices.js uses. It is the only sense
+   of scale available without a human reading every row. */
+function literal(src, decl) {
+  const i = src.indexOf(decl);
+  if (i < 0) throw new Error("could not find " + decl + " in app.js");
+  let d = 0; const j = src.indexOf("[", i);
+  for (let k = j; k < src.length; k++) {
+    if (src[k] === "[") d++;
+    else if (src[k] === "]" && --d === 0) return new Function("return " + src.slice(j, k + 1))();
+  }
+  throw new Error("unterminated " + decl);
+}
+const BOOK = (() => {
+  const out = {};
+  try {
+    const APP = readFileSync(join(ROOT, "app.js"), "utf8");
+    literal(APP, "const CATALOG = [").forEach(c => c.items.forEach(it => { out[it.id] = it.value; }));
+  } catch (e) { console.error("  (could not read the catalog: " + e.message + " - the sanity band is off)"); }
+  return out;
+})();
+const wildness = (ref, med) => {
+  const b = BOOK[ref];
+  if (!b || !med) return null;
+  const ratio = med / b;
+  return { book: b, ratio: Math.round(ratio * 100) / 100, wild: ratio > WILD_HI || ratio < WILD_LO };
+};
 
 const money = (n) => "$" + Math.round(n).toLocaleString();
 const today = () => new Date().toISOString().slice(0, 10);
@@ -61,16 +98,25 @@ if (has("merge")) {
   const pj = JSON.parse(readFileSync(PRICES, "utf8"));
   const rows = pj.rows.slice();
   const byName = new Map(rows.map((r, i) => [String(r[1]) + "|" + String(r[2]).toLowerCase(), i]));
-  let added = 0, updated = 0, skipped = 0;
+  let added = 0, updated = 0, skipped = 0, wild = 0; const touched = [];
   let n = 0;
   const nextId = () => { let id; do { id = "h" + (++n); } while (rows.some(r => r[0] === id)); return id; };
   for (const [key, f] of Object.entries(found)) {
     if (!f || !f.n || f.n < MIN || !(f.lo > 0) || !(f.hi >= f.lo)) { skipped++; continue; }
+    if (f.wild && !has("wild")) { wild++; continue; }
     const row = [f.id || nextId(), f.ref, f.name, Math.round(f.lo), Math.round(f.hi),
                  f.conf, f.date, f.src || "https://www.ebay.com", f.note, f.alias || ""];
     const at = byName.get(f.ref + "|" + f.name.toLowerCase());
     if (at == null) { row[0] = nextId(); rows.push(row); byName.set(f.ref + "|" + f.name.toLowerCase(), rows.length - 1); added++; }
-    else { row[0] = rows[at][0]; rows[at] = row; updated++; }
+    else {
+      /* Keep the id: the hand-written patterns in app.js point at it, and a
+         new id would quietly orphan them. Say which rows were rewritten -
+         some of them were checked by a person against a better source than
+         a marketplace search. */
+      row[0] = rows[at][0];
+      touched.push(`${rows[at][2]}  ${rows[at][3]}-${rows[at][4]} -> ${row[3]}-${row[4]}`);
+      rows[at] = row; updated++;
+    }
   }
   /* the app refuses a file it cannot trust, so check it here rather than
      finding out as a silent fallback on the counter's phone */
@@ -81,8 +127,14 @@ if (has("merge")) {
   copyFileSync(PRICES, PRICES + ".bak");
   writeFileSync(PRICES, JSON.stringify({ updated: today(),
     note: pj.note, rows }, null, 0));
-  console.log(`\n  ${added} added, ${updated} updated, ${skipped} skipped (under ${MIN} listings).`);
-  console.log(`  prices.json now carries ${rows.length} rows. The old one is at prices.json.bak.\n`);
+  console.log(`\n  ${added} added, ${updated} updated, ${skipped} skipped (under ${MIN} listings)` +
+    (wild ? `, ${wild} held back as wild (--wild merges them)` : "") + ".");
+  if (touched.length) {
+    console.log("\n  Rewritten (these had a price already):");
+    touched.slice(0, 20).forEach(t => console.log("    " + t));
+    if (touched.length > 20) console.log("    ... and " + (touched.length - 20) + " more");
+  }
+  console.log(`\n  prices.json now carries ${rows.length} rows. The old one is at prices.json.bak.\n`);
   process.exit(0);
 }
 
@@ -158,7 +210,9 @@ for (let i = 0; i < todo.length; i++) {
   }
   const sold = uniq.filter(c => c.basis === "sold").length;
   const share = sold / ps.length;
+  const w = wildness(t.ref, pct(ps, 0.5));
   found[key(t)] = {
+    wild: !!(w && w.wild), ratio: w ? w.ratio : null, book: w ? w.book : null,
     ref: t.ref, name: t.name, alias: t.alias || "",
     n: ps.length, sold,
     lo: pct(ps, 0.25), hi: pct(ps, 0.75), med: pct(ps, 0.5),
@@ -169,7 +223,10 @@ for (let i = 0; i < todo.length; i++) {
   };
   hit++; save();
   const f = found[key(t)];
-  console.log(`  ${tag} - ${money(f.lo)}-${money(f.hi)}  (${f.n} listings, ${f.sold} sold, ${f.conf})`);
+  console.log(`  ${tag} - ${money(f.lo)}-${money(f.hi)}  (${f.n} listings, ${f.sold} sold, ${f.conf})` +
+    (f.wild ? `  ** ${f.ratio}x the catalog's ${money(f.book)} - check this one **` : ""));
 }
-console.log(`\n  ${hit} priced, ${miss} with nothing usable. Findings in ${OUT}.`);
+const wilds = Object.values(found).filter(f => f && f.wild).length;
+console.log(`\n  ${hit} priced, ${miss} with nothing usable` +
+  (wilds ? `, ${wilds} outside the sanity band and held back` : "") + `. Findings in ${OUT}.`);
 console.log(`  Review them, then: node tools/harvest.js --merge\n`);
