@@ -1645,9 +1645,21 @@ function harvWild(ref,med){
   const ratio=Math.round((med/b)*100)/100;
   return {book:b,ratio,wild:ratio>4||ratio<0.25};
 }
+/* A phone locks its screen after half a minute of nobody touching it, and a
+   locked phone throttles the page to a stop mid-run. The run survives it -
+   it is resumable, so pressing the button again carries on - but a counter
+   watching a progress line stop for no reason has been given a fault, not a
+   feature. Hold the screen awake while it works, and let it go after. */
+let harvLock=null;
+async function harvWake(on){
+  try{
+    if(on&&!harvLock&&navigator.wakeLock)harvLock=await navigator.wakeLock.request("screen");
+    else if(!on&&harvLock){ await harvLock.release(); harvLock=null; }
+  }catch(e){ harvLock=null; }
+}
 async function harvRun(ref,count){
   if(harvBusy||!CAP.sample)return;
-  harvBusy=true; harvStop=false; st.harvErr=""; render();
+  harvBusy=true; harvStop=false; st.harvErr=""; harvWake(true); render();
   let seed;
   try{ seed=await harvLoadSeed(); }
   catch(e){ harvBusy=false; st.harvErr="Could not load the target list."; render(); return; }
@@ -1691,7 +1703,7 @@ async function harvRun(ref,count){
     }
     harvSave(); render();
   }
-  harvBusy=false; harvNow=""; render();
+  harvBusy=false; harvNow=""; harvWake(false); render();
   try{ pdSync(); }catch(e){}
 }
 function todayStr(){ const d=new Date(), p=n=>String(n).padStart(2,"0");
@@ -1746,6 +1758,8 @@ function harvCardHTML(){
       and reaches the phone on the next sync.</div>
     <div class="cardHint"><b style="color:var(--ink)">It costs money.</b> About two searches each, so roughly <b style="color:var(--accent)">4&cent;</b> a model
       against your Anthropic balance &mdash; ${money(Math.round(total*0.04))} for the lot. Do a few first and look at what comes back.</div>
+    <div class="cardHint">Works the same on the phone &mdash; it holds the screen awake while it runs. If it gets interrupted anyway,
+      nothing is lost or paid for twice: press the button again and it carries on from where it stopped.</div>
     ${harvBusy?`<div class="tagWarn" style="background:rgba(0,217,255,.10);color:var(--ink-2)">
         <b style="color:var(--accent-2)">Working…</b> <span id="harvNow">${esc(harvNow)}</span>
         <div style="margin-top:8px"><button class="ghostBtn" id="harvStop">Stop</button></div></div>`
@@ -4553,7 +4567,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.0430";
+const APP_BUILD="0926.0500";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
