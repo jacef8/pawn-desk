@@ -3,13 +3,32 @@
 What a search of the open web says about the numbers the tool ships with.
 Nothing here has been applied — these are notes for the counter to decide on.
 
-Method: the same two searches the tool's own lookup runs, but run from a
-Claude session on the subscription rather than through the shop's service,
-so it costs no API balance. Where a row says "local", the item is heavy or
-doesn't ship, so there is no online sale to find and the search returns
-asking prices for anything with a similar name. Those rows are worse than
-useless — the asking price is always high, so applying it would raise the
-loan on the very items hardest to resell.
+## Read this before you use any number below
+
+**Everything in this file is built on asking prices, not sold prices.** It
+came out of web searches, and a web search can only see listings that are
+still up. The overpriced one that sat for six months is still in the index;
+the one that sold in a day is gone. So the numbers here read **high**, and
+high is the wrong direction to be wrong in when you are lending against them.
+
+That is why the appliance pass below was stopped at 7 of 31 rows: four of six
+would have moved prices UP, on listings nobody bought.
+
+Since these notes were taken the service has been wired to **eBay's own API**
+(`POST /ebay`, see `server/README.md`), which can return what things actually
+**sold** for. Once that keyset carries the Marketplace Insights grant, rerun
+the harvest and it will produce sold comps instead:
+
+    PAWN_SERVER=… PAWN_TOKEN=… node tools/harvest.js --ref t1 --go
+    node tools/harvest.js --merge --sold-only
+
+**Nothing in this file has been applied to the price book, and nothing in it
+should be, except as a sanity check against sold numbers when they arrive.**
+
+Where a row says "local", the item is heavy or doesn't ship, so there is no
+online sale to find at all — eBay will not fix those. A refrigerator, a
+60-gallon compressor and a rolling tool box are read off the local market or
+not at all.
 
 ## Appliances — 21 Sep 2026
 
@@ -55,3 +74,30 @@ is wrong half the time, and moving it just moves which half.
 These need the question asked, the way the tool already asks about gauge on a
 shotgun: **corded or cordless?** That is a change to the item's spec list, not
 to its price.
+
+
+### Rows checked after those eight, 21 Sep 2026
+
+Same caveat: asking prices. Recorded so the work isn't lost, not so it can be
+applied.
+
+| Row | Book | What the searches found | Verdict |
+|---|---|---|---|
+| Miter saw | $150 | $50–220 across brands | agrees |
+| Circular saw | $50 | corded $107 asking; cordless $83–130 | one row, two tools again |
+| Plasma cutter | $300 | Hypertherm $950–1,072; budget units $150–250 | one row, two tools — a very expensive gap |
+| Paint sprayer, airless | $180 | Graco X5 $150–230 | agrees |
+| Benchtop planer | $180 | DW735 $200–450, new $750 | reads low |
+| Stick welder | $180 | Lincoln AC-225 $100–175 | reads high |
+| Stand mixer | $120 | $55–200 | agrees |
+| TIG/stick welder | $320 | new Primeweld $500, implying $250–300 used | thin |
+| Floor jack | $60 | fine for a basic one, low for a Daytona | one row, two tools |
+| Laser level | $90 | cross-line agrees; rotary $275–330 | one row, two tools |
+| OBD scan tool | $50 | basic agrees; bidirectional Autel $200–400 | one row, two tools |
+| Band saw, benchtop | $160 | only new retail — WEN $149, Rikon $299–570 | no used data |
+
+The pattern is the same one the grinder and the nailer showed, and it is the
+real finding of this whole pass: **eight of the twelve rows above are a single
+price covering two different tools** — corded against cordless, hobby brand
+against professional. No amount of better price data fixes that. The row has
+to ask the question.

@@ -9,11 +9,14 @@
  *   PAWN_TOKEN         — required; the desk sends it back, so a stranger who
  *                        finds the address cannot spend the key
  *   ALLOW_ORIGIN       — optional; defaults to the Pages site
+ *   EBAY_CLIENT_ID     — optional; enables /ebay, the sold-comp lookup
+ *   EBAY_CLIENT_SECRET — optional; the other half of the eBay keyset
  */
 
 export const MODEL = "claude-opus-5";
 const API = "https://api.anthropic.com/v1/messages";
 import { syncMerge } from "./store.js";
+import { ebayComps, ebayReady } from "./ebay.js";
 const DEFAULT_ORIGIN = "https://jacef8.github.io";
 const MAX_IMAGES = 4;
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -72,7 +75,24 @@ export function extractJSON(text) {
    objects cross this line, which is what makes it testable on its own. */
 export async function handle({ path, method, token, body, env, signal }) {
   if (path === "/limits" || path === "/") {
-    return reply(200, { ok: true, images: { mediaTypes: OK_TYPES, maxCount: MAX_IMAGES, maxBytes: MAX_IMAGE_BYTES } });
+    return reply(200, { ok: true, images: { mediaTypes: OK_TYPES, maxCount: MAX_IMAGES, maxBytes: MAX_IMAGE_BYTES },
+                        ebay: ebayReady(env) });
+  }
+  /* Comps straight from eBay. This one spends no API money at all — it is
+     eBay's own listing data, read with a read-only keyset — so the harvest
+     can run over thousands of models without touching the balance. It is
+     also the only source here that can return what something SOLD for
+     rather than what someone is asking, which is the whole point of it. */
+  if (path === "/ebay") {
+    if (method !== "POST") return fail("not_found", 404);
+    if (env.PAWN_TOKEN && token !== env.PAWN_TOKEN) return fail("bad_token", 403);
+    if (!body || typeof body !== "object") return fail("bad_request");
+    try {
+      const out = await ebayComps({ q: body.q, limit: body.limit, env, signal });
+      return out.ok ? reply(200, out) : fail(out.code || "ebay_error", out.code === "no_ebay_key" ? 501 : 502);
+    } catch (e) {
+      return fail("ebay_error", 502);
+    }
   }
   /* Sharing the record between the phone and the desk. Same token as
      everything else; a device that cannot reach this keeps working on its

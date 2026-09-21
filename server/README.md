@@ -38,6 +38,9 @@ Once it's running you get, on the phone and at the desk:
    | `PAWN_TOKEN` | a password you invent, e.g. `lamars-desk-7788` |
    | `ALLOW_ORIGIN` | `https://jacef8.github.io` |
 
+   And two more, optional, once you have an eBay keyset (see **Sold prices**
+   below): `EBAY_CLIENT_ID` and `EBAY_CLIENT_SECRET`.
+
 4. **Settings** → **Networking** → **Generate Domain**. That address is the
    service.
 5. Check it: open `https://your-address/limits` in a browser. A short line of
@@ -63,6 +66,44 @@ single-digit cents per lookup against a prepaid balance.
 | **Connected, but the service did not answer** | Wrong address, or it is not running. Try the `/limits` check. |
 | **Lookup failed** | Usually `PAWN_TOKEN` not matching what you typed into the app. |
 | `no_key` in the reply | `ANTHROPIC_API_KEY` missing or rejected. |
+| `no_ebay_key` in the reply | `EBAY_CLIENT_ID` / `EBAY_CLIENT_SECRET` missing. |
+| `ebay_auth` | The keyset is wrong, or it is a sandbox keyset against the live host. |
+
+## Sold prices
+
+Every other source the desk can reach publishes **asking** prices, and asking
+prices read high: the overpriced listing that sat for six months is still in
+the index, the one that sold in a day is gone. Build a price book out of them
+and you lend against a number that never cleared. eBay is the only
+marketplace that publishes what was actually paid, so the service talks to it
+directly.
+
+`POST /ebay` with `{"q": "DeWalt DCD791"}` returns a list of comps and, next
+to them, `basis` — `"sold"` or `"asking"`. Nothing downstream is allowed to
+confuse the two: a finding built on asks can never be graded high, and its
+note says so in the price book.
+
+**Getting a keyset.** At `developer.ebay.com`, register, then **Application
+keysets** → the **Production** keyset. The App ID is `EBAY_CLIENT_ID`, the
+Cert ID is `EBAY_CLIENT_SECRET`. They are read-only credentials for public
+listing data — they buy nothing, list nothing, and cannot touch an eBay
+account. There is no charge for using them.
+
+**The catch.** Sold prices come from eBay's *Marketplace Insights* API, and
+that one is **restricted**: a developer account alone does not get it, you
+apply through the developer portal and eBay grants it. Until it is granted,
+the service falls back to the *Browse* API — active listings, so asking
+prices — and says so once per run rather than six hundred times. Open
+`/limits` to see which you have: `ebay.configured` is the keyset,
+`ebay.sold` goes false once a lookup has proved Insights is not granted.
+
+So the honest state of it:
+
+| | What you get |
+|---|---|
+| No keyset | `/ebay` answers `no_ebay_key`; the harvest stops rather than walking the whole seed list into the same wall. |
+| Keyset, no Insights grant | Asking prices, structured and filtered by condition — better than a web search, still biased high, graded `m` at best. |
+| Keyset with Insights | What things sold for on eBay in the last 90 days. This is the one worth building the book on. |
 
 ## Sharing the record between devices
 
