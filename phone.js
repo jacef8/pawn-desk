@@ -53,15 +53,28 @@ function phoneStepHTML(x){
        +`<button class="nsBtn ghost" id="nsNone"><span>Not one of these</span></button>`;
   } else if(cur===2){
     h=`What does it sell for, used?`;
-    sub=CAP.sample?`Tap <b>Look up what it sells for used</b> and the desk searches the sold pages for you. The links below are for looking yourself.`
-                  :`Tap a button to see what these actually sold for. Then type the middle price here.`;
-    act=compTargets(x).map(t=>`<a class="nsBtn nsSold" data-label="${t.name}" href="${esc(t.url)}" target="_blank" rel="opener" referrerpolicy="no-referrer"><span>${t.name}</span><b>&#8599;</b></a>`).join("")
+    /* This screen was every way of finding a price at once: two sold links, a
+       box, the listings on file, Google Shopping, the new-price lookup and a
+       second box - nine controls, and the one that actually does the work
+       was in the middle of them. The one that does the work leads now and
+       the rest folds away. */
+    const manual=compTargets(x).map(t=>`<a class="nsBtn nsSold" data-label="${t.name}" href="${esc(t.url)}" target="_blank" rel="opener" referrerpolicy="no-referrer"><span>${t.name}</span><b>&#8599;</b></a>`).join("")
        +`<div class="phIn"><span>$</span><input id="phVal" type="number" inputmode="decimal" placeholder="What it sells for"><button class="nsBtn on" id="phValGo"><span>Use it</span></button></div>`
-       +altSourcesHTML(x)
+       +altSourcesHTML(x,true)
        +`<div class="label" style="margin-top:14px">No sold prices? Use what it costs new</div>`
        +(CAP.sample?`<button class="nsBtn on" id="pdRetGo"><span>${retailBusy?"Looking it up&hellip;":"Look up the new price"}</span></button><div class="cardHint" id="pdRetMsg"></div>`:retailTargets(compQuery(x)).map(t=>`<a class="nsBtn nsRetail" data-label="${esc(t.name)}" href="${esc(t.url)}" target="_blank" rel="opener" referrerpolicy="no-referrer"><span>${esc(t.name)}</span><b>&#8599;</b></a>`).join(""))
        +`<div class="phIn"><span>$</span><input id="phRet" type="number" inputmode="decimal" placeholder="What it costs new"><button class="nsBtn" id="phRetGo"><span>Use it</span></button></div>`
        +`<div class="cardHint">In ${esc(x.cat.label.toLowerCase())}, a used one books at about <b>${retailPct(x)}%</b> of new here &mdash; $100 new lands at ${money(Math.round(retailPct(x)))}. A real sold price beats this every time &mdash; use it only when the sold pages come up empty.</div>`;
+    if(CAP.sample){
+      sub=`One tap and the desk searches the sold pages for you.`;
+      act=`<button class="nsBtn${x.checked?" ghost":" on"}" id="pdFindGo"><span>${findBusy?"Looking it up&hellip;":x.checked?"Check it live \u2014 search the sold prices":"Look up what it sells for used"}</span></button>`
+         +`<div class="cardHint" id="pdFindMsg">${esc(findMsg||"")}</div>`
+         +`<details class="phKinds" id="phMore"${st.phMoreOpen?" open":""}><summary>Look it up myself</summary>
+            <div style="margin-top:10px">${manual}</div></details>`;
+    } else {
+      sub=`Tap a button to see what these actually sold for. Then type the middle price here.`;
+      act=manual;
+    }
   } else if(cur===3){
     h=`What shape is it in?`;
     sub=`Next to a typical used one. The resale value assumes <b>Good</b>, normal wear.`;
@@ -92,6 +105,8 @@ function wirePhone(){
     st.model=name; st.mpPin={id:r[0],model:name}; st.mpNone=false; st.market=null; render();
   });
   const none=document.getElementById("nsNone"); if(none)none.onclick=()=>{ st.mpNone=true; render(); };
+  const more=document.getElementById("phMore");
+  if(more&&!more.dataset.w){ more.dataset.w="1"; more.addEventListener("toggle",()=>{ st.phMoreOpen=more.open; }); }
   const vi=document.getElementById("phVal"), vg=document.getElementById("phValGo");
   const useVal=()=>{ const n=parseFloat(vi&&vi.value); if(n>0){ st.market={kind:"hand",key:mkKey(),mid:Math.round(n)}; render(); } };
   if(vg)vg.onclick=useVal; if(vi)vi.onkeydown=e=>{ if(e.key==="Enter")useVal(); };
@@ -280,7 +295,7 @@ function snapHTML(){
     <div class="snapName">${esc(name)}${bits?`<span>${esc(bits)}</span>`:""}</div>
     ${busy?`<div class="snapCard busy"><div class="snapLab">Checking what it sells for\u2026</div>
         <div class="snapBig dim">${money(x.buy)}</div>
-        <div class="snapSub">From the built-in list for now. The live price lands in a moment.</div></div>`
+        <div class="snapSub">${esc(findMsg||"Searching the sold pages\u2026")} This is the built-in number until it lands \u2014 up to a minute, then it gives up and keeps this one.</div></div>`
       :`<div class="snapCard${x.buyTooThin?" bad":""}">${big}
         <div class="snapSrc">${priced?esc(nsSrcShort(x.market))
           :(st.photoRead&&st.photoRead.webPrice

@@ -275,6 +275,10 @@ const PRICEBOOK=[
     the observed asking price taken one markdown step down, the same way a
     shelf tag is treated everywhere else. */
  ["Wireless earbuds",60,"elec","fast"],["DSLR / mirrorless camera",200,"elec","slow"],
+ /* Desk clutter that walks in constantly and had no row at all, which is how
+    a Logitech mouse came to be priced as a gaming tower. Both unverified -
+    from used listings, not from anything sold here. */
+ ["Wireless mouse \u2014 computer",10,"elec","slow"],["Computer keyboard",15,"elec","slow"],
  ["Band saw \u2014 benchtop",160,"tools","slow"],["Audio mixer \u2014 PA board",140,"music","slow"],
  ["TIG / stick welder",320,"tools","slow"],
  /* guns & shooting */
@@ -442,18 +446,23 @@ function searchBookHits(txt){
        types. A word the row owns outright ("airpods") stands in for it. */
     const nameCover=b.nc.reduce((best,alt)=>
       Math.max(best,alt.filter(n=>q.some(w=>wordHit(w,[n])>0)).length/alt.length),0);
-    /* The words the row is actually made of come first. A name the row owns
-       ("airpods", "yeti") stands in when none of them are there, but it does
-       not beat a row the words spell out - an Igloo soft cooler is a soft
-       cooler, not the Yeti-class hard one Igloo also makes. */
-    const cover=nameCover||(rare?1:0);
+    /* A name the row owns ("airpods", "yeti", "logitech") stands in for its
+       name words. It used to stand in only where the name matched nothing at
+       all, which read well and priced badly: "Logitech K350 wireless
+       keyboard" half-matched the computer row and wholly matched the music
+       book's one-word "Keyboard", so a PC keyboard was a 61-key. It counts
+       either way now, and where two rows tie it is the one with more of the
+       words behind it that wins, then the one the words literally spell -
+       which is what keeps an Igloo soft cooler a soft cooler rather than the
+       Yeti-class hard one Igloo also makes. */
+    const cover=Math.max(nameCover,rare?1:0);
     if(!cover)continue;
-    out.push({e:b.e,score,cover,rare,headHit,qCover:strong/q.length,len:b.e[0].length});
+    out.push({e:b.e,score,cover,nameCover,rare,headHit,qCover:strong/q.length,len:b.e[0].length});
   }
   /* how much of the row the words covered comes first: someone typing two
      words wants the row those two words are, not the row that happens to
      share a word with every other thing in the shop. */
-  out.sort((a,b)=>b.cover-a.cover||b.score-a.score||a.len-b.len);
+  out.sort((a,b)=>b.cover-a.cover||b.score-a.score||b.nameCover-a.nameCover||a.len-b.len);
   return out.slice(0,6);
 }
 function searchBook(txt){ return searchBookHits(txt).map(o=>o.e); }
@@ -463,6 +472,18 @@ function searchBook(txt){ return searchBookHits(txt).map(o=>o.e); }
    ("airpods"). Matching the trim is not enough: a Kenmore range came back
    "E-bike" on "electric", a chainsaw "Gun cabinet" on "case", and a Samsung
    TV a Blackstone griddle on "flat". */
+/* The reader is asked for a model and sometimes answers with a sentence:
+   "Likely M510 (Unifying wireless mouse) - model number on underside". Cut
+   to the part that is actually a model - no hedge, nothing bracketed,
+   nothing past a dash or a comma - or the ticket carries prose, and the
+   phone's headline reads "Logitech Likely M510 (Unifying wireless mo". */
+function tidyModel(t){
+  let v=String(t||"").replace(/[\u2014\u2013]/g," - ").trim();
+  v=v.replace(/^(likely|probably|possibly|possible|maybe|appears to be|looks like|seems to be)\s+/i,"");
+  v=v.replace(/^(a|an|the)\s+/i,"");
+  v=v.split(/\s-\s|[(,;:]/)[0];
+  return v.replace(/\s+/g," ").trim().slice(0,28);
+}
 /* a row named outright, spelled the way the book spells it */
 function bookRow(name){
   const n=omniNorm(name);
@@ -2447,7 +2468,7 @@ async function photoWebLookup(r){
     const id=custId(cat.id), where=String(d.where||"").slice(0,40);
     st.catId=cat.id; st.itemId=id; st.bookName=String(d.what||r.what||"").slice(0,60);
     st.overrides[id]=price; st.liq="normal"; st.specSel={}; st.editing=false; st.market=null;
-    st.model=String(d.model||"").slice(0,60);
+    st.model=tidyModel(d.model);
     st.detail=String(d.detail||"").slice(0,80);
     st.brandTyped=String(d.brand||"").slice(0,40);
     const bh=st.brandTyped?brandLookup(st.catId,st.brandTyped):null;
@@ -2501,8 +2522,15 @@ function autoPriceAfterPhoto(){
   if(photoChase||findBusy||!CAP.sample||!st.picked)return;
   const x=calcItem(); if(x.checked)return;
   photoChase=true;
+  /* A deadline, because this one nobody asked for. Each pass is allowed two
+     minutes on its own, so a search that hangs used to leave "the live price
+     lands in a moment" on screen for four - which reads as broken, and is.
+     A minute, then the built-in number stands and says so. */
   setTimeout(async()=>{
-    try{ await priceFind(); }catch(e){}
+    const ctl=new AbortController();
+    const t=setTimeout(()=>ctl.abort(),60000);
+    try{ await priceFind(ctl.signal); }catch(e){}
+    clearTimeout(t);
     photoChase=false;
     try{ render(); }catch(e){}
   },0);
@@ -2511,13 +2539,19 @@ function applyPhotoRead(r){
   let cat=CATALOG.find(c=>c.id===String(r.catId||""));
   /* nothing in the catalog fits — try the price book on what it says the thing is */
   if(!cat&&(r.what||r.book)){
-    const hit=(r.book&&bookRow(r.book))||photoBook(String(r.what||""))
-      ||photoBook(String(r.what||"").split(/\s+/).slice(-2).join(" "));
+    /* There used to be a second try here on the last two words of the read,
+       from when matching needed every word to appear in the row name. With
+       the words scored it is no longer a rescue, it is a trap: the last two
+       words of "Logitech wireless optical mouse (computer peripheral)" are
+       "computer peripheral", and "computer" is a synonym the desktop PC row
+       owns - so a mouse was priced as a $110 gaming PC. The whole sentence,
+       or nothing. */
+    const hit=(r.book&&bookRow(r.book))||photoBook(String(r.what||""));
     if(hit){
       st.catId=hit[2]; st.itemId=custId(hit[2]); st.bookName=hit[0]; st.overrides[custId(hit[2])]=hit[1];
       st.liq=hit[3]; st.specSel={}; st.editing=false;
       cat=CATALOG.find(c=>c.id===hit[2]);
-      st.model=String(r.model||"").slice(0,60);
+      st.model=tidyModel(r.model);
       st.detail=String(r.detail||"").slice(0,80);
       st.brandTyped=String(r.brand||"").slice(0,40);
       const h2=st.brandTyped?brandLookup(st.catId,st.brandTyped):null;
@@ -2557,7 +2591,7 @@ function applyPhotoRead(r){
     st.itemId = it ? it.id : cat.items[0].id;
     st.bookName=""; st.liq=null; st.specSel={};
   }
-  st.model = String(r.model||"").slice(0,60);
+  st.model = tidyModel(r.model);
   st.detail = String(r.detail||"").slice(0,80);
   st.brandTyped = String(r.brand||"").slice(0,40);
   st.complete = true;
@@ -2848,7 +2882,12 @@ const BOOK_SYN={"Reciprocating saw":"sawzall saws all recip saw",
  "Flute":"flute piccolo",
  "Surfboard":"surfboard surf board",
  "Skateboard":"skateboard skate board longboard",
- "Wireless earbuds":"airpods air pods earbuds buds earphones galaxy buds","DSLR / mirrorless camera":"dslr slr mirrorless canon nikon sony rebel eos t6 t7 d3500 alpha","Band saw \u2014 benchtop":"bandsaw band saw","Audio mixer \u2014 PA board":"mixer mixing board soundboard sound board zed behringer yamaha mackie","TIG / stick welder":"tig stick arc welder weldpro everlast","Zero-turn mower":"zero turn zturn ztr","Golf cart":"golf cart","Kayak — sit-on-top":"kayak yak",
+ "Wireless earbuds":"airpods air pods earbuds buds earphones galaxy buds",
+ /* The maker is in here on purpose: the music book already carries a
+    "Keyboard - 61 key", and a bare "keyboard" reaches that one first because
+    its name is a single word. "Logitech" is what tells the two apart. */
+ "Wireless mouse \u2014 computer":"mouse mice trackball logitech computer",
+ "Computer keyboard":"keyboard mechanical keys logitech","DSLR / mirrorless camera":"dslr slr mirrorless canon nikon sony rebel eos t6 t7 d3500 alpha","Band saw \u2014 benchtop":"bandsaw band saw","Audio mixer \u2014 PA board":"mixer mixing board soundboard sound board zed behringer yamaha mackie","TIG / stick welder":"tig stick arc welder weldpro everlast","Zero-turn mower":"zero turn zturn ztr","Golf cart":"golf cart","Kayak — sit-on-top":"kayak yak",
  "Jon boat — 12ft, no motor":"jon boat johnboat","UTV / side-by-side":"utv side by side sxs","Dirt bike":"motorcycle",
  "E-bike":"ebike electric bike","Camera drone":"drone","Smartwatch \u2014 Apple / Galaxy":"smartwatch smart watch apple watch galaxy watch fitbit","Handheld game console":"handheld",
  "Gaming desktop PC":"desktop pc computer tower","Air rifle / pellet gun":"bb gun pellet air rifle",
@@ -4350,7 +4389,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0925.2345";
+const APP_BUILD="0926.0015";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -4827,7 +4866,7 @@ function findPrompt(q,pass){
     'If you find none, reply {"comps":[]}.';
 }
 let findBusy=false, findMsg="", findAgain=false;
-async function priceFind(){
+async function priceFind(signal){
   if(findBusy||!CAP.sample)return;
   const x=calcItem(), q=compQuery(x);
   if(!q)return;
@@ -4869,7 +4908,7 @@ async function priceFind(){
   for(let i=0;i<passes.length;i++){
     if(i)say("Thin so far \u2014 trying "+passes[i].name+"\u2026");
     let r;
-    try{ r={status:"fulfilled",value:await CAP.sample.json(findPrompt(passes[i].q||q,passes[i]),{search:true})}; }
+    try{ r={status:"fulfilled",value:await CAP.sample.json(findPrompt(passes[i].q||q,passes[i]),{search:true,signal})}; }
     catch(e){ r={status:"rejected"}; }
     out.push(r);
     if(r.status!=="fulfilled"){ failed++; tally.push(passes[i].name+" failed"); continue; }
@@ -5011,7 +5050,7 @@ function confShort(c){ return CONF_WORD[c]||""; }
    their step cards differently, but the evidence they offer is the same and in
    the same order - what was looked up before, a fresh lookup, then what the
    shops nearby are asking - so it is written once here. */
-function altSourcesHTML(x){
+function altSourcesHTML(x,noFind){
   let h="";
   const T=compStats(compsMatch(x));
   if(T) h+=`<div class="label" style="margin-top:14px">Listings on file</div>`
@@ -5020,7 +5059,7 @@ function altSourcesHTML(x){
      whatever step is showing. Two of them would mean two elements with one
      id, and the message would be written to whichever came first - which is
      how it ended up being written to a hidden one. */
-  if(CAP.sample&&window.PHONE)
+  if(CAP.sample&&window.PHONE&&!noFind)
     h+=`<button class="nsBtn${T?"":" on"}" id="pdFindGo" style="margin-top:8px"><span>${findBusy?"Looking it up&hellip;":"Look up what it sells for used"}</span></button>`
       +`<div class="cardHint" id="pdFindMsg"></div>`;
   /* Google Shopping's used filter: asking prices for used ones, which sits
