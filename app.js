@@ -1771,18 +1771,57 @@ async function pdTestConn(){
     return; }
   /* 2. it is there - does it accept the token? */
   if(!tok){ say("var(--warn)","The service is up and reachable. Now put the token in."); return; }
-  try{
+  const post=async(body,ms)=>{
     const r=await fetch(u+"/json",{method:"POST",
       headers:{"content-type":"application/json","x-pawn-token":tok},
-      body:JSON.stringify({prompt:"Reply with JSON and nothing else: {\"ok\":1}",images:[]}),
-      signal:AbortSignal.timeout(30000)});
-    const j=await r.json().catch(()=>null);
-    if(j&&j.ok) say("var(--accent)","<b>All good.</b> The service is up, the token works and it can reach Claude.");
-    else{
-      const c=(j&&j.code)||("http_"+r.status);
-      say("var(--bad)","Reached it, but it answered <b>"+esc(c)+"</b>. "+esc(photoErrCopy(c)));
-    }
-  }catch(e){ say("var(--bad)","Reached the service, but the test read timed out. Railway may be waking up \u2014 try once more."); }
+      body:JSON.stringify(body),signal:AbortSignal.timeout(ms||45000)});
+    return await r.json().catch(()=>({ok:false,code:"http_"+r.status}));
+  };
+  try{
+    const j=await post({prompt:'Reply with JSON and nothing else: {"ok":1}',images:[]},30000);
+    if(!j||!j.ok){ const c=(j&&j.code)||"upstream_error";
+      say("var(--bad)","Reached it, but it answered <b>"+esc(c)+"</b>. "+esc(photoErrCopy(c))); return; }
+  }catch(e){ say("var(--bad)","Reached the service, but a plain request timed out. Railway may be waking up \u2014 try once more."); return; }
+
+  /* 3. and with a PICTURE on it? This is the ONLY difference between the
+        request the camera makes and the one above, so when plain requests
+        work and photographs do not, the answer is in here. Two sizes: a tiny
+        one to prove pictures are handled at all, then one the size of a real
+        phone photo to prove the upload survives the trip. */
+  say("var(--ink-3)","Plain requests work. Trying one with a small picture\u2026");
+  const madeJPEG=px=>new Promise(res=>{
+    const c=document.createElement("canvas"); c.width=c.height=px;
+    const g=c.getContext("2d");
+    for(let y=0;y<px;y+=8)for(let x=0;x<px;x+=8){
+      g.fillStyle="rgb("+((x*7)%256)+","+((y*11)%256)+","+((x*y)%256)+")"; g.fillRect(x,y,8,8); }
+    c.toBlob(b=>res(b),"image/jpeg",0.9);
+  });
+  const asPart=blob=>new Promise(res=>{ const r=new FileReader();
+    r.onload=()=>{ const t=String(r.result||""),i=t.indexOf(","); res({media_type:"image/jpeg",data:i>=0?t.slice(i+1):""}); };
+    r.readAsDataURL(blob); });
+  const tryImg=async px=>{
+    const blob=await madeJPEG(px); const part=await asPart(blob);
+    const kb=Math.round(part.data.length/1024);
+    try{
+      const j=await post({prompt:'Reply with JSON and nothing else: {"ok":1}',images:[part]},60000);
+      if(j&&j.ok)return {ok:true,kb};
+      return {ok:false,kb,code:(j&&j.code)||"upstream_error"};
+    }catch(e){ return {ok:false,kb,threw:String((e&&e.name)||"")+": "+String((e&&e.message)||e)}; }
+  };
+  const small=await tryImg(64);
+  if(!small.ok){
+    say("var(--bad)","Plain requests work, but one carrying even a tiny picture ("+small.kb+"KB) "+
+      (small.threw?("died on the way: <b>"+esc(small.threw)+"</b>. Something between this phone and the service refuses requests with a picture on them.")
+                  :("was answered <b>"+esc(small.code)+"</b>. "+esc(photoErrCopy(small.code)))));
+    return; }
+  say("var(--ink-3)","Small pictures are fine. Trying one the size of a real photo\u2026");
+  const big=await tryImg(1400);
+  if(!big.ok){
+    say("var(--bad)","Small pictures work ("+small.kb+"KB) but a real-sized one ("+big.kb+"KB) "+
+      (big.threw?("died on the way: <b>"+esc(big.threw)+"</b>. The upload is being cut off \u2014 a size limit between this phone and the service, not the service itself.")
+                :("was answered <b>"+esc(big.code)+"</b>. "+esc(photoErrCopy(big.code)))));
+    return; }
+  say("var(--accent)","<b>All good.</b> Service up, token works, it reaches Claude, and photographs arrive \u2014 tested at "+small.kb+"KB and "+big.kb+"KB.");
 }
 document.addEventListener("click",e=>{
   const tst=e.target&&e.target.closest?e.target.closest("#pdConnTest"):null;
