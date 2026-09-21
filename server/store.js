@@ -18,7 +18,8 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
-const STORES = { comps: "pawndesk_comps", seen: "pawndesk_seen", deals: "pawndesk_deals" };
+const STORES = { comps: "pawndesk_comps", seen: "pawndesk_seen", deals: "pawndesk_deals",
+                 harvest: "pawndesk_harvest" };
 const DIR = process.env.DATA_DIR || "/data";
 const PULL_LIMIT = 2000;
 const KEEP = 5000;                /* per store; the devices themselves keep 800 */

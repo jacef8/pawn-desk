@@ -1688,18 +1688,21 @@ async function harvRun(ref,count){
     const ps=uniq.map(c=>Math.round(Number(c.price))).filter(n=>n>0).sort((a,b)=>a-b);
     const at=f=>ps[Math.min(ps.length-1,Math.max(0,Math.round(f*(ps.length-1))))];
     if(ps.length<3){
-      done[harvKey(t)]={ref:t.ref,name:t.name,n:ps.length,date:todayStr(),note:"nothing usable"};
+      done[harvKey(t)]={ts:Date.now(),ref:t.ref,name:t.name,n:ps.length,date:todayStr(),note:"nothing usable"};
     }else{
       const sold=uniq.filter(c=>c.basis==="sold").length, share=sold/ps.length;
       const w=harvWild(t.ref,at(0.5));
-      done[harvKey(t)]={ref:t.ref,name:t.name,alias:t.alias||"",n:ps.length,sold,
+      done[harvKey(t)]={ts:Date.now(),ref:t.ref,name:t.name,alias:t.alias||"",n:ps.length,sold,
         lo:at(0.25),hi:at(0.75),med:at(0.5),
         conf:(ps.length>=6&&share>=0.6)?"h":(ps.length>=4?"m":"l"),
         date:todayStr(),wild:!!(w&&w.wild),ratio:w?w.ratio:null,book:w?w.book:null,
         note:`${ps.length} listings, ${sold} sold${share<0.5?" - mostly asks":""}`};
-      /* Kept as listings too, so this device can price the thing straight
-         away and the phone gets it on the next sync - no file, no waiting. */
-      try{ compsAdd(t.name,uniq); }catch(e){}
+      /* These used to be filed as ordinary listings. A device keeps 3,000 of
+         those and the shared store 5,000, and 610 models at eight or ten
+         listings apiece is six thousand - so the back half of a full run
+         quietly evicted the front half, and the counter's own lookups with
+         it. The finding itself is the useful part: one row a model, priced
+         off the listings, small enough that the whole list syncs. */
     }
     harvSave(); render();
   }
@@ -1754,8 +1757,8 @@ function harvCardHTML(){
   return `<div class="card"><span class="label">Build the price list</span>
     <div class="cardHint" style="margin-top:0">The tool ships knowing about ${MODEL_PRICES.length} models. This goes and prices
       the rest &mdash; ${total} makes and models, the saws and mowers and phones and four-wheelers that actually come through a counter &mdash;
-      using the same searches the green button runs. Every listing it finds is kept, so anything it prices is live on this device at once
-      and reaches the phone on the next sync.</div>
+      using the same searches the green button runs. What it finds is kept as one row a model &mdash; live on this device at once, and
+      on every other device the moment it syncs, so a price found on the phone at a yard sale is on the desk that afternoon.</div>
     <div class="cardHint"><b style="color:var(--ink)">It costs money.</b> About two searches each, so roughly <b style="color:var(--accent)">4&cent;</b> a model
       against your Anthropic balance &mdash; ${money(Math.round(total*0.04))} for the lot. Do a few first and look at what comes back.</div>
     <div class="cardHint">Works the same on the phone &mdash; it holds the screen awake while it runs. If it gets interrupted anyway,
@@ -1770,6 +1773,10 @@ function harvCardHTML(){
         <button class="ghostBtn" data-harv="0" style="padding:10px 16px">Price all ${left}</button>
        </div>`}
     ${st.harvErr?`<div class="tagWarn" style="background:rgba(255,66,87,.12);color:#FFAAB4">${esc(st.harvErr)}</div>`:""}
+    ${st.syncWarn?`<div class="tagWarn" style="background:rgba(255,66,87,.12);color:#FFAAB4">
+      <b>These would not be shared.</b> The service says: ${esc(st.syncWarn)}. Prices built here would stay on this
+      device and would be lost if the service restarts. Attach a disk to it in Railway (a volume mounted at
+      <b style="font-family:var(--mono)">/data</b>) before spending money on a long run.</div>`:""}
     ${S.done?`<div class="tagNote" style="margin-top:10px">
       <b style="color:var(--ink)">${S.done} done</b> &middot; ${S.priced} priced${S.wild?` &middot; <span style="color:var(--warn)">${S.wild} looked wrong and were held back</span>`:""}${S.empty?` &middot; ${S.empty} found nothing`:""} &middot; ${left} left.
       ${f?`<div style="margin-top:9px">To put them in the copy everyone downloads, save the file and send it to me:
@@ -4567,7 +4574,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.0500";
+const APP_BUILD="0926.0600";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -4645,7 +4652,7 @@ function mpAutoIdx(){
     .filter(r=>!byHand.has(r[0]))
     .map(r=>({r,refs:String(r[1]).split("|"),
               nw:omniWords(r[2]).filter(w=>!STOP.has(w)),
-              aw:mpTokens(omniWords(r[9]||""))}))
+              aw:mpTokens(omniWords(r[9]||"").concat(omniWords(r[2])))}))
     .filter(e=>e.nw.length)};
   return MP_AUTO_IDX;
 }
@@ -4670,6 +4677,35 @@ function mpAuto(cur,text){
   }
   return best;
 }
+/* The same hard evidence mpAuto wants: a token with a digit, matched exact,
+   and most of the name. A harvested row is machine-made and must not answer
+   for something it is not. */
+function harvFind(cur,text){
+  const q=mpTokens(omniWords(text).filter(w=>!STOP.has(w)));
+  if(!q.length)return null;
+  let best=null,bestScore=0;
+  for(const f of Object.values(harvAll())){
+    if(!f||f.ref!==cur||!(f.lo>0)||f.wild||!(f.n>=4))continue;
+    const nw=omniWords(f.name).filter(w=>!STOP.has(w));
+    const aw=mpTokens(omniWords(f.alias||"")).concat(mpTokens(nw));
+    if(!nw.length)continue;
+    let hit=0,pin=false;
+    for(const n of nw.concat(aw)){
+      let h=0; for(const w of q){ const x=wordHit(w,[n]); if(x>h)h=x; }
+      if(!h)continue;
+      if(nw.indexOf(n)>=0)hit++;
+      if(h===3&&/\d/.test(n))pin=true;
+    }
+    const cover=hit/nw.length;
+    if(!pin||cover<0.6)continue;
+    const sc=cover*10+hit;
+    if(sc>bestScore){ bestScore=sc; best=f; }
+  }
+  if(!best)return null;
+  return {kind:"harvest",lo:best.lo,hi:best.hi,mid:Math.round((best.lo+best.hi)/2/5)*5,
+          name:best.name,n:best.n,sold:best.sold||0,conf:best.conf,date:best.date,
+          src:"https://www.ebay.com/sch/i.html?_nkw="+encodeURIComponent(best.name)+"&LH_Sold=1&LH_Complete=1"};
+}
 function curItemRef(){ return isCustom()?st.bookName:st.itemId; }
 function mkKey(){ return itemKey()+"|"+omniNorm((st.brandTyped||"")+" "+(st.model||"")); }
 function daysOld(d){ const t=new Date(String(d)+"T12:00:00").getTime(); return isNaN(t)?999:Math.round((Date.now()-t)/864e5); }
@@ -4679,7 +4715,12 @@ function marketNow(){
   if(st.market&&st.market.key===mkKey())return st.market;
   let r=null;
   if(st.mpPin&&st.mpPin.model===st.model){ const pr=MP_BY_ID[st.mpPin.id]; if(pr&&String(pr[1]).split("|").indexOf(curItemRef())>=0)r=pr; }
-  if(!r)r=mpFor(curItemRef(),[st.brandTyped,st.model,st.detail,isCustom()?st.bookName:""].join(" ")); if(!r)return null;
+  if(!r)r=mpFor(curItemRef(),[st.brandTyped,st.model,st.detail,isCustom()?st.bookName:""].join(" "));
+  /* Nothing in the list the tool shipped with? Then whatever the harvest
+     found for this model, which is a real range off real listings and is
+     usually the only thing that knows about it at all. */
+  if(!r){ const h=harvFind(curItemRef(),[st.brandTyped,st.model,st.detail].join(" ")); if(h)return h; }
+  if(!r)return null;
   const age=daysOld(r[6]);
   return {kind:"list",lo:r[3],hi:r[4],mid:Math.round((r[3]+r[4])/2/5)*5,name:r[2],conf:r[5],date:r[6],src:r[7],note:r[8],stale:age>MP_STALE_DAYS,age};
 }
@@ -4699,6 +4740,7 @@ function marketSrcHTML(m){
   if(m.kind==="own")return `From your own ${m.n} ${m.n===1?"sale":"sales"} of this item.`;
   if(m.kind==="found")return `From <b>${m.n}</b> listing${m.n===1?"":"s"} on file${m.sold?`, ${m.sold} of them sold`:""}: the middle one is <b>${money(m.med)}</b>, the middle half ${money(m.lo)}&ndash;${money(m.hi)}.${m.from?` From ${esc(m.from)}.`:""}${m.mostlyAsks?` Mostly asking prices rather than sales.`:""}${m.conf==="l"?` <span style="color:#FFC98F">Few listings behind this &mdash; look at the sold pages before you lean on it.</span>`:""} The middle one is used, not the average, so one bad listing cannot move it.`;
   if(m.kind==="seen")return `From <b>${m.n}</b> shelf tag${m.n===1?"":"s"} you recorded, asking ${money(m.lo)}&ndash;${money(m.hi)}, typically ${money(m.ask)} &mdash; what a used one goes for at a shop near you.`;
+  if(m.kind==="harvest")return `From the price list this shop built: <b>${esc(m.name)}</b>, ${m.n} listing${m.n===1?"":"s"}${m.sold?`, ${m.sold} sold`:""} on ${esc(fmtDay(m.date))}. ${srcLink(m.src,"See those sales")} Nobody has checked this one by hand &mdash; it is a search, kept.`;
   if(m.kind==="retail")return `Estimated from <b>${money(m.retail)}</b> new retail, taken to ${(m.pct||retailPct())}% for a used one. This is not a sold price &mdash; check sold prices when you can.`;
   return "Your number, typed in.";
 }
@@ -4996,6 +5038,15 @@ function syncSetAt(k,ts){ try{ const o=JSON.parse(localStorage.getItem(SYNC_AT)|
    number - so they are safe to share the same way. */
 const SYNC_STORES={
   comps:{all:compsAll,save:compsSave},
+  /* One row a model, a few hundred bytes each - the whole harvest fits in a
+     sync where its listings never could. This is what makes a price found on
+     the phone in a yard sale available at the desk that afternoon. */
+  harvest:{
+    all:()=>Object.entries(harvAll()).map(([id,f])=>Object.assign({id,ts:f.ts||Date.parse(f.date+"T12:00:00")||Date.now()},f)),
+    save:rows=>{ const m={};
+      (rows||[]).forEach(r=>{ if(r&&r.id)m[r.id]=r; });
+      HARV=m; harvSave(); }
+  },
   seen: {all:seenAll, save:seenSave},
   deals:{
     all:()=>((window.PD_DEALS&&window.PD_DEALS.all())||[]).map(d=>Object.assign({},d,{id:d._id})),
@@ -5021,6 +5072,7 @@ async function pdSync(){
       if(!j||!j.ok){ failed++; continue; }
       pushed+=send.length;
       if(j.warning)warn=j.warning;
+      st.syncWarn=j.warning||"";
       const byId={}; mine.forEach(r=>{ byId[r.id]=r; });
       let newest=since, add=0;
       (j.rows||[]).forEach(r=>{
@@ -5401,6 +5453,7 @@ function nsSrcShort(m){
   if(m.kind==="retail")return "est. from "+money(m.retail)+" new";
   if(m.kind==="seen")return m.n+" seen locally, asking "+money(m.ask);
   if(m.kind==="found")return m.n+" listings, median "+money(m.med)+(confShort(m.conf)?" \u00b7 "+confShort(m.conf):"");
+  if(m.kind==="harvest")return "your own price list \u00b7 "+m.n+" listings, "+fmtDay(m.date);
   return "your number";
 }
 function nextStepHTML(x){
