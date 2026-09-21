@@ -912,8 +912,16 @@ const SPEC_CHOICES={
  t7:[{label:"Keys",options:[{t:"Keys in hand",m:1},{t:"No keys",m:.85,note:"no keys: −15%"}]},
      {label:"Size",options:[{t:"Mid box",m:1},{t:"Full-size stack",m:1.2,note:"full stack: +20%"}]}],
  /* Same story as the grinder: a pneumatic nailer is about $105 and a
-    cordless one is $230-300. +20% was covering a 2x gap. */
- t8:[{label:"Drive",options:[{t:"Pneumatic",m:1},{t:"Cordless — with battery",m:2,note:"cordless with a battery — roughly twice a pneumatic"}]}],
+    cordless one is $230-300. +20% was covering a 2x gap.
+
+    The bare figure is NOT measured - there was no search for a bare
+    cordless nailer. It is built: a complete one is about $240, and the
+    battery and charger that come with it are $60-70 used, which leaves
+    about $180 for the tool. It sits high against the grinder's bare
+    option on purpose - a nailer is an expensive tool carrying the same
+    cheap battery, so the pack is a smaller share of the whole. Treat it
+    as a placeholder and check it against sold comps. */
+ t8:[{label:"Drive",options:[{t:"Pneumatic",m:1},{t:"Cordless — with battery",m:2,note:"cordless with a battery — roughly twice a pneumatic"},{t:"Cordless — bare",m:1.5,note:"bare cordless — no battery or charger, worth about $60 less than the kit"}]}],
  h1:[{label:"Type",options:[{t:"Standard 3-9x class",m:1},{t:"High-mag 4-16x+",m:1.1,note:"high-mag glass: +10%"},{t:"Fixed / oddball",m:.85,note:"odd configuration: −15%"}]},
      {label:"Features",options:[{t:"Standard",m:1},{t:"Illuminated / FFP",m:1.1,note:"premium features: +10%"}]}],
  h2:[{label:"Size",options:[{t:"Full-size (8/10x42)",m:1},{t:"Compact",m:.8,note:"compacts: −20%"}]}],
@@ -4770,7 +4778,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.1100";
+const APP_BUILD="0926.1200";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

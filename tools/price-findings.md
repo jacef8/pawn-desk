@@ -82,7 +82,12 @@ Drive group (Pneumatic / Cordless). The question was never missing — the
 | t3 cordless bare | ×0.6 | $27 | **×1.35** | $61 |
 | t8 cordless with battery | ×1.2 | $144 | **×2.0** | $240 |
 
-Applied 21 Sep 2026, build 0926.1100. The corded and pneumatic baselines were
+t8 also gained a **Cordless — bare** option it never had (build 0926.1200,
+×1.5 → $180). That figure is not measured: a complete cordless nailer is
+about $240 and the battery and charger are $60-70 used, leaving ~$180 for
+the tool. It is a placeholder to be checked against sold comps.
+
+Applied 21 Sep 2026, builds 0926.1100 and 0926.1200. The corded and pneumatic baselines were
 not touched, and they are still the default answer, so an unanswered lookup
 returns exactly what it did before.
 
