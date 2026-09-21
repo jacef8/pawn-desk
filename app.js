@@ -1814,14 +1814,20 @@ async function pdTestConn(){
       (small.threw?("died on the way: <b>"+esc(small.threw)+"</b>. Something between this phone and the service refuses requests with a picture on them.")
                   :("was answered <b>"+esc(small.code)+"</b>. "+esc(photoErrCopy(small.code)))));
     return; }
-  say("var(--ink-3)","Small pictures are fine. Trying one the size of a real photo\u2026");
-  const big=await tryImg(1400);
-  if(!big.ok){
-    say("var(--bad)","Small pictures work ("+small.kb+"KB) but a real-sized one ("+big.kb+"KB) "+
-      (big.threw?("died on the way: <b>"+esc(big.threw)+"</b>. The upload is being cut off \u2014 a size limit between this phone and the service, not the service itself.")
-                :("was answered <b>"+esc(big.code)+"</b>. "+esc(photoErrCopy(big.code)))));
-    return; }
-  say("var(--accent)","<b>All good.</b> Service up, token works, it reaches Claude, and photographs arrive \u2014 tested at "+small.kb+"KB and "+big.kb+"KB.");
+  /* Climb until something refuses it. Knowing the ceiling is the difference
+     between "photographs sometimes fail" and a number to shrink to. */
+  let lastOK=small.kb, firstBad=null, badWhy="";
+  for(const px of [1400,2000,2600,3200]){
+    say("var(--ink-3)","Pictures work so far ("+lastOK+"KB). Trying a bigger one\u2026");
+    const r=await tryImg(px);
+    if(r.ok){ lastOK=r.kb; continue; }
+    firstBad=r.kb; badWhy=r.threw||("answered "+r.code); break;
+  }
+  if(firstBad==null){
+    say("var(--accent)","<b>All good.</b> Service up, token works, it reaches Claude, and photographs arrive at every size tried \u2014 up to "+lastOK+"KB.");
+  }else{
+    say("var(--warn)","<b>Found the ceiling.</b> Pictures up to <b>"+lastOK+"KB</b> get through; <b>"+firstBad+"KB</b> does not ("+esc(badWhy)+"). Photos are now shrunk to sit under that, so this should not bite \u2014 but it is worth knowing.");
+  }
 }
 document.addEventListener("click",e=>{
   const tst=e.target&&e.target.closest?e.target.closest("#pdConnTest"):null;
@@ -3230,7 +3236,12 @@ function shotMax(){ const n=CAP.imgLimits&&CAP.imgLimits.maxCount; return Math.m
    long edge - anything past that is discarded at the far end after being
    paid for in upload time on a phone signal. 2600px at quality 0.85 lands
    around half a megabyte. */
-const IMG_MAX_EDGE=2600, IMG_MAX_BYTES=1.2e6;
+/* A pixel cap alone is not enough: something between a phone and the service
+   can refuse a body over a few hundred KB, and a 2600px photo of a detailed
+   scene sails past that. So shrink to a BYTE budget, stepping the quality and
+   then the size down until it fits. 380KB encodes to about 500KB of base64,
+   which is comfortably inside what was measured to get through. */
+const IMG_MAX_EDGE=2600, IMG_MAX_BYTES=200e3;
 async function normImage(f){
   try{
     /* from-image so a picture taken sideways arrives the right way up. */
@@ -3239,12 +3250,22 @@ async function normImage(f){
     catch(e){ b=await createImageBitmap(f); }
     const big=Math.max(b.width,b.height);
     if(big<=IMG_MAX_EDGE&&f.size<=IMG_MAX_BYTES&&IMG_OK.indexOf(f.type)>=0)return f;
-    const k=Math.min(1,IMG_MAX_EDGE/big);
-    const c=document.createElement("canvas");
-    c.width=Math.max(1,Math.round(b.width*k)); c.height=Math.max(1,Math.round(b.height*k));
-    c.getContext("2d").drawImage(b,0,0,c.width,c.height);
-    const out=await new Promise(r=>c.toBlob(r,"image/jpeg",0.85));
-    return out?new File([out],"image.jpg",{type:"image/jpeg"}):f;
+    /* Wider steps first (quality is cheap), then narrower (pixels cost more).
+       Stops at the first that fits, so a clean photo keeps its detail and only
+       a busy one gets cut down. */
+    const steps=[[IMG_MAX_EDGE,0.85],[2000,0.8],[1800,0.75],[1600,0.7],[1400,0.65],[1200,0.6],[1000,0.55],[800,0.5]];
+    let best=null;
+    for(const [edge,q] of steps){
+      const k=Math.min(1,edge/big);
+      const c=document.createElement("canvas");
+      c.width=Math.max(1,Math.round(b.width*k)); c.height=Math.max(1,Math.round(b.height*k));
+      c.getContext("2d").drawImage(b,0,0,c.width,c.height);
+      const out=await new Promise(r=>c.toBlob(r,"image/jpeg",q));
+      if(!out)continue;
+      best=out;
+      if(out.size<=IMG_MAX_BYTES)break;
+    }
+    return best?new File([best],"image.jpg",{type:"image/jpeg"}):f;
   }catch(e){ return f; }
 }
 /* Claude sees each picture at about 1.2 megapixels. A tall phone screenshot
