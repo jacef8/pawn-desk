@@ -2371,10 +2371,10 @@ function photoErrCopy(code){
    runs only on a read nothing could place, so the ordinary photo still costs
    one call. */
 let photoLookBusy=false;
-function photoLookPrompt(r){
+function photoLookPrompt(r,withImg){
   return [
 "An item is on the counter at a small pawn shop in Bristol, Florida. A photograph of it has just been read, and the reader could not place it on the shop's lists.",
-(photoFile?"The photograph itself is attached above. Look at it as well as at what the reader made of it.":""),
+(withImg?"The photograph itself is attached above. Look at it as well as at what the reader made of it.":""),
 "",
 "WHAT THE PHOTO READER SAW:",
 'what: "'+String(r.what||"").slice(0,120)+'"',
@@ -2404,11 +2404,24 @@ async function photoWebLookup(r){
   /* The picture goes with it. The first read is told not to shop, so it
      gives up the moment the lists run out - this pass gets to look at the
      thing and search at the same time, which is what the counter would do
-     with their own phone. */
-  try{ d=await CAP.sample.json(photoLookPrompt(r),{search:true,images:photoFile?[photoFile]:[]}); }
-  catch(e){
+     with their own phone.
+
+     If that combination is what fails - a service that will carry a picture
+     or a search but baulks at both, a picture that pushes the request over a
+     limit, a slow read that runs out of time - it goes again on the words
+     alone rather than reporting defeat. Searching on what was read off the
+     thing is most of the value; the picture is the bonus. */
+  const RETRY=/^(image_rejected|too_big|timeout|upstream_error|server_error|unreadable)$/;
+  let err=null;
+  for(const withImg of (photoFile?[true,false]:[false])){
+    try{ d=await CAP.sample.json(photoLookPrompt(r,withImg),
+           {search:true,images:withImg?[photoFile]:[]}); err=null; break; }
+    catch(e){ err=e; if(!RETRY.test(String((e&&e.code)||"")))break; }
+  }
+  if(err){ const e=err;
     photoLookBusy=false;
-    st.photoLook={err:photoErrCopy((e&&e.code)||"upstream_error")};
+    st.photoLook={err:photoErrCopy((e&&e.code)||"upstream_error"),
+                   code:(e&&e.code)||"upstream_error",why:(e&&e.why)||""};
     keepShot(r); render(); return;
   }
   photoLookBusy=false; st.photoLook=null;
@@ -2444,7 +2457,7 @@ async function photoWebLookup(r){
       concerns:(Array.isArray(d.concerns)?d.concerns:[]).slice(0,6).map(c=>String(c).slice(0,120))};
     persist(); render(); return;
   }
-  st.photoLook={err:"I looked it up and still couldn’t pin it down."};
+  st.photoLook={err:"I looked it up and still couldn’t pin it down.",code:"no_match"};
   keepShot(r); render();
 }
 /* Nobody could place it and the web did not know it either: put the picture
@@ -2462,7 +2475,11 @@ function photoLookHTML(){
   const l=st.photoLook; if(!l)return "";
   if(l.busy)return `<div class="tagWarn" style="background:rgba(0,217,255,.10);color:var(--ink-2)">
     <b style="color:var(--accent-2)">Looking it up on the web…</b> Searching on what was read off it — this one takes 10 to 40 seconds.</div>`;
+  /* The same rule the failed read follows: say which failure it was. "It
+     didn’t work" sends us both guessing; a code says whether the service
+     never answered, the key is dry, or the web simply had nothing. */
   return `<div class="tagWarn" style="background:rgba(255,201,143,.12)"><b>The web didn’t settle it.</b> ${esc(l.err||"")}
+    <div style="font-family:var(--mono);font-size:11.5px;opacity:.75;margin-top:6px">reason code: ${esc(l.code||"unknown")}${l.why?"<br>browser said: "+esc(l.why):""}<br>build ${esc(BUILD||"unknown")}</div>
     ${st.photoLast?`<button class="ghostBtn" id="lookAgain" style="padding:6px 12px;font-size:12px;margin-left:6px">Search the web again</button>`:""}</div>`;
 }
 function wireLook(){
