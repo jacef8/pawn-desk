@@ -401,9 +401,12 @@ function bookIdx(){
        a cooler, "Post hole digger - gas" is a digger, "Box fan / tower fan"
        is a fan either way. The photo read has to land on one of these. */
     const core=String(e[0]).split(/[\u2014\u2013,(]/)[0];
-    const nc=omniWords(core).filter(w=>!STOP.has(w));
-    const head=Array.from(new Set(core.split("/")
-      .map(part=>omniWords(part).filter(w=>!STOP.has(w)).pop()).filter(Boolean)));
+    /* A slash in a row name means "or", so each side is a name in its own
+       right: "Soft cooler / tote" is covered by the words "soft cooler"
+       alone. Counting tote against it let a brand word on another row
+       ("Igloo") outrank the row the words literally spell. */
+    const nc=core.split("/").map(part=>omniWords(part).filter(w=>!STOP.has(w))).filter(a=>a.length);
+    const head=Array.from(new Set(nc.map(a=>a[a.length-1])));
     return {e,nw,nc,sw,all,head};
   });
   return BOOK_IDX;
@@ -429,7 +432,7 @@ function searchBookHits(txt){
         /* a word this row owns outright - "airpods", "sawzall", "yeti".
            Short ones are usually half of a two-word alias ("lazy boy"), and
            on their own they land anywhere: "game boy" found the recliner. */
-        if(h===3&&hw.length>=4&&!b.nw.includes(hw)&&(BOOK_DF.get(hw)||9)<=2)rare=true;
+        if(h===3&&hw.length>=4&&!b.nc.some(alt=>alt.includes(hw))&&(BOOK_DF.get(hw)||9)<=2)rare=true;
       }
     }
     if(!strong)continue;
@@ -437,8 +440,13 @@ function searchBookHits(txt){
        gun case" on a query carrying both. Only the name proper counts - the
        trim after the dash ("- 2kW", "- Yeti class") is not what someone
        types. A word the row owns outright ("airpods") stands in for it. */
-    const nameHit=b.nc.filter(n=>q.some(w=>wordHit(w,[n])>0)).length;
-    const cover=rare?1:(b.nc.length?nameHit/b.nc.length:0);
+    const nameCover=b.nc.reduce((best,alt)=>
+      Math.max(best,alt.filter(n=>q.some(w=>wordHit(w,[n])>0)).length/alt.length),0);
+    /* The words the row is actually made of come first. A name the row owns
+       ("airpods", "yeti") stands in when none of them are there, but it does
+       not beat a row the words spell out - an Igloo soft cooler is a soft
+       cooler, not the Yeti-class hard one Igloo also makes. */
+    const cover=nameCover||(rare?1:0);
     if(!cover)continue;
     out.push({e:b.e,score,cover,rare,headHit,qCover:strong/q.length,len:b.e[0].length});
   }
@@ -455,8 +463,13 @@ function searchBook(txt){ return searchBookHits(txt).map(o=>o.e); }
    ("airpods"). Matching the trim is not enough: a Kenmore range came back
    "E-bike" on "electric", a chainsaw "Gun cabinet" on "case", and a Samsung
    TV a Blackstone griddle on "flat". */
+/* a row named outright, spelled the way the book spells it */
+function bookRow(name){
+  const n=omniNorm(name);
+  return PRICEBOOK.find(e=>omniNorm(e[0])===n)||null;
+}
 function photoBook(txt){
-  const h=searchBookHits(txt).find(x=>(x.headHit&&x.cover>=0.5)||(x.cover>=0.66&&x.score>=4)||(x.rare&&x.qCover>=0.4));
+  const h=searchBookHits(txt).find(x=>(x.headHit&&x.cover>=0.75)||(x.cover>=0.66&&x.score>=4)||(x.rare&&x.qCover>=0.4));
   return h?h.e:null;
 }
 function brandVerdictHTML(){
@@ -2187,7 +2200,7 @@ function photoCardHTML(){
       ${photoBusy?`<button id="photoStop" class="ghostBtn" style="padding:9px 14px">Stop</button>`:""}
     </div>
     ${photoFile?`<div class="photoWrap"><img id="photoPrev" alt="the item"></div>`:""}
-    ${photoErrHTML()}
+    ${photoErrHTML()}${photoLookHTML()}
     <div class="cardHint" id="photoMsg">${photoBusy?"Reading the picture — 10 to 30 seconds."
       :(isTouch()?"The photo goes straight in - nothing else to press. ":"Choose a photo, or drag one onto this card. ")
         +"Fill the frame and get the model plate or barrel stamp in focus."
@@ -2299,7 +2312,7 @@ async function shotsRefresh(){ SHOTS=await shotAll(); try{ render(); }catch(e){}
 
 async function runPhotoRead(){
   if(!CAP.sample||!photoFile||photoBusy)return;
-  photoBusy=true; photoCtl=new AbortController(); st.photoErr=null; render();
+  photoBusy=true; photoCtl=new AbortController(); st.photoErr=null; st.photoLook=null; st.shotKept=false; render();
   try{
     const r=await CAP.sample.json(photoPrompt(),{
       images:photoFile, modelTier:"default", signal:photoCtl.signal
@@ -2349,11 +2362,119 @@ function photoErrCopy(code){
     default: return "The read failed. Fill the form in by hand — the tool works fine without it.";
   }
 }
+/* ---- when the lists cannot place it, go and look it up ------------------
+   The photo reader is told not to shop: it names what it can see and stops
+   there, which is right for a drill and useless for a charging case with one
+   word on the lid. When nothing on the lists fits, this takes what was read
+   off the thing - the maker, the model, the words on the label - and
+   searches the web the way the counter would, then places the answer. It
+   runs only on a read nothing could place, so the ordinary photo still costs
+   one call. */
+let photoLookBusy=false;
+function photoLookPrompt(r){
+  return [
+"An item is on the counter at a small pawn shop in Bristol, Florida. A photograph of it has just been read, and the reader could not place it on the shop's lists.",
+(photoFile?"The photograph itself is attached above. Look at it as well as at what the reader made of it.":""),
+"",
+"WHAT THE PHOTO READER SAW:",
+'what: "'+String(r.what||"").slice(0,120)+'"',
+'brand: "'+String(r.brand||"").slice(0,60)+'"   model: "'+String(r.model||"").slice(0,60)+'"',
+'its own note: "'+String(r.note||"").slice(0,200)+'"',
+photoHintText(),
+"",
+"Search the web and work out exactly what this is - the maker, the product line, what the thing actually does. The words read off it are what to search for.",
+"",
+"Then place it, in this order:",
+"1. CATALOG - if one of these is what it is, give its catId and itemId:",
+catalogText(),
+"",
+"2. PRICE BOOK - if the catalog has nothing but one of these rows is what it is, put that row's name, spelled exactly as it appears here, in \"book\":",
+PRICEBOOK.map(e=>e[0]).join("; "),
+"",
+"3. Neither fits - leave itemId and book empty, still give the catId of the kind of thing it is, and put in \"resale\" what a used one really sells for in the United States, in dollars: completed sales and used listings, never new retail. Name the source in \"where\".",
+"",
+"Reply with ONLY this JSON:",
+'{"what":"plain name of the item","catId":"","itemId":"","book":"","resale":0,"where":"","brand":"","model":"","detail":"short spec text for the ticket","cond":"good","concerns":[],"confidence":"high|medium|low","note":"one sentence: what it is and how you know"}'
+  ].join("\n");
+}
+async function photoWebLookup(r){
+  if(photoLookBusy||!CAP.sample)return;
+  st.photoLast=r; photoLookBusy=true; st.photoLook={busy:true}; render();
+  let d=null;
+  /* The picture goes with it. The first read is told not to shop, so it
+     gives up the moment the lists run out - this pass gets to look at the
+     thing and search at the same time, which is what the counter would do
+     with their own phone. */
+  try{ d=await CAP.sample.json(photoLookPrompt(r),{search:true,images:photoFile?[photoFile]:[]}); }
+  catch(e){
+    photoLookBusy=false;
+    st.photoLook={err:photoErrCopy((e&&e.code)||"upstream_error")};
+    keepShot(r); render(); return;
+  }
+  photoLookBusy=false; st.photoLook=null;
+  d=d||{};
+  const cat=CATALOG.find(c=>c.id===String(d.catId||""));
+  const it=cat?cat.items.find(i=>i.id===String(d.itemId||"")):null;
+  const row=(d.book&&bookRow(d.book))||photoBook(String(d.what||""));
+  /* Anything it could place goes back through the ordinary path, so a web
+     answer and a photo answer behave the same from here on. A catId with no
+     item is not a placement - left alone it lands on whatever happens to be
+     first in that category, which is how you sell a drone as a chainsaw. */
+  if(it||row){
+    applyPhotoRead(Object.assign({},d,{catId:it?cat.id:"",itemId:it?it.id:"",
+      book:row?row[0]:"",web:true}));
+    if(st.photoRead)st.photoRead=Object.assign({},st.photoRead,
+      {note:String(st.photoRead.note||"")+" (found on the web)"});
+    render(); return;
+  }
+  const price=Math.round(Number(d.resale));
+  if(cat&&price>0){
+    const id=custId(cat.id), where=String(d.where||"").slice(0,40);
+    st.catId=cat.id; st.itemId=id; st.bookName=String(d.what||r.what||"").slice(0,60);
+    st.overrides[id]=price; st.liq="normal"; st.specSel={}; st.editing=false; st.market=null;
+    st.model=String(d.model||"").slice(0,60);
+    st.detail=String(d.detail||"").slice(0,80);
+    st.brandTyped=String(d.brand||"").slice(0,40);
+    const bh=st.brandTyped?brandLookup(st.catId,st.brandTyped):null;
+    st.brand=bh?bh.tier:"mid";
+    const c2=CONDITIONS.find(c=>c.id===String(d.cond||"")); if(c2)st.cond=c2.id;
+    st.photoRead={webPrice:{price,where},what:String(d.what||"").slice(0,90),confidence:String(d.confidence||"").slice(0,10),
+      note:"Not on any list — priced at "+money(price)+" from what used ones sell for"
+        +(where?" ("+where+")":"")+". Change it if that is wrong. "+String(d.note||"").slice(0,160),
+      concerns:(Array.isArray(d.concerns)?d.concerns:[]).slice(0,6).map(c=>String(c).slice(0,120))};
+    persist(); render(); return;
+  }
+  st.photoLook={err:"I looked it up and still couldn’t pin it down."};
+  keepShot(r); render();
+}
+/* Nobody could place it and the web did not know it either: put the picture
+   on the shelf without being asked. At a yard sale you move on - the
+   research happens that evening, and only if the photograph is still there. */
+async function keepShot(r){
+  if(st.shotKept||!photoFile||typeof shotSave!=="function")return;
+  st.shotKept=true;
+  try{
+    await shotSave(photoFile,{what:String((r&&r.what)||""),hints:Object.assign({},st.photoHints)});
+    if(typeof shotsRefresh==="function")shotsRefresh();
+  }catch(e){}
+}
+function photoLookHTML(){
+  const l=st.photoLook; if(!l)return "";
+  if(l.busy)return `<div class="tagWarn" style="background:rgba(0,217,255,.10);color:var(--ink-2)">
+    <b style="color:var(--accent-2)">Looking it up on the web…</b> Searching on what was read off it — this one takes 10 to 40 seconds.</div>`;
+  return `<div class="tagWarn" style="background:rgba(255,201,143,.12)"><b>The web didn’t settle it.</b> ${esc(l.err||"")}
+    ${st.photoLast?`<button class="ghostBtn" id="lookAgain" style="padding:6px 12px;font-size:12px;margin-left:6px">Search the web again</button>`:""}</div>`;
+}
+function wireLook(){
+  const b=document.getElementById("lookAgain");
+  if(b)b.onclick=()=>{ if(st.photoLast)photoWebLookup(st.photoLast); };
+}
 function applyPhotoRead(r){
   let cat=CATALOG.find(c=>c.id===String(r.catId||""));
   /* nothing in the catalog fits — try the price book on what it says the thing is */
-  if(!cat&&r.what){
-    const hit=photoBook(String(r.what))||photoBook(String(r.what).split(/\s+/).slice(-2).join(" "));
+  if(!cat&&(r.what||r.book)){
+    const hit=(r.book&&bookRow(r.book))||photoBook(String(r.what||""))
+      ||photoBook(String(r.what||"").split(/\s+/).slice(-2).join(" "));
     if(hit){
       st.catId=hit[2]; st.itemId=custId(hit[2]); st.bookName=hit[0]; st.overrides[custId(hit[2])]=hit[1];
       st.liq=hit[3]; st.specSel={}; st.editing=false;
@@ -2385,7 +2506,12 @@ function applyPhotoRead(r){
       concerns:(Array.isArray(r.concerns)?r.concerns:[]).slice(0,6).map(c=>String(c).slice(0,120))};
     /* Put what it read into the search box so one tap finishes the job. */
     if(what)st.omniQ=what;
-    render(); return;
+    render();
+    /* ...and meanwhile go and look it up, which is what the counter would do
+       next anyway. Not on a web answer that already failed to place, or it
+       would search itself in a circle. */
+    if(what&&!r.web&&CAP.sample)photoWebLookup(r);
+    return;
   }
   {
     st.catId=cat.id;
@@ -2439,6 +2565,7 @@ function wirePhoto(){
   if(prev&&photoFile){ try{ prev.src=URL.createObjectURL(photoFile); }catch(e){} }
   const go=document.getElementById("photoGo");
   if(go)go.onclick=runPhotoRead;
+  wireLook();
   const stop=document.getElementById("photoStop");
   if(stop)stop.onclick=()=>{ if(photoCtl)photoCtl.abort(); };
 }

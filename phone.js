@@ -158,6 +158,7 @@ function phoneBoot(){
       document.querySelectorAll("[data-hint]").forEach(inp=>{
         inp.oninput=()=>{ st.photoHints=Object.assign({},st.photoHints,{[inp.dataset.hint]:inp.value}); };
       });
+      try{ wireLook(); }catch(e){}
       const again=document.getElementById("snapAgain");
       if(again)again.onclick=()=>{ if(photoFile)runPhotoRead(); };
       const keep=document.getElementById("snapKeep");
@@ -281,7 +282,10 @@ function snapHTML(){
         <div class="snapBig dim">${money(x.buy)}</div>
         <div class="snapSub">From the built-in list for now. The live price lands in a moment.</div></div>`
       :`<div class="snapCard${x.buyTooThin?" bad":""}">${big}
-        <div class="snapSrc">${priced?esc(nsSrcShort(x.market)):"Built-in list \u2014 no live prices found"}${priced?"":""}</div></div>`}
+        <div class="snapSrc">${priced?esc(nsSrcShort(x.market))
+          :(st.photoRead&&st.photoRead.webPrice
+             ? "Used ones on the web"+(st.photoRead.webPrice.where?" \u2014 "+esc(st.photoRead.webPrice.where):"")
+             :"Built-in list \u2014 no live prices found")}</div></div>`}
     <div class="snapCond">${CONDITIONS.map(c=>`<button class="${c.id===st.cond?"on":""}" data-cond="${c.id}">${c.label.replace("New in box","New")}</button>`).join("")}</div>
     ${snapFootHTML()}
   </div>`;
@@ -308,16 +312,19 @@ function snapHelpHTML(un){
     <div class="snapLab">I read the picture as</div>
     <div class="snapName" style="margin-top:6px">${esc(un.what||"\u2014 couldn\u2019t tell \u2014")}</div>
     <div class="snapSub">${un.what
-      ? "I can\u2019t place it on my lists, so I can\u2019t price it yet. Tell me what you can see and I\u2019ll look again \u2014 you\u2019re holding it, I\u2019m not."
+      ? ((st.photoLook&&st.photoLook.busy)
+          ? "It\u2019s not on my lists, so I\u2019m searching the web for it now. Answer these while you wait and I\u2019ll have both."
+          : "I can\u2019t place it on my lists, so I can\u2019t price it yet. Tell me what you can see and I\u2019ll look again \u2014 you\u2019re holding it, I\u2019m not.")
       : "The picture didn\u2019t give me enough. Tell me what you can see and I\u2019ll look again, or take another shot closer in."}</div>
     ${un.note?`<div class="snapSrc">${esc(un.note)}</div>`:""}
+    ${photoLookHTML()}
     <div class="snapAsk">
       ${SNAP_Q.map(([k,q,ph])=>`<label><span>${esc(q)}</span>
         <input data-hint="${k}" type="text" autocomplete="off" placeholder="${esc(ph)}" value="${esc(String(h[k]||""))}"></label>`).join("")}
     </div>
     <div class="snapFoot" style="margin-top:12px">
       <button class="brassBtn" id="snapAgain"${photoBusy?" disabled":""}>${photoBusy?"Looking again\u2026":"Look again with this"}</button>
-      <button class="ghostBtn" id="snapKeep">Keep the picture for later</button>
+      <button class="ghostBtn" id="snapKeep"${st.shotKept?" disabled":""}>${st.shotKept?"Picture kept":"Keep the picture for later"}</button>
     </div>
     <div class="snapSrc">Or just tell me the kind of thing it is:</div>
     <div class="snapCond" style="margin-top:8px">${CATALOG.map(c=>
