@@ -4350,7 +4350,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0925.2300";
+const APP_BUILD="0925.2345";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -5271,8 +5271,11 @@ function render(){
   else if(st.mode==="log"){v.innerHTML=renderLog();wireLog();}
   else if(st.mode==="device"){v.innerHTML=renderDevice();}
   else if(st.mode==="setup"){v.innerHTML=renderSetup();}
-  if(st.newBuild)v.insertAdjacentHTML("afterbegin",staleHTML());
   else {v.innerHTML=renderFlags();}
+  /* After the chain, never inside it: dropped between the last else-if and
+     its else, this line stole the else, and every screen that was not
+     out of date drew the walk-away list instead of itself. */
+  if(st.newBuild)v.insertAdjacentHTML("afterbegin",staleHTML());
   /* The spotting-fakes card shows on the item page and the metal page both,
      so its measurement boxes are wired after whichever one drew it. */
   try{ wireSpec(); }catch(e){}
