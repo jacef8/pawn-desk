@@ -1762,19 +1762,28 @@ async function pdJSON(prompt,opts){
 }
 /* The counter's own new-price lookup: no tab opens, the number comes back here. */
 let retailBusy=false;
-async function retailLookup(){
-  if(retailBusy||!CAP.sample)return;
-  const x=calcItem(), q=compQuery(x);
-  retailBusy=true; render();
-  const say=t=>{ const el=document.getElementById("pdRetMsg"); if(el)el.textContent=t; };
+/* Asked in one place, because the sweep wants the same answer the button
+   does. Returns the number or nothing; it sets no state of its own. */
+async function retailFetch(q,signal){
   try{
     const d=await CAP.sample.json(
       'What does a new "'+q+'" cost today at a United States retailer? Search the web for current prices. '+
       'Reply with JSON and nothing else: {"price": <number, the typical new retail price in US dollars>, '+
       '"where": "<retailer>", "note": "<8 words or fewer>"}. '+
       'If there is no real new price for it, reply {"price": 0, "where": "", "note": "not found"}.',
-      {search:true});
+      {search:true,signal});
     const n=Math.round(Number(d&&d.price));
+    return n>0?{price:n,where:String((d&&d.where)||"").slice(0,40)}:null;
+  }catch(e){ return null; }
+}
+async function retailLookup(){
+  if(retailBusy||!CAP.sample)return;
+  const x=calcItem(), q=compQuery(x);
+  retailBusy=true; render();
+  const say=t=>{ const el=document.getElementById("pdRetMsg"); if(el)el.textContent=t; };
+  {
+    const got=await retailFetch(q);
+    const n=got?got.price:0, d=got?{where:got.where}:null;
     retailBusy=false;
     if(n>0){
       const p=retailPct(x);
@@ -1783,9 +1792,6 @@ async function retailLookup(){
       render(); return;
     }
     render(); say("No new price found for that. Type one in.");
-  }catch(e){
-    retailBusy=false; render();
-    say(((e&&e.code)==="no_server")?"No service connected yet.":"Lookup failed. Type the new price in.");
   }
 }
 /* A device is switched on by opening a link the desk drew as a QR code. The
@@ -2529,7 +2535,7 @@ function autoPriceAfterPhoto(){
   setTimeout(async()=>{
     const ctl=new AbortController();
     const t=setTimeout(()=>ctl.abort(),60000);
-    try{ await priceFind(ctl.signal); }catch(e){}
+    try{ await priceFind(ctl.signal,true); }catch(e){}
     clearTimeout(t);
     photoChase=false;
     try{ render(); }catch(e){}
@@ -4389,7 +4395,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.0015";
+const APP_BUILD="0926.0130";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -4866,7 +4872,13 @@ function findPrompt(q,pass){
     'If you find none, reply {"comps":[]}.';
 }
 let findBusy=false, findMsg="", findAgain=false;
-async function priceFind(signal){
+/* One press, every source. The counter said it plainly: if I am looking a
+   thing up I want all the data there is, and I should not have to pick which
+   search to run. So this no longer stops at the first pass that comes back
+   full, and it asks what a new one costs in the same sweep - then keeps
+   every answer side by side in st.evidence rather than quietly choosing one
+   and throwing the rest away. */
+async function priceFind(signal,all){
   if(findBusy||!CAP.sample)return;
   const x=calcItem(), q=compQuery(x);
   if(!q)return;
@@ -4881,7 +4893,7 @@ async function priceFind(signal){
   const have=compStats(compsMatch(x));
   const FRESH=1000*60*60*24*10;
   const recent=compsMatch(x).filter(c=>Date.now()-(c.ts||0)<FRESH).length;
-  if(have&&recent>=5&&!findAgain){
+  if(have&&recent>=5&&!findAgain&&!all){
     findAgain=true;
     useComps(have);
     findMsg=have.n+" listings already on file from the last few days \u2014 no search needed. "+
@@ -4915,7 +4927,16 @@ async function priceFind(signal){
     const cs=((r.value&&r.value.comps)||[]).filter(c=>c&&Number(c.price)>0);
     cs.forEach(c=>got.push(Object.assign({},c,{where:String(c.where||passes[i].where).slice(0,24)})));
     tally.push(passes[i].name+" "+cs.length);
-    if(got.length>=ENOUGH){ if(i<passes.length-1)tally.push("enough \u2014 "+(passes.length-1-i)+" search saved"); break; }
+    if(!all&&got.length>=ENOUGH){ if(i<passes.length-1)tally.push("enough \u2014 "+(passes.length-1-i)+" search saved"); break; }
+  }
+  /* What a new one costs, gathered in the same sweep. It is the weakest
+     number here and it is never chosen over a sale, but it is the one that
+     answers "is this worth anything at all" when nothing else lands. */
+  let retail=null;
+  if(all&&!(signal&&signal.aborted)){
+    say("Checking what it costs new\u2026");
+    retail=await retailFetch(q,signal);
+    tally.push(retail?"new "+money(retail.price):"new none");
   }
   findBusy=false;
   /* The same listing can surface in more than one pass; count it once. */
@@ -4924,10 +4945,63 @@ async function priceFind(signal){
                              if(seen[k])return false; seen[k]=1; return true; });
   const added=compsAdd(q,uniq);
   if(added)pdSync();
-  if(!added){ render(); say(failed&&failed===out.length?"Every search failed. Try the sold pages.":"No listings found. Try the sold pages."); return; }
-  useComps(compStats(compsMatch(calcItem())));
-  const t=compStats(compsMatch(calcItem()));
+  const x2=calcItem();
+  const t=compStats(compsMatch(x2));
+  if(all)gatherEvidence(x2,t,retail);
+  if(!added&&!t){
+    /* Nothing sold anywhere. A new price is still an answer, and before the
+       sweep it was sitting behind a second button nobody pressed. */
+    if(retail){ useEvidence("retail"); say(tally.join(" \u00b7 ")+" \u2014 no sales found, priced off new."); return; }
+    render(); say(failed&&failed===out.length?"Every search failed. Try the sold pages.":"No listings found. Try the sold pages.");
+    return;
+  }
+  if(t)useComps(t); else if(retail)useEvidence("retail");
   say(tally.join(" \u00b7 ")+" \u2014 "+added+" new"+(t?", "+t.n+" on file":"")+(got.length-uniq.length?", "+(got.length-uniq.length)+" duplicate dropped":""));
+}
+/* Every number the sweep turned up, kept side by side. The card below lists
+   them all and marks the one in use, so nothing found is lost behind the
+   one the tool happened to pick. */
+function gatherEvidence(x,t,retail){
+  const own=soldStats(itemKey()), seen=seenEstimate(seenMatch(x)), pct=retailPct(x);
+  st.evidence={key:mkKey(),ts:Date.now(),
+    comps:t?{n:t.n,med:t.med,lo:t.lo,hi:t.hi,sold:t.sold,from:t.from,mid:t.mid}:null,
+    retail:retail?{price:retail.price,where:retail.where,pct,
+                   mid:Math.max(5,Math.round(retail.price*pct/100/5)*5)}:null,
+    own:own?{n:own.n,avg:Math.round(own.avg),mid:Math.max(5,Math.round(own.avg/5)*5)}:null,
+    seen:seen?{n:seen.n,lo:seen.lo,hi:seen.hi,mid:seen.mid}:null,
+    book:Math.round(x.baseValue)};
+}
+function useEvidence(kind){
+  const E=st.evidence; if(!E)return;
+  if(kind==="comps"&&E.comps){ useComps(compStats(compsMatch(calcItem()))); return; }
+  if(kind==="retail"&&E.retail){
+    st.market={kind:"retail",key:mkKey(),retail:E.retail.price,pct:E.retail.pct,
+               where:E.retail.where,mid:E.retail.mid}; render(); return; }
+  if(kind==="own"&&E.own){ st.market={kind:"own",key:mkKey(),n:E.own.n,mid:E.own.mid}; render(); return; }
+  if(kind==="seen"&&E.seen){ st.market={kind:"seen",key:mkKey(),n:E.seen.n,ask:E.seen.mid,
+               lo:E.seen.lo,hi:E.seen.hi,mid:E.seen.mid}; render(); return; }
+  if(kind==="book"){ st.market=null; render(); }
+}
+/* One card, every source, the one in use marked. */
+function evidenceHTML(){
+  const E=st.evidence; if(!E||E.key!==mkKey())return "";
+  const now=(st.market&&st.market.kind)||"book";
+  const row=(kind,label,num,note)=>{
+    const on=(kind===now)||(kind==="comps"&&now==="found");
+    return `<button class="nsBtn${on?" on":""}" data-use="${kind}"${on?" disabled":""}>
+      <span>${label}${note?`<i style="display:block;font-style:normal;opacity:.7;font-size:11.5px">${note}</i>`:""}</span>
+      <b>${money(num)}</b><i>${on?"in use":"use this"}</i></button>`;
+  };
+  let h=`<div class="label" style="margin-top:14px">Everything it found</div>`;
+  if(E.comps)h+=row("comps",`${E.comps.n} listing${E.comps.n===1?"":"s"}${E.comps.sold?`, ${E.comps.sold} sold`:""}`,
+    E.comps.mid,`middle half ${money(E.comps.lo)}–${money(E.comps.hi)}${E.comps.from?" · "+esc(E.comps.from):""}`);
+  if(E.own)h+=row("own",`Your own sales — ${E.own.n}`,E.own.mid,"what this shop actually got");
+  if(E.seen)h+=row("seen",`Shelf tags you recorded — ${E.seen.n}`,E.seen.mid,
+    `asking ${money(E.seen.lo)}–${money(E.seen.hi)}`);
+  if(E.retail)h+=row("retail",`New retail${E.retail.where?" — "+esc(E.retail.where):""}`,E.retail.mid,
+    `${money(E.retail.price)} new, ${E.retail.pct}% of new for a used one — not a sold price`);
+  h+=row("book","The built-in list",E.book,"where the tool starts before it searches");
+  return h;
 }
 function useComps(t){
   if(!t)return;
@@ -5013,8 +5087,9 @@ document.addEventListener("change",e=>{
   if(t&&t.id==="seenImp"&&t.files&&t.files[0]){ seenImport(t.files[0]); t.value=""; }
 },true);
 document.addEventListener("click",e=>{
-  const b=e.target&&e.target.closest?e.target.closest("#seenHand,#seenOut,#seenUse,#seenSync,#pdFindGo,#foundUse,#pdCopyConn"):null; if(!b)return;
-  if(b.id==="pdFindGo"){ priceFind(); return; }
+  const b=e.target&&e.target.closest?e.target.closest("#seenHand,#seenOut,#seenUse,#seenSync,#pdFindGo,#foundUse,#pdCopyConn,[data-use]"):null; if(!b)return;
+  if(b.id==="pdFindGo"){ priceFind(null,true); return; }
+  if(b.dataset.use){ useEvidence(b.dataset.use); return; }
   if(b.id==="foundUse"){ useComps(compStats(compsMatch(calcItem()))); return; }
   if(b.id==="seenSync"){ pdSync(); return; }
   if(b.id==="seenOut"){ seenExport(); return; }
@@ -5182,10 +5257,11 @@ function nextStepHTML(x){
      line above it says in plain words that nothing is priced yet. */
   const asking=st.needKind&&!window.PHONE;
   if(CAP.sample&&st.picked&&!asking&&!findBusy&&!(act||"").includes("pdFindGo"))
-    act=`<button class="nsBtn${x.checked?" ghost":" on"}" id="pdFindGo" title="Searches eBay sold and Google Shopping used at the same time and brings the middle price back. You do not have to open or read anything.\u000aFor firearms it searches GunWatcher, auction results and GunBroker instead \u2014 eBay bans gun sales."><span>${x.checked?"Check it live \u2014 search the sold prices":"Look up what it sells for used"}</span></button>`+act;
+    act=`<button class="nsBtn${x.checked?" ghost":" on"}" id="pdFindGo" title="Searches the sold pages, the used listings and what it costs new, all in one press, and brings every number back here. You do not have to open or read anything.\u000aFor firearms it searches GunWatcher, auction results and GunBroker instead \u2014 eBay bans gun sales."><span>${x.checked?"Look it up again":"Look it up \u2014 everywhere"}</span></button>`+act;
   else if(CAP.sample&&!asking&&findBusy&&!(act||"").includes("pdFindGo"))
     act=`<button class="nsBtn on" id="pdFindGo" disabled><span>Looking it up&hellip;</span></button>`+act;
-  if(CAP.sample&&st.picked&&!asking)act+=`<div class="cardHint" id="pdFindMsg" style="flex-basis:100%">${esc(findMsg||"")}</div>`;
+  if(CAP.sample&&st.picked&&!asking)act+=`<div class="cardHint" id="pdFindMsg" style="flex-basis:100%">${esc(findMsg||"")}</div>`
+    +`<div style="flex-basis:100%">${evidenceHTML()}</div>`;
   /* In step-at-a-time the run down the middle already carries the steps with
      their answers, and the strip carries the numbers. Repeating the list here
      is a third copy of the same progress, and it is what pushes the loan card
