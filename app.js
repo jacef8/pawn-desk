@@ -2094,6 +2094,40 @@ async function pdLimits(){
   try{ const r=await fetch(pdBase()+"/limits"); return await r.json(); }
   catch(e){ return {images:{mediaTypes:["image/jpeg","image/png","image/webp"],maxCount:4,maxBytes:5242880}}; }
 }
+/* eBay's own listing data, through the service. This is the only source the
+   desk can reach that is able to say what something SOLD for - everything
+   else, this tool's own web searches included, can only see listings that
+   are still up, and the overpriced one that sat for six months is still up
+   while the one that sold in a day is gone. Averaging what is left reads
+   high, and high is the wrong direction to be wrong in when a loan is
+   riding on it.
+
+   It costs nothing to call. No model, no search, no balance - so the
+   lookup tries it first, and when it comes back full the searches below it
+   are never paid for at all.
+
+   It throws like the rest of the service calls, and the caller falls
+   through to the searches. A shop with no eBay keyset set on the service
+   gets exactly what it got before. */
+async function pdEbayComps(q,signal){
+  if(!pdServer())throw pdErr("no_server");
+  const ctl=new AbortController();
+  const stop=()=>ctl.abort();
+  if(signal){ if(signal.aborted)stop(); else signal.addEventListener("abort",stop); }
+  /* eBay answers in a second or two. Anything past half a minute is a
+     service that is not coming back, and the searches are still waiting. */
+  const timer=setTimeout(stop,30000);
+  let r;
+  try{
+    r=await fetch(pdBase()+"/ebay",{method:"POST",
+      headers:{"content-type":"application/json","x-pawn-token":pdToken()},
+      body:JSON.stringify({q:String(q||"").slice(0,120),limit:40}),signal:ctl.signal});
+  }catch(e){ throw pdErr("upstream_error"); }
+  finally{ clearTimeout(timer); if(signal)signal.removeEventListener("abort",stop); }
+  let j=null; try{ j=await r.json(); }catch(e){}
+  if(!r.ok||!j||!j.ok)throw pdErr((j&&j.code)||"upstream_error");
+  return j;
+}
 async function pdJSON(prompt,opts){
   if(!pdServer())throw pdErr("no_server");
   opts=opts||{};
@@ -4778,7 +4812,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.1200";
+const APP_BUILD="0926.1300";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -5351,8 +5385,16 @@ function findPasses(x){
      say:"published results from gun auction houses and sold-price archives - Rock Island, Morphy, Proxibid, GunsAmerica sold - for what the gun actually brought"},
     {name:"GunBroker, asking", where:"GunBroker",
      say:"current GunBroker listings, which are asking prices rather than sales - mark every one of these \"asking\""}];
-  const p=[{name:"eBay sold",   where:"eBay",
-            say:"completed, sold eBay listings - the price it actually went for, not what it was listed at"}];
+  /* eBay first, and through its API rather than by searching for it. The
+     pass below used to be named "eBay sold" and ask a web search for
+     completed listings - which it could never return, because eBay's sold
+     pages sit behind a login and the site refuses an automated reader
+     outright. What came back was active listings: asking prices wearing a
+     label that said sold. The API can answer the question properly, and it
+     is free, so it goes first and the paid searches are the fallback. */
+  const p=[{name:"eBay", where:"eBay", ebay:true}];
+  p.push({name:"Searched, used", where:"eBay",
+          say:"used-condition eBay listings and completed sales where you can reach them - mark anything still for sale \"asking\""});
   p.push({name:"Shopping, used", where:"Shopping",
           say:"used-condition listings currently for sale on Google Shopping and the marketplaces"});
   return p;
@@ -5412,15 +5454,29 @@ async function priceFind(signal,all){
   const out=[], tally=[];
   const got=[]; let failed=0;
   for(let i=0;i<passes.length;i++){
-    if(i)say("Thin so far \u2014 trying "+passes[i].name+"\u2026");
-    let r;
-    try{ r={status:"fulfilled",value:await CAP.sample.json(findPrompt(passes[i].q||q,passes[i]),{search:true,signal})}; }
-    catch(e){ r={status:"rejected"}; }
+    const P=passes[i];
+    if(i)say("Thin so far \u2014 trying "+P.name+"\u2026");
+    let r, note="";
+    if(P.ebay){
+      /* Free, so it never counts against the "enough" saving below - it is
+         the thing doing the saving. */
+      try{
+        const j=await pdEbayComps(P.q||q,signal);
+        r={status:"fulfilled",value:{comps:(j.comps||[])}};
+        /* Say which kind of number came back. Without the Marketplace
+           Insights grant eBay can only serve active listings, and the
+           counter should see that on the tally rather than assume a sale. */
+        note=j.basis==="sold"?" sold":" asks";
+      }catch(e){ r={status:"rejected"}; }
+    }else{
+      try{ r={status:"fulfilled",value:await CAP.sample.json(findPrompt(P.q||q,P),{search:true,signal})}; }
+      catch(e){ r={status:"rejected"}; }
+    }
     out.push(r);
-    if(r.status!=="fulfilled"){ failed++; tally.push(passes[i].name+" failed"); continue; }
+    if(r.status!=="fulfilled"){ failed++; tally.push(P.name+" failed"); continue; }
     const cs=((r.value&&r.value.comps)||[]).filter(c=>c&&Number(c.price)>0);
-    cs.forEach(c=>got.push(Object.assign({},c,{where:String(c.where||passes[i].where).slice(0,24)})));
-    tally.push(passes[i].name+" "+cs.length);
+    cs.forEach(c=>got.push(Object.assign({},c,{where:String(c.where||P.where).slice(0,24)})));
+    tally.push(P.name+note+" "+cs.length);
     if(!all&&got.length>=ENOUGH){ if(i<passes.length-1)tally.push("enough \u2014 "+(passes.length-1-i)+" search saved"); break; }
   }
   /* What a new one costs, gathered in the same sweep. It is the weakest
