@@ -1750,6 +1750,26 @@ function harvStats(){
     wild:all.filter(f=>f&&f.wild).length,
     empty:all.filter(f=>!f||!(f.n>=3)).length};
 }
+/* Is the record actually shared between the devices? The service knows - it
+   reports on every sync whether it has a disk to write to - so this asks it
+   and says so plainly, in words, rather than leaving the counter to read an
+   absence of warnings as a yes. Costs nothing: /sync spends no API money. */
+function harvShareHTML(){
+  const when=st.syncSeen?fmtDay(new Date(st.syncSeen).toISOString().slice(0,10)):"";
+  if(st.syncShared==="no")return `<div class="tagWarn" style="background:rgba(255,66,87,.12);color:#FFAAB4">
+    <b>Not shared \u2014 and not saved.</b> The service says: ${esc(st.syncWarn||"no disk attached to the service")}.
+    Prices built here stay on this device, and the service forgets its copy every time it restarts.
+    In Railway: open the service, <b>Variables and Settings</b>, add a <b>Volume</b> mounted at
+    <b style="font-family:var(--mono)">/data</b>, then redeploy. Do that before paying for a long run.
+    <div style="margin-top:8px"><button class="ghostBtn" id="harvCheck">${syncBusy?"Checking\u2026":"Check again"}</button></div></div>`;
+  if(st.syncShared==="yes")return `<div class="tagNote" style="margin-top:10px">
+    <b style="color:var(--accent)">Shared.</b> The service has a disk, so what this device prices reaches the others,
+    and it survives a restart. Checked ${esc(when)}.
+    <div style="margin-top:8px"><button class="ghostBtn" id="harvCheck" style="padding:5px 11px;font-size:11.5px">${syncBusy?"Checking\u2026":"Check again"}</button></div></div>`;
+  return `<div class="cardHint">Whether these reach your other devices depends on the service having a disk attached.
+    <button class="ghostBtn" id="harvCheck" style="padding:6px 12px;font-size:12px;margin-left:6px">${syncBusy?"Checking\u2026":"Check sharing"}</button>
+    Costs nothing to ask.</div>`;
+}
 function harvCardHTML(){
   if(!CAP.sample)return "";
   const S=harvStats(), total=harvSeed?harvSeed.length:610, left=Math.max(0,total-S.done);
@@ -1773,10 +1793,7 @@ function harvCardHTML(){
         <button class="ghostBtn" data-harv="0" style="padding:10px 16px">Price all ${left}</button>
        </div>`}
     ${st.harvErr?`<div class="tagWarn" style="background:rgba(255,66,87,.12);color:#FFAAB4">${esc(st.harvErr)}</div>`:""}
-    ${st.syncWarn?`<div class="tagWarn" style="background:rgba(255,66,87,.12);color:#FFAAB4">
-      <b>These would not be shared.</b> The service says: ${esc(st.syncWarn)}. Prices built here would stay on this
-      device and would be lost if the service restarts. Attach a disk to it in Railway (a volume mounted at
-      <b style="font-family:var(--mono)">/data</b>) before spending money on a long run.</div>`:""}
+    ${harvShareHTML()}
     ${S.done?`<div class="tagNote" style="margin-top:10px">
       <b style="color:var(--ink)">${S.done} done</b> &middot; ${S.priced} priced${S.wild?` &middot; <span style="color:var(--warn)">${S.wild} looked wrong and were held back</span>`:""}${S.empty?` &middot; ${S.empty} found nothing`:""} &middot; ${left} left.
       ${f?`<div style="margin-top:9px">To put them in the copy everyone downloads, save the file and send it to me:
@@ -4574,7 +4591,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.0600";
+const APP_BUILD="0926.0700";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -5087,7 +5104,14 @@ async function pdSync(){
     }catch(e){ failed++; }
   }
   syncBusy=false;
-  syncNote = failed===Object.keys(SYNC_STORES).length ? "Couldn't reach the service."
+  /* Whether the record is really shared is not a thing to go hunting for in
+     a hosting dashboard. The service answers it on every sync; this keeps
+     the answer, so the tool can say which it is rather than leaving silence
+     to be read as good news. */
+  const allFailed=failed===Object.keys(SYNC_STORES).length;
+  if(!allFailed)st.syncSeen=Date.now();
+  st.syncShared=allFailed?"": (warn?"no":"yes");
+  syncNote = allFailed ? "Couldn't reach the service."
            : warn ? ("Shared, but "+warn)
            : (pulled||pushed) ? ("Synced \u00b7 "+pushed+" sent, "+pulled+" received")
            : "Synced \u00b7 nothing new";
@@ -5377,12 +5401,13 @@ document.addEventListener("change",e=>{
   if(t&&t.id==="seenImp"&&t.files&&t.files[0]){ seenImport(t.files[0]); t.value=""; }
 },true);
 document.addEventListener("click",e=>{
-  const b=e.target&&e.target.closest?e.target.closest("#seenHand,#seenOut,#seenUse,#seenSync,#pdFindGo,#foundUse,#pdCopyConn,#harvStop,#harvDl,#harvClear,[data-use],[data-harv]"):null; if(!b)return;
+  const b=e.target&&e.target.closest?e.target.closest("#seenHand,#seenOut,#seenUse,#seenSync,#pdFindGo,#foundUse,#pdCopyConn,#harvStop,#harvDl,#harvClear,#harvCheck,[data-use],[data-harv]"):null; if(!b)return;
   if(b.id==="pdFindGo"){ priceFind(null,true); return; }
   if(b.dataset.harv!=null){ harvRun("",Number(b.dataset.harv)); return; }
   if(b.id==="harvStop"){ harvStop=true; return; }
   if(b.id==="harvDl"){ harvDownload(); return; }
   if(b.id==="harvClear"){ HARV={}; harvSave(); render(); return; }
+  if(b.id==="harvCheck"){ pdSync(); return; }
   if(b.dataset.use){ useEvidence(b.dataset.use); return; }
   if(b.id==="foundUse"){ useComps(compStats(compsMatch(calcItem()))); return; }
   if(b.id==="seenSync"){ pdSync(); return; }
