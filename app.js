@@ -1536,6 +1536,12 @@ function renderSetup(){
     <div class="cardHint" style="font-size:12.5px">Treat the token like a key to the shop. If a phone goes missing, change PAWN_TOKEN in Railway and switch each device on again.</div>`:""}
   </div>`}
   ${pdServer()?"":pdConnectHTML()}
+  ${pdServer()?`<div class="card"><span class="label">Is the service working?</span>
+    <div class="cardHint" style="margin-top:0">Switched on and pointing at <b style="color:var(--ink)">${esc(pdServer())}</b>. This sends a real request the same way the camera does and says exactly what comes back &mdash; or exactly what is wrong.</div>
+    <div class="row2" style="margin-top:9px"><button class="brassBtn" id="pdConnTest" style="padding:11px 18px">Test the connection</button>
+      <button class="ghostBtn" id="pdConnOff">Disconnect</button></div>
+    <div class="cardHint" id="pdConnMsg" style="min-height:16px"></div>
+  </div>`:""}
   <div class="card"><span class="label">Move the shelf record between devices</span>
     <div class="cardHint" style="margin-top:0">${seenAll().length} tag${seenAll().length===1?"":"s"} on this device. With the service on, <b style="color:var(--ink)">Sync</b> on the pricing page does this by itself &mdash; these are for moving the record by hand, or keeping a copy.</div>
     <div class="row2" style="margin-top:9px;gap:8px;flex-wrap:wrap">
