@@ -1824,7 +1824,23 @@ async function pdTestConn(){
     firstBad=r.kb; badWhy=r.threw||("answered "+r.code); break;
   }
   if(firstBad==null){
-    say("var(--accent)","<b>All good.</b> Service up, token works, it reaches Claude, and photographs arrive at every size tried \u2014 up to "+lastOK+"KB.");
+    /* Everything above answers in about a second. A real photo read takes
+       Claude ten to thirty seconds to think, and nothing so far has tested
+       whether the connection survives that wait - which is the one thing
+       left that differs between a request that works and one that does not.
+       So do the real thing, with the real prompt, and time it. */
+    say("var(--ink-3)","Every size arrives. Now the slow part \u2014 a full read, the way the camera does it. This takes 10 to 30 seconds\u2026");
+    const blob=await madeJPEG(1200), part=await asPart(blob);
+    const t0=Date.now();
+    try{
+      const j=await post({prompt:photoPrompt(),images:[part]},120000);
+      const secs=((Date.now()-t0)/1000).toFixed(1);
+      if(j&&j.ok) say("var(--accent)","<b>All good, including the slow part.</b> A full read came back in "+secs+"s. Photographs arrive up to "+lastOK+"KB and the connection holds while Claude thinks.");
+      else say("var(--bad)","Pictures arrive, but a full read answered <b>"+esc((j&&j.code)||"upstream_error")+"</b> after "+secs+"s. "+esc(photoErrCopy((j&&j.code)||"upstream_error")));
+    }catch(e){
+      const secs=((Date.now()-t0)/1000).toFixed(1);
+      say("var(--bad)","<b>Found it.</b> Pictures arrive at any size, but a full read \u2014 the one the camera makes \u2014 died after <b>"+secs+"s</b> ("+esc(String((e&&e.name)||"")+": "+String((e&&e.message)||e))+"). Nothing is wrong with the picture or the service: the connection is being cut while Claude is still thinking.");
+    }
   }else{
     say("var(--warn)","<b>Found the ceiling.</b> Pictures up to <b>"+lastOK+"KB</b> get through; <b>"+firstBad+"KB</b> does not ("+esc(badWhy)+"). Photos are now shrunk to sit under that, so this should not bite \u2014 but it is worth knowing.");
   }
