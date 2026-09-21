@@ -383,10 +383,81 @@ function ltvSuggestHTML(cat,cur){
   return `<div class="cardHint" style="margin-top:8px"><span style="color:var(--accent);font-family:var(--mono);font-weight:600">Suggested: ${s.p}%</span> — ${s.why}.
     <button id="useLtv" class="ghostBtn" style="padding:5px 12px;font-size:11.5px;margin-left:8px">Use ${s.p}%</button></div>`;
 }
-function searchBook(txt){
-  const t=String(txt).trim().toLowerCase(); if(t.length<3)return [];
-  const words=t.split(/\s+/);
-  return PRICEBOOK.filter(e=>{const n=e[0].toLowerCase();return words.every(w=>n.includes(w));}).slice(0,6);
+/* The price list used to want every typed word to appear inside the row name,
+   which only ever worked for someone typing the row name. A photo read comes
+   back as "Anker Soundcore wireless earbud charging case (green)" and could
+   never reach "Wireless earbuds", and the synonym list was not consulted at
+   all. Score the words instead, same machinery the main search uses. */
+let BOOK_IDX=null,BOOK_DF=null;
+function bookIdx(){
+  if(BOOK_IDX)return BOOK_IDX;
+  BOOK_DF=new Map();
+  BOOK_IDX=PRICEBOOK.map(e=>{
+    const nw=omniWords(e[0]).filter(w=>!STOP.has(w));
+    const sw=omniWords(BOOK_SYN[e[0]]||"");
+    const all=Array.from(new Set(nw.concat(sw)));
+    all.forEach(w=>BOOK_DF.set(w,(BOOK_DF.get(w)||0)+1));
+    /* The thing itself, with the trim cut off: "Hard cooler - Yeti class" is
+       a cooler, "Post hole digger - gas" is a digger, "Box fan / tower fan"
+       is a fan either way. The photo read has to land on one of these. */
+    const core=String(e[0]).split(/[\u2014\u2013,(]/)[0];
+    const nc=omniWords(core).filter(w=>!STOP.has(w));
+    const head=Array.from(new Set(core.split("/")
+      .map(part=>omniWords(part).filter(w=>!STOP.has(w)).pop()).filter(Boolean)));
+    return {e,nw,nc,sw,all,head};
+  });
+  return BOOK_IDX;
+}
+/* Scored rows, best first. Typed search only wants the names; the photo read
+   prices off the top row without anyone looking at it, so it wants the
+   numbers too - see photoBook() below. */
+function searchBookHits(txt){
+  const raw=String(txt).trim(); if(raw.length<3)return [];
+  const q=omniWords(raw).filter(w=>!STOP.has(w));
+  if(!q.length)return [];
+  const out=[];
+  for(const b of bookIdx()){
+    let score=0,strong=0,rare=false,headHit=false;
+    for(const w of q){
+      let h=0,hw="";
+      for(const bw of b.all){ const x=wordHit(w,[bw]); if(x>h){h=x;hw=bw;} }
+      if(!h)continue;
+      score+=h;
+      if(h>=2){
+        strong++;
+        if(b.head.includes(hw))headHit=true;
+        /* a word this row owns outright - "airpods", "sawzall", "yeti".
+           Short ones are usually half of a two-word alias ("lazy boy"), and
+           on their own they land anywhere: "game boy" found the recliner. */
+        if(h===3&&hw.length>=4&&!b.nw.includes(hw)&&(BOOK_DF.get(hw)||9)<=2)rare=true;
+      }
+    }
+    if(!strong)continue;
+    /* How much of the name the words cover, so "Wireless earbuds" beats "Hard
+       gun case" on a query carrying both. Only the name proper counts - the
+       trim after the dash ("- 2kW", "- Yeti class") is not what someone
+       types. A word the row owns outright ("airpods") stands in for it. */
+    const nameHit=b.nc.filter(n=>q.some(w=>wordHit(w,[n])>0)).length;
+    const cover=rare?1:(b.nc.length?nameHit/b.nc.length:0);
+    if(!cover)continue;
+    out.push({e:b.e,score,cover,rare,headHit,qCover:strong/q.length,len:b.e[0].length});
+  }
+  /* how much of the row the words covered comes first: someone typing two
+     words wants the row those two words are, not the row that happens to
+     share a word with every other thing in the shop. */
+  out.sort((a,b)=>b.cover-a.cover||b.score-a.score||a.len-b.len);
+  return out.slice(0,6);
+}
+function searchBook(txt){ return searchBookHits(txt).map(o=>o.e); }
+/* The photo path has nobody checking the answer before it becomes a price, so
+   it takes a row only when the words land on what the row actually is - the
+   head word ("cooler", "digger", "earbuds") or a name the row owns outright
+   ("airpods"). Matching the trim is not enough: a Kenmore range came back
+   "E-bike" on "electric", a chainsaw "Gun cabinet" on "case", and a Samsung
+   TV a Blackstone griddle on "flat". */
+function photoBook(txt){
+  const h=searchBookHits(txt).find(x=>(x.headHit&&x.cover>=0.5)||(x.cover>=0.66&&x.score>=4)||(x.rare&&x.qCover>=0.4));
+  return h?h.e:null;
 }
 function brandVerdictHTML(){
   if(!st.brandTyped)return "";
@@ -2282,7 +2353,7 @@ function applyPhotoRead(r){
   let cat=CATALOG.find(c=>c.id===String(r.catId||""));
   /* nothing in the catalog fits — try the price book on what it says the thing is */
   if(!cat&&r.what){
-    const hit=searchBook(String(r.what))[0]||searchBook(String(r.what).split(/\s+/).slice(-2).join(" "))[0];
+    const hit=photoBook(String(r.what))||photoBook(String(r.what).split(/\s+/).slice(-2).join(" "));
     if(hit){
       st.catId=hit[2]; st.itemId=custId(hit[2]); st.bookName=hit[0]; st.overrides[custId(hit[2])]=hit[1];
       st.liq=hit[3]; st.specSel={}; st.editing=false;
