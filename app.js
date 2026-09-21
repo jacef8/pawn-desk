@@ -1593,7 +1593,7 @@ function pdServer(){ try{ return localStorage.getItem(PD_SRV)||""; }catch(e){ re
 function pdToken(){ try{ return localStorage.getItem(PD_TOK)||""; }catch(e){ return ""; } }
 function pdSetServer(u,t){ try{ if(u){ localStorage.setItem(PD_SRV,u); localStorage.setItem(PD_TOK,t||""); }
                                  else { localStorage.removeItem(PD_SRV); localStorage.removeItem(PD_TOK); } }catch(e){} }
-function pdErr(c){ const e=new Error(c); e.code=c; return e; }
+function pdErr(c,why){ const e=new Error(c); e.code=c; if(why)e.why=why; return e; }
 function pdBase(){ return pdServer().replace(/\/+$/,""); }
 function pdPart(f){
   return new Promise((res,rej)=>{
@@ -1632,9 +1632,13 @@ async function pdJSON(prompt,opts){
       body:JSON.stringify({prompt:String(prompt||""),images:parts,search:!!opts.search}),
       signal:ctl.signal});
   }catch(e){
+    /* "Failed to fetch" is all a browser gives for a blocked request, a dead
+       host and a dropped connection alike - but the wording differs a little
+       between them, and it is the only clue there is. Carry it. */
+    const why=String((e&&e.name)||"")+": "+String((e&&e.message)||e||"");
     throw pdErr(timedOut?"timeout"
       :(e&&e.name==="AbortError")?"cancelled"
-      :"no_answer");
+      :"no_answer", why);
   }finally{
     clearTimeout(timer);
     if(opts.signal)opts.signal.removeEventListener("abort",onCancel);
@@ -2176,7 +2180,7 @@ async function runPhotoRead(){
        screen can quietly drop it again. The code is shown as well: it is
        the one thing that separates an out-of-credit key from a refused
        picture from a service that never answered. */
-    st.photoRead=null; st.photoErr={code,text:photoErrCopy(code)}; render();
+    st.photoRead=null; st.photoErr={code,text:photoErrCopy(code),why:(err&&err.why)||""}; render();
   }
 }
 function photoErrHTML(){
@@ -2184,7 +2188,7 @@ function photoErrHTML(){
   const i=st.photoInfo, mb=n=>(n/1e6).toFixed(2)+"MB";
   return `<div class="tagWarn" style="border-left-color:var(--bad);background:rgba(255,66,87,.12);color:#FFAAB4;margin-top:9px">
     <b>The photo didn\u2019t read.</b> ${esc(e.text)}
-    <div style="font-family:var(--mono);font-size:11.5px;opacity:.75;margin-top:6px">reason code: ${esc(e.code)}
+    <div style="font-family:var(--mono);font-size:11.5px;opacity:.75;margin-top:6px">reason code: ${esc(e.code)}${e.why?"<br>browser said: "+esc(e.why):""}
     ${i?`<br>photo: ${esc(i.type)} &middot; ${mb(i.was)} \u2192 ${mb(i.sent)} sent${i.shrunk?"":" (NOT shrunk)"}`:""}
     <br>from: ${esc(location.origin)}<br>to: ${esc(pdServer()||"(none)")}</div></div>`;
 }
