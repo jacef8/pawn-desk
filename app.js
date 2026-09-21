@@ -559,12 +559,13 @@ const ladder = (p,c) => [
 /* ---------------- state ---------------- */
 const KEY="pawndesk:web:v1";
 let st={mode:"item",catId:"guns",itemId:"g1",picked:false,cond:"good",brand:"mid",complete:true,liq:null,brandTyped:"",model:"",detail:"",specSel:{},
-        overrides:{},ltvs:{},buys:{},buyFloor:25,buyMult:2,payPct:70,payTouched:false,loanPct:48,loanTouched:false,editing:false,
+        overrides:{},bookVals:{},modelVals:{},ltvs:{},buys:{},buyFloor:25,buyMult:2,payPct:70,payTouched:false,loanPct:48,loanTouched:false,editing:false,
         manual:null, /* {date, spot:{gold,silver}, avg90:{gold,silver}} — a same-day hand edit beats the feed */
         deal:"buy",metal:"gold",karat:"14k",grams:"",whyOpen:false,photoRead:null,bookQ:"",bookName:""};
 try{
   const s=JSON.parse(localStorage.getItem(KEY)||"null");
   if(s){ st.overrides=s.overrides||{}; st.ltvs=s.ltvs||{}; st.buys=s.buys||{};
+    st.bookVals=s.bookVals||{}; st.modelVals=s.modelVals||{};
     if(s.buyFloor!=null)st.buyFloor=Math.max(0,Number(s.buyFloor)||0);
     if(s.buyMult!=null)st.buyMult=Math.max(1,Number(s.buyMult)||1);
          /* A hand-set pay rate wins only for the day it was set — tomorrow's
@@ -584,6 +585,7 @@ let saveTimer=null;
 function persist(){
   try{
     localStorage.setItem(KEY,JSON.stringify({overrides:st.overrides,ltvs:st.ltvs,buys:st.buys,
+      bookVals:st.bookVals,modelVals:st.modelVals,
       buyFloor:st.buyFloor,buyMult:st.buyMult,payPct:st.payPct,
       payTouched:st.payTouched,loanPct:st.loanPct,loanTouched:st.loanTouched,payDate:FEED.date,manual:st.manual}));
     flashSave("Saved");
@@ -1306,7 +1308,7 @@ function wireItem(){
         `<button class="itemBtn" data-hit="${i}" style="margin-top:6px"><span style="flex:1">${e[0]}</span><span class="price" style="color:var(--accent-2)">${money(e[1])} &middot; ${CATLABEL[e[2]]}</span></button>`).join("");
       document.getElementById("view").querySelectorAll("[data-hit]").forEach(b=>b.onclick=()=>{
         const e=hits[Number(b.dataset.hit)];
-        st.catId=e[2]; st.itemId=custId(e[2]); st.bookName=e[0]; st.overrides[custId(e[2])]=e[1];
+        st.catId=e[2]; st.itemId=custId(e[2]); st.bookName=e[0]; st.overrides[custId(e[2])]=bookVal(e);
         st.liq=e[3]; st.brand="mid"; st.brandTyped=""; st.complete=true; st.editing=false;
         persist(); render();
       });
@@ -1802,6 +1804,162 @@ function harvCardHTML(){
     </div>`:""}
   </div>`;
 }
+/* ---- the master price sheet, back from the spreadsheet ------------------
+   427 numbers is a spreadsheet's job, not a phone screen's. tools/
+   pawn-desk-prices.xlsx carries every one of them, a sheet per kind of
+   thing, and this reads the edited version back in.
+
+   It takes a CSV saved out of Excel or Sheets, or rows pasted straight from
+   either - a paste is tab-separated, a saved file is comma-separated with
+   quotes around anything containing a comma, and both arrive here. Only the
+   YOUR VALUE column is read; a blank means the row was fine as it was. */
+function csvRows(text){
+  const t=String(text||"").replace(/\r\n?/g,"\n");
+  if(!t.trim())return [];
+  /* Tabs mean a paste, commas mean a saved file. Whichever appears more in
+     the first line is the separator - a comma inside a quoted item name
+     cannot outvote the real ones. */
+  const first=t.split("\n")[0];
+  const sep=(first.split("\t").length>first.split(",").length)?"\t":",";
+  const rows=[]; let row=[], cell="", q=false;
+  for(let i=0;i<t.length;i++){
+    const c=t[i];
+    if(q){
+      if(c==='"'){ if(t[i+1]==='"'){ cell+='"'; i++; } else q=false; }
+      else cell+=c;
+    } else if(c==='"') q=true;
+    else if(c===sep){ row.push(cell); cell=""; }
+    else if(c==="\n"){ row.push(cell); rows.push(row); row=[]; cell=""; }
+    else cell+=c;
+  }
+  if(cell.length||row.length){ row.push(cell); rows.push(row); }
+  return rows.filter(r=>r.some(x=>String(x).trim()));
+}
+const shNorm=s=>String(s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+function shMoney(v){
+  const n=Number(String(v==null?"":v).replace(/[$,\s]/g,""));
+  return isFinite(n)&&n>0?Math.round(n):0;
+}
+/* Which column is which, found by name rather than position, so a column
+   moved or a sheet exported with extra ones still reads. */
+function shCols(head){
+  const at=re=>head.findIndex(h=>re.test(shNorm(h)));
+  return {key:at(/^key$/), item:at(/^item$|^make and model$|^model$/),
+          val:at(/^your value/), lo:at(/^your low/), hi:at(/^your high/),
+          note:at(/^your notes?$/), now:at(/^resale now/)};
+}
+function sheetRead(text){
+  const rows=csvRows(text);
+  if(!rows.length)return {err:"There was nothing in that."};
+  let head=-1, C=null;
+  for(let i=0;i<Math.min(rows.length,12);i++){
+    const c=shCols(rows[i]);
+    if(c.key>=0&&(c.val>=0||c.lo>=0)){ head=i; C=c; break; }
+  }
+  if(head<0)return {err:"I couldn’t find the heading row. It needs the Key column and a YOUR VALUE column, exactly as the master sheet has them."};
+  const isModels=C.lo>=0&&C.hi>=0;
+  const items={}, books={}, models={}, changes=[], skipped=[];
+  const bookByName={}; PRICEBOOK.forEach(e=>{ bookByName[shNorm(e[0])]=e; });
+  const itemById={}; CATALOG.forEach(c=>c.items.forEach(i=>{ itemById[i.id]=i; }));
+  for(let i=head+1;i<rows.length;i++){
+    const r=rows[i], key=String(r[C.key]||"").trim();
+    if(!key)continue;
+    const val=C.val>=0?shMoney(r[C.val]):0;
+    const lo=C.lo>=0?shMoney(r[C.lo]):0, hi=C.hi>=0?shMoney(r[C.hi]):0;
+    if(!val&&!(lo&&hi))continue;                 /* blank means keep */
+    const name=C.item>=0?String(r[C.item]||"").trim():key;
+    /* "a1" is both the Range / oven on the appliance sheet and the Remington
+       870 Express on the models sheet - the two lists were numbered
+       separately and nobody noticed they would ever meet. Which list a row
+       belongs to is settled by the sheet it came off: a YOUR LOW and YOUR
+       HIGH pair is the models sheet, a single YOUR VALUE is everything else.
+       Checked the wrong way round, every colliding model row was silently
+       swallowed by an appliance. */
+    if(isModels){
+      const mm=MP_BY_ID[key];
+      if(mm){
+        if(lo>0&&hi>=lo){
+          const cur=st.modelVals&&st.modelVals[key];
+          const wasLo=(cur&&cur.lo)||mm[3], wasHi=(cur&&cur.hi)||mm[4];
+          if(lo!==wasLo||hi!==wasHi){ models[key]={lo,hi};
+            changes.push({what:mm[2],from:wasLo+"\u2013"+wasHi,to:lo+"\u2013"+hi,range:true}); }
+        }
+      } else skipped.push(key+(name&&name!==key?" ("+name+")":""));
+      continue;
+    }
+    if(itemById[key]){
+      if(val>0&&val!==(st.overrides[key]??itemById[key].value)){
+        items[key]=val; changes.push({what:itemById[key].name,from:st.overrides[key]??itemById[key].value,to:val}); }
+      continue;
+    }
+    const b=bookByName[shNorm(key)]||bookByName[shNorm(name)];
+    if(b){
+      const was=bookVal(b);
+      if(val>0&&val!==was){ books[b[0]]=val; changes.push({what:b[0],from:was,to:val}); }
+      continue;
+    }
+    const m=MP_BY_ID[key];
+    if(m){
+      if(lo>0&&hi>=lo){
+        const cur=st.modelVals&&st.modelVals[key];
+        const wasLo=(cur&&cur.lo)||m[3], wasHi=(cur&&cur.hi)||m[4];
+        if(lo!==wasLo||hi!==wasHi){ models[key]={lo,hi};
+          changes.push({what:m[2],from:wasLo+"–"+wasHi,to:lo+"–"+hi,range:true}); }
+      }
+      continue;
+    }
+    skipped.push(key+(name&&name!==key?" ("+name+")":""));
+  }
+  return {items,books,models,changes,skipped,rows:rows.length-head-1};
+}
+function sheetApply(r){
+  Object.keys(r.items).forEach(k=>{ st.overrides[k]=r.items[k]; });
+  st.bookVals=Object.assign({},st.bookVals||{},r.books);
+  st.modelVals=Object.assign({},st.modelVals||{},r.models);
+  persist();
+}
+let shPend=null, shMsg="";
+function sheetCardHTML(){
+  const n=(CATALOG.reduce((a,c)=>a+c.items.length,0))+PRICEBOOK.length+MODEL_PRICES.length;
+  const mine=Object.keys(st.overrides||{}).length+Object.keys(st.bookVals||{}).length+Object.keys(st.modelVals||{}).length;
+  return `<div class="card"><span class="label">Your own prices, from a spreadsheet</span>
+    <div class="cardHint" style="margin-top:0">The tool prices <b style="color:var(--ink)">${n}</b> things, and a spreadsheet
+      beats a phone screen for going through them. <b style="color:var(--ink)">tools/pawn-desk-prices.xlsx</b> in the repository has
+      every one, a sheet per kind of thing. Put what you actually get for it in the <b style="color:var(--ink)">YOUR VALUE</b> column,
+      save that sheet as CSV, and drop it here. Blank rows are left exactly as they are.</div>
+    ${mine?`<div class="tagNote" style="margin-top:9px"><b style="color:var(--accent)">${mine}</b> of them are already carrying your numbers rather than the built-in ones.</div>`:""}
+    <div class="row2" style="gap:9px;flex-wrap:wrap;margin-top:10px">
+      <label class="brassBtn" style="cursor:pointer;margin:0;padding:11px 18px">Choose the CSV
+        <input id="shFile" type="file" accept=".csv,.tsv,.txt,text/csv" style="display:none"></label>
+      <button class="ghostBtn" id="shPasteGo" style="padding:11px 16px">or paste the rows</button>
+    </div>
+    ${st.shPaste?`<textarea id="shPaste" placeholder="Select the rows in Excel or Sheets, copy, and paste them here — headings included."
+      style="width:100%;margin-top:9px;min-height:110px;background:#0E1117;color:var(--ink);border:1px solid var(--e2);border-radius:10px;padding:10px;font-family:var(--mono);font-size:12px"></textarea>
+      <div class="row2" style="margin-top:8px"><button class="ghostBtn" id="shPasteRead">Read what I pasted</button></div>`:""}
+    ${shMsg?`<div class="cardHint" style="color:var(--warn)">${esc(shMsg)}</div>`:""}
+    ${shPend?sheetPreviewHTML():""}
+  </div>`;
+}
+/* Nothing is applied until the counter has seen every line of it. */
+function sheetPreviewHTML(){
+  const r=shPend;
+  if(!r.changes.length)return `<div class="tagNote" style="margin-top:10px">Read ${r.rows} rows and none of them differ from what the tool already uses. Nothing to change.</div>`;
+  const rows=r.changes.slice(0,40).map(c=>`<div style="display:flex;gap:10px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+      <span style="flex:1">${esc(c.what)}</span>
+      <span style="font-family:var(--mono);color:var(--ink-3)">${c.range?esc(String(c.from)):money(c.from)}</span>
+      <span style="color:var(--ink-3)">&rarr;</span>
+      <span style="font-family:var(--mono);color:var(--accent);font-weight:600">${c.range?esc(String(c.to)):money(c.to)}</span>
+    </div>`).join("");
+  return `<div class="tagNote" style="margin-top:12px">
+    <b style="color:var(--ink)">${r.changes.length} price${r.changes.length===1?"":"s"} would change</b> out of ${r.rows} rows read.
+    <div style="margin-top:8px;max-height:280px;overflow:auto">${rows}</div>
+    ${r.changes.length>40?`<div class="cardHint">…and ${r.changes.length-40} more.</div>`:""}
+    ${r.skipped.length?`<div class="cardHint" style="color:var(--warn)">${r.skipped.length} row${r.skipped.length===1?"":"s"} I could not match and ignored: ${esc(r.skipped.slice(0,6).join(", "))}${r.skipped.length>6?"…":""}. Check the Key column on those.</div>`:""}
+    <div class="row2" style="gap:9px;margin-top:11px">
+      <button class="brassBtn" id="shApply" style="padding:10px 18px">Use these ${r.changes.length}</button>
+      <button class="ghostBtn" id="shCancel" style="padding:10px 16px">Cancel</button>
+    </div></div>`;
+}
 /* ---------------- device + flags tabs ---------------- */
 /* Everything about this copy of the tool rather than about an item: which
    build it is running, how the pricing page is laid out, and moving the
@@ -1816,6 +1974,7 @@ function renderSetup(){
     <div class="row2" style="margin-top:9px"><button class="ghostBtn" id="pdFresh">Get the newest version</button></div>
   </div>
   ${pdServer()?harvCardHTML():""}
+  ${sheetCardHTML()}
   ${pdServer()?"":`<div class="card" style="border:1px dashed var(--e2-hi)"><span class="label">\uD83D\uDCF7 The camera is off on this device</span>
     <div class="cardHint" style="margin-top:0">Nothing on this device can read a photo yet. Switch it on here, or \u2014 far easier \u2014 open <b style="color:var(--ink)">Setup</b> on the desk computer and point this phone\u2019s camera at the QR code it shows.</div>
     <div class="cardHint" style="font-size:12.5px">The two lines below are the same ones printed on the desk under Setup. Every device keeps its own copy, which is why this one has to be told too.</div>
@@ -2271,8 +2430,17 @@ function bookHitsHTML(){
   if(!hits.length)return `<div class="cardHint" style="margin-top:7px">Nothing in the book for that. Use <b style="color:var(--ink)">Not on any list</b> at the bottom and put in what you'd sell it for &mdash; then log the deal, and next time the tool remembers.</div>`;
   return hits.map((e,i)=>`<button class="itemBtn" data-bookhit="${i}" style="margin-top:6px"><span style="flex:1">${esc(e[0])}</span><span class="price" style="color:var(--accent-2)">${money(e[1])} &middot; ${CATLABEL[e[2]]}</span></button>`).join("");
 }
+/* A price-book row had nowhere to keep a number of its own. Picking one
+   dropped the book's figure into the category's single custom slot, which the
+   next book row overwrote - so "what this shop really gets for a chainsaw"
+   could not be recorded against the row it belonged to. It can now, and the
+   master price sheet writes straight into it. */
+function bookVal(e){
+  const v=Number(st.bookVals&&st.bookVals[e[0]]);
+  return v>0?Math.round(v):e[1];
+}
 function pickBookEntry(e){
-  st.catId=e[2]; st.itemId=custId(e[2]); st.bookName=e[0]; st.overrides[custId(e[2])]=e[1];
+  st.catId=e[2]; st.itemId=custId(e[2]); st.bookName=e[0]; st.overrides[custId(e[2])]=bookVal(e);
   st.liq=e[3]; st.brand="mid"; st.brandTyped=""; st.model=""; st.detail="";
   st.complete=true; st.editing=false; st.specSel={};
   persist(); render();
@@ -2750,7 +2918,7 @@ function applyPhotoRead(r){
        or nothing. */
     const hit=(r.book&&bookRow(r.book))||photoBook(String(r.what||""));
     if(hit){
-      st.catId=hit[2]; st.itemId=custId(hit[2]); st.bookName=hit[0]; st.overrides[custId(hit[2])]=hit[1];
+      st.catId=hit[2]; st.itemId=custId(hit[2]); st.bookName=hit[0]; st.overrides[custId(hit[2])]=bookVal(hit);
       st.liq=hit[3]; st.specSel={}; st.editing=false;
       cat=CATALOG.find(c=>c.id===hit[2]);
       st.model=tidyModel(r.model);
@@ -3645,7 +3813,8 @@ function omniPick(r){
   }
   st.mode="item"; st.catId=r.catId; st.bookQ="";
   if(r.kind==="item"){ st.itemId=r.itemId; st.bookName=""; st.liq=null; }
-  else if(r.kind==="book"){ st.itemId=custId(r.catId); st.bookName=r.name; st.overrides[custId(r.catId)]=r.value; st.liq=r.liq; persist(); }
+  else if(r.kind==="book"){ st.itemId=custId(r.catId); st.bookName=r.name;
+    st.overrides[custId(r.catId)]=bookVal([r.name,r.value,r.catId,r.liq]); st.liq=r.liq; persist(); }
   else { st.itemId=custId(r.catId); st.bookName=r.name; st.liq=null; }
   st.needKind=false;
   st.brandTyped=r.brand||"";
@@ -4591,7 +4760,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.0800";
+const APP_BUILD="0926.1000";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -4739,7 +4908,13 @@ function marketNow(){
   if(!r){ const h=harvFind(curItemRef(),[st.brandTyped,st.model,st.detail].join(" ")); if(h)return h; }
   if(!r)return null;
   const age=daysOld(r[6]);
-  return {kind:"list",lo:r[3],hi:r[4],mid:Math.round((r[3]+r[4])/2/5)*5,name:r[2],conf:r[5],date:r[6],src:r[7],note:r[8],stale:age>MP_STALE_DAYS,age};
+  /* The counter's own figures for this exact model, off the master sheet,
+     stand in front of the published ones. */
+  const mine=st.modelVals&&st.modelVals[r[0]];
+  const lo=(mine&&mine.lo>0)?Math.round(mine.lo):r[3];
+  const hi=(mine&&mine.hi>0)?Math.round(mine.hi):r[4];
+  return {kind:"list",lo,hi,mid:Math.round((lo+hi)/2/5)*5,name:r[2],conf:mine?"h":r[5],
+          date:mine?todayStr():r[6],src:r[7],note:r[8],mine:!!mine,stale:mine?false:age>MP_STALE_DAYS,age};
 }
 function fmtDay(d){ try{ return new Date(String(d)+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"}); }catch(e){ return String(d); } }
 const SRC_NAMES={"pricecharting.com":"PriceCharting","swappa.com":"Swappa","gunwatcher.com":"GunWatcher (GunBroker sales)","jdpower.com":"J.D. Power",
@@ -5399,15 +5574,32 @@ document.addEventListener("change",e=>{
   const t=e.target;
   if(t&&t.id==="seenIn"&&t.files&&t.files[0]){ seenFromPhoto(t.files[0]); t.value=""; }
   if(t&&t.id==="seenImp"&&t.files&&t.files[0]){ seenImport(t.files[0]); t.value=""; }
+  if(t&&t.id==="shFile"&&t.files&&t.files[0]){
+    const f=t.files[0]; t.value="";
+    const rd=new FileReader();
+    rd.onerror=()=>{ shMsg="Couldn\u2019t read that file."; render(); };
+    rd.onload=()=>{ const r=sheetRead(String(rd.result||""));
+      if(r.err){ shMsg=r.err; shPend=null; } else { shPend=r; shMsg=""; }
+      render(); };
+    rd.readAsText(f);
+  }
 },true);
 document.addEventListener("click",e=>{
-  const b=e.target&&e.target.closest?e.target.closest("#seenHand,#seenOut,#seenUse,#seenSync,#pdFindGo,#foundUse,#pdCopyConn,#harvStop,#harvDl,#harvClear,#harvCheck,[data-use],[data-harv]"):null; if(!b)return;
+  const b=e.target&&e.target.closest?e.target.closest("#seenHand,#seenOut,#seenUse,#seenSync,#pdFindGo,#foundUse,#pdCopyConn,#harvStop,#harvDl,#harvClear,#harvCheck,#shPasteGo,#shPasteRead,#shApply,#shCancel,[data-use],[data-harv]"):null; if(!b)return;
   if(b.id==="pdFindGo"){ priceFind(null,true); return; }
   if(b.dataset.harv!=null){ harvRun("",Number(b.dataset.harv)); return; }
   if(b.id==="harvStop"){ harvStop=true; return; }
   if(b.id==="harvDl"){ harvDownload(); return; }
   if(b.id==="harvClear"){ HARV={}; harvSave(); render(); return; }
   if(b.id==="harvCheck"){ pdSync(); return; }
+  if(b.id==="shPasteGo"){ st.shPaste=!st.shPaste; shMsg=""; render(); return; }
+  if(b.id==="shPasteRead"){
+    const t=document.getElementById("shPaste"); const r=sheetRead(t?t.value:"");
+    if(r.err){ shMsg=r.err; shPend=null; } else { shPend=r; shMsg=""; }
+    render(); return; }
+  if(b.id==="shApply"){ if(shPend){ const n=shPend.changes.length; sheetApply(shPend); shPend=null;
+    st.shPaste=false; shMsg=n+" price"+(n===1?"":"s")+" are now yours."; render(); } return; }
+  if(b.id==="shCancel"){ shPend=null; shMsg=""; render(); return; }
   if(b.dataset.use){ useEvidence(b.dataset.use); return; }
   if(b.id==="foundUse"){ useComps(compStats(compsMatch(calcItem()))); return; }
   if(b.id==="seenSync"){ pdSync(); return; }
