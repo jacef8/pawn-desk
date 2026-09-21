@@ -2469,6 +2469,25 @@ function wireLook(){
   const b=document.getElementById("lookAgain");
   if(b)b.onclick=()=>{ if(st.photoLast)photoWebLookup(st.photoLast); };
 }
+/* A photograph that landed on a row is not a price yet. The row is a class
+   of thing - "Wireless earbuds" covers AirPods and a $20 pair alike - and the
+   read usually knows the exact make and model. So having placed it, go and
+   find what that make and model actually sells for, without being asked: the
+   whole point of a photograph is not having to press anything. The phone has
+   done this since the snap screen was built; the desk was still waiting to be
+   told, which made the built-in list look like the tool's final answer when
+   it was only its first. */
+let photoChase=false;
+function autoPriceAfterPhoto(){
+  if(photoChase||findBusy||!CAP.sample||!st.picked)return;
+  const x=calcItem(); if(x.checked)return;
+  photoChase=true;
+  setTimeout(async()=>{
+    try{ await priceFind(); }catch(e){}
+    photoChase=false;
+    try{ render(); }catch(e){}
+  },0);
+}
 function applyPhotoRead(r){
   let cat=CATALOG.find(c=>c.id===String(r.catId||""));
   /* nothing in the catalog fits — try the price book on what it says the thing is */
@@ -2489,7 +2508,7 @@ function applyPhotoRead(r){
       st.photoRead={what:String(r.what||"").slice(0,90),confidence:String(r.confidence||"").slice(0,10),
         note:"Not on the main lists — priced from the book as "+hit[0]+". "+String(r.note||"").slice(0,160),
         concerns:(Array.isArray(r.concerns)?r.concerns:[]).slice(0,6).map(c=>String(c).slice(0,120))};
-      persist(); render(); return;
+      persist(); render(); autoPriceAfterPhoto(); return;
     }
   }
   /* A read that came back fine but matched nothing used to fall through
@@ -2550,6 +2569,7 @@ function applyPhotoRead(r){
   };
   st.editing=false;
   render();
+  autoPriceAfterPhoto();
 }
 function wirePhoto(){
   const inp=document.getElementById("photoIn");
