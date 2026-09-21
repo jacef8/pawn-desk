@@ -4395,7 +4395,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.0130";
+const APP_BUILD="0926.0200";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -4982,6 +4982,19 @@ function useEvidence(kind){
                lo:E.seen.lo,hi:E.seen.hi,mid:E.seen.mid}; render(); return; }
   if(kind==="book"){ st.market=null; render(); }
 }
+/* Where the number on screen came from when nothing has been looked up yet.
+   The counter asked how he is meant to know whether the tool is right about
+   things he has not checked himself. The honest answer is per item, and it
+   belongs on the item: a built-in number is a starting point somebody
+   compiled, and until this shop has searched it once it has no evidence
+   behind it at all. Saying so is the difference between a tool that is
+   trusted where it has earned it and one that is trusted everywhere. */
+function checkedNote(x){
+  if(x&&x.checked)return "";
+  const n=compsMatch(x).length;
+  return n?`Built-in number \u2014 ${n} listing${n===1?"":"s"} on file from an earlier search. Look it up to check it again.`
+          :`Built-in number \u2014 never checked against real sales here. Look it up and it will be.`;
+}
 /* One card, every source, the one in use marked. */
 function evidenceHTML(){
   const E=st.evidence; if(!E||E.key!==mkKey())return "";
@@ -5260,7 +5273,7 @@ function nextStepHTML(x){
     act=`<button class="nsBtn${x.checked?" ghost":" on"}" id="pdFindGo" title="Searches the sold pages, the used listings and what it costs new, all in one press, and brings every number back here. You do not have to open or read anything.\u000aFor firearms it searches GunWatcher, auction results and GunBroker instead \u2014 eBay bans gun sales."><span>${x.checked?"Look it up again":"Look it up \u2014 everywhere"}</span></button>`+act;
   else if(CAP.sample&&!asking&&findBusy&&!(act||"").includes("pdFindGo"))
     act=`<button class="nsBtn on" id="pdFindGo" disabled><span>Looking it up&hellip;</span></button>`+act;
-  if(CAP.sample&&st.picked&&!asking)act+=`<div class="cardHint" id="pdFindMsg" style="flex-basis:100%">${esc(findMsg||"")}</div>`
+  if(CAP.sample&&st.picked&&!asking)act+=`<div class="cardHint" id="pdFindMsg" style="flex-basis:100%">${esc(findMsg||(findBusy?"":checkedNote(x)))}</div>`
     +`<div style="flex-basis:100%">${evidenceHTML()}</div>`;
   /* In step-at-a-time the run down the middle already carries the steps with
      their answers, and the strip carries the numbers. Repeating the list here

@@ -301,7 +301,7 @@ function snapHTML(){
         <div class="snapSrc">${priced?esc(nsSrcShort(x.market))
           :(st.photoRead&&st.photoRead.webPrice
              ? "Used ones on the web"+(st.photoRead.webPrice.where?" \u2014 "+esc(st.photoRead.webPrice.where):"")
-             :"Built-in list \u2014 no live prices found")}</div></div>`}
+             :esc(checkedNote(x)))}</div></div>`}
     <div class="snapCond">${CONDITIONS.map(c=>`<button class="${c.id===st.cond?"on":""}" data-cond="${c.id}">${c.label.replace("New in box","New")}</button>`).join("")}</div>
     ${snapFootHTML()}
   </div>`;
