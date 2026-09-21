@@ -19,12 +19,41 @@ const MAX_IMAGES = 4;
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const OK_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
-export const corsHeaders = (env) => ({
-  "Access-Control-Allow-Origin": env.ALLOW_ORIGIN || DEFAULT_ORIGIN,
-  "Access-Control-Allow-Headers": "content-type,x-pawn-token",
-  "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-  "Access-Control-Max-Age": "86400",
-});
+/* A browser compares Allow-Origin against the page's origin EXACTLY: scheme,
+ * host and port, nothing else. So "https://jacef8.github.io/" with a trailing
+ * slash, or the whole page URL pasted in, or a bare hostname with no scheme,
+ * all fail - and they fail invisibly. The request is blocked in the browser,
+ * the service never sees it, and the phone reports that it could not reach
+ * anything at all. That is a long way to walk for a typed slash.
+ *
+ * So the setting is normalised to an origin before it is used, and several
+ * may be listed, comma separated, for a desk and a phone on different hosts.
+ * The origin asking is echoed back when it is one of them. */
+const toOrigin = (v) => {
+  const t = String(v || "").trim();
+  if (!t) return "";
+  if (t === "*") return "*";          /* open access means what it says */
+  try { return new URL(/^https?:\/\//i.test(t) ? t : "https://" + t).origin; }
+  catch (e) { return t.replace(/\/+$/, ""); }
+};
+export const allowedOrigins = (env) =>
+  String(env.ALLOW_ORIGIN || DEFAULT_ORIGIN).split(",").map(toOrigin).filter(Boolean);
+
+export const corsHeaders = (env, reqOrigin) => {
+  const list = allowedOrigins(env);
+  const asked = toOrigin(reqOrigin);
+  /* "*" is honoured as written - someone asking for open access means it. */
+  const allow = list.includes("*") ? "*"
+    : (asked && list.includes(asked)) ? asked
+    : list[0];
+  return {
+    "Access-Control-Allow-Origin": allow,
+    "Access-Control-Allow-Headers": "content-type,x-pawn-token",
+    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+    "Access-Control-Max-Age": "86400",
+    "Vary": "Origin",
+  };
+};
 
 const reply = (status, body) => ({ status, body });
 const fail = (code, status) => reply(status || 400, { ok: false, code });

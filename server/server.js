@@ -25,7 +25,7 @@ const readBody = (req) => new Promise((resolve, reject) => {
 });
 
 const srv = createServer(async (req, res) => {
-  const cors = corsHeaders(process.env);
+  const cors = corsHeaders(process.env, req.headers.origin);
   const send = (status, obj) =>
     res.writeHead(status, { "content-type": "application/json", ...cors }).end(JSON.stringify(obj));
 
