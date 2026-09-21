@@ -893,7 +893,15 @@ const SPEC_CHOICES={
      {label:"Start",options:[{t:"Pull start",m:1},{t:"Electric start",m:1.1,note:"electric start: +10%"}]}],
  t1:[CH_VOLT,{label:"Kit",options:[{t:"Two batteries + charger",m:1},{t:"One battery",m:.9,note:"single battery: −10%"},{t:"Combo kit, extra tools",m:1.15,note:"combo kit: +15%"}]}],
  t2:[CH_VOLT,{label:"Drive",options:[{t:"1/2 in",m:1},{t:"3/8 in",m:.9,note:"3/8 drive: −10%"},{t:"1 in / big iron",m:1.2,note:"heavy drive: +20%"}]}],
- t3:[{label:"Power",options:[{t:"Corded",m:1},{t:"Cordless — with battery",m:1.1,note:"cordless w/ battery: +10%"},{t:"Cordless — bare",m:.6,note:"bare tool: −40%"}]},
+ /* A corded grinder and a cordless one are not the same tool wearing a
+    different cord - they are two tools that happen to share a name, and the
+    gap is about two and a half times, not ten percent. Priced at +10% the
+    counter lends $49 against something that resells for $108. The figures
+    came out of asking prices, which read high, but the RATIO between two
+    asks taken from the same search carries the same bias on both sides and
+    largely cancels - it is a far safer thing to lean on than either level.
+    Recheck against sold prices when eBay grants them. */
+ t3:[{label:"Power",options:[{t:"Corded",m:1},{t:"Cordless — with battery",m:2.4,note:"cordless with a battery — a different tool: about 2.4x the corded one"},{t:"Cordless — bare",m:1.35,note:"bare cordless — the battery was most of it, but still over a corded unit"}]},
      {label:"Size",options:[{t:"4.5–6 in",m:1},{t:"7–9 in",m:1.15,note:"big grinder: +15%"}]}],
  t4:[{label:"Size",options:[{t:"Mini 2–3 gal",m:.8,note:"small tank: −20%"},{t:"Pancake 4–6 gal",m:1},{t:"8 gal +",m:1.15,note:"bigger tank: +15%"}]},
      {label:"Extras",options:[{t:"Unit only",m:1},{t:"With hose & nailer",m:1.1,note:"working combo: +10%"}]}],
@@ -903,7 +911,9 @@ const SPEC_CHOICES={
      {label:"Duty",options:[{t:"Under 160A",m:1},{t:"160–200A",m:1.1,note:"mid duty: +10%"},{t:"200A +",m:1.2,note:"heavy duty: +20%"}]}],
  t7:[{label:"Keys",options:[{t:"Keys in hand",m:1},{t:"No keys",m:.85,note:"no keys: −15%"}]},
      {label:"Size",options:[{t:"Mid box",m:1},{t:"Full-size stack",m:1.2,note:"full stack: +20%"}]}],
- t8:[{label:"Drive",options:[{t:"Pneumatic",m:1},{t:"Cordless — with battery",m:1.2,note:"cordless w/ battery: +20%"}]}],
+ /* Same story as the grinder: a pneumatic nailer is about $105 and a
+    cordless one is $230-300. +20% was covering a 2x gap. */
+ t8:[{label:"Drive",options:[{t:"Pneumatic",m:1},{t:"Cordless — with battery",m:2,note:"cordless with a battery — roughly twice a pneumatic"}]}],
  h1:[{label:"Type",options:[{t:"Standard 3-9x class",m:1},{t:"High-mag 4-16x+",m:1.1,note:"high-mag glass: +10%"},{t:"Fixed / oddball",m:.85,note:"odd configuration: −15%"}]},
      {label:"Features",options:[{t:"Standard",m:1},{t:"Illuminated / FFP",m:1.1,note:"premium features: +10%"}]}],
  h2:[{label:"Size",options:[{t:"Full-size (8/10x42)",m:1},{t:"Compact",m:.8,note:"compacts: −20%"}]}],
@@ -4760,7 +4770,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.1000";
+const APP_BUILD="0926.1100";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

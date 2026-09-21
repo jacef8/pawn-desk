@@ -71,15 +71,39 @@ grinder is $45 and a cordless brushless one is $108. A pneumatic nailer is
 $105 and a cordless one is $230. Whichever number sits in the row, the counter
 is wrong half the time, and moving it just moves which half.
 
-These need the question asked, the way the tool already asks about gauge on a
-shotgun: **corded or cordless?** That is a change to the item's spec list, not
-to its price.
+**Correction, later the same day:** the tool already asks this. t3 has a
+Power group (Corded / Cordless with battery / Cordless bare) and t8 has a
+Drive group (Pneumatic / Cordless). The question was never missing — the
+*multipliers behind it* were far too small:
+
+| Row | Was | Gave | Is now | Gives |
+|---|---|---|---|---|
+| t3 cordless with battery | ×1.1 | $49 | **×2.4** | $108 |
+| t3 cordless bare | ×0.6 | $27 | **×1.35** | $61 |
+| t8 cordless with battery | ×1.2 | $144 | **×2.0** | $240 |
+
+Applied 21 Sep 2026, build 0926.1100. The corded and pneumatic baselines were
+not touched, and they are still the default answer, so an unanswered lookup
+returns exactly what it did before.
+
+Why these were safe to change on asking-price evidence when nothing else was:
+a **ratio** between two asks taken from the same search carries the same
+upward bias on both sides, and it largely cancels. "A cordless grinder is
+worth about 2.4x a corded one" survives both figures being 30% high; "a
+corded grinder is worth $45" does not. Levels still wait for sold data.
 
 
 ### Rows checked after those eight, 21 Sep 2026
 
-Same caveat: asking prices. Recorded so the work isn't lost, not so it can be
-applied.
+**These are not price-book rows.** The "Book" column below is the `ask` field
+from `seed-shelf-prices.json` — other shops' shelf tags, a file used only by
+`tools/backtest-shelf.js` and never loaded by the app. So this table compares
+asking prices against asking prices, which is close to no check at all. The
+tools catalog is t1-t8 and nothing else; none of the items below exist in it.
+
+Kept only because the within-row observations (corded against cordless, hobby
+brand against professional) are ratios, and ratios survive the bias. The
+levels do not. **Do not apply any number in this table.**
 
 | Row | Book | What the searches found | Verdict |
 |---|---|---|---|
@@ -96,8 +120,7 @@ applied.
 | OBD scan tool | $50 | basic agrees; bidirectional Autel $200–400 | one row, two tools |
 | Band saw, benchtop | $160 | only new retail — WEN $149, Rikon $299–570 | no used data |
 
-The pattern is the same one the grinder and the nailer showed, and it is the
-real finding of this whole pass: **eight of the twelve rows above are a single
-price covering two different tools** — corded against cordless, hobby brand
-against professional. No amount of better price data fixes that. The row has
-to ask the question.
+The pattern is the same one the grinder and the nailer showed: **eight of the
+twelve rows above are a single price covering two different tools** — corded
+against cordless, hobby brand against professional. Worth remembering if any
+of them ever becomes a catalog row. None of them is one today.
