@@ -1594,7 +1594,9 @@ function renderSetup(){
   return `<div class="narrow">
 
   <div class="card"><span class="label">This copy of the tool</span>
-    <div class="cardHint" style="margin-top:0">Build <b style="color:var(--ink);font-family:var(--mono)">${BUILD||"unknown"}</b>. The number beside SYS.OK at the top says the same thing, so you can tell at a glance whether a device is running what was published.</div>
+    <div class="cardHint" style="margin-top:0">Running <b style="color:var(--ink);font-family:var(--mono)">${APP_BUILD}</b>${st.newBuild
+      ?` &mdash; the site has <b style="color:var(--warn);font-family:var(--mono)">${esc(st.newBuild)}</b>, so this device is behind. Fetch it.`
+      :` &mdash; the newest there is.`} The same number sits beside SYS.OK at the top, so you can tell at a glance what a device is actually running.</div>
     <div class="row2" style="margin-top:9px"><button class="ghostBtn" id="pdFresh">Get the newest version</button></div>
   </div>
   ${pdServer()?"":`<div class="card" style="border:1px dashed var(--e2-hi)"><span class="label">\uD83D\uDCF7 The camera is off on this device</span>
@@ -4334,20 +4336,42 @@ function fakeHoldHTML(F){
     ${gauge(0,"Lend him","&mdash;",F.verdict==="fail"?"failed the check":"not checked yet","gi")}
     <div class="mkNo" style="margin-top:6px">${t}</div></div>`;
 }
-/* Which copy of the tool is running. Nothing types this out: it is read off
-   the name of the cache the service worker made, which is bumped on every
-   change, so the page cannot claim a version it is not. */
-let BUILD="";
+/* Which copy of the tool is running.
+
+   This used to be read out of sw.js off the network and shown as "build", on
+   the reasoning that the page could not then claim a version it was not. It
+   is the opposite: sw.js was fetched fresh every time, so a phone running a
+   month-old app.js out of the browser cache displayed the newest build
+   number quite happily, and there was no way to tell from the screen that
+   the code was old. It cost a whole round of "it didn’t work on the phone"
+   to find that out.
+
+   So the running copy stamps itself, and the published copy is read off the
+   network, and where they differ the screen says so.
+
+   THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
+const APP_BUILD="0925.2300";
+let BUILD=APP_BUILD;
 async function readBuild(){
   try{
-    /* Read it out of sw.js, whose cache name is bumped on every change. Not
-       from the caches the worker made: those are empty until it registers,
-       and on a page served without one they never appear at all. */
+    /* sw.js carries the published number in its cache name, and is fetched
+       past every cache. Not the caches the worker made: those are empty
+       until it registers, and on a page served without one never appear. */
     const r=await fetch("sw.js",{cache:"no-store"}); if(!r.ok)return;
     const m=(await r.text()).match(/pawndesk-(\d{8})(\d{4})/); if(!m)return;
-    BUILD=m[1].slice(4,6)+m[1].slice(6,8)+"."+m[2];
+    const pub=m[1].slice(4,6)+m[1].slice(6,8)+"."+m[2];
+    st.newBuild=(pub&&pub!==APP_BUILD)?pub:"";
     try{ render(); }catch(e){}
   }catch(e){}
+}
+/* Said on every screen, not tucked inside Setup: an out-of-date copy looks
+   exactly like a working one right up until it behaves like last month. */
+function staleHTML(){
+  if(!st.newBuild)return "";
+  return `<div class="tagWarn" style="background:rgba(255,201,143,.16);border-left-color:var(--accent);margin:0 0 12px">
+    <b>This copy is out of date.</b> It is running <b style="font-family:var(--mono)">${esc(APP_BUILD)}</b>
+    and the site has <b style="font-family:var(--mono)">${esc(st.newBuild)}</b>.
+    <button class="ghostBtn" id="pdFresh" style="padding:6px 12px;font-size:12px;margin-left:6px">Get the newest version</button></div>`;
 }
 /* Clear everything cached and come back with whatever the site is serving.
    The service worker already asks the network first, so this is for the
@@ -5240,12 +5264,14 @@ function render(){
   /* Short enough to sit on the same row as the title and the tabs. It used
      to wrap onto a second row, which left a gap beside the title and another
      beside itself. The green dot already says SYS.OK, so the words went. */
-  if(sy)sy.textContent=fmtDay(FEED.date)+" · Gold $"+Math.round(FEED.gold).toLocaleString("en-US")+" · Silver $"+Number(FEED.silver).toFixed(2)+(BUILD?" · build "+BUILD:"");
+  if(sy)sy.textContent=fmtDay(FEED.date)+" · Gold $"+Math.round(FEED.gold).toLocaleString("en-US")+" · Silver $"+Number(FEED.silver).toFixed(2)
+    +(BUILD?" · build "+BUILD+(st.newBuild?" (old — "+st.newBuild+" is out)":""):"");
   if(st.mode==="item"){v.innerHTML=renderItem();wireItem();}
   else if(st.mode==="metal"){v.innerHTML=renderMetal();wireMetal();}
   else if(st.mode==="log"){v.innerHTML=renderLog();wireLog();}
   else if(st.mode==="device"){v.innerHTML=renderDevice();}
   else if(st.mode==="setup"){v.innerHTML=renderSetup();}
+  if(st.newBuild)v.insertAdjacentHTML("afterbegin",staleHTML());
   else {v.innerHTML=renderFlags();}
   /* The spotting-fakes card shows on the item page and the metal page both,
      so its measurement boxes are wired after whichever one drew it. */
