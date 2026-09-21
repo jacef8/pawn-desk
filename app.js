@@ -1607,6 +1607,163 @@ function wireMetal(){
   wireSuggest();
 }
 
+/* ---- building the price list from the tool, not from a terminal ----------
+   The harvester has been a command the whole time, and the counter has said
+   twice now that a command line is not where he works. It runs here instead,
+   on the device that already has the service address and the token: it walks
+   the target list, runs the same searches the green button runs, keeps every
+   listing it finds the same way a lookup does - so the answers are live on
+   this device immediately and reach the phone on the next sync - and hands
+   back a prices.json when it is done, for the copy everyone downloads.
+
+   Stoppable, resumable, and it says what it has spent while it spends it. */
+const HARV_KEY="pawndesk_harvest";
+let HARV=null, harvBusy=false, harvStop=false, harvSeed=null, harvNow="";
+function harvAll(){
+  if(HARV)return HARV;
+  try{ HARV=JSON.parse(localStorage.getItem(HARV_KEY)||"{}")||{}; }catch(e){ HARV={}; }
+  return HARV;
+}
+function harvSave(){ try{ localStorage.setItem(HARV_KEY,JSON.stringify(HARV||{})); }catch(e){} }
+async function harvLoadSeed(){
+  if(harvSeed)return harvSeed;
+  const r=await fetch("tools/seed-models.json",{cache:"no-store"});
+  if(!r.ok)throw new Error("the target list did not load");
+  const j=await r.json();
+  harvSeed=(j&&j.rows)||[];
+  return harvSeed;
+}
+const harvKey=t=>t.ref+"|"+t.name;
+function harvBookFor(ref){
+  for(const c of CATALOG){ const it=c.items.find(i=>i.id===ref); if(it)return it.value; }
+  return 0;
+}
+/* Same band the command-line one uses: a search that came back with parts or
+   the wrong model lands far from what the catalog says the thing is worth. */
+function harvWild(ref,med){
+  const b=harvBookFor(ref); if(!b||!med)return null;
+  const ratio=Math.round((med/b)*100)/100;
+  return {book:b,ratio,wild:ratio>4||ratio<0.25};
+}
+async function harvRun(ref,count){
+  if(harvBusy||!CAP.sample)return;
+  harvBusy=true; harvStop=false; st.harvErr=""; render();
+  let seed;
+  try{ seed=await harvLoadSeed(); }
+  catch(e){ harvBusy=false; st.harvErr="Could not load the target list."; render(); return; }
+  const done=harvAll();
+  let todo=seed.filter(t=>!done[harvKey(t)]);
+  if(ref)todo=todo.filter(t=>t.ref===ref);
+  if(count>0)todo=todo.slice(0,count);
+  const pass1={where:"eBay",say:"completed, sold eBay listings - the price it actually went for, not what it was listed at"};
+  const pass2={where:"Shopping",say:"used-condition listings currently for sale on Google Shopping and the marketplaces"};
+  for(let i=0;i<todo.length;i++){
+    if(harvStop)break;
+    const t=todo[i];
+    harvNow=`${i+1} of ${todo.length} — ${t.name}`;
+    const el=document.getElementById("harvNow"); if(el)el.textContent=harvNow; else render();
+    let comps=[];
+    for(const p of [pass1,pass2]){
+      if(harvStop)break;
+      try{ const d=await CAP.sample.json(findPrompt(t.name,p),{search:true});
+           comps=comps.concat(((d&&d.comps)||[]).filter(c=>c&&Number(c.price)>0)); }
+      catch(e){}
+      if(comps.length>=8)break;
+    }
+    const seen={};
+    const uniq=comps.filter(c=>{ const k=Math.round(c.price)+"|"+String(c.where||"").toLowerCase();
+      if(seen[k])return false; seen[k]=1; return true; });
+    const ps=uniq.map(c=>Math.round(Number(c.price))).filter(n=>n>0).sort((a,b)=>a-b);
+    const at=f=>ps[Math.min(ps.length-1,Math.max(0,Math.round(f*(ps.length-1))))];
+    if(ps.length<3){
+      done[harvKey(t)]={ref:t.ref,name:t.name,n:ps.length,date:todayStr(),note:"nothing usable"};
+    }else{
+      const sold=uniq.filter(c=>c.basis==="sold").length, share=sold/ps.length;
+      const w=harvWild(t.ref,at(0.5));
+      done[harvKey(t)]={ref:t.ref,name:t.name,alias:t.alias||"",n:ps.length,sold,
+        lo:at(0.25),hi:at(0.75),med:at(0.5),
+        conf:(ps.length>=6&&share>=0.6)?"h":(ps.length>=4?"m":"l"),
+        date:todayStr(),wild:!!(w&&w.wild),ratio:w?w.ratio:null,book:w?w.book:null,
+        note:`${ps.length} listings, ${sold} sold${share<0.5?" - mostly asks":""}`};
+      /* Kept as listings too, so this device can price the thing straight
+         away and the phone gets it on the next sync - no file, no waiting. */
+      try{ compsAdd(t.name,uniq); }catch(e){}
+    }
+    harvSave(); render();
+  }
+  harvBusy=false; harvNow=""; render();
+  try{ pdSync(); }catch(e){}
+}
+function todayStr(){ const d=new Date(), p=n=>String(n).padStart(2,"0");
+  return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate()); }
+/* The file the site serves, with everything harvested folded in. Downloaded
+   rather than written, because a web page cannot commit to the repository -
+   this is the one step that still needs a person. */
+function harvFile(){
+  const rows=MODEL_PRICES.map(r=>r.slice());
+  const byName=new Map(rows.map((r,i)=>[String(r[1])+"|"+String(r[2]).toLowerCase(),i]));
+  let n=0, added=0, updated=0, held=0, thin=0;
+  const nextId=()=>{ let id; do{ id="h"+(++n); }while(rows.some(r=>r[0]===id)); return id; };
+  for(const f of Object.values(harvAll())){
+    if(!f||!f.n||f.n<4||!(f.lo>0)||!(f.hi>=f.lo)){ thin++; continue; }
+    if(f.wild){ held++; continue; }
+    const row=[null,f.ref,f.name,Math.round(f.lo),Math.round(f.hi),f.conf,f.date,
+      "https://www.ebay.com/sch/i.html?_nkw="+encodeURIComponent(f.name)+"&LH_Sold=1&LH_Complete=1",
+      f.note,f.alias||""];
+    const at=byName.get(f.ref+"|"+f.name.toLowerCase());
+    if(at==null){ row[0]=nextId(); rows.push(row); byName.set(f.ref+"|"+f.name.toLowerCase(),rows.length-1); added++; }
+    else { row[0]=rows[at][0]; rows[at]=row; updated++; }
+  }
+  return {json:JSON.stringify({updated:todayStr(),
+    note:"Resale price list. Refreshed by the weekly task; app.js carries the same rows as a fallback.",
+    rows}),added,updated,held,thin,total:rows.length};
+}
+function harvDownload(){
+  const f=harvFile();
+  try{
+    const b=new Blob([f.json],{type:"application/json"});
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(b); a.download="prices.json";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+  }catch(e){ st.harvErr="This browser would not save the file."; render(); }
+}
+function harvStats(){
+  const all=Object.values(harvAll());
+  return {done:all.length,
+    priced:all.filter(f=>f&&f.n>=4&&f.lo>0&&!f.wild).length,
+    wild:all.filter(f=>f&&f.wild).length,
+    empty:all.filter(f=>!f||!(f.n>=3)).length};
+}
+function harvCardHTML(){
+  if(!CAP.sample)return "";
+  const S=harvStats(), total=harvSeed?harvSeed.length:610, left=Math.max(0,total-S.done);
+  const f=S.priced?harvFile():null;
+  return `<div class="card"><span class="label">Build the price list</span>
+    <div class="cardHint" style="margin-top:0">The tool ships knowing about ${MODEL_PRICES.length} models. This goes and prices
+      the rest &mdash; ${total} makes and models, the saws and mowers and phones and four-wheelers that actually come through a counter &mdash;
+      using the same searches the green button runs. Every listing it finds is kept, so anything it prices is live on this device at once
+      and reaches the phone on the next sync.</div>
+    <div class="cardHint"><b style="color:var(--ink)">It costs money.</b> About two searches each, so roughly <b style="color:var(--accent)">4&cent;</b> a model
+      against your Anthropic balance &mdash; ${money(Math.round(total*0.04))} for the lot. Do a few first and look at what comes back.</div>
+    ${harvBusy?`<div class="tagWarn" style="background:rgba(0,217,255,.10);color:var(--ink-2)">
+        <b style="color:var(--accent-2)">Working…</b> <span id="harvNow">${esc(harvNow)}</span>
+        <div style="margin-top:8px"><button class="ghostBtn" id="harvStop">Stop</button></div></div>`
+      :`<div class="row2" style="gap:8px;flex-wrap:wrap;margin-top:10px">
+        <button class="brassBtn" data-harv="5" style="padding:10px 16px">Price 5</button>
+        <button class="ghostBtn" data-harv="25" style="padding:10px 16px">Price 25</button>
+        <button class="ghostBtn" data-harv="100" style="padding:10px 16px">Price 100</button>
+        <button class="ghostBtn" data-harv="0" style="padding:10px 16px">Price all ${left}</button>
+       </div>`}
+    ${st.harvErr?`<div class="tagWarn" style="background:rgba(255,66,87,.12);color:#FFAAB4">${esc(st.harvErr)}</div>`:""}
+    ${S.done?`<div class="tagNote" style="margin-top:10px">
+      <b style="color:var(--ink)">${S.done} done</b> &middot; ${S.priced} priced${S.wild?` &middot; <span style="color:var(--warn)">${S.wild} looked wrong and were held back</span>`:""}${S.empty?` &middot; ${S.empty} found nothing`:""} &middot; ${left} left.
+      ${f?`<div style="margin-top:9px">To put them in the copy everyone downloads, save the file and send it to me:
+        <button class="ghostBtn" id="harvDl" style="padding:6px 12px;font-size:12px;margin-left:6px">Save prices.json (${f.total} rows)</button></div>`:""}
+      <div style="margin-top:6px"><button class="ghostBtn" id="harvClear" style="padding:5px 11px;font-size:11.5px">Start the list over</button></div>
+    </div>`:""}
+  </div>`;
+}
 /* ---------------- device + flags tabs ---------------- */
 /* Everything about this copy of the tool rather than about an item: which
    build it is running, how the pricing page is laid out, and moving the
@@ -1620,6 +1777,7 @@ function renderSetup(){
       :` &mdash; the newest there is.`} The same number sits beside SYS.OK at the top, so you can tell at a glance what a device is actually running.</div>
     <div class="row2" style="margin-top:9px"><button class="ghostBtn" id="pdFresh">Get the newest version</button></div>
   </div>
+  ${pdServer()?harvCardHTML():""}
   ${pdServer()?"":`<div class="card" style="border:1px dashed var(--e2-hi)"><span class="label">\uD83D\uDCF7 The camera is off on this device</span>
     <div class="cardHint" style="margin-top:0">Nothing on this device can read a photo yet. Switch it on here, or \u2014 far easier \u2014 open <b style="color:var(--ink)">Setup</b> on the desk computer and point this phone\u2019s camera at the QR code it shows.</div>
     <div class="cardHint" style="font-size:12.5px">The two lines below are the same ones printed on the desk under Setup. Every device keeps its own copy, which is why this one has to be told too.</div>
@@ -4395,7 +4553,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.0330";
+const APP_BUILD="0926.0430";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -5153,8 +5311,12 @@ document.addEventListener("change",e=>{
   if(t&&t.id==="seenImp"&&t.files&&t.files[0]){ seenImport(t.files[0]); t.value=""; }
 },true);
 document.addEventListener("click",e=>{
-  const b=e.target&&e.target.closest?e.target.closest("#seenHand,#seenOut,#seenUse,#seenSync,#pdFindGo,#foundUse,#pdCopyConn,[data-use]"):null; if(!b)return;
+  const b=e.target&&e.target.closest?e.target.closest("#seenHand,#seenOut,#seenUse,#seenSync,#pdFindGo,#foundUse,#pdCopyConn,#harvStop,#harvDl,#harvClear,[data-use],[data-harv]"):null; if(!b)return;
   if(b.id==="pdFindGo"){ priceFind(null,true); return; }
+  if(b.dataset.harv!=null){ harvRun("",Number(b.dataset.harv)); return; }
+  if(b.id==="harvStop"){ harvStop=true; return; }
+  if(b.id==="harvDl"){ harvDownload(); return; }
+  if(b.id==="harvClear"){ HARV={}; harvSave(); render(); return; }
   if(b.dataset.use){ useEvidence(b.dataset.use); return; }
   if(b.id==="foundUse"){ useComps(compStats(compsMatch(calcItem()))); return; }
   if(b.id==="seenSync"){ pdSync(); return; }
