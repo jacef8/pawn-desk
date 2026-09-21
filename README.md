@@ -22,10 +22,30 @@ load it; neither holds application code.
 | `sw.js` | offline cache |
 | `server/` | the price and photo service (see `server/README.md`) |
 | `seed-shelf-prices.json` | shelf tags photographed at the counter, to Import |
+| `prices.json` | the model price list, refetched on every load — this is the file that grows |
+| `tools/seed-models.json` | makes and models to go and price, 610 of them |
+| `tools/harvest.js` | prices those targets through the shop's own service, then merges them in |
+| `tools/verify-prices.js` | rechecks the prices already in the lists |
 
 These two files were copies of each other until they were merged: 3,112 of
 their lines were identical and five changes had already landed in one and not
 the other. A fix now goes in one place.
+
+## Growing the price list
+
+`prices.json` is fetched fresh on every load and falls back to the copy baked
+into `app.js`, so the list grows without touching the code. Rows it holds are
+matched from what the counter types: by a hand-written pattern where there is
+one, otherwise by the row's own name, which needs a model number matched
+exactly (`ms391`, `dcd771`) so a bulk row cannot answer for something it is
+not.
+
+    PAWN_SERVER=... PAWN_TOKEN=... node tools/harvest.js --ref p1 --limit 5
+    PAWN_SERVER=... PAWN_TOKEN=... node tools/harvest.js --ref p1 --limit 5 --go
+    node tools/harvest.js --merge
+
+It is resumable, it never pays for the same target twice, and `--merge` keeps
+a `.bak` and refuses to write a file the app would reject.
 
 ## When changing things
 

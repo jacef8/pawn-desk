@@ -4395,7 +4395,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.0200";
+const APP_BUILD="0926.0330";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -4443,7 +4443,60 @@ function mpFor(cur,text){
     if(String(r[1]).split("|").indexOf(cur)<0)continue;
     if(re.test(t))return r;
   }
-  return null;
+  return mpAuto(cur,text);
+}
+/* Every row above was recognized by a pattern somebody wrote by hand, which
+   is fine for 180 rows and impossible for the thousands this shop actually
+   needs. A row gathered in bulk carries no pattern, so it is matched on its
+   own name instead - but only on hard evidence: a token with a digit in it,
+   matched exactly (ms 250, dcd771, 10/22, p365), plus most of the rest of
+   the name. A model number is the one thing in a name that cannot be
+   coincidence; without one this stays quiet and the categories answer.
+   Row 10, when a harvest writes one, is extra ways the thing gets typed. */
+/* A model number gets typed as one word about as often as two - ms391,
+   dcd771, cs590 - and splitting the letters from the digits is what lets
+   "stihl ms391" reach a row named "Stihl MS 391". Only here: the rest of the
+   tool has no business guessing that "a4" is "a" and "4". */
+const MP_SPLIT=/^([a-z]{1,4})[\s-]?(\d{2,5})([a-z]{0,3})$/;
+function mpTokens(ws){
+  const out=[];
+  ws.forEach(w=>{ out.push(w);
+    const m=String(w).match(MP_SPLIT);
+    if(m){ out.push(m[1]); out.push(m[2]); if(m[3])out.push(m[2]+m[3]); } });
+  return Array.from(new Set(out));
+}
+let MP_AUTO_IDX=null;
+function mpAutoIdx(){
+  if(MP_AUTO_IDX&&MP_AUTO_IDX.n===MODEL_PRICES.length)return MP_AUTO_IDX;
+  const byHand=new Set(MP_MATCH.map(m=>m[0]));
+  MP_AUTO_IDX={n:MODEL_PRICES.length,rows:MODEL_PRICES
+    .filter(r=>!byHand.has(r[0]))
+    .map(r=>({r,refs:String(r[1]).split("|"),
+              nw:omniWords(r[2]).filter(w=>!STOP.has(w)),
+              aw:mpTokens(omniWords(r[9]||""))}))
+    .filter(e=>e.nw.length)};
+  return MP_AUTO_IDX;
+}
+function mpAuto(cur,text){
+  const q=mpTokens(omniWords(text).filter(w=>!STOP.has(w)));
+  if(!q.length)return null;
+  let best=null,bestScore=0;
+  for(const e of mpAutoIdx().rows){
+    if(e.refs.indexOf(cur)<0)continue;
+    let hit=0,pin=false;
+    for(const n of e.nw.concat(e.aw)){
+      let h=0; for(const w of q){ const x=wordHit(w,[n]); if(x>h)h=x; }
+      if(!h)continue;
+      if(e.nw.indexOf(n)>=0)hit++;
+      if(h===3&&/\d/.test(n))pin=true;
+    }
+    if(!pin)continue;
+    const cover=hit/e.nw.length;
+    if(cover<0.6)continue;
+    const sc=cover*10+hit;
+    if(sc>bestScore){ bestScore=sc; best=e.r; }
+  }
+  return best;
 }
 function curItemRef(){ return isCustom()?st.bookName:st.itemId; }
 function mkKey(){ return itemKey()+"|"+omniNorm((st.brandTyped||"")+" "+(st.model||"")); }
