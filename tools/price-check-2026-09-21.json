@@ -1,0 +1,353 @@
+{
+ "ran": "2026-09-21T13:59:01.347Z",
+ "results": {
+  "a1": {
+   "id": "a1",
+   "name": "Range / oven",
+   "cat": "appl",
+   "catLabel": "Appliances & household",
+   "book": 150,
+   "from": "catalog",
+   "found": 0,
+   "note": "nothing found"
+  },
+  "a2": {
+   "id": "a2",
+   "name": "Refrigerator",
+   "cat": "appl",
+   "catLabel": "Appliances & household",
+   "book": 240,
+   "from": "catalog",
+   "found": 13,
+   "sold": 0,
+   "med": 400,
+   "lo": 100,
+   "hi": 14999,
+   "ratio": 1.67,
+   "comps": [
+    {
+     "price": 775,
+     "where": "eBay",
+     "basis": "asking"
+    },
+    {
+     "price": 500,
+     "where": "eBay",
+     "basis": "asking"
+    },
+    {
+     "price": 14999,
+     "where": "eBay",
+     "basis": "asking"
+    },
+    {
+     "price": 400,
+     "where": "OfferUp",
+     "basis": "asking"
+    },
+    {
+     "price": 375,
+     "where": "OfferUp",
+     "basis": "asking"
+    },
+    {
+     "price": 230,
+     "where": "OfferUp",
+     "basis": "asking"
+    },
+    {
+     "price": 100,
+     "where": "OfferUp",
+     "basis": "asking"
+    },
+    {
+     "price": 1500,
+     "where": "OfferUp",
+     "basis": "asking"
+    },
+    {
+     "price": 150,
+     "where": "OfferUp",
+     "basis": "asking"
+    },
+    {
+     "price": 300,
+     "where": "OfferUp",
+     "basis": "asking"
+    },
+    {
+     "price": 699,
+     "where": "OfferUp",
+     "basis": "asking"
+    },
+    {
+     "price": 389,
+     "where": "OfferUp",
+     "basis": "asking"
+    }
+   ]
+  },
+  "a5": {
+   "id": "a5",
+   "name": "Washer & dryer pair",
+   "cat": "appl",
+   "catLabel": "Appliances & household",
+   "book": 375,
+   "from": "catalog",
+   "found": 17,
+   "sold": 0,
+   "med": 450,
+   "lo": 290,
+   "hi": 1750,
+   "ratio": 1.2,
+   "comps": [
+    {
+     "price": 1750,
+     "where": "eBay",
+     "basis": "asking"
+    },
+    {
+     "price": 849,
+     "where": "eBay",
+     "basis": "asking"
+    },
+    {
+     "price": 450,
+     "where": "eBay",
+     "basis": "asking"
+    },
+    {
+     "price": 599,
+     "where": "eBay",
+     "basis": "asking"
+    },
+    {
+     "price": 500,
+     "where": "eBay",
+     "basis": "asking"
+    },
+    {
+     "price": 325,
+     "where": "eBay",
+     "basis": "asking"
+    },
+    {
+     "price": 450,
+     "where": "OfferUp (Dallas, TX)",
+     "basis": "asking"
+    },
+    {
+     "price": 599,
+     "where": "OfferUp (Arlington, TX)",
+     "basis": "asking"
+    },
+    {
+     "price": 290,
+     "where": "OfferUp (Kissimmee, FL)",
+     "basis": "asking"
+    },
+    {
+     "price": 400,
+     "where": "OfferUp (Marietta, GA)",
+     "basis": "asking"
+    },
+    {
+     "price": 450,
+     "where": "OfferUp (Stockbridge, GA)",
+     "basis": "asking"
+    },
+    {
+     "price": 595,
+     "where": "Craigslist (DFW, TX)",
+     "basis": "asking"
+    }
+   ]
+  },
+  "a3": {
+   "id": "a3",
+   "name": "Washer",
+   "cat": "appl",
+   "catLabel": "Appliances & household",
+   "book": 175,
+   "from": "catalog",
+   "found": 2,
+   "sold": 0,
+   "med": 285,
+   "lo": 220,
+   "hi": 350,
+   "ratio": 1.63,
+   "comps": [
+    {
+     "price": 220,
+     "where": "Facebook Marketplace",
+     "basis": "asking"
+    },
+    {
+     "price": 350,
+     "where": "Facebook Marketplace",
+     "basis": "asking"
+    }
+   ]
+  },
+  "a4": {
+   "id": "a4",
+   "name": "Dryer",
+   "cat": "appl",
+   "catLabel": "Appliances & household",
+   "book": 175,
+   "from": "catalog",
+   "found": 9,
+   "sold": 1,
+   "med": 100,
+   "lo": 40,
+   "hi": 350,
+   "ratio": 0.57,
+   "comps": [
+    {
+     "price": 80,
+     "where": "Facebook Marketplace",
+     "basis": "asking"
+    },
+    {
+     "price": 100,
+     "where": "Facebook Marketplace",
+     "basis": "asking"
+    },
+    {
+     "price": 60,
+     "where": "Facebook Marketplace",
+     "basis": "asking"
+    },
+    {
+     "price": 150,
+     "where": "Facebook Marketplace",
+     "basis": "asking"
+    },
+    {
+     "price": 120,
+     "where": "Facebook Marketplace",
+     "basis": "asking"
+    },
+    {
+     "price": 350,
+     "where": "Facebook Marketplace",
+     "basis": "asking"
+    },
+    {
+     "price": 40,
+     "where": "Facebook Marketplace",
+     "basis": "asking"
+    },
+    {
+     "price": 50,
+     "where": "Facebook Marketplace",
+     "basis": "asking"
+    },
+    {
+     "price": 100,
+     "where": "OfferUp",
+     "basis": "sold"
+    }
+   ]
+  },
+  "a7": {
+   "id": "a7",
+   "name": "Window air conditioner",
+   "cat": "appl",
+   "catLabel": "Appliances & household",
+   "book": 80,
+   "from": "catalog",
+   "found": 2,
+   "sold": 0,
+   "med": 187,
+   "lo": 104,
+   "hi": 270,
+   "ratio": 2.34,
+   "comps": [
+    {
+     "price": 270,
+     "where": "eBay",
+     "basis": "asking"
+    },
+    {
+     "price": 104,
+     "where": "eBay",
+     "basis": "asking"
+    }
+   ]
+  },
+  "a8": {
+   "id": "a8",
+   "name": "Microwave",
+   "cat": "appl",
+   "catLabel": "Appliances & household",
+   "book": 35,
+   "from": "catalog",
+   "found": 11,
+   "sold": 0,
+   "med": 35,
+   "lo": 4,
+   "hi": 150,
+   "ratio": 1,
+   "comps": [
+    {
+     "price": 40,
+     "where": "OfferUp",
+     "basis": "asking"
+    },
+    {
+     "price": 50,
+     "where": "OfferUp",
+     "basis": "asking"
+    },
+    {
+     "price": 35,
+     "where": "OfferUp",
+     "basis": "asking"
+    },
+    {
+     "price": 30,
+     "where": "OfferUp",
+     "basis": "asking"
+    },
+    {
+     "price": 20,
+     "where": "Craigslist",
+     "basis": "asking"
+    },
+    {
+     "price": 25,
+     "where": "Craigslist",
+     "basis": "asking"
+    },
+    {
+     "price": 50,
+     "where": "Craigslist",
+     "basis": "asking"
+    },
+    {
+     "price": 4,
+     "where": "Craigslist",
+     "basis": "asking"
+    },
+    {
+     "price": 70,
+     "where": "Craigslist",
+     "basis": "asking"
+    },
+    {
+     "price": 15,
+     "where": "Craigslist",
+     "basis": "asking"
+    },
+    {
+     "price": 150,
+     "where": "eBay",
+     "basis": "asking"
+    }
+   ]
+  }
+ },
+ "basis": "asking",
+ "warning": "Every comp in this file is an ASKING price - no sold data was available when it was taken. Asking prices read high. Do not apply these numbers. Kept as a record, and as a calibration baseline: when eBay sold comps arrive, comparing them against these shows how large the asking-price bias actually is."
+}
