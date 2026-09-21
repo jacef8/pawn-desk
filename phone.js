@@ -135,8 +135,12 @@ function wirePhone(){
 }
 function phoneBoot(){
   document.body.classList.add("phone");
-  document.title="Price Check";
-  const h=document.querySelector(".brand h1"); if(h)h.textContent="Price Check";
+  /* The phone used to rename itself "Price Check", from when it really was
+     a cut-down thing: point the camera, get a number. It now carries the
+     scale, Setup, the shelf tags, the deal log, the walk-away list and the
+     price-list builder - everything the desk has. Calling it something
+     smaller told the counter they were holding a lesser copy of the tool. */
+  document.title="The Pawn Desk";
   const e=document.querySelector(".brand .eyebrow"); if(e)e.textContent="Lamar's";
   try{
     renderTabs=function(){
