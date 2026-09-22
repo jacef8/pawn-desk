@@ -83,9 +83,26 @@ async function appToken(scope, env, signal) {
     signal,
   });
   if (!r.ok) {
-    /* A scope that was never granted is refused here, before any search. */
-    const code = r.status === 400 || r.status === 401 ? "ebay_scope" : "ebay_auth";
-    throw Object.assign(new Error(code + " " + r.status), { code, status: r.status });
+    /* Telling "this scope was never granted" apart from "these credentials
+       are wrong" matters more than it looks. Both were being called
+       ebay_scope, and a scope refusal falls back to asking prices quietly -
+       so a mistyped Cert ID would have produced a working lookup returning
+       asks, with nothing anywhere saying the key was bad. Exactly the kind
+       of silent wrongness this whole job has been about.
+       eBay refuses an ungranted scope with 400 and invalid_scope; wrong
+       credentials come back 401 invalid_client. */
+    let detail = null;
+    try { detail = await r.json(); } catch (e) {}
+    const err = String((detail && detail.error) || "");
+    const scopeDenied = r.status === 400 && /scope/i.test(err + " " + ((detail && detail.error_description) || ""));
+    const code = scopeDenied ? "ebay_scope" : "ebay_auth";
+    throw Object.assign(new Error(code + " " + r.status), {
+      code, status: r.status,
+      /* eBay's own words. These carry no secret - they are error names like
+         invalid_client - and without them this is unfixable from outside. */
+      upstream: err || undefined,
+      upstreamText: (detail && detail.error_description) || undefined,
+    });
   }
   const j = await r.json().catch(() => null);
   if (!j || !j.access_token) throw Object.assign(new Error("ebay_auth"), { code: "ebay_auth" });
@@ -186,7 +203,8 @@ export async function ebayComps({ q, limit, env, signal }) {
         insightsDenied = true;
         note = "sold data unavailable: this keyset is not granted Marketplace Insights";
       } else if (e.code === "no_ebay_key" || e.code === "ebay_auth") {
-        return { ok: false, code: e.code };
+        return { ok: false, code: e.code, status: e.status,
+                 upstream: e.upstream, upstreamText: e.upstreamText };
       } else {
         note = "sold lookup failed (" + e.code + "), fell back to asking prices";
       }

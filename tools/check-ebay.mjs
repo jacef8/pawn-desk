@@ -40,7 +40,10 @@ const stub = createServer(async (req, res) => {
   if (u.pathname === "/identity/oauth2/token") {
     let b = ""; for await (const c of req) b += c;
     const scope = new URLSearchParams(b).get("scope") || "";
-    if (mode === "denied" && scope.includes("marketplace.insights")) return j(400, { error: "invalid_scope" });
+    if (mode === "denied" && scope.includes("marketplace.insights"))
+      return j(400, { error: "invalid_scope", error_description: "The requested scope is invalid" });
+    if (mode === "badkey")
+      return j(401, { error: "invalid_client", error_description: "client authentication failed" });
     return j(200, { access_token: "tok", expires_in: 7200 });
   }
   if (u.pathname === "/buy/marketplace_insights/v1_beta/item_sales/search") {
@@ -107,6 +110,21 @@ console.log("\n  the guards");
   ok(none.status === 501 && none.body.code === "no_ebay_key", "no keyset answers no_ebay_key");
   ok((await handle({ path: "/limits", method: "GET", env: env() })).body.ebay.configured === true, "/limits reports a keyset");
   ok((await handle({ path: "/limits", method: "GET", env: {} })).body.ebay.configured === false, "/limits reports no keyset");
+}
+
+/* A WRONG KEY MUST NOT LOOK LIKE AN UNGRANTED SCOPE. Both used to be called
+   ebay_scope, and a scope refusal falls back to asking prices quietly - so a
+   mistyped Cert ID produced a lookup that worked and returned asks, with
+   nothing anywhere saying the key was bad. That is the silent wrongness this
+   whole endpoint exists to stamp out. */
+mode = "badkey"; ebayReset();
+console.log("\n  the credentials are wrong");
+{
+  const r = await post({ q: "DeWalt DW735" });
+  ok(!r.body.ok, "the lookup FAILS rather than quietly serving asking prices");
+  ok(r.body.code === "ebay_auth", 'it is ebay_auth, not ebay_scope — got ' + r.body.code);
+  ok(r.body.status === 401, "carries eBay's status, 401 — got " + r.body.status);
+  ok(r.body.upstream === "invalid_client", "and eBay's own error name — got " + r.body.upstream);
 }
 
 /* THE HANDSHAKE THAT ENABLES THE KEYSET. eBay will not turn a production

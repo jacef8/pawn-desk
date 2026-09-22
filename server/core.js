@@ -135,7 +135,14 @@ export async function handle({ path, method, token, body, env, signal, query }) 
     if (!body || typeof body !== "object") return fail("bad_request");
     try {
       const out = await ebayComps({ q: body.q, limit: body.limit, env, signal });
-      return out.ok ? reply(200, out) : fail(out.code || "ebay_error", out.code === "no_ebay_key" ? 501 : 502);
+      if (out.ok) return reply(200, out);
+      /* Pass eBay's own error name back. It is not a secret - it is
+         invalid_client or invalid_scope - and it is the difference between
+         "the key is wrong" and "you were not granted that", which cannot be
+         told apart from outside without it. */
+      return reply(out.code === "no_ebay_key" ? 501 : 502,
+        { ok: false, code: out.code || "ebay_error",
+          status: out.status, upstream: out.upstream, upstreamText: out.upstreamText });
     } catch (e) {
       return fail("ebay_error", 502);
     }
