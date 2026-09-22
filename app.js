@@ -1122,11 +1122,12 @@ function stepFlow(){
   if(st.flow==="all")return "all";
   if(st.flow==="steps")return "steps";
   if(st.flow==="pages")return "pages";
-  /* A questionnaire means one question at a time with the answered ones
-     folded to a line carrying their answer - which is what "steps" already
-     does, and what the phone has always used. The desk gets it too now that
-     there is a rail beside it holding the numbers. */
-  return deskWide()?"steps":"pages";
+  /* A questionnaire is one question on the screen with a way forward, back
+     and past it - not every question at once with the answered ones folded
+     to a line, which is still a page you scroll. The desk pages like the
+     phone does; what the desk adds is the rail beside it, so paging never
+     takes the money off the screen. */
+  return "pages";
 }
 
 /* Which page each card belongs to. Every card carries a stable id, so this
@@ -1165,8 +1166,14 @@ function applyPages(){
     <div class="pageStep">
       <button class="ghostBtn" data-pgmove="-1"${at<=0?" disabled":""}>&larr; Back</button>
       <span class="pageWhere">${at+1} of ${pages.length}</span>
+      ${at<pages.length-1?`<button class="ghostBtn pageSkip" data-pgmove="1" title="Leave this one unanswered and carry on. You can come back to it from the row above.">Skip</button>`:""}
       <button class="brassBtn" data-pgmove="1"${at>=pages.length-1?" disabled":""}>Next &rarr;</button>
     </div>`;
+  /* In the rail layout the nav steers the left column, so it lives at the
+     top of it. Anywhere else and the controls for the questions are not
+     beside the questions. */
+  const q=v.querySelector(".colQ");
+  if(q){ q.insertBefore(nav,q.firstChild); return; }
   const pin=v.querySelector("#pin");
   if(pin&&pin.nextSibling)v.insertBefore(nav,pin.nextSibling); else v.appendChild(nav);
 }
@@ -4896,7 +4903,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.1900";
+const APP_BUILD="0926.2000";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

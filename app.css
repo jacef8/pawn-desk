@@ -528,6 +528,16 @@
      removed, so inputs keep their values and their handlers. */
   .pgOff{display:none!important}
   #view.item.paged{display:block!important}
+  /* Paging and the rail together: the pages decide WHAT is on the left, the
+     rail keeps the money beside it. The block rule above exists for the
+     phone, where there is one column and nothing to lay out - here it would
+     flatten the two columns back into one. */
+  #view.item.railed.paged{display:grid!important}
+  body #view.item.railed.paged .colL,body #view.item.railed.paged .colC{display:contents!important}
+  #view.item.railed .pageNav{margin:0 0 2px}
+  #view.item.railed .pageStep{margin-top:8px}
+  .pageSkip{opacity:.72}
+  .pageSkip:hover{opacity:1}
   /* phone.css hides these columns with an !important rule carrying a body
      element in it, so this has to out-specify that, not just repeat it. */
   body #view.item.paged .colL,body #view.item.paged .colC,body #view.item.paged .colR,
