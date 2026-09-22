@@ -73,7 +73,11 @@ async function appToken(scope, env, signal) {
   const id = env.EBAY_CLIENT_ID, secret = env.EBAY_CLIENT_SECRET;
   if (!id || !secret) throw Object.assign(new Error("no_ebay_key"), { code: "no_ebay_key" });
 
-  const r = await fetch(apiBase(env) + "/identity/oauth2/token", {
+  /* /identity/V1/oauth2/token. Without the v1 eBay answers 404, which this
+     reported as an auth failure - so a perfectly good keyset looked like a
+     rejected one. Probed both: the versionless path 404s, the v1 path 401s
+     on bad credentials, which is how a real endpoint refuses you. */
+  const r = await fetch(apiBase(env) + "/identity/v1/oauth2/token", {
     method: "POST",
     headers: {
       "content-type": "application/x-www-form-urlencoded",

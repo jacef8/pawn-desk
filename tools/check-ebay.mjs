@@ -33,11 +33,13 @@ const sales = (n, base) => Array.from({ length: n }, (_, i) => ({
   condition: "Used", itemWebUrl: "https://ebay.com/itm/" + i,
 }));
 
+const hits = [];
 const stub = createServer(async (req, res) => {
   const u = new URL(req.url, "http://x");
+  hits.push(u.pathname);
   const j = (code, o) => res.writeHead(code, { "content-type": "application/json" }).end(JSON.stringify(o));
 
-  if (u.pathname === "/identity/oauth2/token") {
+  if (u.pathname === "/identity/v1/oauth2/token") {
     let b = ""; for await (const c of req) b += c;
     const scope = new URLSearchParams(b).get("scope") || "";
     if (mode === "denied" && scope.includes("marketplace.insights"))
@@ -117,6 +119,19 @@ console.log("\n  the guards");
    mistyped Cert ID produced a lookup that worked and returned asks, with
    nothing anywhere saying the key was bad. That is the silent wrongness this
    whole endpoint exists to stamp out. */
+mode = "badkey"; ebayReset();
+/* The stub only answers /identity/v1/oauth2/token, so every case below
+   fails if the path regresses. Say so explicitly too, since a 404 here
+   masquerades as an auth failure and cost an evening. */
+console.log("\n  the token endpoint path");
+{
+  mode = "sold"; ebayReset();
+  const r = await post({ q: "DeWalt DW735" });
+  ok(r.body.ok, "the token is fetched from /identity/v1/oauth2/token (a wrong path 404s and reads as bad credentials)");
+  ok(hits.includes("/identity/v1/oauth2/token"), "and that is the path actually called — saw: "
+     + hits.filter(h => /oauth/.test(h)).join(", "));
+}
+
 mode = "badkey"; ebayReset();
 console.log("\n  the credentials are wrong");
 {
