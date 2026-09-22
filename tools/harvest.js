@@ -40,6 +40,7 @@
  *   --merge      merge findings into prices.json (no searching, no spending)
  *   --min N      merge only rows built on at least N listings (default 4)
  *   --wild       merge rows the sanity band flagged too (see below)
+ *   --force      merge even if the circuit breaker objects (see below)
  *
  * The sanity band: a harvested price is compared against what the catalog
  * says that kind of thing is worth. A search that came back with parts, a
@@ -153,7 +154,7 @@ if (has("merge")) {
   const pj = JSON.parse(readFileSync(PRICES, "utf8"));
   const rows = pj.rows.slice();
   const byName = new Map(rows.map((r, i) => [String(r[1]) + "|" + String(r[2]).toLowerCase(), i]));
-  let added = 0, updated = 0, skipped = 0, wild = 0, asks = 0; const touched = [];
+  let added = 0, updated = 0, skipped = 0, wild = 0, asks = 0; const touched = [], touchedMoves = [];
   let n = 0;
   const nextId = () => { let id; do { id = "h" + (++n); } while (rows.some(r => r[0] === id)); return id; };
   for (const [key, f] of Object.entries(found)) {
@@ -171,9 +172,54 @@ if (has("merge")) {
          a marketplace search. */
       row[0] = rows[at][0];
       touched.push(`${rows[at][2]}  ${rows[at][3]}-${rows[at][4]} -> ${row[3]}-${row[4]}`);
+      touchedMoves.push({ name: rows[at][2], wasLo: rows[at][3], wasHi: rows[at][4], nowLo: row[3], nowHi: row[4] });
       rows[at] = row; updated++;
     }
   }
+  /* ---- the circuit breaker ------------------------------------------
+     A merge can now push straight to main and reach the counter without a
+     person reading the diff, so the diff has to read itself.
+
+     The sanity band above already throws out a row that is absurd against
+     the CATALOG. This asks a different question: is the row absurd against
+     what THIS BOOK ALREADY SAID? A price that has stood for months and
+     suddenly halves is not a market move, it is a bad search - the wrong
+     model, a parts counter, a lot of five. One of those is a mistake. A
+     hundred of them is a broken run, and the counter lends against it.
+
+     So: any single row more than tripling or falling below a third stops
+     the merge outright. Past that, a run is allowed a few big moves but not
+     a faceful - if over a tenth of the rewrites moved more than 60%, the
+     run is wrong about something systematic and nothing is written.
+
+     --force says a person looked and meant it. */
+  const moves = [];
+  for (const t of touchedMoves) {
+    const was = (t.wasLo + t.wasHi) / 2, now = (t.nowLo + t.nowHi) / 2;
+    if (was > 0) moves.push({ name: t.name, r: now / was, was, now });
+  }
+  const wild3 = moves.filter(m => m.r >= 3 || m.r <= 1 / 3);
+  const big   = moves.filter(m => m.r >= 1.6 || m.r <= 1 / 1.6);
+  const bigShare = moves.length ? big.length / moves.length : 0;
+  const halts = [];
+  if (wild3.length) halts.push(`${wild3.length} row(s) moved more than 3x`);
+  if (moves.length >= 20 && bigShare > 0.1 && big.length > 5)
+    halts.push(`${big.length} of ${moves.length} rewrites (${Math.round(bigShare * 100)}%) moved more than 60%`);
+  if (rows.length < pj.rows.length) halts.push(`the book would SHRINK, ${pj.rows.length} rows to ${rows.length}`);
+  if (halts.length && !has("force")) {
+    console.error("\n  MERGE STOPPED. This run does not look like a price update:");
+    halts.forEach(h => console.error("    - " + h));
+    console.error("\n  The biggest movers:");
+    moves.sort((a, b) => Math.abs(Math.log(b.r)) - Math.abs(Math.log(a.r))).slice(0, 12)
+      .forEach(m => console.error(`    ${m.name}  $${Math.round(m.was)} -> $${Math.round(m.now)}  (${m.r.toFixed(2)}x)`));
+    console.error("\n  Nothing was written. Read the rows above; --force merges anyway.\n");
+    process.exit(2);
+  }
+  if (big.length) {
+    console.log(`\n  ${big.length} row(s) moved more than 60% - under the limit, merged:`);
+    big.slice(0, 8).forEach(m => console.log(`    ${m.name}  $${Math.round(m.was)} -> $${Math.round(m.now)}  (${m.r.toFixed(2)}x)`));
+  }
+
   /* the app refuses a file it cannot trust, so check it here rather than
      finding out as a silent fallback on the counter's phone */
   const bad = rows.filter(r => !(Array.isArray(r) && r.length >= 9 && typeof r[0] === "string"
