@@ -56,6 +56,62 @@ const CONDITIONS = "{3000|4000|5000|6000|2000|2500}";
    DeWalt DW735 will happily return the dust hood for one. */
 const JUNK = /\b(for parts|parts only|not working|as[- ]is|repair|broken|lot of|bundle of|\d+\s*pcs?\b|manual|sticker|decal|poster|empty box|box only|case only|bag only|cover only|replacement (part|handle|blade|belt|cord|switch)|compatible with|fits\b|for use with|adapter for)\b/i;
 
+/* ---------------------------------------------------------------- fit
+ * WHAT EXACTLY IS BEING PRICED.
+ *
+ * A search for DCD791 comes back mostly bare tool bodies, because that is
+ * what people list - the battery is worth keeping. Averaging the lot gave
+ * $48-95 against a catalogue value of $110 for a drill KIT, and merging
+ * that would have halved the shop's drill prices overnight.
+ *
+ * Separated, on real listings: bare $40-54, kit $90-100. The catalogue was
+ * right and the data was wrong. Same story on a Makita XPH12 - $60-80 bare
+ * against $135-180 in a kit.
+ *
+ * Titles that say neither are counted with the bare ones. That is an
+ * inference, and it is the one judgement call in here, but the medians bear
+ * it out: on three of four models tested, silent listings priced within a
+ * couple of dollars of the explicitly-bare ones. Anybody selling a kit says
+ * so, because it is worth more.
+ */
+const PARTS = /\b(part|parts|motor assembly|switch and (board|bord)|armature|stator|chuck only|housing)\b|\bfor\s+(dewalt|milwaukee|makita|ryobi|bosch|m18|m12)\b/i;
+const LOTS  = /\blot\b|\bbundle\b|\b\d\s*-?\s*(tool|pc|piece)s?\s*(combo|kit|set)\b|^\s*([2-9]|\d{2})\s+(?!v\b|volt|ah\b|in\b|inch)/i;
+const BARE  = /\b(tool|body)\s*[-\u2013]?\s*only\b|\bno\s+batter|\bwithout\s+batter|\bbare\s*(tool)?\b|\bno\s+charger\b/i;
+const KITED = /\bkit\b|\bcombo\b|\bw\/?\s*\d*\s*(ah\s*)?batter|\bwith\s+batter|\bbatteries\b|\+\s*charger|\band\s+charger\b|\bw\/\s*charger|\bw\/?\s*batt\b|\bincludes?\s+batter/i;
+
+const squash = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+
+/* Whole tokens, not a regex slid along the string - that read "Milwaukee
+   2904-20" as "ukee290420" and then threw away every real listing for not
+   matching it. Three digits minimum, so M18, 20V and 4Ah are not models. */
+function modelCodes(t) {
+  const out = new Set();
+  for (let tok of String(t || "").toLowerCase().split(/[^a-z0-9-]+/)) {
+    tok = tok.replace(/^-+|-+$/g, "");
+    if (!tok) continue;
+    if (/^[a-z]{1,4}-?\d{3,5}(-\d{1,3})?[a-z]{0,3}$/.test(tok) || /^\d{3,4}-\d{2}$/.test(tok))
+      out.add(squash(tok));
+  }
+  return out;
+}
+/* DCD791D2 is a DCD791 in a kit box, not a different drill. */
+const sameModel = (a, b) => a === b || a.startsWith(b) || b.startsWith(a);
+
+export function fitOf(title, wanted) {
+  const t = String(title || "");
+  if (PARTS.test(t)) return "part";
+  const cs = modelCodes(t);
+  /* Codes that are not the thing asked for. A kit naming its own battery
+     (DCB204) has one; a listing of six drills has three or more. Counting
+     every code called the first a lot. */
+  const others = [...cs].filter((c) => ![...wanted].some((q) => sameModel(c, q)));
+  if (others.length >= 3 || LOTS.test(t)) return "lot";
+  if (wanted.size && ![...wanted].some((q) => [...cs].some((c) => sameModel(c, q)))) return "wrong";
+  if (BARE.test(t)) return "bare";
+  if (KITED.test(t)) return "kit";
+  return "unknown";
+}
+
 /* ---- token, one per scope, cached until shortly before it expires ---- */
 const tokens = new Map();       /* scope -> { value, until } */
 let insightsDenied = false;     /* set once the grant is known to be missing */
@@ -146,11 +202,13 @@ async function soldComps(q, limit, env, signal) {
   if (!r.ok) throw Object.assign(new Error("ebay_error " + r.status), { code: "ebay_error", status: r.status });
 
   const j = await r.json().catch(() => null);
+  const wanted = modelCodes(q);
   return ((j && j.itemSales) || []).map((it) => ({
     price: num(it.lastSoldPrice && it.lastSoldPrice.value),
     what: it.title || "",
     where: "eBay",
     basis: "sold",
+    fit: fitOf(it.title, wanted),
     cond: it.condition || "",
     when: (it.lastSoldDate || "").slice(0, 10),
     url: it.itemWebUrl || "",
@@ -169,6 +227,7 @@ async function askingComps(q, limit, env, signal) {
   if (!r.ok) throw Object.assign(new Error("ebay_error " + r.status), { code: "ebay_error", status: r.status });
 
   const j = await r.json().catch(() => null);
+  const wanted = modelCodes(q);
   return ((j && j.itemSummaries) || []).map((it) => {
     /* An auction with bids on it is a price somebody has agreed to pay, even
        though it has not closed. Worth more than a fixed-price ask, but it is
@@ -180,6 +239,7 @@ async function askingComps(q, limit, env, signal) {
       what: it.title || "",
       where: "eBay",
       basis: "asking",
+      fit: fitOf(it.title, wanted),
       bids: bids || 0,
       cond: it.condition || "",
       url: it.itemWebUrl || "",
@@ -189,6 +249,26 @@ async function askingComps(q, limit, env, signal) {
 
 /* What the service hands back. One query in, a list of comps out, and a
    plain statement of which kind of number they are. */
+/* The bands, and what was thrown away getting to them. A caller that only
+   wants a number can read bands.kit; one that wants to show its working has
+   every listing and why each was kept or dropped. */
+function band(list) {
+  const ps = list.map((c) => c.price).filter((n) => n > 0).sort((a, b) => a - b);
+  if (!ps.length) return null;
+  const at = (f) => ps[Math.min(ps.length - 1, Math.max(0, Math.round(f * (ps.length - 1))))];
+  return { n: ps.length, lo: at(0.25), med: at(0.5), hi: at(0.75) };
+}
+function split(comps) {
+  const kit = comps.filter((c) => c.fit === "kit");
+  /* Silent listings go with the bare ones - see the note on fitOf. */
+  const bare = comps.filter((c) => c.fit === "bare" || c.fit === "unknown");
+  return {
+    kit: band(kit), bare: band(bare),
+    bareOnly: band(comps.filter((c) => c.fit === "bare")),
+    unsaid: band(comps.filter((c) => c.fit === "unknown")),
+  };
+}
+
 export async function ebayComps({ q, limit, env, signal }) {
   const query = String(q || "").trim().slice(0, 120);
   if (!query) return { ok: false, code: "bad_request" };
@@ -199,8 +279,8 @@ export async function ebayComps({ q, limit, env, signal }) {
   let note = "";
   if (!insightsDenied) {
     try {
-      const comps = await soldComps(query, n, env, signal);
-      return { ok: true, basis: "sold", source: "marketplace_insights", q: query, comps };
+      const all = await soldComps(query, n, env, signal);
+      return withBands({ ok: true, basis: "sold", source: "marketplace_insights", q: query }, all);
     } catch (e) {
       if (e.code === "ebay_scope") {
         /* Not granted. Say so once, then stop asking for the rest of the run. */
@@ -218,11 +298,24 @@ export async function ebayComps({ q, limit, env, signal }) {
   }
 
   try {
-    const comps = await askingComps(query, n, env, signal);
-    return { ok: true, basis: "asking", source: "browse", q: query, comps, warning: note };
+    const all = await askingComps(query, n, env, signal);
+    return withBands({ ok: true, basis: "asking", source: "browse", q: query, warning: note }, all);
   } catch (e) {
     return { ok: false, code: e.code || "ebay_error" };
   }
+}
+
+/* Parts, multi-item lots and listings for a different model number are not
+   comps for anything and never reach the caller - but how many there were
+   is worth saying, because "40 listings" and "40 listings, 14 of them
+   junk" are not the same claim. */
+function withBands(head, all) {
+  const dropped = { part: 0, lot: 0, wrong: 0 };
+  const comps = all.filter((c) => {
+    if (c.fit === "part" || c.fit === "lot" || c.fit === "wrong") { dropped[c.fit]++; return false; }
+    return true;
+  });
+  return { ...head, comps, bands: split(comps), dropped, found: all.length };
 }
 
 /* For the tests and for /limits, so the counter can see which kind of number

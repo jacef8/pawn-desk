@@ -100,6 +100,40 @@ const wildness = (ref, med) => {
   return { book: b, ratio: Math.round(ratio * 100) / 100, wild: ratio > WILD_HI || ratio < WILD_LO };
 };
 
+/* WHICH BAND IS THE ANSWER.
+ *
+ * The service labels every listing kit, bare or unknown (see fitOf in
+ * server/ebay.js). For a cordless tool those are different products: a
+ * DCD791 is $40-54 bare and $90-100 in a kit, and the catalogue row is the
+ * kit. Pricing the pile gave $48-95 and would have halved the shop's drill
+ * prices.
+ *
+ * But most of the seed list is not a battery tool. A chainsaw has no kit
+ * band and never will, and demanding one would price nothing. So the
+ * question asked first is whether this is a battery tool AT ALL - answered
+ * by whether sellers bothered to say "tool only", which they only do when
+ * a battery could have been included.
+ *
+ *   sellers say "bare"  ->  it is a battery tool  ->  price the KIT band,
+ *                           or refuse if too few kit listings to stand on
+ *   nobody says "bare"  ->  it is not             ->  price everything
+ */
+function bandOf(comps){
+  const at = (a,f) => a[Math.min(a.length-1, Math.max(0, Math.round(f*(a.length-1))))];
+  const band = list => { const ps=list.map(c=>Math.round(Number(c.price))).filter(n=>n>0).sort((a,b)=>a-b);
+    return ps.length ? {n:ps.length, lo:at(ps,0.25), med:at(ps,0.5), hi:at(ps,0.75)} : null; };
+  const kit      = band(comps.filter(c=>c.fit==="kit"));
+  const bareOnly = band(comps.filter(c=>c.fit==="bare"));
+  const all      = band(comps);
+  const batteryTool = !!(bareOnly && bareOnly.n >= 3);
+  if (!batteryTool) return { use:"all", band:all, kit, bareOnly, why:"not a battery tool - no kit/bare split applies" };
+  if (kit && kit.n >= 4)
+    return { use:"kit", band:kit, kit, bareOnly,
+             why:`battery tool: priced the ${kit.n} kit listings, not the ${bareOnly.n} bare ones` };
+  return { use:"thin", band:null, kit, bareOnly,
+           why:`battery tool, but only ${kit?kit.n:0} kit listing(s) - the rest are bare tools and would price it low` };
+}
+
 const money = (n) => "$" + Math.round(n).toLocaleString();
 const today = () => new Date().toISOString().slice(0, 10);
 const pct = (a, f) => a[Math.min(a.length - 1, Math.max(0, Math.round(f * (a.length - 1))))];
@@ -293,10 +327,21 @@ for (let i = 0; i < todo.length; i++) {
     console.log(`  ${tag} - nothing usable`);
     continue;
   }
-  const sold = uniq.filter(c => c.basis === "sold").length;
-  const share = sold / ps.length;
+  /* Which of these listings are actually the thing the catalogue row means. */
+  const B = bandOf(uniq);
+  if (B.use === "thin") {
+    found[key(t)] = { ref: t.ref, name: t.name, n: 0, date: today(),
+                      note: B.why, kit: B.kit, bare: B.bareOnly };
+    miss++; save();
+    console.log(`  ${tag} - held back: ${B.why}`);
+    continue;
+  }
+  const used = B.use === "kit" ? uniq.filter(c => c.fit === "kit") : uniq;
+  const usedPs = used.map(c => Math.round(Number(c.price))).filter(n => n > 0).sort((a, b) => a - b);
+  const sold = used.filter(c => c.basis === "sold").length;
+  const share = sold / usedPs.length;
   const basis = got.basis === "sold" && share >= 0.5 ? "sold" : "asking";
-  const w = wildness(t.ref, pct(ps, 0.5));
+  const w = wildness(t.ref, pct(usedPs, 0.5));
   /* Asks read high - the ones that sold are the ones that left the index.
      A row built on asks can never be graded high, whatever its count. */
   const conf = basis !== "sold" ? (ps.length >= 6 ? "m" : "l")
@@ -304,18 +349,22 @@ for (let i = 0; i < todo.length; i++) {
   found[key(t)] = {
     wild: !!(w && w.wild), ratio: w ? w.ratio : null, book: w ? w.book : null,
     ref: t.ref, name: t.name, alias: t.alias || "",
-    n: ps.length, sold, basis, via: VIA,
-    lo: pct(ps, 0.25), hi: pct(ps, 0.75), med: pct(ps, 0.5),
+    n: usedPs.length, seen: ps.length, sold, basis, via: VIA,
+    band: B.use, kit: B.kit, bare: B.bareOnly,
+    lo: pct(usedPs, 0.25), hi: pct(usedPs, 0.75), med: pct(usedPs, 0.5),
     conf,
     date: today(),
     src: "https://www.ebay.com/sch/i.html?_nkw=" + encodeURIComponent(t.name) + "&LH_Sold=1&LH_Complete=1",
-    note: basis === "sold"
-      ? `${ps.length} eBay sales in the last 90 days`
-      : `${ps.length} listings, asking prices - no sold data`,
+    note: (B.use === "kit" ? "complete kits only - " : "")
+      + (basis === "sold"
+        ? `${usedPs.length} eBay sales in the last 90 days`
+        : `${usedPs.length} listings, asking prices - no sold data`),
   };
   hit++; save();
   const f = found[key(t)];
-  console.log(`  ${tag} - ${money(f.lo)}-${money(f.hi)}  (${f.n} ${f.basis === "sold" ? "sold" : "asks"}, ${f.conf})` +
+  console.log(`  ${tag} - ${money(f.lo)}-${money(f.hi)}  (${f.n} ${f.basis === "sold" ? "sold" : "asks"}` +
+    (B.use === "kit" ? ", kits" : "") + `, ${f.conf})` +
+    (B.use === "kit" && B.bareOnly ? `  [bare would have been ${money(B.bareOnly.lo)}-${money(B.bareOnly.hi)}]` : "") +
     (f.wild ? `  ** ${f.ratio}x the catalog's ${money(f.book)} - check this one **` : ""));
 }
 const wilds = Object.values(found).filter(f => f && f.wild).length;
