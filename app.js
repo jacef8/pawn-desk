@@ -70,7 +70,12 @@ const CATALOG = [
   brand:{on:true,hi:"Apple / Samsung flagship",mid:"Mainstream",lo:"Off brand"},
   complete:{on:true,label:"Charger, cables, remote"},
   items:[
-   {id:"e1",name:"TV — 50 to 65in smart",value:175,liq:"normal"},
+   /* Named for a size band, it read as the only size the desk knew - the
+      counter with a 75in TCL in front of them saw "50 to 65in" and stopped.
+      The size has always been a spec, with four bands and a multiplier on
+      each; the name was just contradicting the picker. The $175 is still the
+      50-65in figure, which is the band the picker treats as neutral. */
+   {id:"e1",name:"TV — smart, any size",value:175,liq:"normal"},
    {id:"e2",name:"Laptop",value:175,liq:"normal"},
    {id:"e3",name:"Tablet",value:150,liq:"normal"},
    {id:"e4",name:"Smartphone",value:200,liq:"fast"},
@@ -674,7 +679,15 @@ function calcItem(){
     spec=specRead(st.catId,item.name,st.model+" "+st.detail);
   }
   const market=marketNow(), checked=!!(market&&!market.stale);
-  const cond=COND_MULT[st.cond]||1;
+  /* A number the counter typed themselves is what THIS one is worth. They
+     have the thing in their hands; the scratches are already in the figure.
+     Multiplying it by the condition adjustment prices the wear twice - type
+     $150 for a rough one and the desk quietly made it $112 - so a hand-set
+     resale is taken as it stands. Everything else (a list price, a shelf
+     tag, a price worked back from new) describes a typical good one, and
+     those still get adjusted. */
+  const handSet=checked&&market.kind==="hand";
+  const cond=handSet?1:(COND_MULT[st.cond]||1);
   const resale=checked ? market.mid*cond*completeMult
                        : baseValue*CATALOG_AT_GOOD*cond*brandMult*completeMult*spec.mult;
   const ltv=Math.max(10,baseLtv+liquidity.adj);
@@ -709,7 +722,7 @@ function calcItem(){
      more than the thing sells for. */
   const buyTooThin=cap.pay<1;
   const buy=Math.max(1,Math.round(cap.pay));
-  return {cat,item,baseValue,baseLtv,condition,liquidity,liqId,resale,ltv,target,market,checked,buyBase,buyPct,buy,
+  return {cat,item,baseValue,baseLtv,condition,liquidity,liqId,resale,ltv,target,market,checked,handSet,buyBase,buyPct,buy,
           brandMult,brandName:cat.brand.on?(((ITEM_OVERRIDES[st.itemId]||{}).tiers)||cat.brand)[st.brand]:null,spec,specMult:spec.mult,
           low:Math.max(5,Math.round(resale*Math.max(8,ltv-12)/100)),
           high:Math.max(5,Math.round(resale*Math.min(100,ltv+8)/100)),
@@ -758,7 +771,7 @@ function pinHTML(x){
                      :cell("buy","Pay up to",money(x.buy),1))
         +cell("lend","Or lend on it",money(x.target),1)
        :cell("buy","Buy it for",money(x.buy),1)+cell("lend","Lend him",money(x.target),1)}
-    ${cell("resale",P?"Resells for":"Resale, "+esc(COND_WORDS[st.cond][0].toLowerCase()),money(x.resale))}
+    ${cell("resale",x.handSet?(P?"Resells for":"Resale, yours"):(P?"Resells for":"Resale, "+esc(COND_WORDS[st.cond][0].toLowerCase())),money(x.resale))}
     ${P&&!x.buyTooThin?cell("gain","You'd make",money(x.buyMargin)):""}
     ${cell("cushion","Your cushion",money(x.margin))}
     ${cell("fee","Fee / 30 days",money(x.charge))}
@@ -1260,7 +1273,12 @@ function renderItem(){
       :`<div class="card" id="s4"><div id="step4">${step4Inner(x)}</div>`}`;
   mid+=`${ST?"</details>":"</div>"}${ST?`<details class="card stepCard" id="s5"${LIVE===5||st.openS5?" open":""}>`+stepHead(5,"Condition &amp; speed",esc(COND_WORDS[st.cond][0]),LIVE===5)
       :`<div class="card" id="s5"><span class="label">5 &middot; Condition, completeness &amp; speed</span>`}`;
-  mid+=`<span class="label">Condition${x.checked?" &mdash; next to a typical used one":""}</span><div class="pills mb14" style="border-radius:var(--r-s)">${CONDITIONS.map(c=>`<button class="${c.id===st.cond?"on":""}" style="flex:1;padding:7px 5px;font-size:11px" data-cond="${c.id}" title="${c.hint}">${c.label.replace("New in box","New")}</button>`).join("")}</div>`;
+  /* Say it here too, where the buttons are. Without a word the counter
+     presses Rough, watches the price not move, and reasonably concludes the
+     thing is broken. */
+  mid+=`<span class="label">Condition${x.handSet?" &mdash; already in your figure":(x.checked?" &mdash; next to a typical used one":"")}</span>`
+    +(x.handSet?`<div class="tagNote">You typed the resale value yourself, so this doesn't move the price &mdash; your number is taken as this one sits, wear and all. Clear it in <b>Resale value</b> to price off the list again and have condition adjust it.</div>`:"")
+    +`<div class="pills mb14" style="border-radius:var(--r-s)">${CONDITIONS.map(c=>`<button class="${c.id===st.cond?"on":""}" style="flex:1;padding:7px 5px;font-size:11px${x.handSet?";opacity:.55":""}" data-cond="${c.id}" title="${x.handSet?"Does not change the price while the resale value is your own figure":c.hint}">${c.label.replace("New in box","New")}</button>`).join("")}</div>`;
   if(cat.complete.on){
     mid+=`<span class="label">${cat.complete.label}</span><div class="pills mb14" style="border-radius:var(--r-s)">
       <button class="${st.complete?"on":""}" style="flex:1" data-comp="1">All there</button>
@@ -4903,7 +4921,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.2000";
+const APP_BUILD="0926.2100";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -5856,14 +5874,18 @@ function nextStepHTML(x){
   const m=x.market, what=[st.brandTyped,st.model].filter(Boolean).join(" ")||displayName(x);
   const cands=(!x.checked&&!st.mpNone)?mpCandidates():[];
   const started=!!st.picked;
-  const s1done=started&&(x.checked||!cands.length), s2done=started&&x.checked, s3done=started&&x.checked&&!!st.condSet;
+  /* A hand-set resale already has the wear in it, so condition is not
+     asked - asking it would be asking for something the desk has just
+     decided to ignore, and the run would stall on a step that does nothing. */
+  const s1done=started&&(x.checked||!cands.length), s2done=started&&x.checked,
+        s3done=started&&x.checked&&(!!st.condSet||x.handSet);
   const cur=!s1done?1:!s2done?2:!s3done?3:4;
   const step=(n,label,val,done)=>`<div class="nsStep${done?" done":""}${cur===n?" cur":""}"><span class="nsDot">${done?"&#10003;":n}</span><span class="nsL">${label}</span><span class="nsV">${val}</span></div>`;
   const cw=COND_WORDS[st.cond]||["Good",""];
   const steps=`<div class="nsSteps">
     ${step(1,"What it is",started?esc(what):"not set",s1done)}
     ${step(2,"Resale value",x.checked?money(m.mid)+` <small>${esc(nsSrcShort(m))}</small>`:(m&&m.stale?"list is old":"not checked"),s2done)}
-    ${step(3,"Condition",s3done?cw[0]:"not set",s3done)}
+    ${step(3,"Condition",x.handSet?"in your number":(s3done?cw[0]:"not set"),s3done)}
     ${step(4,"Your offer",x.checked&&s3done
       /* On the desk the pinned panel is six inches to the right of this row
          with both figures in it. Saying them again here, side by side, is the
@@ -5923,7 +5945,8 @@ function nextStepHTML(x){
        away, so saying them again here made one figure appear five times on a
        screen. What it cannot show is where they came from. That is this. */
     h=`Where those numbers come from.`;
-    sub=`<b>Resale value ${money(m.mid)}</b> used (${esc(nsSrcShort(m))})${Math.round(x.resale)!==m.mid?`, ${money(x.resale)} in ${cw[0].toLowerCase()} shape`:""}.<br>
+    sub=`<b>Resale value ${money(m.mid)}</b> ${x.handSet?"&mdash; your own figure, taken as this one sits"
+        :`used (${esc(nsSrcShort(m))})${Math.round(x.resale)!==m.mid?`, ${money(x.resale)} in ${cw[0].toLowerCase()} shape`:""}`}.<br>
       Lend <b>${x.ltv}%</b> of that, buy at <b>${x.buyPct}%</b>. A loan he pays back with the fee to get it back; a buy is yours to sell.<br>
       The offer is on the right, and it moves as you change the answers.`;
   } else {
