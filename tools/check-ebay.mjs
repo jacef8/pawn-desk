@@ -19,7 +19,7 @@
  */
 import { createServer } from "node:http";
 import { handle } from "../server/core.js";
-import { ebayReset } from "../server/ebay.js";
+import { ebayReset, fitOf } from "../server/ebay.js";
 
 const PORT = 3097;
 let fails = 0, mode = "sold";
@@ -112,6 +112,47 @@ console.log("\n  the guards");
   ok(none.status === 501 && none.body.code === "no_ebay_key", "no keyset answers no_ebay_key");
   ok((await handle({ path: "/limits", method: "GET", env: env() })).body.ebay.configured === true, "/limits reports a keyset");
   ok((await handle({ path: "/limits", method: "GET", env: {} })).body.ebay.configured === false, "/limits reports no keyset");
+}
+
+/* TELLING A MACHINE FROM ITS SPARE PARTS.
+   A search for "Husqvarna 240" comes back as springs, fuel caps, sprockets
+   and crankcases. Priced together they made a $180 chainsaw read $8-21 and
+   a $500 riding mower read $25-50. Two things separate them: the catalogue
+   knows this row is a Chainsaw and a sprocket never claims to be one, and
+   nearly every parts listing carries an OEM part number while almost no
+   whole-unit listing does.
+   The second half of this - that real machines SURVIVE - matters as much:
+   a filter that drops everything leaves the counter with no price at all,
+   which is its own kind of wrong. */
+console.log("\n  parts against whole machines");
+{
+  const none = new Set();
+  const junk = [
+    [["chainsaw"],            "Husqvarna 240 Sprocket (Used) Genuine"],
+    [["chainsaw"],            "Husqvarna 240S Chainsaw OEM Crankcase"],
+    [["backpack","blower"],   "STIHL BR600 Blower Fan Wheel - Genuine OEM - 4282 700 34"],
+    [["push","mower"],        "Honda HRX217 Walk Behind Mower OEM Rear Wheel 42710-VH7-010ZA"],
+    [["push","mower"],        "Stens Mower Blade 345-165 Steel for Toro TimeMaster 18 in"],
+    [["pressure","washer"],   "Spring 285800-33 , honda gx200 dewalt 3100 psi washer"],
+    [["string","trimmer"],    "STIHL FS45 FS46 TRIMMER AUTOCUT HEAD 4006-713-3600"],
+  ];
+  for (const [k, t] of junk)
+    ok(fitOf(t, none, k) === "part" || fitOf(t, none, k) === "wrong",
+       "dropped: " + t.slice(0, 52));
+
+  const real = [
+    [["chainsaw"],          "HUSQVARNA 240 X-TORQ 14in CHAIN SAW 38CC"],
+    [["backpack","blower"], "Stihl BR 600 Backpack Leaf Blower"],
+    [["push","mower"],      "Honda HRX217 VKA Self Propelled Lawn Mower 21in"],
+    [["cordless","drill"],  "Milwaukee 2904-20 M18 FUEL Hammer Drill Kit with Battery"],
+  ];
+  for (const [k, t] of real) {
+    const f = fitOf(t, none, k);
+    ok(f !== "part" && f !== "wrong", "KEPT (" + f + "): " + t.slice(0, 46));
+  }
+  /* the one that would quietly wreck the drills */
+  ok(fitOf("Milwaukee 2904-20 M18 FUEL Hammer Drill", new Set(), ["cordless","drill"]) !== "part",
+     "a model number four-digits-then-two is not read as a part number");
 }
 
 /* A WRONG KEY MUST NOT LOOK LIKE AN UNGRANTED SCOPE. Both used to be called

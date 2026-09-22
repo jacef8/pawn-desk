@@ -83,7 +83,16 @@ const PARTS = /\b(part|parts|motor assembly|switch and (board|bord)|armature|sta
    $500 riding mower look like $25-50 - deck belts and spindles.
    Deliberately excludes bar, chain, blade, belt and handle: a real saw
    listing says "with 18in bar", and rejecting those would leave nothing. */
-const COMPONENT = /\b(carburet(or|tor)|carb kit|sprocket|crankshaft|crankcase|piston|cylinder|muffler|exhaust|flywheel|recoil|ignition coil|spark plug|gasket|handguard|hand guard|spindle|deck belt|air filter|fuel (cap|line|filter|pump|tank)|oil (pump|tank)|clutch (cover|drum)|top cover|side cover|bar cover|intake boot|choke lever|brake lever|handle wrap|rear handle|pull cord|starter rope|primer bulb|av spring|worm gear|oil seal|bearing kit)\b/i;
+/* An OEM part number. This turned out to be the strongest signal of the
+   lot: nearly every parts listing carries one and almost no whole-unit
+   listing does. Honda writes 42710-VH7-010ZA, Toro 117-5976, Stihl
+   4282 700 34, DeWalt 285807-26.
+   Carefully NOT matched: a Milwaukee model number like 2904-20, four
+   digits then two - every pattern here needs three digits on the left and
+   three on the right, or the hyphenated triple. */
+const PARTNO = /\b\d{3,6}-[a-z0-9]{2,4}-[a-z0-9]{3,6}\b|\b\d{3}-\d{3,6}\b|\b\d{6}-\d{2}\b|\b\d{4}\s+\d{3}\s+\d{2,4}\b/i;
+
+const COMPONENT = /\b(carburet(or|tor)|carb kit|sprocket|crankshaft|crankcase|piston|cylinder|muffler|exhaust|flywheel|recoil|ignition coil|spark plug|gasket|handguard|hand guard|spindle|deck belt|air filter|fuel (cap|line|filter|pump|tank)|oil (pump|tank)|clutch (cover|drum)|top cover|side cover|bar cover|intake boot|choke lever|brake lever|handle wrap|rear handle|pull cord|starter rope|primer bulb|av spring|worm gear|oil seal|bearing kit|throttle (lever|control)|manifold|shroud|drive (shaft|tube)|tensioner|trimmer head|autocut|cutting head|bump head|oem head|idler|pulley|fan wheel|wheel rim|(rear|front) wheels?|set screw|insulator|bail plate|control plate|spring arms?|elbow hose|blade guard|deflector|axle coll?er)\b/i;
 
 /* What the catalogue calls this kind of thing, reduced to words a seller
    would use. The point is that a listing for the TOOL says what the tool
@@ -123,7 +132,7 @@ const sameModel = (a, b) => a === b || a.startsWith(b) || b.startsWith(a);
 
 export function fitOf(title, wanted, kinds) {
   const t = String(title || "");
-  if (PARTS.test(t) || COMPONENT.test(t)) return "part";
+  if (PARTS.test(t) || COMPONENT.test(t) || PARTNO.test(t)) return "part";
   /* Does this listing even say it is the thing being priced? A sprocket
      never claims to be a chainsaw. Checked against the squashed title so
      "Chain Saw" and "chainsaw" are the same word. */
