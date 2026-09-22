@@ -412,7 +412,9 @@
   .omniClr{border:none;background:transparent;color:var(--ink-2);font-size:26px;line-height:1;width:42px;height:42px;
     border-radius:50%;cursor:pointer;flex-shrink:0}
   #omniIn:placeholder-shown ~ .omniClr{visibility:hidden}
-  .omniHint{font-size:13.5px;color:var(--ink-2);margin:8px 4px 0;line-height:1.45}
+  /* 8px put this line hard against the bottom edge of the search box - it
+     read as part of the box rather than a note under it. */
+  .omniHint{font-size:13.5px;color:var(--ink-2);margin:clamp(13px,1.2vw,17px) 4px 0;line-height:1.45}
   .omniHint b{color:var(--ink);font-weight:600}
   .omniList{position:absolute;left:0;right:0;top:calc(100% + 6px);display:grid;gap:6px;padding:8px;
     max-height:min(64vh,560px);overflow-y:auto;border-radius:var(--r);background:#161A23;
