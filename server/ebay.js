@@ -83,7 +83,7 @@ const PARTS = /\b(part|parts|motor assembly|switch and (board|bord)|armature|sta
    $500 riding mower look like $25-50 - deck belts and spindles.
    Deliberately excludes bar, chain, blade, belt and handle: a real saw
    listing says "with 18in bar", and rejecting those would leave nothing. */
-const COMPONENT = /\b(carburet(or|tor)|carb kit|sprocket|crankshaft|piston|cylinder head|muffler|exhaust|flywheel|recoil|ignition coil|spark plug|gasket|handguard|hand guard|spindle|deck belt|air filter|fuel (cap|line|filter|pump|tank)|oil pump|clutch cover|top cover|side cover|bar cover|intake boot|choke lever|brake lever|handle wrap|rear handle|pull cord|starter rope|primer bulb)\b/i;
+const COMPONENT = /\b(carburet(or|tor)|carb kit|sprocket|crankshaft|crankcase|piston|cylinder|muffler|exhaust|flywheel|recoil|ignition coil|spark plug|gasket|handguard|hand guard|spindle|deck belt|air filter|fuel (cap|line|filter|pump|tank)|oil (pump|tank)|clutch (cover|drum)|top cover|side cover|bar cover|intake boot|choke lever|brake lever|handle wrap|rear handle|pull cord|starter rope|primer bulb|av spring|worm gear|oil seal|bearing kit)\b/i;
 
 /* What the catalogue calls this kind of thing, reduced to words a seller
    would use. The point is that a listing for the TOOL says what the tool
@@ -107,7 +107,13 @@ function modelCodes(t) {
   for (let tok of String(t || "").toLowerCase().split(/[^a-z0-9-]+/)) {
     tok = tok.replace(/^-+|-+$/g, "");
     if (!tok) continue;
-    if (/^[a-z]{1,4}-?\d{3,5}(-\d{1,3})?[a-z]{0,3}$/.test(tok) || /^\d{3,4}-\d{2}$/.test(tok))
+    /* Letters-then-digits (DCD791), the hyphenated pair Milwaukee uses
+       (2904-20), and digits-then-letters, which Husqvarna does: a listing
+       headed "140S, 240S, 240SE, 240SG" is four models and therefore a
+       parts listing, and that only shows up if 240SE counts as a code. */
+    if (/^[a-z]{1,4}-?\d{3,5}(-\d{1,3})?[a-z]{0,3}$/.test(tok)
+     || /^\d{3,4}-\d{2}$/.test(tok)
+     || /^\d{2,4}[a-z]{1,3}$/.test(tok))
       out.add(squash(tok));
   }
   return out;
