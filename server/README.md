@@ -38,8 +38,9 @@ Once it's running you get, on the phone and at the desk:
    | `PAWN_TOKEN` | a password you invent, e.g. `lamars-desk-7788` |
    | `ALLOW_ORIGIN` | `https://jacef8.github.io` |
 
-   And two more, optional, once you have an eBay keyset (see **Sold prices**
-   below): `EBAY_CLIENT_ID` and `EBAY_CLIENT_SECRET`.
+   And, once you have an eBay keyset (see **Sold prices** below):
+   `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET`, and — to get the keyset switched
+   on at all — `EBAY_VERIFY_TOKEN` and `EBAY_DELETION_URL`.
 
 4. **Settings** → **Networking** → **Generate Domain**. That address is the
    service.
@@ -67,7 +68,8 @@ single-digit cents per lookup against a prepaid balance.
 | **Lookup failed** | Usually `PAWN_TOKEN` not matching what you typed into the app. |
 | `no_key` in the reply | `ANTHROPIC_API_KEY` missing or rejected. |
 | `no_ebay_key` in the reply | `EBAY_CLIENT_ID` / `EBAY_CLIENT_SECRET` missing. |
-| `ebay_auth` | The keyset is wrong, or it is a sandbox keyset against the live host. |
+| `ebay_auth` | The keyset is wrong, or it is a sandbox keyset against the live host. Also what a **disabled** keyset gives — see *Enabling the production keyset*. |
+| `no_verify_token` | `EBAY_VERIFY_TOKEN` / `EBAY_DELETION_URL` not set. |
 
 ## Sold prices
 
@@ -82,6 +84,43 @@ directly.
 to them, `basis` — `"sold"` or `"asking"`. Nothing downstream is allowed to
 confuse the two: a finding built on asks can never be graded high, and its
 note says so in the price book.
+
+### Enabling the production keyset
+
+A new production keyset arrives **disabled**, saying:
+
+> Your keyset is currently disabled. Comply with marketplace deletion/account
+> closure notification process or apply for an exemption.
+
+eBay requires every production application to either receive account-deletion
+notices or be excused from doing so. The exemption is a review; the endpoint
+is a deploy, so the service carries the endpoint.
+
+1. Invent a **verification token**: 32-80 characters, letters, numbers,
+   `_` and `-` only. Set it on Railway as `EBAY_VERIFY_TOKEN`.
+2. Set `EBAY_DELETION_URL` to `https://your-address/ebay/deletion` — the
+   whole thing, exactly as you will type it at eBay.
+3. Redeploy, then check it answers:
+   `curl "https://your-address/ebay/deletion?challenge_code=test"`
+   You want a line of JSON with a 64-character `challengeResponse`.
+4. At eBay: **Application Keys** → the alert on the disabled keyset →
+   **marketplace deletion/account closure notification**. Paste the same URL
+   and the same token. eBay immediately GETs the URL with a challenge code;
+   the keyset enables the moment the hash comes back right.
+
+The endpoint hashes the challenge code, then the token, then the URL, and
+returns the hex digest. **The URL is hashed**, so a trailing slash or `http`
+against `https` makes it fail — which is why it is read from
+`EBAY_DELETION_URL` and not from the request, since the proxy in front of a
+hosted service rewrites the host it sees. That mismatch is the usual reason
+this handshake fails, and it fails silently: the keyset simply stays off.
+
+The endpoint is not behind `PAWN_TOKEN`, because eBay has no way to send one.
+Nothing is exposed by that: a GET returns a hash, a POST returns an
+acknowledgement, and neither reads nor writes anything. There is also nothing
+to erase when a notice arrives — this service keeps prices, titles and which
+site a listing was on. It has never held an eBay username, an account id or
+anybody's personal details.
 
 **Getting a keyset.** At `developer.ebay.com`, register, then **Application
 keysets** → the **Production** keyset. The App ID is `EBAY_CLIENT_ID`, the

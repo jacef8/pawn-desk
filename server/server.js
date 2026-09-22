@@ -32,7 +32,9 @@ const srv = createServer(async (req, res) => {
   try {
     if (req.method === "OPTIONS") return res.writeHead(204, cors).end();
 
-    const path = new URL(req.url, "http://localhost").pathname;
+    const u = new URL(req.url, "http://localhost");
+    const path = u.pathname;
+    const query = Object.fromEntries(u.searchParams);
     let body = null;
     if (req.method === "POST") {
       let raw;
@@ -43,7 +45,7 @@ const srv = createServer(async (req, res) => {
     }
 
     const out = await handle({
-      path, method: req.method,
+      path, query, method: req.method,
       token: req.headers["x-pawn-token"] || "",
       body, env: process.env,
     });

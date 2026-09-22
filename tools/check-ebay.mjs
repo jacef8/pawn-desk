@@ -109,6 +109,46 @@ console.log("\n  the guards");
   ok((await handle({ path: "/limits", method: "GET", env: {} })).body.ebay.configured === false, "/limits reports no keyset");
 }
 
+/* THE HANDSHAKE THAT ENABLES THE KEYSET. eBay will not turn a production
+   keyset on until this answers correctly, and the failure mode is silent:
+   a wrong hash just leaves the keyset disabled with no message saying why.
+   The usual cause is the endpoint URL - it is hashed, so it must be exactly
+   what was typed into eBay's portal, which is why it comes from the
+   environment and not from the request a proxy handed us. */
+console.log("\n  the account-deletion handshake");
+{
+  const crypto = await import("node:crypto");
+  const VERIFY = "pawndesk-verify-token-0123456789abcd";
+  const URL_ = "https://svc.example.com/ebay/deletion";
+  const e = { EBAY_VERIFY_TOKEN: VERIFY, EBAY_DELETION_URL: URL_ };
+
+  const r = await handle({ path:"/ebay/deletion", method:"GET", query:{challenge_code:"abc123"}, env:e });
+  const want = crypto.createHash("sha256").update("abc123").update(VERIFY).update(URL_).digest("hex");
+  ok(r.status === 200, "answers 200");
+  ok(r.body.challengeResponse === want, "hash is sha256(code + token + url), hex");
+  ok(r.body.challengeResponse.length === 64, "64 hex chars, not base64 — got " + (r.body.challengeResponse || "").length);
+
+  /* the same code with a different endpoint must NOT collide - this is the
+     bit that catches a URL typed one way here and another way at eBay */
+  const r2 = await handle({ path:"/ebay/deletion", method:"GET", query:{challenge_code:"abc123"},
+                            env:{...e, EBAY_DELETION_URL:"https://svc.example.com/ebay/deletion/"} });
+  ok(r2.body.challengeResponse !== want, "a trailing slash on the URL changes the hash (so it must match eBay exactly)");
+
+  const post = await handle({ path:"/ebay/deletion", method:"POST", body:{}, env:e });
+  ok(post.status === 200, "a real notification is acknowledged 200 so eBay stops retrying");
+
+  const noTok = await handle({ path:"/ebay/deletion", method:"GET", query:{challenge_code:"x"}, env:{} });
+  ok(noTok.status === 500 && noTok.body.code === "no_verify_token", "says so when the token is not set");
+
+  const noCode = await handle({ path:"/ebay/deletion", method:"GET", query:{}, env:e });
+  ok(noCode.body.code === "bad_request", "a GET with no challenge code is refused");
+
+  /* it must answer without PAWN_TOKEN - eBay has no way to send one */
+  const gated = await handle({ path:"/ebay/deletion", method:"GET", query:{challenge_code:"abc123"},
+                               token:"", env:{...e, PAWN_TOKEN:"secret"} });
+  ok(gated.body.challengeResponse === want, "answers eBay even though PAWN_TOKEN is set — eBay cannot send one");
+}
+
 stub.close();
 console.log(fails ? "\n  " + fails + " FAILED\n" : "\n  all passed\n");
 process.exit(fails ? 1 : 0);

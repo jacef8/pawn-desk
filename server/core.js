@@ -11,7 +11,14 @@
  *   ALLOW_ORIGIN       — optional; defaults to the Pages site
  *   EBAY_CLIENT_ID     — optional; enables /ebay, the sold-comp lookup
  *   EBAY_CLIENT_SECRET — optional; the other half of the eBay keyset
+ *   EBAY_VERIFY_TOKEN  — optional; 32-80 chars you invent. eBay will not
+ *                        enable a production keyset until this service can
+ *                        answer its account-deletion challenge
+ *   EBAY_DELETION_URL  — optional; the /ebay/deletion address EXACTLY as it
+ *                        is typed into eBay's portal, because it is hashed
  */
+
+import { createHash } from "node:crypto";
 
 export const MODEL = "claude-opus-5";
 const API = "https://api.anthropic.com/v1/messages";
@@ -73,7 +80,46 @@ export function extractJSON(text) {
 
 /* path, method, token and the parsed body in; {status, body} out. No platform
    objects cross this line, which is what makes it testable on its own. */
-export async function handle({ path, method, token, body, env, signal }) {
+export async function handle({ path, method, token, body, env, signal, query }) {
+  /* eBay will not enable a production keyset until the application either
+     receives marketplace account-deletion notices or is granted an exemption
+     from doing so. This is that endpoint, and it is the quicker of the two -
+     an exemption is a review, this is a deploy.
+   *
+   * It is deliberately NOT behind PAWN_TOKEN: eBay is the caller and has no
+   * way to send one. Nothing is exposed by that. A GET returns a hash and a
+   * POST returns an acknowledgement, and neither reads or writes anything.
+   *
+   * The handshake: eBay GETs the address with ?challenge_code=..., and the
+   * reply must be the SHA-256 of the challenge code, then the verification
+   * token, then the endpoint URL, in that order, hex encoded, as
+   * {"challengeResponse": "..."} with a JSON content type.
+   *
+   * The URL is taken from the environment rather than from the request,
+   * because it must be byte-for-byte what was typed into eBay's portal and
+   * a proxy in front of this service can and does rewrite the host it sees.
+   * That mismatch is the usual reason this handshake fails. */
+  if (path === "/ebay/deletion") {
+    const verify = env.EBAY_VERIFY_TOKEN || "";
+    const endpoint = env.EBAY_DELETION_URL || "";
+    if (method === "GET") {
+      const code = (query && query.challenge_code) || "";
+      if (!code) return fail("bad_request");
+      if (!verify || !endpoint) return fail("no_verify_token", 500);
+      const hash = createHash("sha256").update(code).update(verify).update(endpoint).digest("hex");
+      return reply(200, { challengeResponse: hash });
+    }
+    if (method === "POST") {
+      /* Acknowledged, and there is genuinely nothing to erase: this service
+         keeps prices, titles and the site a listing was on. It has never
+         held an eBay username, an account id or anyone's personal details,
+         and the deal log is item facts only. Answer 200 so eBay does not
+         retry, and keep no record of who was named. */
+      return reply(200, { ok: true });
+    }
+    return fail("not_found", 404);
+  }
+
   if (path === "/limits" || path === "/") {
     return reply(200, { ok: true, images: { mediaTypes: OK_TYPES, maxCount: MAX_IMAGES, maxBytes: MAX_IMAGE_BYTES },
                         ebay: ebayReady(env) });
