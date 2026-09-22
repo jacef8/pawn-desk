@@ -14,6 +14,15 @@ const TMP = mkdtempSync(join(tmpdir(), "pdmerge-"));
 const pj = JSON.parse(readFileSync(PRICES, "utf8"));
 const SAFE = join(TMP, "prices.original.json");
 copyFileSync(PRICES, SAFE);
+/* A merge writes tools/price-changes.md. Snapshot it BEFORE anything runs -
+   snapshotting later catches a report one of these tests just wrote, and
+   the fixture gets left in the repo. */
+const REPORT = join(ROOT, "tools/price-changes.md");
+const reportBefore = existsSync(REPORT) ? readFileSync(REPORT, "utf8") : null;
+const restoreReport = () => {
+  if (reportBefore === null) { if (existsSync(REPORT)) unlinkSync(REPORT); }
+  else writeFileSync(REPORT, reportBefore);
+};
 
 let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) { pass++; console.log("  ok    " + m); } else { fail++; console.log("  FAIL  " + m); } };
@@ -69,6 +78,37 @@ r = run(findings((x) => 1.03, 30));
 ok(/rows/.test(r.out), "the merge still reports what it did");
 restore();
 
+console.log("\nthe change report\n");
+
+/* a realistic week: small drift on most, two big movers, one new row */
+const mixed = {};
+pj.rows.slice(0, 20).forEach((r, i) => {
+  const m = i < 2 ? 1.34 : 1 + ((i % 7) - 3) / 100;
+  mixed[r[1] + "|" + r[2]] = { id: r[0], ref: r[1], name: r[2],
+    lo: Math.round(r[3] * m), hi: Math.round(r[4] * m),
+    n: i < 2 ? 9 : 20, conf: r[5], date: "2026-01-01", basis: "asking",
+    src: "https://www.ebay.com", note: "t" };
+});
+mixed["p1|Zzz Test Saw"] = { ref: "p1", name: "Zzz Test Saw", lo: 100, hi: 150, n: 14,
+  conf: "m", date: "2026-01-01", basis: "asking", note: "t" };
+const mixedPath = join(TMP, "mixed.json");
+writeFileSync(mixedPath, JSON.stringify({ found: mixed }));
+
+r = run(mixedPath);
+ok(r.code === 0, "a mixed week merges");
+const rep = existsSync(REPORT) ? readFileSync(REPORT, "utf8") : "";
+ok(/^# Price changes/m.test(rep), "  a report is written");
+ok(/Worth a look/.test(rep), "  it has a 'worth a look' section");
+ok(/\*\*\+34%\*\*/.test(rep), "  the 34% movers are called out as big");
+ok(/## Ordinary drift/.test(rep), "  small drift is listed separately");
+ok(/Zzz Test Saw/.test(rep), "  a new row is reported as new");
+ok(/asking/.test(rep), "  it says the prices are asks");
+const lookIdx = rep.indexOf("Worth a look"), driftIdx = rep.indexOf("Ordinary drift");
+ok(lookIdx > 0 && driftIdx > lookIdx, "  the big movers come before the small ones");
+restore();
+restoreReport();
+
 ok(untouched(), "prices.json is back exactly as it started");
+ok(existsSync(REPORT) === (reportBefore !== null), "the test leaves no report behind");
 console.log(`\n  ${pass} passed, ${fail} failed\n`);
 process.exit(fail ? 1 : 0);

@@ -154,17 +154,21 @@ if (has("merge")) {
   const pj = JSON.parse(readFileSync(PRICES, "utf8"));
   const rows = pj.rows.slice();
   const byName = new Map(rows.map((r, i) => [String(r[1]) + "|" + String(r[2]).toLowerCase(), i]));
-  let added = 0, updated = 0, skipped = 0, wild = 0, asks = 0; const touched = [], touchedMoves = [];
+  let added = 0, updated = 0, skipped = 0, wild = 0, asks = 0;
+  const touched = [], touchedMoves = [], newRows = [], heldWild = [], heldThin = [];
   let n = 0;
   const nextId = () => { let id; do { id = "h" + (++n); } while (rows.some(r => r[0] === id)); return id; };
   for (const [key, f] of Object.entries(found)) {
-    if (!f || !f.n || f.n < MIN || !(f.lo > 0) || !(f.hi >= f.lo)) { skipped++; continue; }
-    if (f.wild && !has("wild")) { wild++; continue; }
+    if (!f || !f.n || f.n < MIN || !(f.lo > 0) || !(f.hi >= f.lo)) { skipped++;
+      if (f && f.name && f.n) heldThin.push({ name: f.name, n: f.n }); continue; }
+    if (f.wild && !has("wild")) { wild++;
+      heldWild.push({ name: f.name, lo: Math.round(f.lo), hi: Math.round(f.hi), n: f.n, book: f.book, ratio: f.ratio }); continue; }
     if (SOLD_ONLY && f.basis !== "sold") { asks++; continue; }
     const row = [f.id || nextId(), f.ref, f.name, Math.round(f.lo), Math.round(f.hi),
                  f.conf, f.date, f.src || "https://www.ebay.com", f.note, f.alias || ""];
     const at = byName.get(f.ref + "|" + f.name.toLowerCase());
-    if (at == null) { row[0] = nextId(); rows.push(row); byName.set(f.ref + "|" + f.name.toLowerCase(), rows.length - 1); added++; }
+    if (at == null) { row[0] = nextId(); rows.push(row); byName.set(f.ref + "|" + f.name.toLowerCase(), rows.length - 1); added++;
+      newRows.push({ name: f.name, ref: f.ref, lo: row[3], hi: row[4], n: f.n, basis: f.basis || "asking" }); }
     else {
       /* Keep the id: the hand-written patterns in app.js point at it, and a
          new id would quietly orphan them. Say which rows were rewritten -
@@ -172,7 +176,8 @@ if (has("merge")) {
          a marketplace search. */
       row[0] = rows[at][0];
       touched.push(`${rows[at][2]}  ${rows[at][3]}-${rows[at][4]} -> ${row[3]}-${row[4]}`);
-      touchedMoves.push({ name: rows[at][2], wasLo: rows[at][3], wasHi: rows[at][4], nowLo: row[3], nowHi: row[4] });
+      touchedMoves.push({ name: rows[at][2], ref: f.ref, wasLo: rows[at][3], wasHi: rows[at][4],
+        nowLo: row[3], nowHi: row[4], n: f.n, basis: f.basis || "asking" });
       rows[at] = row; updated++;
     }
   }
@@ -229,6 +234,84 @@ if (has("merge")) {
   copyFileSync(PRICES, PRICES + ".bak");
   writeFileSync(PRICES, JSON.stringify({ updated: today(),
     note: pj.note, rows }, null, 0));
+  /* ---- the change report --------------------------------------------
+     The breaker above stops a catastrophe. This is for everything that is
+     not a catastrophe: an ordinary week of movement, ranked biggest first,
+     so a person can run an eye down it in thirty seconds and stop on the
+     one that looks wrong. A 4% drift needs no thought. A 30% jump on nine
+     listings is worth a look before somebody lends against it.
+
+     One file, overwritten each run - git keeps every previous version, so
+     the history is the history without a directory filling up. */
+  const pct = (m) => Math.round((((m.nowLo + m.nowHi) / 2) / ((m.wasLo + m.wasHi) / 2) - 1) * 100);
+  const withPct = touchedMoves.map((m) => ({ ...m, pct: pct(m) }))
+    .sort((a, b) => Math.abs(b.pct) - Math.abs(a.pct));
+  const sign = (v) => (v > 0 ? "+" : "") + v + "%";
+  const band = (m) => `$${m.wasLo}\u2013${m.wasHi} \u2192 $${m.nowLo}\u2013${m.nowHi}`;
+  const look = withPct.filter((m) => Math.abs(m.pct) >= 25);
+  const rest = withPct.filter((m) => Math.abs(m.pct) < 25 && m.pct !== 0);
+  const L = [];
+  L.push(`# Price changes \u2014 ${today()}`);
+  L.push("");
+  L.push(`${pj.rows.length} rows \u2192 **${rows.length}**. ${added} added, ${updated} rewritten` +
+    (wild ? `, ${wild} held back as wild` : "") +
+    (skipped ? `, ${skipped} too thin` : "") +
+    (asks ? `, ${asks} held back as asking-only` : "") + ".");
+  L.push("");
+  if (!SOLD_ONLY) {
+    L.push("> These are **asking** prices unless a row says otherwise \u2014 eBay has not");
+    L.push("> granted Marketplace Insights. Asks read high.");
+    L.push("");
+  }
+  if (look.length) {
+    L.push(`## Worth a look \u2014 moved 25% or more (${look.length})`);
+    L.push("");
+    L.push("| Item | Was | Now | Change | Listings |");
+    L.push("|---|---|---|---|---|");
+    look.forEach((m) => L.push(`| ${m.name} | $${m.wasLo}\u2013${m.wasHi} | $${m.nowLo}\u2013${m.nowHi} | **${sign(m.pct)}** | ${m.n} |`));
+    L.push("");
+    L.push("A big move on few listings is the usual shape of a bad search \u2014 the");
+    L.push("wrong model, a parts counter, a lot of five. Check those first.");
+    L.push("");
+  } else if (withPct.length) {
+    L.push("## Worth a look");
+    L.push("");
+    L.push("Nothing moved 25% or more. Quiet week.");
+    L.push("");
+  }
+  if (rest.length) {
+    L.push(`## Ordinary drift (${rest.length})`);
+    L.push("");
+    rest.forEach((m) => L.push(`- ${m.name} \u2014 ${band(m)} (${sign(m.pct)}, ${m.n} listings)`));
+    L.push("");
+  }
+  if (newRows.length) {
+    L.push(`## New rows (${newRows.length})`);
+    L.push("");
+    newRows.sort((a, b) => a.name.localeCompare(b.name))
+      .forEach((r) => L.push(`- ${r.name} \u2014 $${r.lo}\u2013${r.hi} (${r.n} listings, ${r.basis})`));
+    L.push("");
+  }
+  if (heldWild.length) {
+    L.push(`## Held back as wild (${heldWild.length})`);
+    L.push("");
+    L.push("Too far from what the catalog says this kind of thing is worth. Not merged.");
+    L.push("");
+    heldWild.forEach((r) => L.push(`- ${r.name} \u2014 $${r.lo}\u2013${r.hi} against a book value of $${r.book} (${r.ratio}x, ${r.n} listings)`));
+    L.push("");
+  }
+  if (heldThin.length) {
+    L.push(`## Too thin to price (${heldThin.length})`);
+    L.push("");
+    L.push(`Fewer than ${MIN} usable listings. Not merged.`);
+    L.push("");
+    heldThin.slice(0, 40).forEach((r) => L.push(`- ${r.name} (${r.n})`));
+    if (heldThin.length > 40) L.push(`- \u2026 and ${heldThin.length - 40} more`);
+    L.push("");
+  }
+  writeFileSync(join(ROOT, "tools/price-changes.md"), L.join("\n"));
+  console.log("\n  Report written to tools/price-changes.md");
+
   console.log(`\n  ${added} added, ${updated} updated, ${skipped} skipped (under ${MIN} listings)` +
     (wild ? `, ${wild} held back as wild (--wild merges them)` : "") +
     (asks ? `, ${asks} held back as asking-price only` : "") + ".");
