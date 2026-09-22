@@ -206,11 +206,30 @@ export async function ebayComps({ q, limit, env, signal }) {
 /* For the tests and for /limits, so the counter can see which kind of number
    it is going to get before it spends an afternoon harvesting. */
 export function ebayReady(env) {
+  /* Which of the four settings this process can actually see. Names only -
+     never a value, and never a length, so nothing about the secret leaks.
+     Without this, a keyset that is set but misspelt, or set on the wrong
+     service, looks identical to one that was never set: configured:false
+     and no way to tell which. That is a long evening. */
+  const want = ["EBAY_CLIENT_ID", "EBAY_CLIENT_SECRET", "EBAY_VERIFY_TOKEN", "EBAY_DELETION_URL"];
+  const set = (k) => !!(env[k] && String(env[k]).trim());
+  const seen = want.filter(set);
+  const missing = want.filter((k) => seen.indexOf(k) < 0);
+  /* A name that is nearly right is the usual cause, so say what IS there
+     that looks like it was meant to be one of these. Again: names only. */
+  const strays = Object.keys(env || {})
+    .filter((k) => /ebay/i.test(k) && want.indexOf(k) < 0)
+    .slice(0, 8);
   return {
-    configured: !!(env.EBAY_CLIENT_ID && env.EBAY_CLIENT_SECRET),
+    /* Trimmed, so a variable holding nothing but spaces - which is what
+       pasting into the wrong box tends to leave - reads as absent here and
+       in `seen`, rather than as present here and absent there. */
+    configured: set("EBAY_CLIENT_ID") && set("EBAY_CLIENT_SECRET"),
     sold: !insightsDenied,
     marketplace: env.EBAY_MARKETPLACE || "EBAY_US",
     env: String(env.EBAY_ENV || "production").toLowerCase(),
+    seen, missing,
+    ...(strays.length ? { unrecognised: strays } : {}),
   };
 }
 
