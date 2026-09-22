@@ -341,8 +341,8 @@ for (let i = 0; i < todo.length; i++) {
      So rather than name the categories by hand and keep being wrong, the
      share decides. Below a third and this is a parts counter, and a price
      built on whatever survived the filter is a price built on leftovers. */
-  const share = got.found ? uniq.length / got.found : 1;
-  if (got.found >= 10 && share < 0.3) {
+  const realShare = got.found ? uniq.length / got.found : 1;
+  if (got.found >= 10 && realShare < 0.3) {
     found[key(t)] = { ref: t.ref, name: t.name, n: 0, date: today(), local: true,
       note: `eBay can't price this - only ${uniq.length} of ${got.found} listings were the machine, the rest were spare parts. Nothing wrong with the item; it sells locally, so the shelf record and your own sales are what price it.` };
     miss++; save();
