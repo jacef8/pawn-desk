@@ -298,10 +298,11 @@
   #view.item.start{display:block!important}
   /* No max-width: the search box above runs the full desk, and inseting the
      cards to 1180 left a 260px margin either side that read as a mistake. */
-  .startPane{display:grid;gap:clamp(10px,1.1vw,15px)}
-  .startLede{margin:2px 0 2px;line-height:1.5}
-  .startH{font-family:var(--sans);font-size:clamp(18px,1.9vw,22px);font-weight:800;color:var(--ink)}
-  .startSub{font-family:var(--sans);font-size:14px;color:var(--ink-2)}
+  .startPane{display:grid;gap:clamp(14px,1.5vw,20px);margin-top:clamp(14px,1.6vw,22px)}
+  /* The search hint sits right under the box. A second line of small print
+     tucked under that one read as crowding, so this stands clear of it. */
+  .startLede{margin:0 4px;font-family:var(--sans);font-size:13.5px;line-height:1.5;color:var(--ink-3)}
+  .startLede b{color:var(--ink-2);font-weight:600}
   .startTwo,.startCol{display:grid;gap:clamp(10px,1.1vw,15px);align-content:start}
   @media (min-width:1080px){
     /* start, not stretch: a closed browse bar is 58 characters and was being

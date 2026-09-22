@@ -1370,10 +1370,15 @@ function renderItem(){
      page is the search box and the two other ways in. */
   /* This was a full card restating the search placeholder in 132px of prose,
      above three columns stretched to the tallest one - so a 58-character
-     summary bar sat in a 468px box. The headline is one line now, and the
-     cards stand at their own height across the full desk width. */
+     summary bar sat in a 468px box. The cards stand at their own height now,
+     across the full desk width.
+
+     The headline went too: "What's on the counter?" is the placeholder text
+     in the box directly above it, word for word, and repeating it put two
+     lines of small print nose to nose under the search bar. What is left is
+     the one thing the box does not already say - how much it knows. */
   if(!st.picked&&!window.PHONE)return omniHTML()+`<div class="startPane">
-    <p class="startLede"><span class="startH">What's on the counter?</span> <span class="startSub">Type it above &mdash; a brand, a model, or just what the thing is. ${CATALOG.reduce((a,c)=>a+c.items.length,0)} kinds and ${mpCount()} models by name; anything else, type it anyway and set the price yourself.</span></p>
+    <p class="startLede">It knows <b>${CATALOG.reduce((a,c)=>a+c.items.length,0)}</b> kinds of thing and <b>${mpCount()}</b> models by name. Anything else, type it in anyway and set the price yourself.</p>
     <div class="startTwo">${left.replace('<div class="colL">','<div class="startCol">')}</div>
   </div>`;
   /* The phone hides the three columns outright, and the camera card lived in
@@ -4989,7 +4994,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.2210";
+const APP_BUILD="0926.2215";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
