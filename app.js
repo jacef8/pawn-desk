@@ -636,6 +636,10 @@ function renderTabs(){
 }
 document.getElementById("view").addEventListener("click",e=>{
   if(e.target.closest("#whyBtn")){ st.whyOpen=!st.whyOpen; render(); }
+  /* The tab strip's own handler sits on #tabs, so a button inside the view
+     that wants to send you to a tab needs saying so here. */
+  const go=e.target.closest&&e.target.closest("[data-gotab]");
+  if(go){ st.mode=go.dataset.gotab; st.editing=false; render(); }
 });
 document.getElementById("tabs").addEventListener("click",e=>{
   const b=e.target.closest("[data-tab]"); if(!b)return;
@@ -724,7 +728,7 @@ function buyCapWhy(x){
 }
 function pinHTML(x){
   const F=fakeState(fakeSheet(x));
-  const bare=t=>`<div class="pinStrip"><span class="pinLab">Where it stands</span><span class="pinNote">${t}</span></div>`;
+  const bare=t=>`<div class="pinStrip"><span class="pinLab">${window.PHONE?"What it's worth to you":"The numbers"}</span><span class="pinNote">${t}</span></div>`;
   if(F&&F.blocks)return bare(F.verdict==="fail"?"A check failed \u2014 don't lend on the name."
     :"Not checked yet \u2014 "+F.done+" of "+F.n+" on the "+esc(F.sh.title.toLowerCase())+" sheet.");
   if(!x.checked)return bare("No resale value yet \u2014 step 4 sets it.");
@@ -738,13 +742,22 @@ function pinHTML(x){
      resale percentage are pawn-counter mechanics and mean nothing over a
      folding table, so the phone does not carry them at all. */
   const P=!!window.PHONE;
-  return `<div class="pinStrip${P&&x.buyTooThin?" thin":""}">
-    <span class="pinLab">${P?"What it's worth to you":"Where it stands"}</span>
+  /* These two numbers are the only things on the page anyone says out loud,
+     and they used to sit in a row of six at the same weight - the buy price
+     second, prefixed "Or", reading as an afterthought, and "Loan / resale
+     35%" given equal billing beside it. Buy and lend are the decision; the
+     other four are the arithmetic behind it. So the two lead, together and
+     the same size, and the rest drop to a subordinate line.
+
+     The strip was called "Where it stands", which describes the state of
+     the app rather than the money. It is the numbers. */
+  return `<div class="pinStrip pinDecide${P&&x.buyTooThin?" thin":""}">
+    <span class="pinLab">${P?"What it's worth to you":"The numbers"}</span>
     <button class="pinNew" id="pinNew" type="button" title="Clear this item and start the next one. Your rates, shelf record, listings and deal log are kept.">Start over</button>
     ${P?(x.buyTooThin?cell("buy","Not worth buying","Walk away",1)
                      :cell("buy","Pay up to",money(x.buy),1))
         +cell("lend","Or lend on it",money(x.target),1)
-       :cell("lend","Lend him",money(x.target),1)+cell("buy","Or buy outright",money(x.buy),1)}
+       :cell("buy","Buy it for",money(x.buy),1)+cell("lend","Lend him",money(x.target),1)}
     ${cell("resale",P?"Resells for":"Resale, "+esc(COND_WORDS[st.cond][0].toLowerCase()),money(x.resale))}
     ${P&&!x.buyTooThin?cell("gain","You'd make",money(x.buyMargin)):""}
     ${cell("cushion","Your cushion",money(x.margin))}
@@ -1079,7 +1092,25 @@ function valSubText(x){
 /* Three layouts. "pages" is the default: one job on the screen at a time,
    cycled with a bar across the top, because everything at once is thirteen
    cards and three and a half thousand pixels of them. */
-function stepFlow(){ return st.flow==="all"?"all":st.flow==="steps"?"steps":"pages"; }
+/* The three-column desk layout has been in the stylesheet the whole time.
+   The paging default hid it: .paged carries display:block!important, so a
+   1440px window ran the phone's one-job-at-a-time wizard stretched across
+   the whole monitor - one tall column, the numbers scrolled off the top,
+   and a thousand pixels of slack down the side of every card.
+
+   So the default now follows the screen instead of assuming a phone. A desk
+   gets its columns; anything narrow keeps the pages, which is what they
+   were written for. An explicit choice in Setup still beats both. */
+function deskWide(){
+  try{ return !window.PHONE && window.matchMedia("(min-width:1080px)").matches; }
+  catch(e){ return false; }
+}
+function stepFlow(){
+  if(st.flow==="all")return "all";
+  if(st.flow==="steps")return "steps";
+  if(st.flow==="pages")return "pages";
+  return deskWide()?"all":"pages";
+}
 
 /* Which page each card belongs to. Every card carries a stable id, so this
    is a lookup rather than a guess at its wording. */
@@ -2627,7 +2658,22 @@ function wireComps(){
    Identification only. It never sets a price: the number stays yours. */
 let photoFile=null, photoBusy=false, photoCtl=null;
 function photoCardHTML(){
-  if(!CAP.sample||!CAP.images) return pdConnectHTML();
+  if(!CAP.sample||!CAP.images){
+    /* The full connect card is five hundred pixels of setup copy and two
+       inputs. On the start screen and under Setup that is right. In the
+       middle of pricing something, on a desk, it was holding the centre
+       column while SWITCHED OFF - half a screen given to a thing nobody is
+       using, pushing the actual questions below the fold. Once an item is
+       on the go it collapses to a line saying what is missing and where to
+       fix it. The phone still gets the full card: it is the phone's main
+       move, and there is no second column to lose. */
+    if(!window.PHONE && st.picked) return `<div class="card" id="photoCard">
+      <span class="label" style="margin:0">Camera &amp; photo lookups &mdash; off</span>
+      <div class="cardHint" style="margin:5px 0 0">Switch the shop's service on and this device can photograph an item, read another shop's tag and look up sold prices.
+        <button class="ghostBtn" data-gotab="setup" type="button" style="padding:5px 12px;font-size:12px;margin-left:6px">Set it up</button></div>
+    </div>`;
+    return pdConnectHTML();
+  }
   const r=st.photoRead;
   /* Leading the phone's start screen, this is the main move and is dressed
      as one. Once an item is on the go it is a tool among tools again. */
@@ -4812,7 +4858,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.1400";
+const APP_BUILD="0926.1500";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -5778,7 +5824,7 @@ function nextStepHTML(x){
          with both figures in it. Saying them again here, side by side, is the
          same number twice on one line of sight. The phone has no pin. */
       ?(window.PHONE?`Loan ${money(x.target)}<small>or buy it for ${money(x.buy)}</small>`
-                    :`Ready<small>the numbers are in Where it stands</small>`)
+                    :`Ready<small>${window.PHONE?"the numbers are above":"the numbers are in the bar above"}</small>`)
       :"&mdash;",cur===4)}</div>`;
   let h="",sub="",act="";
   if(cur===1&&!started){
