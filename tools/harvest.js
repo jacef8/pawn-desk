@@ -344,9 +344,9 @@ for (let i = 0; i < todo.length; i++) {
   const share = got.found ? uniq.length / got.found : 1;
   if (got.found >= 10 && share < 0.3) {
     found[key(t)] = { ref: t.ref, name: t.name, n: 0, date: today(), local: true,
-      note: `eBay is a parts counter for this - only ${uniq.length} of ${got.found} listings were the machine. Local-market item.` };
+      note: `eBay can't price this - only ${uniq.length} of ${got.found} listings were the machine, the rest were spare parts. Nothing wrong with the item; it sells locally, so the shelf record and your own sales are what price it.` };
     miss++; save();
-    console.log(`  ${tag} - local only: ${uniq.length}/${got.found} listings were the machine`);
+    console.log(`  ${tag} - eBay can't price it: ${uniq.length}/${got.found} listings were the machine (sells locally)`);
     continue;
   }
   /* Which of these listings are actually the thing the catalogue row means. */
