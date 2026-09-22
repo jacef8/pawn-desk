@@ -1216,13 +1216,17 @@ function renderItem(){
        switch and the shelf-tag record - so they go to the foot of the
        questionnaire rather than above the first thing being asked. */
     </div></details>${deskRail()?"":(window.PHONE?"":photoCardHTML())+seenCardHTML()}</div>`;
-  const leftRef=deskRail()?`<div class="colL">${photoCardHTML()}${seenCardHTML()}</div>`:"";
+  /* The market check is a tool, not a question - it interrupted the run
+     between the browse bar and step 3 with 292px of buttons. It goes with
+     the other reference cards at the foot, where it is still a click away
+     when step 4 wants a real sold price. */
+  const leftRef=deskRail()?`<div class="colL">${compsCardHTML(x)}${photoCardHTML()}${seenCardHTML()}</div>`:"";
   const ST=stepFlow()==="steps"&&!window.PHONE, LIVE=ST?liveStep(x):0;
   /* A step opened by hand stays open through the re-render a click inside it
      causes - otherwise it shuts under the hand that opened it. It is let go
      when the work moves to a different step. */
   if(ST&&st.stepAt!==LIVE){ st.openS3=st.openS4=st.openS5=false; st.stepAt=LIVE; }
-  let mid=`<div class="colC">${fakeCardHTML(x)}${compsCardHTML(x)}${ST?`<details class="card stepCard" id="s3"${st.openS3?" open":""}>`+stepHead(3,"Brand, make &amp; model",brandAnswer(x),false):`<div class="card" id="s3"><span class="label">3 &middot; Brand, make &amp; model</span>`}
+  let mid=`<div class="colC">${fakeCardHTML(x)}${deskRail()?"":compsCardHTML(x)}${ST?`<details class="card stepCard" id="s3"${st.openS3?" open":""}>`+stepHead(3,"Brand, make &amp; model",brandAnswer(x),false):`<div class="card" id="s3"><span class="label">3 &middot; Brand, make &amp; model</span>`}
     <div class="driver"><p><b class="go">What sets the price:</b> ${(itemOv()&&itemOv().driver)||cat.driver}</p><p><b class="no">What kills it:</b> ${(itemOv()&&itemOv().killer)||cat.killer}</p></div>`;
   if(cat.brand.on){
     const ov=itemOv();
@@ -4889,7 +4893,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.1700";
+const APP_BUILD="0926.1800";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

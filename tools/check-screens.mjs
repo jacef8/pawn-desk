@@ -65,6 +65,33 @@ for (const [page, viewport] of [["index.html", {width:1280,height:900}],
   if (errs.length) { bad++; console.log(`FAIL ${page} — page errors: ${errs.join(" | ")}`); }
   await p.close();
 }
+/* Cards get moved between columns, and a card emitted twice is not a visible
+   fault - the page looks right and the handlers quietly wire to whichever
+   copy the query found first, so a button stops working and nothing says
+   why. Every id on the page must appear once. */
+for (const [page, viewport] of [["index.html", {width:1400,height:900}],
+                                ["phone.html", {width:390,height:844}]]) {
+  const p = await browser.newPage({viewport});
+  const errs = [];
+  p.on("pageerror", e => errs.push(String(e)));
+  await p.goto(BASE + "/" + page, {waitUntil:"networkidle"});
+  for (const cond of ["", "good"]) {
+    const dup = await p.evaluate((c) => {
+      const cat = CATALOG.find(x => x.items.some(i => i.id === "t1"));
+      st.mode = "item"; st.catId = cat.id; st.itemId = "t1"; st.picked = true;
+      if (c) st.cond = c;
+      render();
+      const seen = {}, out = [];
+      document.querySelectorAll("[id]").forEach(e => { if (seen[e.id]) out.push(e.id); seen[e.id] = 1; });
+      return out;
+    }, cond);
+    if (dup.length) { bad++; console.log(`FAIL ${page} cond=${cond||"unset"} — duplicate ids: ${dup.join(", ")}`); }
+    else console.log(`ok   ${page} ids unique${cond ? " (priced)" : ""}`);
+  }
+  if (errs.length) { bad++; console.log(`FAIL ${page} — page errors: ${errs.join(" | ")}`); }
+  await p.close();
+}
+
 await browser.close();
-console.log(bad ? `FAILED (${bad})` : "all screens draw themselves");
+console.log(bad ? `FAILED (${bad})` : "all screens draw themselves, every id once");
 process.exit(bad ? 1 : 0);
