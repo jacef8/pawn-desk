@@ -786,15 +786,11 @@ function ticketHTML(x){
     </div>
     <div class="cardHint" style="margin-top:8px">Open at the suggested loan. Go low when cash is tight or the deal feels off; go toward the top for a regular you want back. Never lend above the top — that's your cushion.</div>
     ${buyRowHTML(x)}
-    ${deskRail()?"":ticketDetailHTML(x)}
-  </div>${deskRail()?"":paybackHTML(x)}`;
+    ${ticketDetailHTML(x)}
+  </div>${paybackHTML(x)}`;
 }
-/* The rail is a column beside the questionnaire, not under it, so it has to
-   fit a screen. The loan card whole is 714px and the numbers panel another
-   200 - together taller than the window, which defeats the point of pinning
-   them. So the money stays in the rail and the reading matter - why it is
-   this much, and what he pays back - goes at the foot of the questionnaire,
-   where you look once rather than at every keystroke. */
+/* Split out so the two halves can be read on their own. The rail carries
+   the numbers panel and nothing else - see below. */
 function ticketDetailHTML(x){
   return `<details class="fold"${st.openWhy?" open":""} id="whyFold"><summary class="foldLine">The detail &mdash; cushion, fee, and why it is this much</summary>
     ${x.liquidity.adj!==0?`<div class="tagNote">Cut ${Math.abs(x.liquidity.adj)} points because it's a ${x.liquidity.label.toLowerCase()} item here. Your money sits in it longer, so lend less — don't drop the price.</div>`:""}
@@ -1308,10 +1304,17 @@ function renderItem(){
       ? omniHTML()+nextStepHTML(x)+`<div id="pin">${pinHTML(x)}</div>`+cam+left+mid+right
       : cam+omniHTML()+nextStepHTML(x)+`<div id="pin">${pinHTML(x)}</div>`+left+mid+right;
   }
+  /* The rail holds the numbers panel and nothing else.
+     The loan card was in it too, and it was the same figures again: a ring
+     the size of a fist saying LEND HIM $32 directly under a panel already
+     saying LEND HIM $32, with low/suggested/top under that repeating a range
+     the panel's own note line carries. Two copies of one number, and the
+     second one so tall it pushed the rest of the rail off the screen - the
+     one thing a pinned column must never do. The loan card is still there in
+     full, at the foot of the questionnaire, ring and all. */
   if(deskRail())return omniHTML()+nextStepHTML(x)
-    +`<div class="rail"><div id="pin">${pinHTML(x)}</div><div id="ticket">${ticketHTML(x)}</div></div>`
-    +`<div class="colQ">${left}${mid}`
-      +(x.checked?`<div class="card">${ticketDetailHTML(x)}</div>${paybackHTML(x)}`:"")
+    +`<div class="rail"><div id="pin">${pinHTML(x)}</div></div>`
+    +`<div class="colQ">${left}${mid}<div id="ticket">${ticketHTML(x)}</div>`
       +`${leftRef}${logCardHTML(x)}</div>`;
   return omniHTML()+nextStepHTML(x)+`<div id="pin">${pinHTML(x)}</div>`+left+mid+right;
 }
@@ -4893,7 +4896,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.1800";
+const APP_BUILD="0926.1900";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -5859,7 +5862,7 @@ function nextStepHTML(x){
          with both figures in it. Saying them again here, side by side, is the
          same number twice on one line of sight. The phone has no pin. */
       ?(window.PHONE?`Loan ${money(x.target)}<small>or buy it for ${money(x.buy)}</small>`
-                    :`Ready<small>${window.PHONE?"the numbers are above":"the numbers are in the bar above"}</small>`)
+                    :`Ready<small>${deskRail()?"the numbers are on the right":"the numbers are in the bar above"}</small>`)
       :"&mdash;",cur===4)}</div>`;
   let h="",sub="",act="";
   if(cur===1&&!started){
@@ -5947,7 +5950,12 @@ function nextStepHTML(x){
      is a third copy of the same progress, and it is what pushes the loan card
      off the first screen. Keep what it alone has: what to do now. */
   const bare=stepFlow()==="steps"&&!window.PHONE&&st.picked;
-  return `<div class="card nextStep${bare?" bare":""}" id="nextStep"><span class="label">Next step</span><div class="nsGrid">${bare?"":steps}
+  /* Once every question is answered this panel stops being a next step and
+     becomes an explanation of the figures - but it went on calling itself
+     NEXT STEP, so the counter was left looking for a step that was not
+     there. Say which it is. */
+  const done=cur===4;
+  return `<div class="card nextStep${bare?" bare":""}" id="nextStep"><span class="label">${done?"All answered &mdash; nothing left to set":"Next step"}</span><div class="nsGrid">${bare?"":steps}
     <div class="nsMain"><div class="nsH">${h}</div><div class="nsSub">${sub}</div><div class="nsAct">${act}</div></div></div></div>`;
 }
 /* The measurement boxes. Each keystroke re-judges, so the verdict moves as
