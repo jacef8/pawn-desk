@@ -1,4 +1,4 @@
-# Terapeak worksheet — what sold vs what was asked
+# Product Research worksheet — what sold vs what was asked
 
 Fill in the last column. Twelve lookups, about fifteen minutes.
 
@@ -9,8 +9,7 @@ sold in a day is gone. Nobody knows how high. These twelve say how high.
 
 ## Settings — set these once, they stick
 
-In Seller Hub: **Research** tab -> **Product Research** -> **eBay Product
-Research**.
+In Seller Hub: **Research** tab -> **Product Research**.
 
 - **Date range:** Last 90 days
 - **Condition:** Used
@@ -21,7 +20,7 @@ Research**.
 
 The number you want is **Average sold price**, near the top of the results
 panel. Not the range, not the "average shipping", not the active-listing
-figure. If Terapeak shows fewer than about 10 sales in 90 days, widen the
+figure. If Product Research shows fewer than about 10 sales in 90 days, widen the
 date range to a year and write "1yr" beside the number.
 
 The Ask column below is what the active listings were asking on 22 Sep,
