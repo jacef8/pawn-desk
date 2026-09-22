@@ -122,6 +122,35 @@ console.log("\n  eBay refuses (no keyset on the service)");
   ok(!errs.length, "no page errors" + (errs.length ? ": " + errs[0] : ""));
 }
 
+/* Firearms are their own world. eBay bans gun sales outright, so an eBay
+   pass on "Remington 870" comes back with barrels, stocks, optics and
+   airsoft priced like the gun - wrong by a factor of five, and wrong in the
+   direction that costs money. The API pass must never reach that branch,
+   however convenient it is everywhere else. */
+console.log("\n  the firearms branch");
+{
+  const page = await browser.newPage({viewport:{width:1280,height:900}});
+  const errs = [];
+  page.on("pageerror", e => errs.push(String(e)));
+  await page.goto(BASE + "/index.html", {waitUntil:"networkidle"});
+  const passes = await page.evaluate(() => {
+    const cat = CATALOG.find(c => c.id === "guns") || CATALOG.find(c => c.items.some(i => i.id === "g1"));
+    st.mode = "item"; st.catId = cat.id; st.itemId = "g1"; st.picked = true; render();
+    return findPasses(calcItem()).map(p => ({name:p.name, where:p.where, ebay:!!p.ebay, say:p.say || ""}));
+  });
+  ok(!passes.some(p => p.ebay), "NO eBay API pass on guns — eBay bans gun sales");
+  ok(passes.some(p => /guns\.com/i.test(p.name + p.say)), "guns.com ended auctions is one of the passes");
+  ok(passes.some(p => /gunwatcher/i.test(p.name + p.say)), "GunWatcher is still there");
+  const gc = passes.find(p => /guns\.com/i.test(p.name + p.say));
+  ok(gc && /winning bid/i.test(gc.say), "the guns.com pass asks for the winning bid, not the ask");
+  ok(gc && /collector|engraved|commemorative/i.test(gc.say), "and it is warned off collector pieces");
+  const names = passes.map(p => p.name);
+  ok(names.indexOf("Guns.com ended") < names.findIndex(n => /asking/i.test(n)),
+     "sold sources come before the asking one — order: " + names.join(" > "));
+  ok(!errs.length, "no page errors" + (errs.length ? ": " + errs[0] : ""));
+  await page.close();
+}
+
 await browser.close();
 console.log(fails ? "\n  " + fails + " FAILED\n" : "\n  all passed\n");
 process.exit(fails ? 1 : 0);

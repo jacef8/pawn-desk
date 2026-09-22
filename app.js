@@ -4812,7 +4812,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.1300";
+const APP_BUILD="0926.1400";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -5381,6 +5381,19 @@ function findPasses(x){
   if(st.catId==="guns") return [
     {name:"GunWatcher", where:"GunWatcher", q:gunQuery(x),
      say:"gunwatcher.com, which publishes sold prices gathered from completed GunBroker auctions - use its sold or average sold figures, not asking prices"},
+    /* guns.com publishes the WINNING BID on auctions it closed, for ninety
+       days back - real sales, and a second source so the whole firearms
+       category does not hang on GunWatcher alone, which refuses a direct
+       read and is reachable only when a search happens to get through.
+
+       Its stock leans hard toward collector and high-end pieces: the ended
+       board runs to four-figure Colts and Smiths while the counter is
+       looking at an 870 or a Mossberg 500. So the pass is told to throw
+       away anything that is not the same class of gun - a $6,000 engraved
+       collectible is not a comp for a pump gun, and averaging it in is
+       worse than having no comp at all. */
+    {name:"Guns.com ended", where:"Guns.com", q:gunQuery(x),
+     say:"guns.com/auctions/recently-ended, which lists the winning bid on auctions closed in the last ninety days - those are sales, not asks. That site leans to collector and high-end guns, so keep only listings for the same ordinary working model that was asked about and discard rare, engraved, commemorative or historic pieces however well the name matches"},
     {name:"Auction results", where:"Auction",
      say:"published results from gun auction houses and sold-price archives - Rock Island, Morphy, Proxibid, GunsAmerica sold - for what the gun actually brought"},
     {name:"GunBroker, asking", where:"GunBroker",
