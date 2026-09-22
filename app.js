@@ -991,7 +991,19 @@ const SPEC_CHOICES={
      {label:"Pressure",options:[{t:"Under 2,500 PSI",m:.8,note:"light duty: −20%"},{t:"2,500–3,200 PSI",m:1},{t:"3,200 PSI +",m:1.2,note:"commercial PSI: +20%"}]}],
  p7:[{label:"Type",options:[{t:"Open-frame",m:1},{t:"Inverter",m:1.6,note:"inverter — ~60% over open-frame at the same watts"}]},
      {label:"Start",options:[{t:"Pull start",m:1},{t:"Electric start",m:1.1,note:"electric start: +10%"}]}],
- t1:[CH_VOLT,{label:"Kit",options:[{t:"Two batteries + charger",m:1},{t:"One battery",m:.9,note:"single battery: −10%"},{t:"Combo kit, extra tools",m:1.15,note:"combo kit: +15%"}]}],
+ /* Measured 22 Sep off 1,057 eBay listings across 30 drill models.
+    One battery against two, same model, single tool only: 0.87 - so the
+    0.9 here was right and stays.
+
+    The combo figure was not. A combo is a drill AND a second tool, and it
+    was carrying +15% when the listings say +60%: single-tool kits with two
+    batteries run $86, combos $150 (n=30). The counter was lending against
+    one tool while two were on the bench.
+
+    Worth knowing for the baseline: of 560 real listings only 23 were a
+    single tool with two batteries. The used drill kit that actually walks
+    in has ONE battery, and a bare one is 0.60 of that. */
+ t1:[CH_VOLT,{label:"Kit",options:[{t:"Two batteries + charger",m:1},{t:"One battery",m:.9,note:"single battery: −10%"},{t:"Combo kit, extra tools",m:1.6,note:"combo kit — two tools, not one: +60%"}]}],
  t2:[CH_VOLT,{label:"Drive",options:[{t:"1/2 in",m:1},{t:"3/8 in",m:.9,note:"3/8 drive: −10%"},{t:"1 in / big iron",m:1.2,note:"heavy drive: +20%"}]}],
  /* A corded grinder and a cordless one are not the same tool wearing a
     different cord - they are two tools that happen to share a name, and the
@@ -1014,23 +1026,50 @@ const SPEC_CHOICES={
  /* Same story as the grinder: a pneumatic nailer is about $105 and a
     cordless one is $230-300. +20% was covering a 2x gap.
 
-    The bare figure is NOT measured - there was no search for a bare
-    cordless nailer. It is built: a complete one is about $240, and the
-    battery and charger that come with it are $60-70 used, which leaves
-    about $180 for the tool. It sits high against the grinder's bare
-    option on purpose - a nailer is an expensive tool carrying the same
-    cheap battery, so the pack is a smaller share of the whole. Treat it
-    as a placeholder and check it against sold comps. */
- t8:[{label:"Drive",options:[{t:"Pneumatic",m:1},{t:"Cordless — with battery",m:2,note:"cordless with a battery — roughly twice a pneumatic"},{t:"Cordless — bare",m:1.5,note:"bare cordless — no battery or charger, worth about $60 less than the kit"}]}],
+    The bare figure WAS a placeholder - built, not measured. It is
+    measured now: 22 Sep, bare against kit within the same model across
+    six nailers (2744, 2745, DCN692, DCN920, DCN21PL, CF325XP), ratios
+    0.63 0.78 0.83 0.95 0.96 1.04, median 0.89. Pairing inside one model
+    is the whole trick - pooled, the bare listings came out DEARER than
+    the kits, because the bare ones were higher-end nailers.
+
+    So bare is 0.89 of the kit: 2.0 x 0.89 = 1.8, up from the built 1.5.
+    The battery is a smaller share of a nailer than of a drill, which is
+    what the placeholder was reaching for - it just undershot.
+
+    On the kit figure itself: this run puts cordless kits at $280 against
+    $110 for a pneumatic, which is 2.5, not 2.0. 2.0 is the conservative
+    end of the original $230-300 measurement and it is left alone on
+    purpose - it is the lending side, and low is the safe way to be wrong. */
+ t8:[{label:"Drive",options:[{t:"Pneumatic",m:1},{t:"Cordless — with battery",m:2,note:"cordless with a battery — roughly twice a pneumatic"},{t:"Cordless — bare",m:1.8,note:"bare cordless — no battery or charger, about a tenth under the kit"}]}],
  h1:[{label:"Type",options:[{t:"Standard 3-9x class",m:1},{t:"High-mag 4-16x+",m:1.1,note:"high-mag glass: +10%"},{t:"Fixed / oddball",m:.85,note:"odd configuration: −15%"}]},
      {label:"Features",options:[{t:"Standard",m:1},{t:"Illuminated / FFP",m:1.1,note:"premium features: +10%"}]}],
  h2:[{label:"Size",options:[{t:"Full-size (8/10x42)",m:1},{t:"Compact",m:.8,note:"compacts: −20%"}]}],
  h3:[{label:"Type",options:[{t:"Hunting (600–1000 yd)",m:1},{t:"Golf model",m:.85,note:"golf unit — wrong buyer here: −15%"}]}],
  h4:[{label:"Type",options:[{t:"SD card",m:1},{t:"Cellular — live plan",m:1.25,note:"cellular on a current plan: +25%"},{t:"Cellular — dead plan",m:.6,note:"discontinued plan — SD-card money: −40%"}]}],
+ /* Bare bow checked 22 Sep against 329 compound-bow listings. Only 8 said
+    bare, which is thin, but they ran 0.88 of the packages - so 0.85 stands.
+    Adding up what the accessories fetch on their own (sight $79, rest $25,
+    quiver $29) would argue for less, nearer 0.6; accessories sold loose
+    carry a markup they never carry bolted to a bow, so the direct comps
+    win and 0.85 is, if anything, a shade generous. */
  h5:[{label:"Age",options:[{t:"Current gen (under 5 yr)",m:1},{t:"5–10 yr",m:.8,note:"older bow: −20%"},{t:"10 yr +",m:.6,note:"old bow — near-accessory money"}]},
      {label:"Setup",options:[{t:"Ready-to-hunt package",m:1},{t:"Bare bow",m:.85,note:"bare bow: −15%"}]}],
+ /* A bare crossbow cannot be measured on eBay: 22 Sep, ONE listing in 312
+    said no scope. Crossbows are sold as packages and that is that - the
+    same wall the outdoor power equipment hit, where the machine is not
+    listed because nobody ships it. Comparing scope-stated against silent
+    listings was tried and is noise (0.49 to 3.75 across seven brands):
+    silent does not mean scopeless, it means the seller did not say.
+
+    So this one is DERIVED, not measured, and says so. A crossbow scope on
+    its own runs $165 (n=84) against a $400 package. Deducting all of it
+    gives 0.59; an accessory is worth less as part of a rig than loose, so
+    the true figure sits above that and well under the 0.85 that was here.
+    0.7 is the middle, and the low side is the safe side to lend from.
+    Revisit if bare crossbows ever start showing up listed. */
  h6:[{label:"Cocking",options:[{t:"Rope / standard",m:1},{t:"Crank-cocking",m:1.15,note:"crank models sell to older hunters: +15%"}]},
-     {label:"Package",options:[{t:"Scope package",m:1},{t:"Bare",m:.85,note:"bare crossbow: −15%"}]}],
+     {label:"Package",options:[{t:"Scope package",m:1},{t:"Bare",m:.7,note:"bare crossbow — the scope is most of what is missing: −30%"}]}],
  h7:[{label:"Type",options:[{t:"Spinning combo",m:1},{t:"Baitcast combo",m:1.1,note:"baitcasters: +10%"},{t:"Kids / Zebco-class",m:.6,note:"kid combos: −40%"}]}],
  h8:[{label:"Class",options:[{t:"Basic 12V",m:1},{t:"24V high-thrust",m:1.25,note:"24V thrust: +25%"},{t:"GPS / spot-lock",m:1.5,note:"spot-lock — the premium motor: +50%"}]},
      {label:"Mount",options:[{t:"Transom",m:1},{t:"Bow mount",m:1.1,note:"bow mount: +10%"}]}],
@@ -1046,6 +1085,11 @@ const SPEC_CHOICES={
  a6:[{label:"Size",options:[{t:"Under 7 cu ft",m:.8,note:"small freezer: \u221220%"},{t:"7\u201315 cu ft",m:1},{t:"15 cu ft +",m:1.15,note:"big freezer: +15%"}]},CH_APPL_AGE],
  a7:[{label:"Size",options:[{t:"Under 8,000 BTU",m:.75,note:"small unit: \u221225%"},{t:"8,000\u201312,000 BTU",m:1},{t:"12,000 BTU +",m:1.3,note:"big unit: +30%"}]},CH_APPL_AGE],
  a9:[{label:"Type",options:[{t:"Household machine",m:1},{t:"Serger / embroidery",m:1.4,note:"serger or embroidery machine: +40%"},{t:"Vintage cabinet model",m:.6,note:"vintage cabinet \u2014 slow, bulky: \u221240%"}]}],
+ /* Cordless stick checked 22 Sep: 97 stick listings against 117 uprights,
+    $144 to $115 - 1.25 pooled, 1.19 within brand. 1.2 is right where it
+    was. Worth noting the brands disagree sharply (Dyson 1.46, Shark 0.92):
+    a stick is worth more than an upright of the same make only where the
+    make is one people want cordless. */
  a10:[{label:"Type",options:[{t:"Upright / canister",m:1},{t:"Cordless stick",m:1.2,note:"cordless stick: +20%"},{t:"Shop vac",m:.8,note:"shop vac: \u221220%"}]}],
  e2:[CH_AGE,{label:"Class",options:[{t:"Standard",m:1},{t:"Gaming / workstation",m:1.3,note:"gaming class: +30%"}]}],
  e3:[CH_AGE],
@@ -4994,7 +5038,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.2230";
+const APP_BUILD="0926.2240";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
