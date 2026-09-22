@@ -219,7 +219,7 @@ async function viaEbay(t) {
   const short = trim(t.name);
   if (short && short.toLowerCase() !== t.name.toLowerCase()) tries.push(short);
 
-  let comps = [], basis = "", warned = "";
+  let comps = [], basis = "", warned = "", found = 0;
   for (const q of tries) {
     let j;
     const r = await fetch(SERVER + "/ebay", { method: "POST",
@@ -228,13 +228,14 @@ async function viaEbay(t) {
     try { j = await r.json(); } catch (e) { j = null; }
     if (!r.ok || !j || !j.ok) throw new Error((j && j.code) || ("service answered " + r.status));
     comps = comps.concat((j.comps || []).filter(c => c && Number(c.price) > 0));
+    found += Number(j.found) || 0;
     if (j.warning) warned = j.warning;
     /* "sold" wins: once one query came back with real sales, the finding is
        a sold finding even if the second query only had asks in it. */
     if (j.basis === "sold") basis = "sold"; else if (!basis) basis = j.basis || "asking";
     if (comps.length >= 12) break;
   }
-  return { comps, basis, warning: warned };
+  return { comps, basis, warning: warned, found };
 }
 
 /* The old path: ask the model to go searching. Kept because it reaches
@@ -273,7 +274,7 @@ async function viaClaude(t) {
   /* Whatever it says about itself, a web search is asks unless a majority of
      what came back claims to be a sale. */
   const sold = comps.filter(c => c.basis === "sold").length;
-  return { comps, basis: sold > comps.length / 2 ? "sold" : "asking", warning: "" };
+  return { comps, basis: sold > comps.length / 2 ? "sold" : "asking", warning: "", found: comps.length };
 }
 
 if (VIA !== "ebay" && VIA !== "claude") {
@@ -329,6 +330,23 @@ for (let i = 0; i < todo.length; i++) {
     found[key(t)] = { ref: t.ref, name: t.name, n: ps.length, date: today(), note: "no usable listings" };
     miss++; save();
     console.log(`  ${tag} - nothing usable`);
+    continue;
+  }
+  /* IS EBAY EVEN SELLING THIS THING.
+     Nobody ships a riding mower, so what gets listed under one is belts and
+     spindles. Measured: 36 of 40 listings for a Milwaukee drill are the
+     drill; 1 of 36 for a Toro TimeMaster is the mower. Tools 68-90%,
+     outdoor power 3-18% - and no amount of filtering moves that, because
+     the machines are simply not listed.
+     So rather than name the categories by hand and keep being wrong, the
+     share decides. Below a third and this is a parts counter, and a price
+     built on whatever survived the filter is a price built on leftovers. */
+  const share = got.found ? uniq.length / got.found : 1;
+  if (got.found >= 10 && share < 0.3) {
+    found[key(t)] = { ref: t.ref, name: t.name, n: 0, date: today(), local: true,
+      note: `eBay is a parts counter for this - only ${uniq.length} of ${got.found} listings were the machine. Local-market item.` };
+    miss++; save();
+    console.log(`  ${tag} - local only: ${uniq.length}/${got.found} listings were the machine`);
     continue;
   }
   /* Which of these listings are actually the thing the catalogue row means. */
