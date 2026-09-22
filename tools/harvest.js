@@ -85,14 +85,18 @@ function literal(src, decl) {
   }
   throw new Error("unterminated " + decl);
 }
-const BOOK = (() => {
-  const out = {};
-  try {
-    const APP = readFileSync(join(ROOT, "app.js"), "utf8");
-    literal(APP, "const CATALOG = [").forEach(c => c.items.forEach(it => { out[it.id] = it.value; }));
-  } catch (e) { console.error("  (could not read the catalog: " + e.message + " - the sanity band is off)"); }
-  return out;
-})();
+const BOOK = {}, KIND = {};
+try {
+  const APP = readFileSync(join(ROOT, "app.js"), "utf8");
+  literal(APP, "const CATALOG = [").forEach(c => c.items.forEach(it => {
+    BOOK[it.id] = it.value;
+    /* What the counter calls this kind of thing. Sent with every lookup so
+       the service can throw away listings that never claim to BE one - a
+       sprocket does not say chainsaw, and priced with the saws it made a
+       $180 saw look like $8. */
+    KIND[it.id] = it.name;
+  }));
+} catch (e) { console.error("  (could not read the catalog: " + e.message + " - the sanity band is off)"); }
 const wildness = (ref, med) => {
   const b = BOOK[ref];
   if (!b || !med) return null;
@@ -220,7 +224,7 @@ async function viaEbay(t) {
     let j;
     const r = await fetch(SERVER + "/ebay", { method: "POST",
       headers: { "content-type": "application/json", "x-pawn-token": TOKEN },
-      body: JSON.stringify({ q, limit: 40 }) });
+      body: JSON.stringify({ q, limit: 40, kind: KIND[t.ref] || "" }) });
     try { j = await r.json(); } catch (e) { j = null; }
     if (!r.ok || !j || !j.ok) throw new Error((j && j.code) || ("service answered " + r.status));
     comps = comps.concat((j.comps || []).filter(c => c && Number(c.price) > 0));

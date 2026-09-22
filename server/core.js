@@ -134,7 +134,7 @@ export async function handle({ path, method, token, body, env, signal, query }) 
     if (env.PAWN_TOKEN && token !== env.PAWN_TOKEN) return fail("bad_token", 403);
     if (!body || typeof body !== "object") return fail("bad_request");
     try {
-      const out = await ebayComps({ q: body.q, limit: body.limit, env, signal });
+      const out = await ebayComps({ q: body.q, limit: body.limit, kind: body.kind, env, signal });
       if (out.ok) return reply(200, out);
       /* Pass eBay's own error name back. It is not a secret - it is
          invalid_client or invalid_scope - and it is the difference between

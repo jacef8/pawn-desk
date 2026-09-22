@@ -75,6 +75,24 @@ const JUNK = /\b(for parts|parts only|not working|as[- ]is|repair|broken|lot of|
  * so, because it is worth more.
  */
 const PARTS = /\b(part|parts|motor assembly|switch and (board|bord)|armature|stator|chuck only|housing)\b|\bfor\s+(dewalt|milwaukee|makita|ryobi|bosch|m18|m12)\b/i;
+
+/* Components, named outright. Outdoor power equipment is the worst for
+   this: a search for "Husqvarna 240" comes back as springs, fuel caps,
+   sprockets, crankshafts and mufflers, none of which contain the word
+   "part". Priced together they made a $180 chainsaw look like $8-21, and a
+   $500 riding mower look like $25-50 - deck belts and spindles.
+   Deliberately excludes bar, chain, blade, belt and handle: a real saw
+   listing says "with 18in bar", and rejecting those would leave nothing. */
+const COMPONENT = /\b(carburet(or|tor)|carb kit|sprocket|crankshaft|piston|cylinder head|muffler|exhaust|flywheel|recoil|ignition coil|spark plug|gasket|handguard|hand guard|spindle|deck belt|air filter|fuel (cap|line|filter|pump|tank)|oil pump|clutch cover|top cover|side cover|bar cover|intake boot|choke lever|brake lever|handle wrap|rear handle|pull cord|starter rope|primer bulb)\b/i;
+
+/* What the catalogue calls this kind of thing, reduced to words a seller
+   would use. The point is that a listing for the TOOL says what the tool
+   is; a listing for a sprocket does not. */
+const KIND_STOP = new Set(["and","the","with","kit","for","any","size","current","gen","gal","max","new","used"]);
+function kindWords(kind) {
+  const head = String(kind || "").toLowerCase().split(/[\u2014\u2013(,]/)[0];
+  return head.split(/[^a-z]+/).filter((w) => w.length >= 2 && !KIND_STOP.has(w));
+}
 const LOTS  = /\blot\b|\bbundle\b|\b\d\s*-?\s*(tool|pc|piece)s?\s*(combo|kit|set)\b|^\s*([2-9]|\d{2})\s+(?!v\b|volt|ah\b|in\b|inch)/i;
 const BARE  = /\b(tool|body)\s*[-\u2013]?\s*only\b|\bno\s+batter|\bwithout\s+batter|\bbare\s*(tool)?\b|\bno\s+charger\b/i;
 const KITED = /\bkit\b|\bcombo\b|\bw\/?\s*\d*\s*(ah\s*)?batter|\bwith\s+batter|\bbatteries\b|\+\s*charger|\band\s+charger\b|\bw\/\s*charger|\bw\/?\s*batt\b|\bincludes?\s+batter/i;
@@ -97,9 +115,16 @@ function modelCodes(t) {
 /* DCD791D2 is a DCD791 in a kit box, not a different drill. */
 const sameModel = (a, b) => a === b || a.startsWith(b) || b.startsWith(a);
 
-export function fitOf(title, wanted) {
+export function fitOf(title, wanted, kinds) {
   const t = String(title || "");
-  if (PARTS.test(t)) return "part";
+  if (PARTS.test(t) || COMPONENT.test(t)) return "part";
+  /* Does this listing even say it is the thing being priced? A sprocket
+     never claims to be a chainsaw. Checked against the squashed title so
+     "Chain Saw" and "chainsaw" are the same word. */
+  if (kinds && kinds.length) {
+    const flat = squash(t);
+    if (!kinds.some((w) => flat.includes(w))) return "wrong";
+  }
   const cs = modelCodes(t);
   /* Codes that are not the thing asked for. A kit naming its own battery
      (DCB204) has one; a listing of six drills has three or more. Counting
@@ -189,7 +214,7 @@ const num = (v) => { const n = Number(v); return n > 0 ? n : 0; };
 const keep = (title) => !!title && !JUNK.test(title);
 
 /* ---- sold, via Marketplace Insights ---- */
-async function soldComps(q, limit, env, signal) {
+async function soldComps(q, limit, env, signal, kinds) {
   const token = await appToken(SCOPE_INSIGHTS, env, signal);
   const since = new Date(Date.now() - SOLD_DAYS * 864e5).toISOString().replace(/\.\d+Z$/, ".000Z");
   const url = apiBase(env) + "/buy/marketplace_insights/v1_beta/item_sales/search"
@@ -208,7 +233,7 @@ async function soldComps(q, limit, env, signal) {
     what: it.title || "",
     where: "eBay",
     basis: "sold",
-    fit: fitOf(it.title, wanted),
+    fit: fitOf(it.title, wanted, kinds),
     cond: it.condition || "",
     when: (it.lastSoldDate || "").slice(0, 10),
     url: it.itemWebUrl || "",
@@ -216,7 +241,7 @@ async function soldComps(q, limit, env, signal) {
 }
 
 /* ---- asking, via Browse ---- */
-async function askingComps(q, limit, env, signal) {
+async function askingComps(q, limit, env, signal, kinds) {
   const token = await appToken(SCOPE_BROWSE, env, signal);
   const url = apiBase(env) + "/buy/browse/v1/item_summary/search"
     + "?q=" + encodeURIComponent(q)
@@ -239,7 +264,7 @@ async function askingComps(q, limit, env, signal) {
       what: it.title || "",
       where: "eBay",
       basis: "asking",
-      fit: fitOf(it.title, wanted),
+      fit: fitOf(it.title, wanted, kinds),
       bids: bids || 0,
       cond: it.condition || "",
       url: it.itemWebUrl || "",
@@ -269,8 +294,9 @@ function split(comps) {
   };
 }
 
-export async function ebayComps({ q, limit, env, signal }) {
+export async function ebayComps({ q, limit, kind, env, signal }) {
   const query = String(q || "").trim().slice(0, 120);
+  const kinds = kindWords(kind);
   if (!query) return { ok: false, code: "bad_request" };
   const n = Math.min(MAX_LIMIT, Math.max(1, Number(limit) || 25));
 
@@ -279,7 +305,7 @@ export async function ebayComps({ q, limit, env, signal }) {
   let note = "";
   if (!insightsDenied) {
     try {
-      const all = await soldComps(query, n, env, signal);
+      const all = await soldComps(query, n, env, signal, kinds);
       return withBands({ ok: true, basis: "sold", source: "marketplace_insights", q: query }, all);
     } catch (e) {
       if (e.code === "ebay_scope") {
@@ -298,7 +324,7 @@ export async function ebayComps({ q, limit, env, signal }) {
   }
 
   try {
-    const all = await askingComps(query, n, env, signal);
+    const all = await askingComps(query, n, env, signal, kinds);
     return withBands({ ok: true, basis: "asking", source: "browse", q: query, warning: note }, all);
   } catch (e) {
     return { ok: false, code: e.code || "ebay_error" };
