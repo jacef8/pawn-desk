@@ -1368,11 +1368,12 @@ function renderItem(){
      to check it against - and drawing the whole machinery empty is what was
      filling the first screen with blank boxes. Until step 1 is answered the
      page is the search box and the two other ways in. */
+  /* This was a full card restating the search placeholder in 132px of prose,
+     above three columns stretched to the tallest one - so a 58-character
+     summary bar sat in a 468px box. The headline is one line now, and the
+     cards stand at their own height across the full desk width. */
   if(!st.picked&&!window.PHONE)return omniHTML()+`<div class="startPane">
-    <div class="card"><span class="label">Start here</span>
-      <div class="startH">What's on the counter?</div>
-      <div class="cardHint" style="font-size:14px">Type it above &mdash; a brand, a model, or just what the thing is. It knows ${CATALOG.reduce((a,c)=>a+c.items.length,0)} kinds of thing and ${mpCount()} models by name; anything else, type it anyway and set the price yourself.</div>
-    </div>
+    <p class="startLede"><span class="startH">What's on the counter?</span> <span class="startSub">Type it above &mdash; a brand, a model, or just what the thing is. ${CATALOG.reduce((a,c)=>a+c.items.length,0)} kinds and ${mpCount()} models by name; anything else, type it anyway and set the price yourself.</span></p>
     <div class="startTwo">${left.replace('<div class="colL">','<div class="startCol">')}</div>
   </div>`;
   /* The phone hides the three columns outright, and the camera card lived in
@@ -4988,7 +4989,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.2200";
+const APP_BUILD="0926.2210";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

@@ -296,12 +296,18 @@
      the first two-up attempt was ragged because the cards were different
      heights. Stretching them fixes that and the width does the work. */
   #view.item.start{display:block!important}
-  .startPane{display:grid;gap:clamp(10px,1.1vw,15px);max-width:1180px;margin:0 auto}
-  .startH{font-family:var(--sans);font-size:clamp(20px,2.4vw,26px);font-weight:800;color:var(--ink);margin:2px 0 6px}
+  /* No max-width: the search box above runs the full desk, and inseting the
+     cards to 1180 left a 260px margin either side that read as a mistake. */
+  .startPane{display:grid;gap:clamp(10px,1.1vw,15px)}
+  .startLede{margin:2px 0 2px;line-height:1.5}
+  .startH{font-family:var(--sans);font-size:clamp(18px,1.9vw,22px);font-weight:800;color:var(--ink)}
+  .startSub{font-family:var(--sans);font-size:14px;color:var(--ink-2)}
   .startTwo,.startCol{display:grid;gap:clamp(10px,1.1vw,15px);align-content:start}
   @media (min-width:1080px){
-    .startCol{grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch}
-    .startCol>.card,.startCol>details{margin-top:0;align-self:stretch}
+    /* start, not stretch: a closed browse bar is 58 characters and was being
+       held open to the height of the camera card beside it. */
+    .startCol{grid-template-columns:repeat(3,minmax(0,1fr));align-items:start}
+    .startCol>.card,.startCol>details{margin-top:0;align-self:start}
   }
   .startCol>.card{margin-top:0}
   /* spotting-fakes checklist */
