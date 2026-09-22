@@ -43,9 +43,14 @@
     #view.item,#view.metal{display:grid;gap:clamp(10px,1.1vw,15px);align-items:start;
       grid-template-columns:minmax(0,300px) minmax(0,1fr) minmax(0,320px);
       grid-template-areas:"left center right"}
+    /* The numbers go first, above the search box. They are what the counter
+       is looking at while a customer waits; the search is how the item got
+       here and has done its job by then. They were third, under the title
+       bar and the search - which on an 860px window put them 226px down and
+       left the detail cards starting at the fold. */
     #view.item{grid-template-rows:auto auto auto auto;
-      grid-template-areas:"omni omni omni" "pin pin pin" "next next next" "left center right"}
-    #pin{grid-area:pin;position:sticky;top:96px;z-index:5}
+      grid-template-areas:"pin pin pin" "omni omni omni" "next next next" "left center right"}
+    #pin{grid-area:pin;position:sticky;top:92px;z-index:5}
     .omni{grid-area:omni}
     .colL{grid-area:left}.colC{grid-area:center}.colR{grid-area:right}
     .colL,.colC,.colR{min-width:0;padding:4px 2px 8px}
@@ -421,6 +426,27 @@
   @media (min-width:900px){.nsGrid{grid-template-columns:minmax(0,370px) minmax(0,1fr);align-items:start}}
   .nsSteps{background:var(--recess);box-shadow:var(--well-sh);border-radius:var(--r-s);padding:6px}
   .nsStep{display:grid;grid-template-columns:26px 104px minmax(0,1fr);align-items:center;gap:9px;padding:6px 8px;border-radius:10px;color:var(--ink-2)}
+  /* On a desk the checklist was running taller than the question beside it,
+     so the card carried eighty-odd pixels of nothing under the answers.
+     Tighter rows, and the two panes end up about the same height. */
+  @media (min-width:1080px){
+    .nsGrid{gap:10px}
+    .nsStep{padding:3px 8px;gap:8px}
+    .card.nextStep{padding-top:10px;padding-bottom:10px}
+    /* The answer buttons were their own natural width, so five condition
+       choices ended a third of the way short and left a bare rectangle down
+       the right of the card - the thing the counter circled. Let them share
+       the row instead. They fill the space, they line up, and they become
+       far bigger targets for somebody standing at a counter rather than
+       sitting at the screen. Anything that is not a plain answer - the
+       lookup, the folds, the hint lines - keeps its own size. */
+    .nsAct{align-items:stretch}
+    .nsAct>.nsBtn[data-ncond]:not(.ghost),
+    .nsAct>.nsBtn[data-cat]:not(.ghost),
+    .nsAct>.nsBtn[data-mp]:not(.ghost){
+      flex:1 1 130px;min-width:0;justify-content:center;text-align:center;padding:14px 12px}
+    .nsAct>.nsBtn[data-ncond] span{white-space:nowrap}
+  }
   .nsStep+.nsStep{margin-top:2px}
   .nsStep.cur{background:linear-gradient(160deg,var(--e2-hi),var(--e2));box-shadow:inset 0 1px 0 rgba(255,255,255,.13),0 4px 10px -6px rgba(0,0,0,.9);color:var(--ink)}
   .nsDot{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font:700 13px var(--mono);border:2px solid rgba(255,255,255,.35);color:var(--ink)}
