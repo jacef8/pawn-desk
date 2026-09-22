@@ -262,7 +262,14 @@ function snapHTML(){
   /* Written out rather than reusing camButtonHTML: that one carries an inline
      style, and an inline style beats any rule aimed at it - which is how the
      button ended up sharing a row instead of owning one. */
-  const cam=(CAP.sample&&CAP.images)
+  const camOn=CAP.sample&&CAP.images;
+  /* Switched off, this is the 524px setup card - and it was sitting between
+     the header and the number, so on an 844px phone "Pay up to" landed below
+     the fold. Nothing is being set up while something is on the counter; the
+     price leads and the invitation goes to the foot as a line. The desk has
+     held this line since the rail went in. Before anything is picked the full
+     card stays at the top: that IS the phone's first move. */
+  const cam=camOn
     ? `<div class="snapCam">
         <label class="brassBtn camBtn snapShoot">\uD83D\uDCF7 Take a picture<input id="photoCam" type="file" accept="image/*" capture="environment" style="display:none"></label>
         ${photoBusy
@@ -270,7 +277,11 @@ function snapHTML(){
           : `<label class="snapAlt">or choose one already on the phone<input id="photoIn" type="file" accept="image/jpeg,image/png,image/webp" style="display:none"></label>`}
         ${photoErrHTML()}
        </div>`
-    : pdConnectHTML();
+    : (has ? "" : pdConnectHTML());
+  const camOff=(!camOn&&has)
+    ? `<div class="snapOff">\uD83D\uDCF7 Camera and photo lookups are off on this phone.
+        <button class="ghostBtn" data-gotab="setup" type="button">Set it up</button></div>`
+    : "";
 
   /* Read, but not placed: say what was seen rather than showing an empty
      camera screen as though nothing had happened. */
@@ -287,7 +298,7 @@ function snapHTML(){
   if(F&&F.blocks) return `<div class="snapWrap">${cam}
     <div class="snapName">${esc(name)}</div>
     ${phVerdictHTML(x)}
-    ${snapFootHTML()}</div>`;
+    ${camOff}${snapFootHTML()}</div>`;
 
   const priced=x.checked;
   const busy=(typeof findBusy!=="undefined"&&findBusy)||snapAuto;
@@ -307,7 +318,7 @@ function snapHTML(){
              ? "Used ones on the web"+(st.photoRead.webPrice.where?" \u2014 "+esc(st.photoRead.webPrice.where):"")
              :esc(checkedNote(x)))}</div></div>`}
     <div class="snapCond">${CONDITIONS.map(c=>`<button class="${c.id===st.cond?"on":""}" data-cond="${c.id}">${c.label.replace("New in box","New")}</button>`).join("")}</div>
-    ${snapFootHTML()}
+    ${camOff}${snapFootHTML()}
   </div>`;
 }
 function snapFootHTML(){

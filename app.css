@@ -593,6 +593,9 @@
   .snapOr{text-align:center;font-family:var(--mono);font-size:11px;letter-spacing:.14em;
     text-transform:uppercase;color:var(--ink-3)}
   .snapTip{font-size:13px;color:var(--ink-3);line-height:1.5}
+  .snapOff{font-size:13px;color:var(--ink-3);line-height:1.6;padding:11px 13px;
+    border:1px dashed var(--e2-hi);border-radius:12px}
+  .snapOff .ghostBtn{padding:6px 13px;font-size:12.5px;margin-left:4px}
   .snapName{font-size:20px;font-weight:700;color:var(--ink);line-height:1.25}
   .snapName span{display:block;font-size:13.5px;font-weight:500;color:var(--ink-3);margin-top:3px}
   .snapCard{padding:20px;border-radius:var(--r);border:1px solid rgba(0,232,160,.30);
