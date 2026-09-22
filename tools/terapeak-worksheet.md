@@ -29,7 +29,7 @@ measured the same way, so the two columns are comparable.
 
 | Search exactly this | Listings I saw | Ask median | Ask average | **Sold average (you)** |
 |---|---|---|---|---|
-| barnett crossbow package scope | 42 | $270 | $305 | |
+| barnett crossbow package scope | 42 | $270 | $305 | **$308.45** (STR 29.7%, 21 sellers) |
 | bear archery compound bow | 45 | $230 | $228 | |
 | dewalt dcd777 | 39 | $42 | $50 | |
 | dewalt dcn692 | 11 | $265 | $262 | |
@@ -41,6 +41,12 @@ measured the same way, so the two columns are comparable.
 | paslode framing nailer | 48 | $122 | $121 | |
 | ravin crossbow | 37 | $1000 | $1057 | |
 | shark upright vacuum cleaner | 40 | $135 | $148 | |
+
+## Running tally
+
+| Search | Ask avg | Sold avg | Sold / ask |
+|---|---|---|---|
+| barnett crossbow package scope | $305 | $308.45 | **1.01** |
 
 ## Why twelve and not one
 
