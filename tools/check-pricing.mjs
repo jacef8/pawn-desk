@@ -80,6 +80,51 @@ console.log("\n  the TV is not named for one size band");
   ok(tv.sizes.length >= 4, "the picker offers every band — " + tv.sizes.join(" / "));
 }
 
+/* THE METER. Its whole job is to tell a number resting on real sales apart
+   from one resting on what sellers hope for. If those two ever render the
+   same, it is worse than not being there - it dresses a guess up as
+   evidence. So the asking-heavy case is checked for the warning tone AND
+   the words, not just for drawing something. */
+console.log("\n  the meter behind the number");
+{
+  const w = await page.evaluate(() => {
+    const c = CATALOG.find(x => x.items.some(i => i.id === "t1"));
+    st.mode = "item"; st.catId = c.id; st.itemId = "t1"; st.picked = true; st.page = "offer";
+    const grab = () => { render(); const el = document.querySelector(".wCard");
+      if (!el) return null;
+      const fill = el.querySelector(".wBar i");
+      return {text: el.innerText.replace(/\s+/g, " "),
+              tone: fill ? fill.className : "", width: fill ? fill.style.width : ""}; };
+    const out = {};
+    st.market = null; out.none = grab();
+    st.market = {kind:"found", key:mkKey(), n:12, med:110, lo:95, hi:130, sold:9,
+                 mostlyAsks:false, conf:"h", mid:110, from:"eBay 9 \u00b7 Shopping 3"};
+    out.sold = grab();
+    st.market = {kind:"found", key:mkKey(), n:10, med:140, lo:120, hi:160, sold:1,
+                 mostlyAsks:true, conf:"l", mid:140, from:"Shopping 7 \u00b7 eBay 3"};
+    out.asks = grab();
+    st.market = {kind:"hand", key:mkKey(), mid:150}; out.hand = grab();
+    st.market = null; return out;
+  });
+
+  ok(w.none && /not checked/i.test(w.none.text), "an unchecked item says so — " + (w.none && w.none.text.slice(0, 44)));
+  ok(w.none && w.none.tone.includes("none"), "and its bar is drawn empty, not full");
+
+  ok(w.sold && /12 listings/.test(w.sold.text), "counts the listings — " + (w.sold && w.sold.text.slice(0, 40)));
+  ok(w.sold && /9 sold/.test(w.sold.text) && /3 asking/.test(w.sold.text), "splits sold from asking");
+  ok(w.sold && /eBay 9/.test(w.sold.text), "names the sites they came from");
+  ok(w.sold && !w.sold.tone.includes("warn"), "mostly-sold is NOT flagged");
+  ok(w.sold && parseInt(w.sold.width) === 75, "the bar is the sold share — 9 of 12 = 75%, got " + (w.sold && w.sold.width));
+
+  ok(w.asks && w.asks.tone.includes("warn"), "mostly-asking IS flagged");
+  ok(w.asks && /mostly asking/i.test(w.asks.text), "and says so in words, not just colour");
+  ok(w.asks && /ceiling/i.test(w.asks.text), "and says what to do about it");
+  ok(w.asks && parseInt(w.asks.width) === 10, "its bar is 1 of 10 = 10%, got " + (w.asks && w.asks.width));
+
+  ok(w.hand && /your own figure/i.test(w.hand.text), "a typed number is named as yours");
+  ok(w.hand && /condition does not adjust/i.test(w.hand.text), "and repeats that condition will not touch it");
+}
+
 ok(!errs.length, "no page errors" + (errs.length ? ": " + errs[0] : ""));
 await browser.close();
 console.log(fails ? "\n  " + fails + " FAILED\n" : "\n  all passed\n");

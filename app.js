@@ -782,6 +782,73 @@ function pinHTML(x){
       :`Range ${money(x.low)}&ndash;${money(x.high)}. Never above the top.`}${x.buy===x.target?` Buy and lend match in ${esc(x.cat.label.toLowerCase())} on purpose \u2014 ${esc(BUY_WHY[x.cat.id]||"")}.`:""}</span>
   </div>`;
 }
+/* HOW MUCH IS BEHIND THE NUMBER.
+   The desk has always known this and said it in one line of small grey type:
+   how many listings the resale value rests on, how many of those were real
+   sales rather than asking prices, and which sites they came from. A price
+   built on nine completed eBay sales and a price built on two hopeful
+   Craigslist ads were exactly the same size on the screen.
+
+   They are not the same number. The difference is whether you hold your
+   offer when he argues, and it is the first thing you would want to know
+   standing there - so it gets drawn rather than mentioned.
+
+   The bar is the share that were real sales. Amber, not green, when most of
+   what is behind the figure is somebody's asking price: asks run high, and
+   high is the wrong way to be wrong when the money is going out. */
+function weightHTML(x){
+  const m=x.market;
+  const CONF={h:[100,"","good data"],m:[62,"warn","fair data"],l:[28,"warn","thin - check it"]};
+  const bar=(pct,tone)=>`<div class="wBar"><i class="${tone||""}" style="width:${Math.max(3,Math.min(100,Math.round(pct)))}%"></i></div>`;
+  const card=(head,right,barHTML,foot)=>`<div class="card wCard">
+    <span class="label" style="margin:0">Behind this number</span>
+    <div class="wHead"><b>${head}</b><span>${right}</span></div>
+    ${barHTML}${foot?`<div class="wFoot">${foot}</div>`:""}</div>`;
+
+  if(!m||!x.checked)
+    return card("Not checked","built-in estimate",bar(100,"none"),
+      "Nothing has been looked up for this one. The figure is the desk's own starting point, not a sale anybody made. Look it up and this fills in.");
+
+  if(m.kind==="found"||m.kind==="harvest"){
+    const n=m.n||0, sold=m.sold||0, share=n?sold/n:0;
+    const asks=n-sold;
+    return card(n+" listing"+(n===1?"":"s"), sold+" sold · "+asks+" asking",
+      bar(n?share*100:3,share>=0.5?"":"warn"),
+      (m.from?esc(m.from)+"<br>":"")
+      +(share>=0.5
+        ?"Most of these are prices somebody actually paid."
+        :"<b>Mostly asking prices.</b> Nobody paid these - they are what sellers hope for, and they run high. Treat the figure as a ceiling."));
+  }
+
+  if(m.kind==="list"){
+    const c=CONF[m.conf]||CONF.m;
+    return card(esc(srcName(m.src)),c[2],bar(c[0],c[1]),
+      "From the desk's price list for <b>"+esc(m.name||"this model")+"</b>, checked "+esc(fmtDay(m.date))+"."
+      +(m.mine?" This one is your own figure off the master sheet.":""));
+  }
+
+  if(m.kind==="shot")
+    return card(m.n+" sold","on "+esc(m.site||"the sold page"),bar(100,""),
+      "Read off a sold page you photographed. These are completed sales.");
+
+  if(m.kind==="seen")
+    return card(m.n+" seen locally","asking "+money(m.ask),bar(30,"warn"),
+      "<b>Another shop's shelf tags.</b> Asking prices, and they have their own markdown to come.");
+
+  if(m.kind==="own")
+    return card("your "+m.n+" sales","your own counter",bar(100,""),
+      "What this shop actually got for one. Nothing beats it.");
+
+  if(m.kind==="retail")
+    return card("No sales found","worked back from new",bar(25,"warn"),
+      "Nothing sold turned up, so this is "+money(m.retail)+" new taken down to a used share. A real sold price beats it every time.");
+
+  if(m.kind==="hand")
+    return card("Your own figure","typed in",bar(100,""),
+      "You set this by hand, so it is taken as this one sits - condition does not adjust it again.");
+
+  return "";
+}
 function paintPin(x){ const p=document.getElementById("pin"); if(p)p.innerHTML=pinHTML(x||calcItem()); }
 function ticketHTML(x){
   const F=fakeState(fakeSheet(x));
@@ -1338,7 +1405,7 @@ function renderItem(){
      one thing a pinned column must never do. The loan card is still there in
      full, at the foot of the questionnaire, ring and all. */
   if(deskRail())return omniHTML()+nextStepHTML(x)
-    +`<div class="rail"><div id="pin">${pinHTML(x)}</div></div>`
+    +`<div class="rail"><div id="pin">${pinHTML(x)}</div>${weightHTML(x)}</div>`
     +`<div class="colQ">${left}${mid}<div id="ticket">${ticketHTML(x)}</div>`
       +`${leftRef}${logCardHTML(x)}</div>`;
   return omniHTML()+nextStepHTML(x)+`<div id="pin">${pinHTML(x)}</div>`+left+mid+right;
@@ -4921,7 +4988,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.2100";
+const APP_BUILD="0926.2200";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
