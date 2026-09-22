@@ -303,7 +303,7 @@ if (!GO) {
 }
 if (!SERVER || !TOKEN) { console.error("  Set PAWN_SERVER and PAWN_TOKEN first.\n"); process.exit(2); }
 
-let hit = 0, miss = 0, said = false;
+let hit = 0, miss = 0, fails = 0, said = false;
 for (let i = 0; i < todo.length; i++) {
   const t = todo[i];
   const tag = `[${i + 1}/${todo.length}] ${t.name}`;
@@ -317,7 +317,14 @@ for (let i = 0; i < todo.length; i++) {
       console.error(`\n  Stopping: ${e.message}. Set the eBay keyset on the service and try again.\n`);
       process.exit(2);
     }
-    got = { comps: [], basis: "", warning: "" };
+    /* A lookup that failed to complete is NOT the same as eBay having
+       nothing, and recording it as such is worse than not recording it:
+       the run skips anything already found, so a service that was
+       restarting mid-run would permanently poison those rows with an
+       answer nobody ever got. Leave it unwritten and the next run
+       retries it. */
+    fails++;
+    continue;
   }
   /* Say the bad news once, not six hundred times. */
   if (got.warning && !said) { said = true; console.log(`\n  ! ${got.warning}\n    Findings from this run are asking prices. They will be graded and labelled as such.\n`); }
@@ -391,6 +398,7 @@ for (let i = 0; i < todo.length; i++) {
 }
 const wilds = Object.values(found).filter(f => f && f.wild).length;
 const soldRows = Object.values(found).filter(f => f && f.basis === "sold").length;
+if (fails) console.log(`\n  ! ${fails} lookup(s) never completed - left unrecorded so the next run retries them.`);
 console.log(`\n  ${hit} priced, ${miss} with nothing usable` +
   (wilds ? `, ${wilds} outside the sanity band and held back` : "") + `. Findings in ${OUT}.`);
 console.log(`  ${soldRows} of them are built on sold prices; the rest are asking prices and read high.`);
