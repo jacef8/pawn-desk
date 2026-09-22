@@ -751,7 +751,7 @@ function pinHTML(x){
 
      The strip was called "Where it stands", which describes the state of
      the app rather than the money. It is the numbers. */
-  return `<div class="pinStrip pinDecide${P&&x.buyTooThin?" thin":""}">
+  return `<div class="pinStrip pinDecide${deskRail()?" pinRail":""}${P&&x.buyTooThin?" thin":""}">
     <span class="pinLab">${P?"What it's worth to you":"The numbers"}</span>
     <button class="pinNew" id="pinNew" type="button" title="Clear this item and start the next one. Your rates, shelf record, listings and deal log are kept.">Start over</button>
     ${P?(x.buyTooThin?cell("buy","Not worth buying","Walk away",1)
@@ -786,7 +786,17 @@ function ticketHTML(x){
     </div>
     <div class="cardHint" style="margin-top:8px">Open at the suggested loan. Go low when cash is tight or the deal feels off; go toward the top for a regular you want back. Never lend above the top — that's your cushion.</div>
     ${buyRowHTML(x)}
-    <details class="fold"${st.openWhy?" open":""} id="whyFold"><summary class="foldLine">The detail &mdash; cushion, fee, and why it is this much</summary>
+    ${deskRail()?"":ticketDetailHTML(x)}
+  </div>${deskRail()?"":paybackHTML(x)}`;
+}
+/* The rail is a column beside the questionnaire, not under it, so it has to
+   fit a screen. The loan card whole is 714px and the numbers panel another
+   200 - together taller than the window, which defeats the point of pinning
+   them. So the money stays in the rail and the reading matter - why it is
+   this much, and what he pays back - goes at the foot of the questionnaire,
+   where you look once rather than at every keystroke. */
+function ticketDetailHTML(x){
+  return `<details class="fold"${st.openWhy?" open":""} id="whyFold"><summary class="foldLine">The detail &mdash; cushion, fee, and why it is this much</summary>
     ${x.liquidity.adj!==0?`<div class="tagNote">Cut ${Math.abs(x.liquidity.adj)} points because it's a ${x.liquidity.label.toLowerCase()} item here. Your money sits in it longer, so lend less — don't drop the price.</div>`:""}
     <div class="tiles">
       <div class="widget"><div class="l">Resale value in this condition</div><div class="v">${money(x.resale)}</div></div>
@@ -795,9 +805,10 @@ function ticketHTML(x){
       <div class="widget"><div class="l">Loan &divide; resale — the ring above</div><div class="v">${x.ltv}%</div></div>
     </div>
     ${whyHTML("item")}
-    </details>
-  </div>
-  <details class="card foldCard"${st.openPayback?" open":""} id="paybackFold">
+    </details>`;
+}
+function paybackHTML(x){
+  return `<details class="card foldCard"${st.openPayback?" open":""} id="paybackFold">
     <summary><span class="label" style="margin:0">8 &middot; After the money moves</span><span class="foldSub">what he pays back, and the day it becomes ours</span></summary>
     <span class="label" style="margin-bottom:0;color:var(--ink-2)">He pays back</span>
     <div class="ladder">${ladder(x.target,x.charge).map(r=>`<div class="widget rung"><div class="k">${r.k}</div><div class="d">${money(r.due)}</div></div>`).join("")}</div>
@@ -1105,11 +1116,21 @@ function deskWide(){
   try{ return !window.PHONE && window.matchMedia("(min-width:1080px)").matches; }
   catch(e){ return false; }
 }
+/* The desk lays an item out as a questionnaire down the left and a live
+   numbers rail down the right: you answer, the money moves beside you, and
+   nothing you are working on is ever off the screen. Three columns of cards
+   was the old shape, and it meant the answer to a question you were reading
+   lived in a different column from the question. */
+function deskRail(){ return deskWide() && st.mode==="item" && st.picked; }
 function stepFlow(){
   if(st.flow==="all")return "all";
   if(st.flow==="steps")return "steps";
   if(st.flow==="pages")return "pages";
-  return deskWide()?"all":"pages";
+  /* A questionnaire means one question at a time with the answered ones
+     folded to a line carrying their answer - which is what "steps" already
+     does, and what the phone has always used. The desk gets it too now that
+     there is a rail beside it holding the numbers. */
+  return deskWide()?"steps":"pages";
 }
 
 /* Which page each card belongs to. Every card carries a stable id, so this
@@ -1130,6 +1151,7 @@ function livePages(v){
 function applyPages(){
   const v=document.getElementById("view"); if(!v)return;
   v.classList.toggle("paged",pagesOn());
+  v.classList.toggle("railed",deskRail());
   const old=v.querySelector("#pageNav"); if(old)old.remove();
   if(!pagesOn())return;
   const pages=livePages(v); if(!pages.length)return;
@@ -1190,7 +1212,11 @@ function renderItem(){
     /* On the phone this column is hidden and the camera card is drawn in the
        visible run instead - drawing it here too would put two of every id on
        the page, and the handlers would wire to the invisible copy. */
-    </div></details>${window.PHONE?"":photoCardHTML()}${seenCardHTML()}</div>`;
+    /* In the rail layout these two are reference, not questions - the camera
+       switch and the shelf-tag record - so they go to the foot of the
+       questionnaire rather than above the first thing being asked. */
+    </div></details>${deskRail()?"":(window.PHONE?"":photoCardHTML())+seenCardHTML()}</div>`;
+  const leftRef=deskRail()?`<div class="colL">${photoCardHTML()}${seenCardHTML()}</div>`:"";
   const ST=stepFlow()==="steps"&&!window.PHONE, LIVE=ST?liveStep(x):0;
   /* A step opened by hand stays open through the re-render a click inside it
      causes - otherwise it shuts under the hand that opened it. It is let go
@@ -1278,6 +1304,11 @@ function renderItem(){
       ? omniHTML()+nextStepHTML(x)+`<div id="pin">${pinHTML(x)}</div>`+cam+left+mid+right
       : cam+omniHTML()+nextStepHTML(x)+`<div id="pin">${pinHTML(x)}</div>`+left+mid+right;
   }
+  if(deskRail())return omniHTML()+nextStepHTML(x)
+    +`<div class="rail"><div id="pin">${pinHTML(x)}</div><div id="ticket">${ticketHTML(x)}</div></div>`
+    +`<div class="colQ">${left}${mid}`
+      +(x.checked?`<div class="card">${ticketDetailHTML(x)}</div>${paybackHTML(x)}`:"")
+      +`${leftRef}${logCardHTML(x)}</div>`;
   return omniHTML()+nextStepHTML(x)+`<div id="pin">${pinHTML(x)}</div>`+left+mid+right;
 }
 function wireItem(){
@@ -4858,7 +4889,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.1600";
+const APP_BUILD="0926.1700";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

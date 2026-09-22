@@ -51,6 +51,36 @@
     #view.item{grid-template-rows:auto auto auto auto;
       grid-template-areas:"pin pin pin" "omni omni omni" "next next next" "left center right"}
     #pin{grid-area:pin;position:sticky;top:92px;z-index:5}
+    /* THE TWO-COLUMN DESK. A questionnaire down the left, the money down the
+       right, and the money does not move. Three columns of cards put the
+       answer to a question in a different column from the question, and
+       whichever one you were reading, something you needed was off-screen.
+
+       The rail is sticky as a whole and holds only figures - the numbers
+       panel and the loan card's money half. Everything that is reading
+       rather than arithmetic went to the foot of the questionnaire. */
+    #view.item.railed{grid-template-columns:minmax(0,1fr) minmax(0,352px);
+      grid-template-rows:auto auto auto;
+      grid-template-areas:"omni rail" "next rail" "quest rail"}
+    #view.item.railed .rail{grid-area:rail;position:sticky;top:92px;align-self:start;
+      display:flex;flex-direction:column;gap:clamp(8px,.8vw,12px);max-height:calc(100dvh - 104px);overflow:auto;
+      scrollbar-width:thin}
+    #view.item.railed #pin{position:static;grid-area:auto}
+    #view.item.railed .colQ{grid-area:quest;min-width:0;display:flex;flex-direction:column;
+      gap:clamp(8px,.8vw,12px)}
+    #view.item.railed .colL,#view.item.railed .colC{display:contents}
+    /* stacked, the numbers get to be a column: the two decisions on top of
+       one another at full size, the arithmetic in a tidy pair of columns
+       beneath rather than trailing off the end of a row */
+    .pinStrip.pinRail{display:grid;grid-template-columns:1fr 1fr;column-gap:12px;row-gap:9px;align-items:start}
+    .pinStrip.pinRail .pinLab{grid-column:1}
+    .pinStrip.pinRail .pinNew{grid-column:2;justify-self:end}
+    .pinStrip.pinRail .pinCell.big{grid-column:1/-1;padding:0;border-left:none!important;
+      display:flex;flex-direction:row;align-items:baseline;justify-content:space-between;gap:10px}
+    .pinStrip.pinRail .pinCell.big+.pinCell.big{padding-left:0;border-top:1px solid rgba(255,255,255,.10);padding-top:9px}
+    .pinStrip.pinRail .pinCell.big b{font-size:40px}
+    .pinStrip.pinRail .pinCell:not(.big){opacity:.8}
+    .pinStrip.pinRail .pinNote{grid-column:1/-1;min-width:0}
     .omni{grid-area:omni}
     .colL{grid-area:left}.colC{grid-area:center}.colR{grid-area:right}
     .colL,.colC,.colR{min-width:0;padding:4px 2px 8px}
