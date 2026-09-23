@@ -56,26 +56,31 @@ console.log("\none question at a time\n");
 await start("t1");
 let r = await read();
 ok(!!r, "the run renders at all");
-ok(/^1 of 6/.test(r.where), "a cordless drill asks six questions — " + r.where);
+ok(/^1 of 7/.test(r.where), "a cordless drill asks seven questions — " + r.where);
 ok(/make/i.test(r.q), "it opens on the make — " + r.q);
 ok(r.backOff, "  Back is dead on the first one");
-ok(r.dots === 6, "  a dot for every question, got " + r.dots);
+ok(r.dots === 7, "  a dot for every question, got " + r.dots);
 
 /* the whole point: answering moves on */
 await page.click(".askOpt");
 r = await read();
-ok(/^2 of 6/.test(r.where), "answering moves to the next by itself — " + r.where);
+ok(/^2 of 7/.test(r.where), "answering moves to the next by itself — " + r.where);
 ok(r.done >= 1, "  and the one behind is marked done, got " + r.done);
 ok(!r.backOff, "  Back is alive now");
 
 /* the specifics ARE the questions, not fields under them */
 const seen = [];
 await start("t1");
-for (let i = 0; i < 6; i++) {
+/* Not every question is a row of buttons - "Which one is it?" and the
+   price are typed - so a question with nothing to tap is stepped past with
+   Next rather than ending the walk. */
+for (let i = 0; i < 9; i++) {
   const s = await read(); if (!s) break;
   seen.push(s.q);
   const b = await page.$(".askOpt");
-  if (b && s.opts.length) { await b.click(); await page.waitForTimeout(120); } else break;
+  if (b && s.opts.length) { await b.click(); }
+  else { const n = await page.$('[data-askmove="1"]:not([disabled])'); if (!n) break; await n.click(); }
+  await page.waitForTimeout(120);
 }
 const all = seen.join(" | ").toLowerCase();
 ok(/battery|platform/.test(all), "how many batteries is a question in the run — " + seen.join(" | "));
@@ -327,6 +332,94 @@ console.log("\n  a size the desk understood is not a different item");
   ok(r.bare[0] === "item", "  as it always did without the size — " + r.bare.join(","));
   ok(r.pods[0] === "own",
      "  and a real miss is still offered as one, not forced onto a row — " + r.pods.join(","));
+}
+
+/* THE DESK MUST ANSWER. It computes a resale value from its own price book
+   whether or not anything has been looked up - that book is the whole
+   reason it knows what a laptop is worth - and then refused to show any of
+   it, saying "No resale value yet". On a tablet with no service connection,
+   which is the one carried to the counter, the tool never answered at all.
+   An estimate is worth having as long as it is labelled one. */
+console.log("\n  the built-in estimate is shown, and labelled");
+{
+  const r = await page.evaluate(() => {
+    const c = CATALOG.find(x => x.items.some(i => i.id === "e2"));
+    st.flow="ask"; st.mode="item"; st.catId=c.id; st.itemId="e2"; st.picked=true;
+    st.brandTyped="Microsoft"; st.brandSet=false; st.market=null; st.specSel={};
+    st.model=""; st.detail=""; st.askAt=0;
+    render();
+    const x = calcItem();
+    return {checked: x.checked, resale: x.resale, target: x.target,
+            pin: (document.getElementById("pin")||{}).innerText || "",
+            ticket: (document.getElementById("ticket")||{}).innerText || ""};
+  });
+  ok(r.checked === false, "nothing has been looked up on this one");
+  ok(r.resale > 0 && r.target > 0, "  but the desk has a number — resale " + r.resale + ", loan " + r.target);
+  ok(!/No resale value yet/.test(r.pin), "the numbers strip no longer goes blank");
+  ok(r.pin.indexOf("$" ) >= 0 && /Estimate/i.test(r.pin),
+     "  it shows the money and calls it an estimate — " + r.pin.replace(/\s+/g," ").slice(0,90));
+  ok(/\$/.test(r.ticket) && /Starting point, not a checked price/.test(r.ticket),
+     "the loan card shows a loan and says where it came from");
+  ok(!/Hold off/.test(r.ticket), "  and no longer tells the counter to come back later");
+}
+
+/* WHICH ONE IS IT. The model is the thing on the page that moves money
+   most - it is what the sold-price lookup searches on, what the measured
+   rows are matched against, and where the make is read from - and the run
+   walked straight past it to the price. It existed only as an optional
+   fold on the old whole-page layout. */
+console.log("\n  the run asks which one it is");
+{
+  const r = await page.evaluate(() => {
+    const c = CATALOG.find(x => x.items.some(i => i.id === "g1"));
+    st.flow="ask"; st.mode="item"; st.catId=c.id; st.itemId="g1"; st.picked=true;
+    st.brandTyped=""; st.brandSet=false; st.model=""; st.detail=""; st.specSel={}; st.market=null;
+    const q = askQueue(calcItem());
+    const at = q.findIndex(z => z.id === "model");
+    st.askAt = at; render();
+    const box = document.getElementById("modelIn");
+    const det = document.getElementById("detailIn");
+    return {at, titles: q.map(z => z.title), hasBox: !!box, hasDet: !!det,
+            answered: q[at].answered,
+            skips: !!document.querySelector('[data-askmove="1"]:not([disabled])')};
+  });
+  ok(r.at >= 0, "the model is a question in the run — " + r.titles.join(" | "));
+  ok(r.at === 1, "  and it comes straight after the make, got position " + (r.at + 1));
+  ok(r.hasBox && r.hasDet, "  with a box for the model and one for the details");
+  ok(r.answered === false, "  it counts as unanswered while both are empty");
+  ok(r.skips, "  and can be walked past — nothing is required");
+}
+{
+  const r = await page.evaluate(async () => {
+    const box = document.getElementById("modelIn");
+    box.focus(); box.value = "870 Wingmaster";
+    box.dispatchEvent(new Event("input", {bubbles:true}));
+    await new Promise(z => setTimeout(z, 60));
+    return {model: st.model, stillFocused: document.activeElement === document.getElementById("modelIn"),
+            answered: askQueue(calcItem()).find(z => z.id === "model").answered};
+  });
+  ok(r.model === "870 Wingmaster", "typing in it reaches the desk — " + r.model);
+  ok(r.stillFocused, "  and does not throw the cursor out of the box on every letter");
+  ok(r.answered === true, "  the question reads as answered once something is in it");
+}
+
+/* Back and Skip sit side by side. brassBtn carries no vertical padding at
+   all and relies on its surroundings for a height; in the run nothing gave
+   it one, so Skip came out squat beside Back. */
+console.log("\n  Back and Skip are the same shape");
+{
+  const r = await page.evaluate(() => {
+    st.askAt = 0; render();
+    const back = document.querySelector('.askNav [data-askmove="-1"]');
+    const next = document.querySelector('.askNav [data-askmove="1"]');
+    const a = back.getBoundingClientRect(), b = next.getBoundingClientRect();
+    return {back: Math.round(a.height), next: Math.round(b.height),
+            aligned: Math.abs((a.top + a.height/2) - (b.top + b.height/2)) < 2};
+  });
+  ok(Math.abs(r.back - r.next) <= 1,
+     "they are the same height — Back " + r.back + "px, Skip " + r.next + "px");
+  ok(r.back >= 36, "  and both are big enough to hit with a thumb");
+  ok(r.aligned, "  and sit on the same line");
 }
 
 ok(!errs.length, "no page errors" + (errs.length ? ": " + errs[0] : ""));

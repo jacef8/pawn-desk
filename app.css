@@ -603,6 +603,13 @@
   .askOpt.on .askS{color:rgba(4,18,12,.72)}
   .askWorth{margin-top:12px}
   .askNav{display:flex;align-items:center;gap:12px;margin-top:16px}
+  /* Back and Skip sit side by side and have to match. brassBtn carries
+     "padding:0 18px" - no vertical padding at all - and everywhere else it
+     is used something gives it a height. Here nothing did, so Skip came out
+     squat beside Back and the pair looked broken. Both are pinned to the
+     same box. */
+  .askNav .ghostBtn,.askNav .brassBtn{min-height:42px;padding:0 20px;font-size:13px;
+    display:inline-flex;align-items:center;justify-content:center;line-height:1}
   .askDots{flex:1;display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
   /* Every question at a glance, and a way back to any of them. */
   .askDots i{width:9px;height:9px;border-radius:999px;background:rgba(255,255,255,.16);

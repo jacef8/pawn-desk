@@ -839,7 +839,16 @@ function pinHTML(x){
   const bare=t=>`<div class="pinStrip"><span class="pinLab">${window.PHONE?"What it's worth to you":"The numbers"}</span><span class="pinNote">${t}</span></div>`;
   if(F&&F.blocks)return bare(F.verdict==="fail"?"A check failed \u2014 don't lend on the name."
     :"Not checked yet \u2014 "+F.done+" of "+F.n+" on the "+esc(F.sh.title.toLowerCase())+" sheet.");
-  if(!x.checked)return bare("No resale value yet \u2014 step 4 sets it.");
+  /* It used to stop here and say "no resale value yet". The desk HAD a
+     value - the built-in price book is the whole reason it knows what a
+     laptop is worth - and it computed it, called it "the desk's own
+     starting point" in the card above, and then refused to show it. On a
+     tablet with no service connection, which is the one carried to the
+     counter, that meant the tool never answered at all.
+     An estimate is worth having as long as it is labelled an estimate, so
+     it is shown and labelled. Only a failed authenticity check still
+     blanks the money, because that is a reason not to lend, not a missing
+     number. */
   /* Each figure is named so a narrow screen can lay them out as a grid with
      the loan on top. On the desk they stay a single row and the name is
      ignored. */
@@ -871,7 +880,7 @@ function pinHTML(x){
     ${cell("cushion","Your cushion",money(x.margin))}
     ${cell("fee","Fee / 30 days",money(x.charge))}
     ${cell("ltv","Loan \u00f7 resale",x.ltv+"%")}
-    <span class="pinNote">${P?(x.buyTooThin
+    <span class="pinNote">${x.checked?"":`<b style="color:var(--warn,#E8B93A)">Estimate \u2014 nothing looked up yet.</b> `}${P?(x.buyTooThin
         ?`It doesn\u2019t sell for enough to clear the ${money(x.buyFloor)} you want out of a buy.`
         :`Capped by ${esc(buyCapWhy(x))}. Over ${money(x.buy)} and you\u2019re eating the ${money(x.buyMargin)}.`)
       :`Range ${money(x.low)}&ndash;${money(x.high)}. Never above the top.`}${x.buy===x.target?` Buy and lend match in ${esc(x.cat.label.toLowerCase())} on purpose \u2014 ${esc(BUY_WHY[x.cat.id]||"")}.`:""}</span>
@@ -953,10 +962,10 @@ function paintPin(x){ const p=document.getElementById("pin"); if(p)p.innerHTML=p
 function ticketHTML(x){
   const F=fakeState(fakeSheet(x));
   if(F&&F.blocks)return fakeHoldHTML(F);
-  if(!x.checked)return uncheckedTicketHTML(x);
-  return `<div class="card">
+  return `<div class="card${x.checked?"":" unchecked"}">
     <span class="label">7 &middot; Pawn loan &mdash; the cash you lend him</span>
-    ${gauge(x.ltv/100,"Lend him",money(x.target),"pawn loan","gi")}
+    ${x.checked?"":`<div class="mkNo" style="margin-bottom:6px"><b>Starting point, not a checked price.</b> This is the desk's own estimate for a typical one. Look it up in the run above and these numbers move.</div>`}
+    ${gauge(x.ltv/100,"Lend him",money(x.target),x.checked?"pawn loan":"estimate","gi")}
     ${(st.model||st.detail)?`<div class="cardHint" style="text-align:center;margin-top:2px">Pricing: <b style="color:var(--ink)">${[st.model,st.detail].filter(Boolean).map(esc).join(" · ")}</b></div>`:""}
     ${x.spec&&x.spec.stop?`<div class="tagWarn" style="border-left-color:var(--bad);background:rgba(255,66,87,.12);color:#FFAAB4"><b>NO TITLE — NO DEAL.</b> Don't negotiate around a missing title, at any price.</div>`:""}
     <div class="tiles" style="grid-template-columns:1fr 1fr 1fr;margin-top:4px">
@@ -1405,6 +1414,17 @@ function deskRail(){ return deskWide() && st.mode==="item" && st.picked; }
  * spec pickers asks two questions and an Xbox asks five. Nothing is padded
  * to a fixed shape.
  */
+/* What the "details" box is for differs by category, and the wording lived
+   inline in the whole-page layout. The run needs the same words. */
+function detailHint(x){
+  const ov=itemOv(), id=(x&&x.cat?x.cat.id:st.catId);
+  const d=(ov&&ov.detail)||DETAIL_HINTS[id]||{ph:"",hint:""};
+  return {ph:d.ph||"", hint:d.hint||"",
+    what: ov?"specs for this item"
+        : id==="guns"?"caliber & barrel"
+        : id==="power"?"size & wattage"
+        : id==="elec"?"size & year":"specs"};
+}
 function askQueue(x){
   const q=[], cat=x.cat, ov=itemOv();
   if(cat.brand.on){
@@ -1436,6 +1456,17 @@ function askQueue(x){
       hint:known?"":"Nothing picked yet \u2014 the price is using the standard tier until you say.",
       answered:known});
   }
+  /* WHICH ONE IS IT. The run never asked, and the model is the single
+     thing on the page that moves money most: it is what the sold-price
+     lookup searches on, it is what the measured rows are matched against,
+     and it is where the make is read from. It existed only as an optional
+     fold on the old whole-page layout, so the one-question run - now the
+     default - walked straight past it to the price and left the lookup
+     searching for "laptop".
+     Never required. A model nobody knows is a blank box and a Skip. */
+  q.push({id:"model", title:"Which one is it?", kind:"model",
+    hint:"Model number or name, and anything that changes the price. Skip it if you cannot see one.",
+    answered:!!(st.model||st.detail)});
   const sc=SPEC_CHOICES[st.itemId]||[];
   sc.forEach((g,gi)=>{
     const key=st.itemId+":"+gi, sel=st.specSel[key]??specBase(g);
@@ -1468,8 +1499,17 @@ function askHTML(x){
   const cur=q[at];
   const opt=(o)=>`<button class="askOpt${o.on?" on":""}" data-ask="${esc(o.set)}" data-askv="${esc(o.v)}">`
     +`<span class="askT">${esc(o.t)}</span>${o.sub?`<span class="askS">${esc(o.sub)}</span>`:""}</button>`;
+  const dh=detailHint(x);
   const body=cur.kind==="worth"
     ? `<div class="askWorth">${step4Inner(x,true)}</div>`
+    : cur.kind==="model"
+    ? `<div class="askWorth">
+         <span class="label">Model</span>
+         <input id="modelIn" type="text" autocomplete="off" placeholder="870 Wingmaster, MS 271, 10/22\u2026" value="${esc(st.model)}" class="numIn" style="font-family:var(--sans);font-size:15px">
+         <span class="label" style="margin-top:12px">Details \u2014 ${esc(dh.what)} (optional)</span>
+         <input id="detailIn" type="text" autocomplete="off" placeholder="${esc(dh.ph)}" value="${esc(st.detail)}" class="numIn" style="font-family:var(--sans);font-size:15px">
+         <div class="cardHint" id="specVerdict">${specVerdictHTML(x)}</div>
+       </div>`
     : `<div class="askOpts">${(cur.opts||[]).map(opt).join("")}</div>`;
   return `<div class="card askCard" id="askCard">
     <div class="askWhere">${at+1} of ${q.length}${q.every(z=>z.answered)?" \u00b7 all answered":""}</div>
@@ -5436,7 +5476,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.2604";
+const APP_BUILD="0926.2718";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -5698,12 +5738,9 @@ function refreshStep4(){
   const tk=document.getElementById("ticket"); if(tk)tk.innerHTML=ticketHTML(xx); paintPin(xx);
   const lg=document.getElementById("logCard"); if(lg){ lg.innerHTML=logCardInner(xx); wireLogButton(); }
 }
-function uncheckedTicketHTML(x){
-  return `<div class="card unchecked"><span class="label">7 &middot; Pawn loan &mdash; the cash you lend him</span>
-    ${gauge(0,"Lend him","&mdash;","not checked yet","gi")}
-    <div class="mkNo" style="margin-top:6px"><b>Hold off.</b> There's no market price for this yet. Get one in step 4 and the loan shows up here.</div>
-    <div class="cardHint" style="font-size:14px;color:var(--ink-2)">Follow <b style="color:var(--ink)">Next step</b> at the top of the page.</div></div>`;
-}
+/* uncheckedTicketHTML lived here. The loan card no longer goes blank when
+   nothing has been looked up - it shows the desk's own estimate and says
+   so - so there is nothing left for it to draw. */
 function ownAvgTag(id){ const s=CAP.db?soldStats(id):null; return s?`<span class="price mine">you: ${money(s.avg)}</span>`:""; }
 
 /* The Pawn price favorite sends "PAWNDESK:{...}" straight back to the desk tab
