@@ -82,7 +82,27 @@ console.log("\n  the controls");
   ok(s.tabs.length >= 3, "there are page tabs — " + s.tabs.join(" | "));
   ok(/1 of/i.test(s.where), 'it says where you are — "' + s.where + '"');
   ok(s.backOff, "Back is dead on the first page");
-  ok(s.hasSkip, "there is a way to skip");
+  /* Skip and Next fire the same thing - data-pgmove="1" - so Skip is Next
+     wearing a different word, for when you are leaving a question
+     unanswered. On a page that IS answered the word is simply wrong, and it
+     is hidden there. "What it is" counts as answered the moment an item is
+     picked, which it is here, so the offer to skip belongs on a page that
+     still wants something. */
+  ok(!s.hasSkip, "no Skip on a page that is already answered");
+  {
+    const onOpen = await page.evaluate(() => {
+      /* Not "worth": the built-in price list already knows this item, so
+         worth counts as answered whether or not anything was looked up.
+         Condition is the one nothing can answer for you. */
+      st.page = "cond"; st.condSet = false; render();
+      const nav = document.getElementById("pageNav");
+      return {skip: !!(nav && nav.querySelector(".pageSkip")),
+              where: (nav && (nav.querySelector(".pageWhere")||{}).textContent) || ""};
+    });
+    ok(onOpen.skip, "but there is one on a page still waiting for an answer");
+    ok(!/all answered/.test(onOpen.where), "  and it does not claim to be finished — " + onOpen.where);
+    await page.evaluate(() => { st.page = "what"; render(); });
+  }
   const first = s.page, firstShown = s.shown.join("|");
 
   await page.click('#pageNav [data-pgmove="1"]');
