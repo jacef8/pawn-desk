@@ -302,6 +302,80 @@ console.log("\n  the brand page stops repeating itself");
   await pg.close();
 }
 
+/* YOU NEVER LEND MORE THAN YOU WOULD PAY TO OWN IT.
+   The floor - the dollars the shop wants to clear on a deal - was applied
+   to the buy price and not to the loan, so the two drifted apart at the
+   bottom of the book: a $32 air rifle read "pay $7" and "lend $14" side by
+   side, and 40 of the 248 rows the desk prices did the same. An unredeemed
+   loan leaves you owning the thing at what you lent, with the same hauling
+   and listing the floor was written to cover, so lending above the buy
+   price is strictly the worse deal. */
+console.log("\n  the loan never goes above the buy price");
+{
+  const r = await page.evaluate(() => {
+    const bad = [], capped = [], thin = [];
+    const look = (x, n) => {
+      if (x.target > x.buy) bad.push(n + " lend $" + x.target + " > buy $" + x.buy);
+      if (x.lendCapped) capped.push(n);
+      if (x.buyTooThin) thin.push(n);
+      if (x.high > x.buy) bad.push(n + " top loan $" + x.high + " > buy $" + x.buy);
+    };
+    for (const e of PRICEBOOK) { pickBookEntry(e); look(calcItem(), e[0]); }
+    for (const c of CATALOG) for (const it of c.items) {
+      st.catId = c.id; st.itemId = it.id; st.picked = true; st.brand = "mid"; st.brandSet = true;
+      st.cond = "good"; st.complete = true; st.specSel = {}; st.market = null;
+      st.bookName = ""; st.model = ""; st.detail = "";
+      look(calcItem(), it.name);
+    }
+    return {bad, nCapped: capped.length, nThin: thin.length,
+            total: PRICEBOOK.length + CATALOG.reduce((a,c)=>a+c.items.length,0)};
+  });
+  ok(r.bad.length === 0,
+     "no row lends more than it would pay, across all " + r.total + " — " + (r.bad.slice(0,3).join(" | ") || "none"));
+  ok(r.nCapped > 0, "  and the cap really bites on the cheap rows — " + r.nCapped + " held to it");
+}
+
+/* A loan the shop would lose money owning is not a smaller loan, it is no
+   loan. The desk printed one anyway - "lend $8" beside "pay $1". */
+console.log("\n  a row too thin to buy is too thin to lend on");
+{
+  const r = await page.evaluate(() => {
+    const e = PRICEBOOK.find(x => x[0] === "Wheelbarrow");
+    pickBookEntry(e); st.picked = true; render();
+    const x = calcItem();
+    return {thin: x.buyTooThin, buy: x.buy, lend: x.target,
+            pin: (document.getElementById("pin")||{}).innerText || "",
+            ticket: (document.getElementById("ticket")||{}).innerText || ""};
+  });
+  ok(r.thin, "a wheelbarrow at $28 resale against a $25 floor is too thin");
+  ok(r.lend <= r.buy, "  its loan does not exceed its buy price — buy $" + r.buy + ", lend $" + r.lend);
+  ok(/Walk away/.test(r.pin) && !/Lend him\s*\$/.test(r.pin),
+     "  the numbers strip says walk away rather than naming a loan");
+  ok(/Walk away/.test(r.ticket), "  and so does the loan card");
+  ok(!/on purpose/.test(r.pin),
+     "  and it does not claim buy and lend match 'on purpose' — they match because the loan was capped");
+}
+
+/* The fix must not flatten ordinary rows: the range is capped at the BUY
+   ceiling, not at the suggested loan, or every normal row collapses to a
+   single number where a low/suggested/top spread belongs. */
+console.log("\n  ordinary rows are untouched");
+{
+  const r = await page.evaluate(() => {
+    const c = CATALOG.find(x => x.items.some(i => i.id === "g5"));
+    st.catId = c.id; st.itemId = "g5"; st.picked = true; st.brand = "mid"; st.brandSet = true;
+    st.cond = "good"; st.complete = true; st.specSel = {}; st.market = null;
+    st.bookName = ""; st.model = ""; st.detail = "";
+    const x = calcItem();
+    return {low: x.low, target: x.target, high: x.high, buy: x.buy,
+            thin: x.buyTooThin, capped: x.lendCapped};
+  });
+  ok(!r.thin && !r.capped, "an AR-15 is neither thin nor capped");
+  ok(r.low < r.target && r.target < r.high,
+     "  its range still opens up — " + r.low + " < " + r.target + " < " + r.high);
+  ok(r.high <= r.buy, "  with the top loan still under the buy price — " + r.high + " ≤ " + r.buy);
+}
+
 ok(!errs.length, "no page errors" + (errs.length ? ": " + errs[0] : ""));
 await browser.close();
 console.log(fails ? "\n  " + fails + " FAILED\n" : "\n  all passed\n");

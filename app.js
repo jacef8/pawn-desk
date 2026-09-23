@@ -785,7 +785,6 @@ function calcItem(){
   const resale=checked ? market.mid*cond*completeMult
                        : baseValue*CATALOG_AT_GOOD*cond*brandMult*completeMult*spec.mult;
   const ltv=Math.max(10,baseLtv+liquidity.adj);
-  const target=Math.max(5,Math.round(resale*ltv/100));
   const buyBase=(st.buys&&st.buys[st.catId]!=null)?st.buys[st.catId]:((typeof BUY_DEFAULT!=="undefined"&&BUY_DEFAULT[st.catId]!=null)?BUY_DEFAULT[st.catId]:Math.min(90,baseLtv+5));
   const buyPct=Math.max(10,Math.min(90,buyBase+liquidity.adj));
   /* Three things cap what you can pay, and the tightest one wins.
@@ -814,13 +813,38 @@ function calcItem(){
   const buyCapBy=cap.k;
   /* Below this there is nothing left to make: clearing the floor would cost
      more than the thing sells for. */
-  const buyTooThin=cap.pay<1;
+  /* THE LOAN COMES AFTER THE BUY, AND NEVER GOES ABOVE IT.
+     The floor was applied to buying and not to lending, so the two numbers
+     drifted apart at the bottom of the book and ended up contradicting each
+     other: a $32 air rifle read "pay $7" and "lend $14" side by side, and 40
+     of the 248 rows the desk prices did the same thing.
+     There is no version of the trade where that is right. A loan that is not
+     redeemed leaves you owning the thing at what you lent, with the same
+     hauling, listing and shipping the floor was written to cover - so
+     lending $14 on it is a worse deal than buying it for $7, not a better
+     one. You never lend more than you would pay to own it outright.
+     Nothing new is invented here: the loan is simply held to the same three
+     caps the buy price already answers to. */
+  const lendWant=Math.round(resale*ltv/100);
+  const target=Math.max(1,Math.min(lendWant,Math.round(cap.pay)));
+  const lendCapped=lendWant>target;
+  /* Below this there is no deal to write, buy or loan. The desk already
+     refused to write a loan under five dollars; the same five dollars now
+     decides whether there is anything here at all, rather than printing a
+     one-dollar offer next to an eight-dollar loan. */
+  const buyTooThin=cap.pay<5;
   const buy=Math.max(1,Math.round(cap.pay));
-  return {cat,item,baseValue,baseLtv,condition,liquidity,liqId,resale,ltv,target,market,checked,handSet,buyBase,buyPct,buy,
+  return {cat,item,baseValue,baseLtv,condition,liquidity,liqId,resale,ltv,target,market,checked,handSet,buyBase,buyPct,buy,lendWant,lendCapped,
           brandTier,namedBrand:namedBrand&&namedBrand.name,
           brandMult,brandName:cat.brand.on?(((ITEM_OVERRIDES[st.itemId]||{}).tiers)||cat.brand)[brandTier]:null,spec,specMult:spec.mult,
-          low:Math.max(5,Math.round(resale*Math.max(8,ltv-12)/100)),
-          high:Math.max(5,Math.round(resale*Math.min(100,ltv+8)/100)),
+          /* The range is held to the same ceiling as the suggested loan -
+             a "top loan" above what you would pay to own the thing is the
+             original fault wearing a different label. Capped at the BUY
+             ceiling, not at the suggested loan: clamping to the suggestion
+             would flatten the range to a single number on every ordinary
+             row, where the top loan is meant to sit above it. */
+          low:Math.max(1,Math.min(Math.round(cap.pay),Math.round(resale*Math.max(8,ltv-12)/100))),
+          high:Math.max(1,Math.min(Math.round(cap.pay),Math.round(resale*Math.min(100,ltv+8)/100))),
           charge:Math.max(5,target*0.25),margin:resale-target,buyMargin:resale-buy,
           buyCapBy,buyTooThin,buyFloor,buyMult};
 }
@@ -871,19 +895,21 @@ function pinHTML(x){
   return `<div class="pinStrip pinDecide${deskRail()?" pinRail":""}${P&&x.buyTooThin?" thin":""}">
     <span class="pinLab">${P?"What it's worth to you":"The numbers"}</span>
     <button class="pinNew" id="pinNew" type="button" title="Clear this item and start the next one. Your rates, shelf record, listings and deal log are kept.">Start over</button>
-    ${P?(x.buyTooThin?cell("buy","Not worth buying","Walk away",1)
-                     :cell("buy","Pay up to",money(x.buy),1))
-        +cell("lend","Or lend on it",money(x.target),1)
-       :cell("buy","Buy it for",money(x.buy),1)+cell("lend","Lend him",money(x.target),1)}
+    ${x.buyTooThin
+      ? cell("buy","Not worth buying","Walk away",1)+cell("lend","Not worth lending","Walk away",1)
+      : (P?cell("buy","Pay up to",money(x.buy),1)+cell("lend","Or lend on it",money(x.target),1)
+          :cell("buy","Buy it for",money(x.buy),1)+cell("lend","Lend him",money(x.target),1))}
     ${cell("resale",x.handSet?(P?"Resells for":"Resale, yours"):(P?"Resells for":"Resale, "+esc(COND_WORDS[st.cond][0].toLowerCase())),money(x.resale))}
     ${P&&!x.buyTooThin?cell("gain","You'd make",money(x.buyMargin)):""}
     ${cell("cushion","Your cushion",money(x.margin))}
     ${cell("fee","Fee / 30 days",money(x.charge))}
     ${cell("ltv","Loan \u00f7 resale",x.ltv+"%")}
-    <span class="pinNote">${x.checked?"":`<b style="color:var(--warn,#E8B93A)">Estimate \u2014 nothing looked up yet.</b> `}${P?(x.buyTooThin
+    <span class="pinNote">${x.checked?"":`<b style="color:var(--warn,#E8B93A)">Estimate \u2014 nothing looked up yet.</b> `}${x.buyTooThin
+      ? `It doesn\u2019t sell for enough to clear the ${money(x.buyFloor)} you want out of it \u2014 not as a buy, and not as a loan you end up owning.`
+      : P?(x.buyTooThin
         ?`It doesn\u2019t sell for enough to clear the ${money(x.buyFloor)} you want out of a buy.`
         :`Capped by ${esc(buyCapWhy(x))}. Over ${money(x.buy)} and you\u2019re eating the ${money(x.buyMargin)}.`)
-      :`Range ${money(x.low)}&ndash;${money(x.high)}. Never above the top.`}${x.buy===x.target?` Buy and lend match in ${esc(x.cat.label.toLowerCase())} on purpose \u2014 ${esc(BUY_WHY[x.cat.id]||"")}.`:""}</span>
+      :`Range ${money(x.low)}&ndash;${money(x.high)}. Never above the top.`}${x.buy===x.target&&!x.lendCapped&&!x.buyTooThin?` Buy and lend match in ${esc(x.cat.label.toLowerCase())} on purpose \u2014 ${esc(BUY_WHY[x.cat.id]||"")}.`:""}</span>
   </div>`;
 }
 /* HOW MUCH IS BEHIND THE NUMBER.
@@ -962,6 +988,20 @@ function paintPin(x){ const p=document.getElementById("pin"); if(p)p.innerHTML=p
 function ticketHTML(x){
   const F=fakeState(fakeSheet(x));
   if(F&&F.blocks)return fakeHoldHTML(F);
+  /* A loan the shop would lose money owning is not a smaller loan, it is
+     no loan. The desk used to print one anyway - "lend $8" beside "pay $1"
+     for a wheelbarrow - so the card says the same thing the numbers strip
+     says rather than quoting a figure nobody should write. */
+  if(x.buyTooThin)return `<div class="card unchecked">
+    <span class="label">7 &middot; Pawn loan &mdash; the cash you lend him</span>
+    <div class="tagWarn" style="border-left-color:var(--bad);background:rgba(255,66,87,.12);color:#FFAAB4">
+      <b>Walk away.</b> It resells for about ${money(x.resale)}, and clearing the
+      ${money(x.buyFloor)} you want out of a deal leaves ${money(x.buy)} to offer.
+      There is nothing here to lend against either \u2014 an unredeemed loan
+      leaves you owning it with the same hauling and listing to do.</div>
+    <div class="cardHint" style="font-size:14px;color:var(--ink-2)">If you want it anyway,
+      set your own price in the run above and the desk will work from that.</div>
+  </div>`;
   return `<div class="card${x.checked?"":" unchecked"}">
     <span class="label">7 &middot; Pawn loan &mdash; the cash you lend him</span>
     ${x.checked?"":`<div class="mkNo" style="margin-bottom:6px"><b>Starting point, not a checked price.</b> This is the desk's own estimate for a typical one. Look it up in the run above and these numbers move.</div>`}
@@ -5476,7 +5516,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.2718";
+const APP_BUILD="0926.2836";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

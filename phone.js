@@ -302,8 +302,11 @@ function snapHTML(){
 
   const priced=x.checked;
   const busy=(typeof findBusy!=="undefined"&&findBusy)||snapAuto;
+  /* "out of a buy" was right when the floor only governed buying. It now
+     governs the loan too - an unredeemed one leaves you owning the thing
+     with the same hauling and listing - so the phone says both. */
   const big = x.buyTooThin ? `<div class="snapNo">Walk away</div>
-        <div class="snapSub">It doesn\u2019t sell for enough to clear the ${money(x.buyFloor)} you want out of a buy.</div>`
+        <div class="snapSub">It resells for about ${money(Math.round(x.resale))}, and clearing the ${money(x.buyFloor)} you want leaves ${money(x.buy)} to offer \u2014 not worth buying, and not worth lending on either.</div>`
     : `<div class="snapLab">Pay up to</div><div class="snapBig">${money(x.buy)}</div>
        <div class="snapSub">Resells for <b>${money(Math.round(x.resale))}</b> \u00b7 you\u2019d make <b>${money(x.buyMargin)}</b></div>`;
 
