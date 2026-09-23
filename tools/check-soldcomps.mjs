@@ -70,6 +70,55 @@ let got = null;
 try { await soldCompsFetch({ q: "x", limit: 5, kind: "", env: {} }); } catch (e) { got = e.code; }
 ok(got === "no_soldcomps_key", "no key raises rather than pretending");
 
+/* ---- the reason given when it falls through ------------------------
+   The ladder is SoldComps, then Insights, then asking prices. SoldComps
+   knows the real reason it stood down - two sales in ninety days, or a
+   spent quota. Insights always fails the same way, and its message used to
+   overwrite the true one, so a thin item read as "eBay never granted us
+   Insights". That is a permanent background fact, not what happened on
+   THIS lookup, and the counter reads this line to decide whether to trust
+   the number. */
+const { ebayComps, ebayReset } = await import("../server/ebay.js");
+
+function ladder({ soldItems }) {
+  globalThis.fetch = async (url, opt) => {
+    const u = String(url && url.url ? url.url : url);
+    if (u.includes("sold-comps.com"))
+      return { ok: true, status: 200, json: async () => ({ items: soldItems }) };
+    if (u.includes("/identity/v1/oauth2/token")) {
+      const body = String((opt && opt.body) || "");
+      /* Insights is refused; Browse is granted. That is production. */
+      if (body.includes("marketplace.insights"))
+        return { ok: false, status: 400, json: async () => ({ error: "invalid_scope" }) };
+      return { ok: true, status: 200, json: async () => ({ access_token: "t", expires_in: 7200 }) };
+    }
+    if (u.includes("item_summary/search"))
+      return { ok: true, status: 200, json: async () => ({ itemSummaries:
+        [{ title: "Milwaukee 2744 Framing Nailer", price: { value: "300" } },
+         { title: "Milwaukee 2744 Framing Nailer M18", price: { value: "310" } }] }) };
+    return { ok: false, status: 404, json: async () => ({}) };
+  };
+}
+const fullEnv = { SOLDCOMPS_KEY: "sc_test", EBAY_CLIENT_ID: "a", EBAY_CLIENT_SECRET: "b" };
+
+ebayReset();
+ladder({ soldItems: [item(), item()] });          /* 2 usable — under the floor of 4 */
+let res = await ebayComps({ q: "milwaukee 2744", limit: 40, kind: "Framing nailer", env: fullEnv });
+ok(res.basis === "asking", "two sales is too thin to price on — falls through to asking");
+ok(/only 2 used sales/.test(res.warning || ""), "  and says THAT, not the Insights boilerplate");
+ok(!/Marketplace Insights/.test(res.warning || ""), "  the Insights message does not overwrite it");
+
+ebayReset();
+ladder({ soldItems: [item(), item(), item(), item(), item()] });
+res = await ebayComps({ q: "milwaukee 2744", limit: 40, kind: "Framing nailer", env: fullEnv });
+ok(res.basis === "sold" && res.source === "soldcomps", "five sales is enough — sold prices win");
+
+ebayReset();
+ladder({ soldItems: [] });
+res = await ebayComps({ q: "milwaukee 2744", limit: 40, kind: "Framing nailer", env: { EBAY_CLIENT_ID: "a", EBAY_CLIENT_SECRET: "b" } });
+ok(res.basis === "asking" && /Marketplace Insights/.test(res.warning || ""),
+   "with no SoldComps key at all, the Insights message is still the right one");
+
 globalThis.fetch = real;
 console.log(`\n  ${pass} passed, ${fail} failed\n`);
 process.exit(fail ? 1 : 0);

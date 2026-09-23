@@ -367,11 +367,16 @@ export async function ebayComps({ q, limit, kind, env, signal }) {
            cold start, and if the shop ever becomes an approved partner the
            whole desk switches to sold prices without a line changing. */
         insightsDenied = true;
-        note = "sold data unavailable: this keyset is not granted Marketplace Insights";
+        /* Only if SoldComps has not already said something truer. It knows
+           the real reason - two sales in ninety days, or a spent quota -
+           and "eBay never granted us Insights" is a permanent background
+           fact, not what happened on THIS lookup. The counter reads this
+           line to decide whether to trust the number. */
+        if (!note) note = "sold data unavailable: this keyset is not granted Marketplace Insights";
       } else if (e.code === "no_ebay_key" || e.code === "ebay_auth") {
         return { ok: false, code: e.code, status: e.status,
                  upstream: e.upstream, upstreamText: e.upstreamText };
-      } else {
+      } else if (!note) {
         note = "sold lookup failed (" + e.code + "), fell back to asking prices";
       }
     }
