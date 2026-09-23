@@ -96,6 +96,13 @@ export async function soldCompsFetch({ q, limit, kind, env, signal }) {
          it is what it took to actually move the thing. */
       offer: !!it.acceptsOffers && !it.bidCount,
       url: it.url || "",
+      /* eBay's own thumbnail of the thing that sold. The counter is holding
+         the real item; twelve pictures of what the median was built from is
+         the fastest way to see that three of them are the wrong generation.
+         The small one only - the full-res version is a different URL and
+         nothing here displays at that size. */
+      img: typeof it.thumbnailUrl === "string" && /^https:\/\//.test(it.thumbnailUrl)
+        ? it.thumbnailUrl.slice(0, 300) : "",
     });
   }
   return { comps, skipped, seen: items.length };

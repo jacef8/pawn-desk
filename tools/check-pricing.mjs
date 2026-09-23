@@ -125,6 +125,52 @@ console.log("\n  the meter behind the number");
   ok(w.hand && /condition does not adjust/i.test(w.hand.text), "and repeats that condition will not touch it");
 }
 
+/* The strip beside the number. "12 sold" is a claim; the pictures are the
+   evidence, and they only help if they are BESIDE the price at the moment
+   the counter is deciding - not back on the step that set it. */
+console.log("\n  the comps the number was built from");
+{
+  const t = await page.evaluate(() => {
+    const now = Date.now();
+    const mk = (i, price, basis, img) => ({id:"t"+i, ts:now-i*864e5, q:"dewalt dcd777",
+      words:["dewalt","dcd777"], price, what:"DeWalt DCD777 drill "+i, where:"eBay", basis,
+      img: img===undefined ? "https://i.ebayimg.com/images/g/a"+i+"/s-l225.jpg" : img,
+      url:"https://www.ebay.com/itm/1000"+i});
+    const set = (rows) => localStorage.setItem("pawndesk_comps", JSON.stringify(rows));
+    const c = CATALOG.find(x => x.items.some(i => i.id === "t1"));
+    st.mode="item"; st.catId=c.id; st.itemId="t1"; st.picked=true; st.page="offer";
+    st.brandTyped="DeWalt"; st.model="DCD777";
+    st.market = {kind:"found", key:mkKey(), n:6, med:60, lo:45, hi:80, sold:4, conf:"h", mid:60};
+    const grab = () => { render();
+      const cells=[...document.querySelectorAll(".thumb")];
+      return {n:cells.length, sold:cells.filter(c=>c.classList.contains("sold")).length,
+        prices:cells.map(c=>c.querySelector(".tPrice").textContent.trim()),
+        links:cells.filter(c=>c.tagName==="A").length,
+        hasOnError:/onerror=/.test(document.body.innerHTML)}; };
+    const out = {};
+    set([mk(1,45,"sold"),mk(2,60,"sold"),mk(3,80,"asking"),mk(4,55,"sold"),mk(5,70,"asking")]);
+    st.market.key = mkKey(); out.mixed = grab();
+    set([mk(1,45,"sold"),mk(2,60,"sold")]);
+    st.market.key = mkKey(); out.two = grab();
+    set([mk(1,45,"sold",""),mk(2,60,"sold",""),mk(3,80,"sold","")]);
+    st.market.key = mkKey(); out.noPics = grab();
+    localStorage.removeItem("pawndesk_comps");
+    return out;
+  });
+  ok(t.mixed.n === 5, "five comps with pictures make five cells, got " + t.mixed.n);
+  ok(t.mixed.sold === 3, "  the sold ones are marked, got " + t.mixed.sold);
+  ok(/^\$45/.test(t.mixed.prices[0]) && /^\$55/.test(t.mixed.prices[1]) && /^\$60/.test(t.mixed.prices[2]),
+     "  sales come first, cheapest first: " + t.mixed.prices.join(" "));
+  ok(/^\$70/.test(t.mixed.prices[3]) && /^\$80/.test(t.mixed.prices[4]),
+     "  then the asks, also cheapest first: " + t.mixed.prices.join(" "));
+  ok(t.mixed.prices[0].includes("\u00b7"), "  a sale carries its date");
+  ok(!t.mixed.prices[4].includes("\u00b7"), "  an ask has no date to carry");
+  ok(t.mixed.links === 5, "  every cell opens its listing, got " + t.mixed.links);
+  ok(t.mixed.hasOnError, "  a picture that will not load takes its cell with it");
+  ok(t.two.n === 0, "under three pictures there is no strip - two is not evidence");
+  ok(t.noPics.n === 0, "comps with no pictures draw no strip");
+}
+
 ok(!errs.length, "no page errors" + (errs.length ? ": " + errs[0] : ""));
 await browser.close();
 console.log(fails ? "\n  " + fails + " FAILED\n" : "\n  all passed\n");

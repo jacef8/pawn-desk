@@ -119,6 +119,28 @@ res = await ebayComps({ q: "milwaukee 2744", limit: 40, kind: "Framing nailer", 
 ok(res.basis === "asking" && /Marketplace Insights/.test(res.warning || ""),
    "with no SoldComps key at all, the Insights message is still the right one");
 
+/* ---- thumbnails ----------------------------------------------------
+   The strip is evidence the counter checks against the thing in their
+   hand, and every URL in it is written into an <img src> or an <a href>
+   on that screen, from a service rather than from here. */
+r = await get([item({ thumbnailUrl: "https://i.ebayimg.com/images/g/abc/s-l225.jpg" })]);
+ok(r.comps[0].img === "https://i.ebayimg.com/images/g/abc/s-l225.jpg", "an https thumbnail is carried through");
+
+r = await get([item({ thumbnailUrl: "http://i.ebayimg.com/x.jpg" })]);
+ok(r.comps[0].img === "", "a plain-http thumbnail is dropped");
+
+r = await get([item({ thumbnailUrl: "javascript:alert(1)" })]);
+ok(r.comps[0].img === "", "a javascript: url is dropped");
+
+r = await get([item({ thumbnailUrl: null }), item({ thumbnailUrl: 42 })]);
+ok(r.comps[0].img === "" && r.comps[1].img === "", "a missing or non-string thumbnail is dropped");
+
+r = await get([item({ thumbnailUrl: "https://i.ebayimg.com/" + "x".repeat(600) })]);
+ok(r.comps[0].img.length === 300, "an absurdly long url is cut, not trusted whole");
+
+r = await get([item()]);
+ok(r.comps[0].img === "", "no thumbnail field means no image, not undefined");
+
 globalThis.fetch = real;
 console.log(`\n  ${pass} passed, ${fail} failed\n`);
 process.exit(fail ? 1 : 0);

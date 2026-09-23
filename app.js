@@ -812,12 +812,17 @@ function weightHTML(x){
   if(m.kind==="found"||m.kind==="harvest"){
     const n=m.n||0, sold=m.sold||0, share=n?sold/n:0;
     const asks=n-sold;
+    /* The pictures belong HERE, not only on the step that set the price.
+       By the time the counter is deciding, the price is already set and
+       step 2 is long gone - and "12 sold" is a claim, while twelve pictures
+       are something they can check against the thing in their hand. */
     return card(n+" listing"+(n===1?"":"s"), sold+" sold · "+asks+" asking",
       bar(n?share*100:3,share>=0.5?"":"warn"),
       (m.from?esc(m.from)+"<br>":"")
       +(share>=0.5
         ?"Most of these are prices somebody actually paid."
-        :"<b>Mostly asking prices.</b> Nobody paid these - they are what sellers hope for, and they run high. Treat the figure as a ceiling."));
+        :"<b>Mostly asking prices.</b> Nobody paid these - they are what sellers hope for, and they run high. Treat the figure as a ceiling."))
+      +thumbStripCard(compsMatch(x));
   }
 
   if(m.kind==="list"){
@@ -2787,6 +2792,49 @@ function compsCardHTML(x){
     <div class="row2"><input id="compQ" class="roOut" readonly tabindex="-1" aria-label="What those buttons search for" value="${esc(q)}" style="flex:1;min-width:0;font-size:13px"><button id="compCopy" class="ghostBtn" style="padding:10px 15px">Copy</button></div>
     <div class="cardHint">Sold prices, not asking prices. An item listed at $400 that nobody bought is worth nothing to you. On WatchCount, a Best Offer sale shows what the seller actually took &mdash; use that number, never the crossed-out one.${guns?" eBay doesn't sell guns &mdash; GunBroker completed auctions is the only real firearm comp.":""}</div>
   </div>`;
+}
+/* The ones the number was built from.
+ *
+ * A count and a median are a claim; these are the evidence. The counter is
+ * holding the actual item, and twelve pictures of what the median was made
+ * of is the fastest way to see that three of them are a different
+ * generation, or the wrong colour, or came with the case this one is
+ * missing. Cheapest first, so the two ends of the band are the two ends of
+ * the strip and an outlier is obvious where a list of numbers hides it.
+ *
+ * Sales before asks - a sale is the better evidence and should be the first
+ * thing in the eye. Sold ones carry the date; an ask has none to carry.
+ */
+/* The strip on its own card, for beside the number rather than beside the
+   question. Same pictures, its own box. */
+function thumbStripCard(rows){
+  const inner=thumbStripHTML(rows,true);
+  return inner?`<div class="card wCard" style="margin-top:8px">${inner}</div>`:"";
+}
+function thumbStripHTML(rows,bare){
+  const withPics=(rows||[]).filter(r=>r&&r.img&&r.price>0)
+    .sort((a,b)=>(a.basis==="sold"?0:1)-(b.basis==="sold"?0:1)||a.price-b.price)
+    .slice(0,12);
+  if(withPics.length<3)return "";
+  const cell=(r)=>{
+    const when=r.basis==="sold"&&r.ts?fmtDay(new Date(r.ts).toISOString().slice(0,10)):"";
+    const cap=`${money(r.price)}${when?" \u00b7 "+when:""}`;
+    /* No signal in somebody's driveway means eBay's image host is
+       unreachable, and twelve broken-image boxes are worse than no strip
+       at all - they read as a fault in the desk. A picture that will not
+       load takes its whole cell with it, and if none load the card is
+       empty and the count below it still tells the truth. */
+    const inner=`<img src="${esc(r.img)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="var t=this.closest('.thumb'); if(t)t.remove();">`
+      +`<span class="tPrice">${esc(cap)}</span>`
+      +`<span class="tWhat">${esc(r.what||"")}</span>`;
+    return r.url
+      ? `<a class="thumb${r.basis==="sold"?" sold":""}" href="${esc(r.url)}" target="_blank" rel="noopener" referrerpolicy="no-referrer" title="${esc(r.what||"")}">${inner}</a>`
+      : `<span class="thumb${r.basis==="sold"?" sold":""}" title="${esc(r.what||"")}">${inner}</span>`;
+  };
+  const sold=withPics.filter(r=>r.basis==="sold").length;
+  return `<div class="label" style="${bare?"margin:0":"margin-top:12px"}">What that number is made of</div>
+    <div class="thumbStrip">${withPics.map(cell).join("")}</div>
+    <div class="cardHint" style="margin-top:6px">${withPics.length} of them, cheapest first${sold?`, ${sold} sold`:""}. Tap one to open the listing &mdash; if several are not the same thing you are holding, the number is not yours.</div>`;
 }
 function setCompMsg(txt,kind){
   const el=document.getElementById("compMsg"); if(!el)return;
@@ -5042,7 +5090,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.2250";
+const APP_BUILD="0926.2300";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -5489,7 +5537,14 @@ function compsAdd(q,list){
     if(!(p>0)||p>1000000)return;
     a.push({id:now.toString(36)+i.toString(36)+Math.random().toString(36).slice(2,5), ts:now, q, words:w, price:p,
       what:String((c&&c.what)||"").slice(0,60), where:String((c&&c.where)||"").slice(0,24),
-      basis:((c&&c.basis)==="sold")?"sold":"asking"});
+      basis:((c&&c.basis)==="sold")?"sold":"asking",
+      /* Only https, only eBay's image host, and only the thumbnail - this
+         string is written into an <img src> on the counter's screen, and a
+         comp arrives from a service rather than from here. */
+      img:(function(u){ u=String((c&&c.img)||"");
+        return /^https:\/\/i\.ebayimg\.com\//.test(u)?u.slice(0,300):""; })(),
+      url:(function(u){ u=String((c&&c.url)||"");
+        return /^https:\/\/(www\.)?ebay\.com\//.test(u)?u.slice(0,300):""; })()});
     added++;
   });
   compsSave(a); return added;
@@ -5955,9 +6010,10 @@ function confShort(c){ return CONF_WORD[c]||""; }
    shops nearby are asking - so it is written once here. */
 function altSourcesHTML(x,noFind){
   let h="";
-  const T=compStats(compsMatch(x));
+  const M=compsMatch(x), T=compStats(M);
   if(T) h+=`<div class="label" style="margin-top:14px">Listings on file</div>`
-         +`<button class="nsBtn on" id="foundUse"><span>${T.n} listing${T.n===1?"":"s"}${T.sold?", "+T.sold+" sold":""} &middot; middle half ${money(T.lo)}&ndash;${money(T.hi)}</span><b>${money(T.mid)}</b><i>use this</i></button>`;
+         +`<button class="nsBtn on" id="foundUse"><span>${T.n} listing${T.n===1?"":"s"}${T.sold?", "+T.sold+" sold":""} &middot; middle half ${money(T.lo)}&ndash;${money(T.hi)}</span><b>${money(T.mid)}</b><i>use this</i></button>`
+         +thumbStripHTML(M);
   /* The desk carries this in the Next step panel, where it is on screen
      whatever step is showing. Two of them would mean two elements with one
      id, and the message would be written to whichever came first - which is
