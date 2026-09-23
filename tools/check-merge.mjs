@@ -153,5 +153,70 @@ console.log("\n  a one-off lands in the book map, not the model list");
      "prices.json is back exactly as it started");
 }
 
+/* A DRY RUN OF ALL 166 ONE-OFFS FOUND TWO HOLES. Both are here so they
+   stay shut.
+   The band that refuses an absurd row was computed during the LOOKUP, and
+   the merge simply trusted the flag in the findings file. A merge can be
+   run against a file from another day, another branch, or a version of
+   this script from before the price book had a band at all - which is how
+   a fabricated run put a $600 e-bike in at $2,583. The merge is the last
+   gate before the counter, so it checks for itself now. */
+console.log("\n  the merge re-checks the band itself");
+{
+  const tmp = join(TMP, "bookwild.json");
+  /* no `wild` flag on either - exactly what an older findings file looks like */
+  writeFileSync(tmp, JSON.stringify({ updated: "2026-09-23", found: {
+    "E-bike|E-bike":   { ref: "E-bike", name: "E-bike", lo: 2100, hi: 3100,
+                         n: 12, conf: "m", date: "2026-09-23", basis: "sold" },
+    "Blender|Blender": { ref: "Blender", name: "Blender", lo: 26, hi: 38,
+                         n: 11, conf: "m", date: "2026-09-23", basis: "sold" },
+  }}));
+  let out = "";
+  try { out = execFileSync(process.execPath, [join(ROOT, "tools/harvest.js"), "--merge", "--out", tmp],
+                           { cwd: ROOT, encoding: "utf8" }); } catch (e) { out = String(e.stdout || e); }
+  const bk = JSON.parse(readFileSync(PRICES, "utf8")).book || {};
+  ok(bk["E-bike"] === undefined,
+     "a $600 e-bike coming back at $2,600 is refused, flag or no flag — " + JSON.stringify(bk["E-bike"]));
+  ok(bk["Blender"] === 32, "  while a sane row beside it still lands — " + JSON.stringify(bk["Blender"]));
+  ok(/held back as wild/.test(out), "  and the run says so");
+  restore(); restoreReport();
+}
+
+/* The one-offs were rewritten in their own lane and never reached the
+   breaker's list, so a run could rewrite 153 price-book rows - four of them
+   past 4x - and exit 0 having seen nothing. They reach the counter through
+   the same screens as every other price. */
+console.log("\n  the breaker counts the one-offs");
+{
+  const APP = readFileSync(join(ROOT, "app.js"), "utf8");
+  const i = APP.indexOf("const PRICEBOOK=["), j = APP.indexOf("[", i);
+  let d = 0, end = j;
+  for (let k = j; k < APP.length; k++) {
+    if (APP[k] === "[") d++;
+    else if (APP[k] === "]" && --d === 0) { end = k; break; }
+  }
+  const PB = new Function("return " + APP.slice(j, end + 1))();
+  /* every one-off jumping about 80% - the shape of a broken search, not a market */
+  const found = {};
+  for (const e of PB) {
+    const mid = e[1] * 1.8;
+    found[e[0] + "|" + e[0]] = { ref: e[0], name: e[0], lo: Math.round(mid * 0.9),
+      hi: Math.round(mid * 1.1), n: 12, conf: "m", date: "2026-09-23", basis: "sold" };
+  }
+  const tmp = join(TMP, "bookbreak.json");
+  writeFileSync(tmp, JSON.stringify({ updated: "2026-09-23", found }));
+  let code = 0, out = "";
+  try { out = execFileSync(process.execPath, [join(ROOT, "tools/harvest.js"), "--merge", "--out", tmp],
+                           { cwd: ROOT, encoding: "utf8" }); }
+  catch (e) { code = e.status; out = String(e.stdout || "") + String(e.stderr || ""); }
+  ok(code === 2, "a run where every one-off jumps 80% is refused — exit " + code);
+  ok(/moved more than 60%/.test(out), "  and it says why — " + (out.match(/.*moved more than 60%.*/) || [""])[0].trim());
+  ok(!JSON.parse(readFileSync(PRICES, "utf8")).book, "  and nothing was written");
+  restore(); restoreReport();
+}
+
+ok(untouched(), "prices.json is back exactly as it started after the one-off tests");
+ok(existsSync(REPORT) === (reportBefore !== null), "  and no report is left behind");
+
 console.log(`\n  ${pass} passed, ${fail} failed\n`);
 process.exit(fail ? 1 : 0);

@@ -200,6 +200,19 @@ if (has("merge")) {
          marketNow() would have shown for the same row anyway. */
       const mid = Math.round((f.lo + f.hi) / 2);
       const was = bookMap[f.name] != null ? bookMap[f.name] : BOOK[f.name];
+      /* The band is recomputed HERE rather than trusting f.wild. That flag
+         is written during the lookup, and a merge can be run against a
+         findings file from another day, another branch, or a version of
+         this script from before the price book had a band at all - which
+         is exactly how a dry run put a $600 e-bike in at $2,583. The merge
+         is the last gate before the counter, so it checks for itself. */
+      const w = wildness(f.name, mid);
+      if (w && w.wild && !has("wild")) {
+        wild++;
+        heldWild.push({ name: f.name, lo: Math.round(f.lo), hi: Math.round(f.hi),
+                        n: f.n, book: w.book, ratio: w.ratio });
+        continue;
+      }
       if (mid > 0 && mid !== was) {
         bookMoves.push({ name: f.name, was, now: mid, n: f.n, basis: f.basis || "asking" });
         bookMap[f.name] = mid;
@@ -245,6 +258,13 @@ if (has("merge")) {
   for (const t of touchedMoves) {
     const was = (t.wasLo + t.wasHi) / 2, now = (t.nowLo + t.nowHi) / 2;
     if (was > 0) moves.push({ name: t.name, r: now / was, was, now });
+  }
+  /* The one-offs count. They were rewritten in their own lane and never
+     reached this list, so a run could rewrite 153 price-book rows - four of
+     them past 4x - and the breaker would exit 0 having seen nothing. They
+     reach the counter through exactly the same screens. */
+  for (const m of bookMoves) {
+    if (m.was > 0) moves.push({ name: m.name, r: m.now / m.was, was: m.was, now: m.now });
   }
   const wild3 = moves.filter(m => m.r >= 3 || m.r <= 1 / 3);
   const big   = moves.filter(m => m.r >= 1.6 || m.r <= 1 / 1.6);
