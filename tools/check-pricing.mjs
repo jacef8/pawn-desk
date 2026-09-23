@@ -14,6 +14,7 @@
  * right and is wrong.
  */
 import {createRequire} from "node:module";
+import {readFileSync} from "node:fs";
 import {execSync} from "node:child_process";
 
 const req = createRequire(import.meta.url);
@@ -584,6 +585,32 @@ console.log("\n  cheap book rows are not asked for a make or a model");
   ok(r.turn.easy === false && asks(r.turn),
      "  as is a $" + r.turn.resale + " zero-turn, where 40% is $"
      + Math.round(r.turn.resale * 0.4) + " against a $" + r.turn.floor + " floor");
+}
+
+/* A SEED THAT POINTS NOWHERE IS HARVESTED INTO NOTHING. Every row in
+   seed-models.json names the item it belongs to - either a catalog id
+   (t1, e3) or a price-book row by name ("Wireless earbuds"). A typo in
+   that ref costs a lookup and silently produces a row the picker can
+   never show, which is the worst kind of failure: it looks like work. */
+console.log("\n  every harvest target points at something real");
+{
+  const seeds = JSON.parse(readFileSync(
+    new URL("./seed-models.json", import.meta.url), "utf8")).rows;
+  const r = await page.evaluate((seeds) => {
+    const ids = new Set(); CATALOG.forEach(c => c.items.forEach(i => ids.add(i.id)));
+    const book = new Set(PRICEBOOK.map(x => x[0]));
+    const refs = [...new Set(seeds.map(s => s.ref))];
+    return {n: seeds.length, refs: refs.length,
+            bad: refs.filter(x => !ids.has(x) && !book.has(x)),
+            dupes: (() => { const seen = new Set(), d = [];
+              seeds.forEach(s => { const k = s.ref + "|" + s.name.toLowerCase();
+                if (seen.has(k)) d.push(k); seen.add(k); }); return d; })()};
+  }, seeds);
+  ok(r.bad.length === 0,
+     r.n + " targets across " + r.refs + " items, every ref resolves"
+     + (r.bad.length ? " — ORPHANED: " + r.bad.join(", ") : ""));
+  ok(r.dupes.length === 0,
+     "  and none is listed twice" + (r.dupes.length ? " — " + r.dupes.slice(0,4).join(", ") : ""));
 }
 
 ok(!errs.length, "no page errors" + (errs.length ? ": " + errs[0] : ""));

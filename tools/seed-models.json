@@ -1,6 +1,6 @@
 {
  "note": "Targets for tools/harvest.js. ref is the catalog item the model belongs to; alias is extra ways it gets typed. Nothing here is a price - the harvest fills those in. Rows whose ref is a NAME rather than an item id (g1, t3...) are price-book entries - the one-off walk-ins. They were never harvested, so 166 of the 176 carried a value nobody had checked against anything.",
- "count": 776,
+ "count": 971,
  "rows": [
   {
    "ref": "p1",
@@ -2690,20 +2690,20 @@
    "name": "DSLR / mirrorless camera"
   },
   {
-   "ref": "Wireless mouse — computer",
-   "name": "Wireless mouse — computer"
+   "ref": "Wireless mouse \u2014 computer",
+   "name": "Wireless mouse \u2014 computer"
   },
   {
    "ref": "Computer keyboard",
    "name": "Computer keyboard"
   },
   {
-   "ref": "Band saw — benchtop",
-   "name": "Band saw — benchtop"
+   "ref": "Band saw \u2014 benchtop",
+   "name": "Band saw \u2014 benchtop"
   },
   {
-   "ref": "Audio mixer — PA board",
-   "name": "Audio mixer — PA board"
+   "ref": "Audio mixer \u2014 PA board",
+   "name": "Audio mixer \u2014 PA board"
   },
   {
    "ref": "TIG / stick welder",
@@ -2758,12 +2758,12 @@
    "name": "Lawn edger"
   },
   {
-   "ref": "Water pump — gas",
-   "name": "Water pump — gas"
+   "ref": "Water pump \u2014 gas",
+   "name": "Water pump \u2014 gas"
   },
   {
-   "ref": "Inverter generator — 2kW",
-   "name": "Inverter generator — 2kW"
+   "ref": "Inverter generator \u2014 2kW",
+   "name": "Inverter generator \u2014 2kW"
   },
   {
    "ref": "Welder/generator combo",
@@ -2818,12 +2818,12 @@
    "name": "Floor jack"
   },
   {
-   "ref": "Jack stands — pair",
-   "name": "Jack stands — pair"
+   "ref": "Jack stands \u2014 pair",
+   "name": "Jack stands \u2014 pair"
   },
   {
-   "ref": "Socket set — complete",
-   "name": "Socket set — complete"
+   "ref": "Socket set \u2014 complete",
+   "name": "Socket set \u2014 complete"
   },
   {
    "ref": "Torque wrench",
@@ -2870,8 +2870,8 @@
    "name": "Sewing machine"
   },
   {
-   "ref": "Stand mixer — KitchenAid class",
-   "name": "Stand mixer — KitchenAid class"
+   "ref": "Stand mixer \u2014 KitchenAid class",
+   "name": "Stand mixer \u2014 KitchenAid class"
   },
   {
    "ref": "Climbing tree stand",
@@ -2886,24 +2886,24 @@
    "name": "Ground blind"
   },
   {
-   "ref": "Deer feeder — barrel",
-   "name": "Deer feeder — barrel"
+   "ref": "Deer feeder \u2014 barrel",
+   "name": "Deer feeder \u2014 barrel"
   },
   {
    "ref": "Cellular game camera",
    "name": "Cellular game camera"
   },
   {
-   "ref": "Duck decoys — dozen",
-   "name": "Duck decoys — dozen"
+   "ref": "Duck decoys \u2014 dozen",
+   "name": "Duck decoys \u2014 dozen"
   },
   {
-   "ref": "Kayak — sit-on-top",
-   "name": "Kayak — sit-on-top"
+   "ref": "Kayak \u2014 sit-on-top",
+   "name": "Kayak \u2014 sit-on-top"
   },
   {
-   "ref": "Jon boat — 12ft, no motor",
-   "name": "Jon boat — 12ft, no motor"
+   "ref": "Jon boat \u2014 12ft, no motor",
+   "name": "Jon boat \u2014 12ft, no motor"
   },
   {
    "ref": "Boat trailer",
@@ -2938,8 +2938,8 @@
    "name": "Red dot sight"
   },
   {
-   "ref": "Crossbow bolts & broadheads — lot",
-   "name": "Crossbow bolts & broadheads — lot"
+   "ref": "Crossbow bolts & broadheads \u2014 lot",
+   "name": "Crossbow bolts & broadheads \u2014 lot"
   },
   {
    "ref": "Soundbar",
@@ -2958,28 +2958,28 @@
    "name": "Gaming desktop PC"
   },
   {
-   "ref": "Monitor — 27in",
-   "name": "Monitor — 27in"
+   "ref": "Monitor \u2014 27in",
+   "name": "Monitor \u2014 27in"
   },
   {
-   "ref": "Smartwatch — Apple / Galaxy",
-   "name": "Smartwatch — Apple / Galaxy"
+   "ref": "Smartwatch \u2014 Apple / Galaxy",
+   "name": "Smartwatch \u2014 Apple / Galaxy"
   },
   {
-   "ref": "Video game — current title",
-   "name": "Video game — current title"
+   "ref": "Video game \u2014 current title",
+   "name": "Video game \u2014 current title"
   },
   {
    "ref": "Projector",
    "name": "Projector"
   },
   {
-   "ref": "Two-way radios — pair",
-   "name": "Two-way radios — pair"
+   "ref": "Two-way radios \u2014 pair",
+   "name": "Two-way radios \u2014 pair"
   },
   {
-   "ref": "Wristwatch — quartz, name brand",
-   "name": "Wristwatch — quartz, name brand"
+   "ref": "Wristwatch \u2014 quartz, name brand",
+   "name": "Wristwatch \u2014 quartz, name brand"
   },
   {
    "ref": "DJ controller",
@@ -2990,12 +2990,12 @@
    "name": "Bass guitar"
   },
   {
-   "ref": "Keyboard — 61 key",
-   "name": "Keyboard — 61 key"
+   "ref": "Keyboard \u2014 61 key",
+   "name": "Keyboard \u2014 61 key"
   },
   {
-   "ref": "Digital piano — 88 key",
-   "name": "Digital piano — 88 key"
+   "ref": "Digital piano \u2014 88 key",
+   "name": "Digital piano \u2014 88 key"
   },
   {
    "ref": "Banjo",
@@ -3014,8 +3014,8 @@
    "name": "Full drum set"
   },
   {
-   "ref": "Vocal mic — SM58 class",
-   "name": "Vocal mic — SM58 class"
+   "ref": "Vocal mic \u2014 SM58 class",
+   "name": "Vocal mic \u2014 SM58 class"
   },
   {
    "ref": "Powered PA speaker",
@@ -3046,8 +3046,8 @@
    "name": "Lawn / dump trailer cart"
   },
   {
-   "ref": "Enclosed trailer — 6x12",
-   "name": "Enclosed trailer — 6x12"
+   "ref": "Enclosed trailer \u2014 6x12",
+   "name": "Enclosed trailer \u2014 6x12"
   },
   {
    "ref": "Jet ski with trailer",
@@ -3062,12 +3062,12 @@
    "name": "ATV winch"
   },
   {
-   "ref": "Truck rims & tires — set",
-   "name": "Truck rims & tires — set"
+   "ref": "Truck rims & tires \u2014 set",
+   "name": "Truck rims & tires \u2014 set"
   },
   {
-   "ref": "Bicycle — adult",
-   "name": "Bicycle — adult"
+   "ref": "Bicycle \u2014 adult",
+   "name": "Bicycle \u2014 adult"
   },
   {
    "ref": "E-bike",
@@ -3090,44 +3090,44 @@
    "name": "Offset smoker"
   },
   {
-   "ref": "Flat-top griddle — Blackstone class",
-   "name": "Flat-top griddle — Blackstone class"
+   "ref": "Flat-top griddle \u2014 Blackstone class",
+   "name": "Flat-top griddle \u2014 Blackstone class"
   },
   {
-   "ref": "Propane tank — 20lb, full",
-   "name": "Propane tank — 20lb, full"
+   "ref": "Propane tank \u2014 20lb, full",
+   "name": "Propane tank \u2014 20lb, full"
   },
   {
    "ref": "Camp stove",
    "name": "Camp stove"
   },
   {
-   "ref": "Tent — 4 to 6 person",
-   "name": "Tent — 4 to 6 person"
+   "ref": "Tent \u2014 4 to 6 person",
+   "name": "Tent \u2014 4 to 6 person"
   },
   {
    "ref": "Sleeping bag",
    "name": "Sleeping bag"
   },
   {
-   "ref": "Hard cooler — Yeti class",
-   "name": "Hard cooler — Yeti class"
+   "ref": "Hard cooler \u2014 Yeti class",
+   "name": "Hard cooler \u2014 Yeti class"
   },
   {
    "ref": "Soft cooler / tote",
    "name": "Soft cooler / tote"
   },
   {
-   "ref": "Camp chairs — pair",
-   "name": "Camp chairs — pair"
+   "ref": "Camp chairs \u2014 pair",
+   "name": "Camp chairs \u2014 pair"
   },
   {
    "ref": "Air fryer",
    "name": "Air fryer"
   },
   {
-   "ref": "Pressure cooker — Instant Pot class",
-   "name": "Pressure cooker — Instant Pot class"
+   "ref": "Pressure cooker \u2014 Instant Pot class",
+   "name": "Pressure cooker \u2014 Instant Pot class"
   },
   {
    "ref": "Blender",
@@ -3182,24 +3182,24 @@
    "name": "TV stand / entertainment center"
   },
   {
-   "ref": "Gun cabinet — wood",
-   "name": "Gun cabinet — wood"
+   "ref": "Gun cabinet \u2014 wood",
+   "name": "Gun cabinet \u2014 wood"
   },
   {
-   "ref": "Post hole digger — gas",
-   "name": "Post hole digger — gas"
+   "ref": "Post hole digger \u2014 gas",
+   "name": "Post hole digger \u2014 gas"
   },
   {
    "ref": "Fence charger",
    "name": "Fence charger"
   },
   {
-   "ref": "Sprayer tank — 25 to 55 gal",
-   "name": "Sprayer tank — 25 to 55 gal"
+   "ref": "Sprayer tank \u2014 25 to 55 gal",
+   "name": "Sprayer tank \u2014 25 to 55 gal"
   },
   {
-   "ref": "Earth auger — one man",
-   "name": "Earth auger — one man"
+   "ref": "Earth auger \u2014 one man",
+   "name": "Earth auger \u2014 one man"
   },
   {
    "ref": "Livestock water trough",
@@ -3210,8 +3210,8 @@
    "name": "Chicken coop"
   },
   {
-   "ref": "Paint sprayer — airless",
-   "name": "Paint sprayer — airless"
+   "ref": "Paint sprayer \u2014 airless",
+   "name": "Paint sprayer \u2014 airless"
   },
   {
    "ref": "Laser level",
@@ -3222,8 +3222,8 @@
    "name": "OBD scan tool"
   },
   {
-   "ref": "Scaffolding — section",
-   "name": "Scaffolding — section"
+   "ref": "Scaffolding \u2014 section",
+   "name": "Scaffolding \u2014 section"
   },
   {
    "ref": "Wheelbarrow",
@@ -3242,8 +3242,8 @@
    "name": "Battery charger / jump box"
   },
   {
-   "ref": "Transfer pump — gas",
-   "name": "Transfer pump — gas"
+   "ref": "Transfer pump \u2014 gas",
+   "name": "Transfer pump \u2014 gas"
   },
   {
    "ref": "Grease gun",
@@ -3286,12 +3286,12 @@
    "name": "Surfboard"
   },
   {
-   "ref": "Paddle board — SUP",
-   "name": "Paddle board — SUP"
+   "ref": "Paddle board \u2014 SUP",
+   "name": "Paddle board \u2014 SUP"
   },
   {
-   "ref": "Life jackets — set",
-   "name": "Life jackets — set"
+   "ref": "Life jackets \u2014 set",
+   "name": "Life jackets \u2014 set"
   },
   {
    "ref": "Ring / smart doorbell",
@@ -3310,8 +3310,8 @@
    "name": "Wifi router / modem"
   },
   {
-   "ref": "Printer — all in one",
-   "name": "Printer — all in one"
+   "ref": "Printer \u2014 all in one",
+   "name": "Printer \u2014 all in one"
   },
   {
    "ref": "Record player / turntable set",
@@ -3322,8 +3322,8 @@
    "name": "Karaoke machine"
   },
   {
-   "ref": "E-reader — Kindle class",
-   "name": "E-reader — Kindle class"
+   "ref": "E-reader \u2014 Kindle class",
+   "name": "E-reader \u2014 Kindle class"
   },
   {
    "ref": "Power wheels / ride-on toy",
@@ -3344,6 +3344,786 @@
   {
    "ref": "Boat anchor & rode",
    "name": "Boat anchor & rode"
+  },
+  {
+   "ref": "Headphones \u2014 over-ear",
+   "name": "Sony WH-1000XM4"
+  },
+  {
+   "ref": "Headphones \u2014 over-ear",
+   "name": "Sony WH-1000XM5"
+  },
+  {
+   "ref": "Headphones \u2014 over-ear",
+   "name": "Sony WH-CH720N"
+  },
+  {
+   "ref": "Headphones \u2014 over-ear",
+   "name": "Bose QuietComfort 45"
+  },
+  {
+   "ref": "Headphones \u2014 over-ear",
+   "name": "Bose QuietComfort Ultra"
+  },
+  {
+   "ref": "Headphones \u2014 over-ear",
+   "name": "Bose QuietComfort 35 II"
+  },
+  {
+   "ref": "Headphones \u2014 over-ear",
+   "name": "Bose 700"
+  },
+  {
+   "ref": "Headphones \u2014 over-ear",
+   "name": "Apple AirPods Max"
+  },
+  {
+   "ref": "Headphones \u2014 over-ear",
+   "name": "Beats Studio3"
+  },
+  {
+   "ref": "Headphones \u2014 over-ear",
+   "name": "Beats Studio Pro"
+  },
+  {
+   "ref": "Headphones \u2014 over-ear",
+   "name": "Beats Solo 3"
+  },
+  {
+   "ref": "Headphones \u2014 over-ear",
+   "name": "Beats Solo 4"
+  },
+  {
+   "ref": "Headphones \u2014 over-ear",
+   "name": "Sennheiser HD 450BT"
+  },
+  {
+   "ref": "Headphones \u2014 over-ear",
+   "name": "Sennheiser Momentum 4"
+  },
+  {
+   "ref": "Headphones \u2014 over-ear",
+   "name": "Audio-Technica ATH-M50x"
+  },
+  {
+   "ref": "Headphones \u2014 over-ear",
+   "name": "Audio-Technica ATH-M20x"
+  },
+  {
+   "ref": "Headphones \u2014 over-ear",
+   "name": "JBL Tune 760NC"
+  },
+  {
+   "ref": "Headphones \u2014 over-ear",
+   "name": "JBL Live 660NC"
+  },
+  {
+   "ref": "Headphones \u2014 over-ear",
+   "name": "Skullcandy Crusher Evo"
+  },
+  {
+   "ref": "Headphones \u2014 over-ear",
+   "name": "Marshall Major IV"
+  },
+  {
+   "ref": "Headphones \u2014 over-ear",
+   "name": "HyperX Cloud II"
+  },
+  {
+   "ref": "Headphones \u2014 over-ear",
+   "name": "HyperX Cloud Alpha"
+  },
+  {
+   "ref": "Headphones \u2014 over-ear",
+   "name": "SteelSeries Arctis 7"
+  },
+  {
+   "ref": "Headphones \u2014 over-ear",
+   "name": "SteelSeries Arctis Nova 7"
+  },
+  {
+   "ref": "Headphones \u2014 over-ear",
+   "name": "Razer BlackShark V2"
+  },
+  {
+   "ref": "Headphones \u2014 over-ear",
+   "name": "Razer Kraken V3"
+  },
+  {
+   "ref": "Headphones \u2014 over-ear",
+   "name": "Turtle Beach Stealth 600"
+  },
+  {
+   "ref": "Headphones \u2014 over-ear",
+   "name": "Turtle Beach Recon 500"
+  },
+  {
+   "ref": "Headphones \u2014 over-ear",
+   "name": "Corsair HS80"
+  },
+  {
+   "ref": "Headphones \u2014 over-ear",
+   "name": "Logitech G Pro X"
+  },
+  {
+   "ref": "Headphones \u2014 over-ear",
+   "name": "Logitech G733"
+  },
+  {
+   "ref": "Headphones \u2014 over-ear",
+   "name": "Astro A50"
+  },
+  {
+   "ref": "Headphones \u2014 over-ear",
+   "name": "Astro A40"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "Apple AirPods 2nd generation"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "Apple AirPods 3rd generation"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "Apple AirPods 4"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "Apple AirPods Pro"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "Apple AirPods Pro 2"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "Samsung Galaxy Buds2"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "Samsung Galaxy Buds2 Pro"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "Samsung Galaxy Buds FE"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "Samsung Galaxy Buds Live"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "Samsung Galaxy Buds3"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "Sony WF-1000XM4"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "Sony WF-1000XM5"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "Sony WF-C500"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "Sony LinkBuds S"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "Bose QuietComfort Earbuds II"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "Bose Sport Earbuds"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "Beats Fit Pro"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "Beats Studio Buds"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "Beats Powerbeats Pro"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "Jabra Elite 75t"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "Jabra Elite 85t"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "Jabra Elite 4"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "Google Pixel Buds Pro"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "Google Pixel Buds A-Series"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "JBL Tune 230NC"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "JBL Vibe Beam"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "Anker Soundcore Liberty 4"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "Anker Soundcore Life P3"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "Skullcandy Indy Evo"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "Raycon Everyday"
+  },
+  {
+   "ref": "Game controller",
+   "name": "Xbox Wireless Controller Series X|S"
+  },
+  {
+   "ref": "Game controller",
+   "name": "Xbox Elite Series 2"
+  },
+  {
+   "ref": "Game controller",
+   "name": "Xbox Elite Series 2 Core"
+  },
+  {
+   "ref": "Game controller",
+   "name": "Xbox One Wireless Controller"
+  },
+  {
+   "ref": "Game controller",
+   "name": "Sony DualSense"
+  },
+  {
+   "ref": "Game controller",
+   "name": "Sony DualSense Edge"
+  },
+  {
+   "ref": "Game controller",
+   "name": "Sony DualShock 4"
+  },
+  {
+   "ref": "Game controller",
+   "name": "Nintendo Switch Pro Controller"
+  },
+  {
+   "ref": "Game controller",
+   "name": "Nintendo Joy-Con pair"
+  },
+  {
+   "ref": "Game controller",
+   "name": "Nintendo Switch 2 Pro Controller"
+  },
+  {
+   "ref": "Game controller",
+   "name": "8BitDo Pro 2"
+  },
+  {
+   "ref": "Game controller",
+   "name": "8BitDo Ultimate"
+  },
+  {
+   "ref": "Game controller",
+   "name": "Scuf Instinct Pro"
+  },
+  {
+   "ref": "Game controller",
+   "name": "Scuf Reflex"
+  },
+  {
+   "ref": "Game controller",
+   "name": "Razer Wolverine V2"
+  },
+  {
+   "ref": "Game controller",
+   "name": "PowerA Enhanced Wired"
+  },
+  {
+   "ref": "Game controller",
+   "name": "Turtle Beach Recon Controller"
+  },
+  {
+   "ref": "Game controller",
+   "name": "Logitech G920 racing wheel"
+  },
+  {
+   "ref": "Game controller",
+   "name": "Thrustmaster T248"
+  },
+  {
+   "ref": "Game controller",
+   "name": "Hori Split Pad Pro"
+  },
+  {
+   "ref": "Video game \u2014 current title",
+   "name": "Call of Duty Modern Warfare III"
+  },
+  {
+   "ref": "Video game \u2014 current title",
+   "name": "Call of Duty Black Ops 6"
+  },
+  {
+   "ref": "Video game \u2014 current title",
+   "name": "Madden NFL 25"
+  },
+  {
+   "ref": "Video game \u2014 current title",
+   "name": "Madden NFL 24"
+  },
+  {
+   "ref": "Video game \u2014 current title",
+   "name": "NBA 2K25"
+  },
+  {
+   "ref": "Video game \u2014 current title",
+   "name": "NBA 2K24"
+  },
+  {
+   "ref": "Video game \u2014 current title",
+   "name": "EA Sports FC 25"
+  },
+  {
+   "ref": "Video game \u2014 current title",
+   "name": "EA Sports FC 24"
+  },
+  {
+   "ref": "Video game \u2014 current title",
+   "name": "The Legend of Zelda Tears of the Kingdom"
+  },
+  {
+   "ref": "Video game \u2014 current title",
+   "name": "The Legend of Zelda Breath of the Wild"
+  },
+  {
+   "ref": "Video game \u2014 current title",
+   "name": "Mario Kart 8 Deluxe"
+  },
+  {
+   "ref": "Video game \u2014 current title",
+   "name": "Super Mario Odyssey"
+  },
+  {
+   "ref": "Video game \u2014 current title",
+   "name": "Super Smash Bros Ultimate"
+  },
+  {
+   "ref": "Video game \u2014 current title",
+   "name": "Pokemon Scarlet"
+  },
+  {
+   "ref": "Video game \u2014 current title",
+   "name": "Pokemon Violet"
+  },
+  {
+   "ref": "Video game \u2014 current title",
+   "name": "Animal Crossing New Horizons"
+  },
+  {
+   "ref": "Video game \u2014 current title",
+   "name": "Elden Ring"
+  },
+  {
+   "ref": "Video game \u2014 current title",
+   "name": "Red Dead Redemption 2"
+  },
+  {
+   "ref": "Video game \u2014 current title",
+   "name": "Grand Theft Auto V"
+  },
+  {
+   "ref": "Video game \u2014 current title",
+   "name": "Marvel's Spider-Man 2"
+  },
+  {
+   "ref": "Video game \u2014 current title",
+   "name": "God of War Ragnarok"
+  },
+  {
+   "ref": "Video game \u2014 current title",
+   "name": "Hogwarts Legacy"
+  },
+  {
+   "ref": "Video game \u2014 current title",
+   "name": "Minecraft"
+  },
+  {
+   "ref": "Video game \u2014 current title",
+   "name": "Mortal Kombat 1"
+  },
+  {
+   "ref": "Video game \u2014 current title",
+   "name": "EA Sports College Football 25"
+  },
+  {
+   "ref": "Video game \u2014 current title",
+   "name": "Helldivers 2"
+  },
+  {
+   "ref": "Video game \u2014 current title",
+   "name": "Baldur's Gate 3"
+  },
+  {
+   "ref": "VR headset",
+   "name": "Meta Quest 2"
+  },
+  {
+   "ref": "VR headset",
+   "name": "Meta Quest 3"
+  },
+  {
+   "ref": "VR headset",
+   "name": "Meta Quest 3S"
+  },
+  {
+   "ref": "VR headset",
+   "name": "Meta Quest Pro"
+  },
+  {
+   "ref": "VR headset",
+   "name": "Sony PlayStation VR2"
+  },
+  {
+   "ref": "VR headset",
+   "name": "Sony PlayStation VR"
+  },
+  {
+   "ref": "VR headset",
+   "name": "Valve Index"
+  },
+  {
+   "ref": "VR headset",
+   "name": "HTC Vive Pro 2"
+  },
+  {
+   "ref": "VR headset",
+   "name": "Pico 4"
+  },
+  {
+   "ref": "Handheld game console",
+   "name": "Nintendo Switch Lite"
+  },
+  {
+   "ref": "Handheld game console",
+   "name": "Nintendo Switch OLED"
+  },
+  {
+   "ref": "Handheld game console",
+   "name": "Steam Deck 256GB"
+  },
+  {
+   "ref": "Handheld game console",
+   "name": "Steam Deck OLED"
+  },
+  {
+   "ref": "Handheld game console",
+   "name": "Nintendo 3DS XL"
+  },
+  {
+   "ref": "Handheld game console",
+   "name": "New Nintendo 2DS XL"
+  },
+  {
+   "ref": "Handheld game console",
+   "name": "Sony PS Vita"
+  },
+  {
+   "ref": "Handheld game console",
+   "name": "Asus ROG Ally"
+  },
+  {
+   "ref": "Handheld game console",
+   "name": "Lenovo Legion Go"
+  },
+  {
+   "ref": "Handheld game console",
+   "name": "Anbernic RG35XX"
+  },
+  {
+   "ref": "Handheld game console",
+   "name": "Analogue Pocket"
+  },
+  {
+   "ref": "Monitor \u2014 27in",
+   "name": "Dell S2721DGF"
+  },
+  {
+   "ref": "Monitor \u2014 27in",
+   "name": "Dell U2720Q"
+  },
+  {
+   "ref": "Monitor \u2014 27in",
+   "name": "LG 27GL83A-B"
+  },
+  {
+   "ref": "Monitor \u2014 27in",
+   "name": "LG 27GN800"
+  },
+  {
+   "ref": "Monitor \u2014 27in",
+   "name": "Samsung Odyssey G5"
+  },
+  {
+   "ref": "Monitor \u2014 27in",
+   "name": "Samsung Odyssey G7"
+  },
+  {
+   "ref": "Monitor \u2014 27in",
+   "name": "Asus TUF VG27AQ"
+  },
+  {
+   "ref": "Monitor \u2014 27in",
+   "name": "Acer Nitro VG271"
+  },
+  {
+   "ref": "Monitor \u2014 27in",
+   "name": "AOC 24G2"
+  },
+  {
+   "ref": "Monitor \u2014 27in",
+   "name": "HP 24mh"
+  },
+  {
+   "ref": "Monitor \u2014 27in",
+   "name": "BenQ GW2480"
+  },
+  {
+   "ref": "Smartwatch \u2014 Apple / Galaxy",
+   "name": "Apple Watch SE 2nd generation"
+  },
+  {
+   "ref": "Smartwatch \u2014 Apple / Galaxy",
+   "name": "Apple Watch Series 7"
+  },
+  {
+   "ref": "Smartwatch \u2014 Apple / Galaxy",
+   "name": "Apple Watch Series 8"
+  },
+  {
+   "ref": "Smartwatch \u2014 Apple / Galaxy",
+   "name": "Apple Watch Series 9"
+  },
+  {
+   "ref": "Smartwatch \u2014 Apple / Galaxy",
+   "name": "Apple Watch Series 10"
+  },
+  {
+   "ref": "Smartwatch \u2014 Apple / Galaxy",
+   "name": "Apple Watch Ultra"
+  },
+  {
+   "ref": "Smartwatch \u2014 Apple / Galaxy",
+   "name": "Apple Watch Ultra 2"
+  },
+  {
+   "ref": "Smartwatch \u2014 Apple / Galaxy",
+   "name": "Samsung Galaxy Watch 4"
+  },
+  {
+   "ref": "Smartwatch \u2014 Apple / Galaxy",
+   "name": "Samsung Galaxy Watch 5"
+  },
+  {
+   "ref": "Smartwatch \u2014 Apple / Galaxy",
+   "name": "Samsung Galaxy Watch 6"
+  },
+  {
+   "ref": "Smartwatch \u2014 Apple / Galaxy",
+   "name": "Samsung Galaxy Watch 7"
+  },
+  {
+   "ref": "Smartwatch \u2014 Apple / Galaxy",
+   "name": "Fitbit Versa 4"
+  },
+  {
+   "ref": "Smartwatch \u2014 Apple / Galaxy",
+   "name": "Fitbit Sense 2"
+  },
+  {
+   "ref": "Smartwatch \u2014 Apple / Galaxy",
+   "name": "Garmin Forerunner 265"
+  },
+  {
+   "ref": "Smartwatch \u2014 Apple / Galaxy",
+   "name": "Garmin Venu 2"
+  },
+  {
+   "ref": "e5",
+   "name": "Xbox One"
+  },
+  {
+   "ref": "e5",
+   "name": "Xbox 360"
+  },
+  {
+   "ref": "e5",
+   "name": "PlayStation 3"
+  },
+  {
+   "ref": "e5",
+   "name": "Nintendo Wii U"
+  },
+  {
+   "ref": "e5",
+   "name": "Nintendo Wii"
+  },
+  {
+   "ref": "e5",
+   "name": "Nintendo Switch 2"
+  },
+  {
+   "ref": "e5",
+   "name": "Xbox Series X Digital"
+  },
+  {
+   "ref": "e2",
+   "name": "MacBook Air M3 13in"
+  },
+  {
+   "ref": "e2",
+   "name": "MacBook Pro 14in M3"
+  },
+  {
+   "ref": "e2",
+   "name": "Dell XPS 15 9520"
+  },
+  {
+   "ref": "e2",
+   "name": "HP Omen 16"
+  },
+  {
+   "ref": "e2",
+   "name": "Lenovo Yoga 7i"
+  },
+  {
+   "ref": "e2",
+   "name": "Acer Swift 3"
+  },
+  {
+   "ref": "e2",
+   "name": "Asus Vivobook 15"
+  },
+  {
+   "ref": "e2",
+   "name": "Samsung Galaxy Book3"
+  },
+  {
+   "ref": "e2",
+   "name": "Alienware m15 R7"
+  },
+  {
+   "ref": "e2",
+   "name": "MSI Katana 15"
+  },
+  {
+   "ref": "e2",
+   "name": "Razer Blade 15"
+  },
+  {
+   "ref": "e2",
+   "name": "Microsoft Surface Laptop 5"
+  },
+  {
+   "ref": "e3",
+   "name": "iPad Pro 12.9 M2"
+  },
+  {
+   "ref": "e3",
+   "name": "iPad Air M2"
+  },
+  {
+   "ref": "e3",
+   "name": "iPad 7th generation"
+  },
+  {
+   "ref": "e3",
+   "name": "iPad 8th generation"
+  },
+  {
+   "ref": "e3",
+   "name": "Samsung Galaxy Tab S9"
+  },
+  {
+   "ref": "e3",
+   "name": "Samsung Galaxy Tab S9 FE"
+  },
+  {
+   "ref": "e3",
+   "name": "Samsung Galaxy Tab S9 Ultra"
+  },
+  {
+   "ref": "e3",
+   "name": "Samsung Galaxy Tab A7 Lite"
+  },
+  {
+   "ref": "e3",
+   "name": "Samsung Galaxy Tab S8 Ultra"
+  },
+  {
+   "ref": "e3",
+   "name": "Lenovo Tab P11"
+  },
+  {
+   "ref": "e3",
+   "name": "Microsoft Surface Pro 9"
+  },
+  {
+   "ref": "e3",
+   "name": "Amazon Fire HD 7"
+  },
+  {
+   "ref": "e3",
+   "name": "onn. 10 Tablet Pro"
+  },
+  {
+   "ref": "e6",
+   "name": "JBL Clip 4"
+  },
+  {
+   "ref": "e6",
+   "name": "JBL Go 3"
+  },
+  {
+   "ref": "e6",
+   "name": "JBL Boombox 3"
+  },
+  {
+   "ref": "e6",
+   "name": "Bose SoundLink Micro"
+  },
+  {
+   "ref": "e6",
+   "name": "Sony SRS-XG300"
+  },
+  {
+   "ref": "e6",
+   "name": "Anker Soundcore 3"
+  },
+  {
+   "ref": "e6",
+   "name": "Marshall Willen"
   }
  ]
 }

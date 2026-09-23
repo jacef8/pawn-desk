@@ -354,6 +354,13 @@ const PRICEBOOK=[
     the observed asking price taken one markdown step down, the same way a
     shelf tag is treated everywhere else. */
  ["Wireless earbuds",60,"elec","fast"],["DSLR / mirrorless camera",200,"elec","slow"],
+ /* Two kinds that walk in constantly and had nowhere to land: over-ear
+    headphones (the book had earbuds and nothing else) and a loose
+    controller. Both figures are STARTING POINTS nobody has checked - the
+    same state as 166 of the rows above - and the desk can no longer quote
+    a book figure as a price, so neither is an answer until the sold page
+    or the counter says otherwise. The harvest is what makes them real. */
+ ["Headphones — over-ear",50,"elec","fast"],["Game controller",30,"elec","fast"],
  /* Desk clutter that walks in constantly and had no row at all, which is how
     a Logitech mouse came to be priced as a gaming tower. Both unverified -
     from used listings, not from anything sold here. */
@@ -5825,7 +5832,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.3702";
+const APP_BUILD="0926.3748";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
