@@ -648,6 +648,49 @@ console.log("\n  DJI's lines go to the right rows, and a mad answer says so");
   ok(r.sane, "  while a figure near the book passes without a word");
 }
 
+/* A BRAND THAT MAKES MORE THAN ONE KIND OF THING. The DJI fault was not
+   about DJI: a make is registered against one category, and a model name
+   the book does not recognise falls through to it. Yamaha is registered
+   against powersports, so every instrument it makes came back an OUTBOARD
+   MOTOR - a P-125 digital piano, a PSR keyboard, a Clavinova, an FG800
+   acoustic, a YAS-23 alto sax, HS8 monitors, an RX-V385 receiver. Those
+   are among the commonest things across a pawn counter. Thompson Center
+   pointed at the muzzleloader row, so a Compass and a Venture - plain
+   bolt-action centrefire rifles - came back muzzleloaders.
+   The rows all existed. Nothing pointed at them. */
+console.log("\n  a make that makes several things lands on the right one");
+{
+  const r = await page.evaluate(() => {
+    const top = (q) => { const R = omniRows(q) || {}, rows = R.rows || [];
+      const h = rows.find(x => x.kind === "item" || x.kind === "book" || x.kind === "mp");
+      return h ? String(h.label || h.name || h.title || "") : null; };
+    return {
+      piano: top("yamaha p-125"), clav: top("yamaha clavinova"),
+      psr: top("yamaha psr-e373"), guitar: top("yamaha fg800"),
+      sax: top("yamaha yas-23"), avr: top("yamaha rx-v385"),
+      compass: top("thompson center compass"), venture: top("thompson center venture"),
+      /* still powersports, which is the point - the fix must not overshoot */
+      grizzly: top("yamaha grizzly"), outboard: top("yamaha outboard"),
+      /* and the item word must still win over the make */
+      gen: top("honda generator"), mower: top("honda lawn mower"),
+    };
+  });
+  const bad = Object.entries(r).filter(([k, v]) => /outboard/i.test(v || "") && k !== "outboard");
+  ok(bad.length === 0, "no Yamaha instrument comes back an outboard motor"
+     + (bad.length ? " — " + bad.map(([k, v]) => k + "=" + v).join(", ") : ""));
+  ok(/digital piano/i.test(r.piano) && /digital piano/i.test(r.clav),
+     "  a P-125 and a Clavinova are digital pianos — " + r.piano + ", " + r.clav);
+  ok(/keyboard/i.test(r.psr) && /acoustic guitar/i.test(r.guitar) && /saxophone/i.test(r.sax),
+     "  PSR a keyboard, FG800 a guitar, YAS-23 a sax");
+  ok(/receiver/i.test(r.avr), "  and an RX-V385 is a receiver — " + r.avr);
+  ok(/bolt/i.test(r.compass) && /bolt/i.test(r.venture),
+     "a T/C Compass and Venture are bolt rifles, not muzzleloaders — " + r.compass);
+  ok(/atv|four/i.test(r.grizzly) && /outboard/i.test(r.outboard),
+     "  while a Grizzly is still a quad and an outboard still an outboard");
+  ok(/generator/i.test(r.gen) && /mower/i.test(r.mower),
+     "  and an item word still beats the make — " + r.gen + ", " + r.mower);
+}
+
 ok(!errs.length, "no page errors" + (errs.length ? ": " + errs[0] : ""));
 await browser.close();
 console.log(fails ? "\n  " + fails + " FAILED\n" : "\n  all passed\n");

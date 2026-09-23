@@ -4387,6 +4387,32 @@ function findBrand(text){
 const MB=(re,brand,item,o)=>Object.assign({re,brand,item},o||{});
 const pick=(m,map,dflt)=>{ const s=m[0]; for(const k in map){ if(new RegExp(k).test(s))return map[k]; } return dflt; };
 const MODELBOOK=[
+ /* YAMAHA MAKES PIANOS, AND THE DESK CALLED THEM ALL OUTBOARD MOTORS.
+    Same shape as DJI: the brand is registered against powersports, so a
+    model name the book did not recognise fell through to the brand's
+    category and came out an outboard. Every one of these was wrong - a
+    P-125 digital piano, a PSR keyboard, a Clavinova, an FG800 acoustic,
+    a YAS-23 alto sax, HS8 monitors, an RX-V385 receiver. Yamaha's
+    instruments are among the commonest things across a pawn counter and
+    the tool had no idea what any of them were.
+    The rows all already existed; nothing pointed at them. */
+ MB(/\b(yamaha\s*)?(clavinova|clp|cvp|csp)\s*-?\s*\d*\b/,"Yamaha","Digital piano — 88 key"),
+ MB(/\b(yamaha\s*)?p\s*-\s*(45|71|85|105|115|121|125|143|145|225|255|515|525)\b/,"Yamaha","Digital piano — 88 key",
+    {label:m=>"P-"+m[2]}),
+ MB(/\b(yamaha\s*)?psr\s*-?\s*\w*\d+\w*/,"Yamaha","Keyboard — 61 key"),
+ MB(/\b(yamaha\s*)?(fg|fs|apx|ll|ls|csf|storia)\s*-?\s*\d{2,3}\w*/,"Yamaha","m1"),
+ MB(/\b(yamaha\s*)?pacifica\s*\d*\b/,"Yamaha","m2"),
+ MB(/\b(yamaha\s*)?yas\s*-?\s*\d+\b/,"Yamaha","Alto saxophone"),
+ MB(/\b(yamaha\s*)?hs\s*-?\s*(5|7|8)\b/,"Yamaha","Powered PA speaker"),
+ MB(/\b(yamaha\s*)?(rx\s*-?\s*[va]|tsr|aventage)\s*-?\s*\d*\w*/,"Yamaha","AV receiver"),
+ MB(/\b(yamaha\s*)?(mg|emx)\s*-?\s*\d+\w*/,"Yamaha","Audio mixer — PA board"),
+ MB(/\b(yamaha\s*)?dtx\s*-?\s*\d*\w*/,"Yamaha","Full drum set"),
+ /* Thompson Center. The brand pointed at the muzzleloader row outright,
+    so a Compass and a Venture - both plain bolt-action centrefire rifles -
+    came back as muzzleloaders. The Encore and Contender are left alone:
+    those really are made in both forms, and guessing either way would be
+    the same mistake in the other direction. */
+ MB(/\b(thompson\s*center\s*|t\/?c\s*)?(compass|venture)\b/,"Thompson Center","g3"),
  /* DJI. The brand alone used to mean "Camera drone", so an Osmo Pocket 3
     landed on a $300 drone row and then searched as a drone. Osmo, Ronin
     and RS are the gimbal and pocket-camera lines; Mavic, Mini, Air,
@@ -5882,7 +5908,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.4212";
+const APP_BUILD="0926.4302";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
