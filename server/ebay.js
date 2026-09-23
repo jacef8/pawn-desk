@@ -37,6 +37,8 @@
  * list nothing and cannot touch an eBay account.
  */
 
+import { soldCompsFetch, soldCompsReady } from "./soldcomps.js";
+
 const HOSTS = {
   production: { api: "https://api.ebay.com" },
   sandbox:    { api: "https://api.sandbox.ebay.com" },
@@ -46,6 +48,9 @@ const SCOPE_INSIGHTS = "https://api.ebay.com/oauth/api_scope/buy.marketplace.ins
 
 const SOLD_DAYS = 90;          /* all Insights carries */
 const MAX_LIMIT = 50;
+/* Under this many real sales, a median is a rumour. Four is the same floor
+   the harvest merge uses before it will write a row. */
+const MIN_SOLD = 4;
 
 /* Condition ids: 3000 used, 4000 very good, 5000 good, 6000 acceptable,
    2000/2500 refurbished. 7000 is "for parts or not working" and is left out
@@ -318,6 +323,36 @@ export async function ebayComps({ q, limit, kind, env, signal }) {
   if (!env.EBAY_CLIENT_ID || !env.EBAY_CLIENT_SECRET) return { ok: false, code: "no_ebay_key" };
 
   let note = "";
+
+  /* SoldComps first, when a key is set. eBay declined Insights, so this is
+     the only sold data the desk can reach - and a sold price beats an asking
+     price on every item, every time. If it is not configured, or it fails,
+     or it comes back too thin to mean anything, the ladder carries on down
+     to the asking prices that were there before. Nothing gets worse. */
+  if (soldCompsReady(env).configured) {
+    try {
+      const got = await soldCompsFetch({ q: query, limit: n, kind, env, signal });
+      const usable = got.comps.filter((c) => c.fit !== "part" && c.fit !== "lot" && c.fit !== "wrong");
+      if (usable.length >= MIN_SOLD) {
+        const bits = [];
+        if (got.skipped.newStock) bits.push(got.skipped.newStock + " new");
+        if (got.skipped.stale) bits.push(got.skipped.stale + " over 90 days old");
+        return withBands({
+          ok: true, basis: "sold", source: "soldcomps", q: query,
+          warning: bits.length ? "set aside " + bits.join(" and ") : undefined,
+        }, got.comps);
+      }
+      /* Too few to price on. Say so, and fall through rather than hand back
+         a median built on two sales. */
+      note = "only " + usable.length + " used sale" + (usable.length === 1 ? "" : "s")
+        + " in 90 days, fell back to asking prices";
+    } catch (e) {
+      note = e.code === "soldcomps_quota" ? "sold-price quota spent for the month, fell back to asking prices"
+           : e.code === "soldcomps_auth" ? "sold-price key rejected, fell back to asking prices"
+           : "sold lookup failed (" + (e.code || "error") + "), fell back to asking prices";
+    }
+  }
+
   if (!insightsDenied) {
     try {
       const all = await soldComps(query, n, env, signal, kinds);
@@ -340,7 +375,7 @@ export async function ebayComps({ q, limit, kind, env, signal }) {
         note = "sold lookup failed (" + e.code + "), fell back to asking prices";
       }
     }
-  } else {
+  } else if (!note) {
     note = "sold data unavailable: this keyset is not granted Marketplace Insights";
   }
 
@@ -387,7 +422,10 @@ export function ebayReady(env) {
        pasting into the wrong box tends to leave - reads as absent here and
        in `seen`, rather than as present here and absent there. */
     configured: set("EBAY_CLIENT_ID") && set("EBAY_CLIENT_SECRET"),
-    sold: !insightsDenied,
+    /* Which door the sold prices come through, so /limits answers the
+       question the counter actually has: am I about to get sales or asks? */
+    soldSource: set("SOLDCOMPS_KEY") ? "soldcomps" : (insightsDenied ? "none" : "insights"),
+    sold: set("SOLDCOMPS_KEY") || !insightsDenied,
     marketplace: env.EBAY_MARKETPLACE || "EBAY_US",
     env: String(env.EBAY_ENV || "production").toLowerCase(),
     seen, missing,
