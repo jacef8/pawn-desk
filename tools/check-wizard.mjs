@@ -39,6 +39,10 @@ await page.goto(BASE + "/index.html", {waitUntil:"networkidle"});
 
 await page.evaluate(() => {
   const cat = CATALOG.find(c => c.items.some(i => i.id === "t1"));
+  /* This suite is about the PAGED layout and the rail beside it. The default
+     flow is the one-question run now, so the mode has to be asked for by
+     name rather than assumed. */
+  st.flow = "pages";
   st.mode = "item"; st.catId = cat.id; st.itemId = "t1"; st.picked = true; st.model = "DCD791";
   render();
 });

@@ -596,7 +596,7 @@ function persist(){
   try{
     localStorage.setItem(KEY,JSON.stringify({overrides:st.overrides,ltvs:st.ltvs,buys:st.buys,
       bookVals:st.bookVals,modelVals:st.modelVals,
-      buyFloor:st.buyFloor,buyMult:st.buyMult,payPct:st.payPct,
+      buyFloor:st.buyFloor,buyMult:st.buyMult,payPct:st.payPct,flow:st.flow,
       payTouched:st.payTouched,loanPct:st.loanPct,loanTouched:st.loanTouched,payDate:FEED.date,manual:st.manual}));
     flashSave("Saved");
   }catch(e){ flashSave("Couldn't save"); }
@@ -1263,16 +1263,88 @@ function deskWide(){
    was the old shape, and it meant the answer to a question you were reading
    lived in a different column from the question. */
 function deskRail(){ return deskWide() && st.mode==="item" && st.picked; }
+/* ---- one question on the screen -----------------------------------------
+ * Asked for repeatedly and never actually built. "One page at a time" was
+ * four PAGES, and the first of them still carried six questions in one
+ * scrolling card: brand, tier, platform, kit, model, specs. That is a form,
+ * not a questionnaire.
+ *
+ * This is the questionnaire. One question, big answers, and answering it
+ * moves to the next by itself. The specifics - how many batteries, whether
+ * the accessories are there - are questions in the run rather than fields
+ * buried under it, because they are what move the money.
+ *
+ * The queue is built from the item, so an item with no brand tier and no
+ * spec pickers asks two questions and an Xbox asks five. Nothing is padded
+ * to a fixed shape.
+ */
+function askQueue(x){
+  const q=[], cat=x.cat, ov=itemOv();
+  if(cat.brand.on){
+    const tiers=(ov&&ov.tiers)||cat.brand;
+    q.push({id:"brand", title:"What make is it?",
+      hint:"The name on it. Tier is what moves the price, not the spelling.",
+      opts:BRANDS.map(br=>({t:tiers[br.id], on:st.brand===br.id, set:"brand", v:br.id})),
+      answered:!!st.brandTyped||st.brand!=="mid"});
+  }
+  const sc=SPEC_CHOICES[st.itemId]||[];
+  sc.forEach((g,gi)=>{
+    const key=st.itemId+":"+gi, sel=st.specSel[key]??specBase(g);
+    q.push({id:"spec:"+gi, title:g.label+"?",
+      hint:g.options.map(o=>o.note).filter(Boolean)[0]||"",
+      opts:g.options.map((o,oi)=>({t:o.t, sub:o.note||"", on:sel===oi, set:"spec", v:gi+":"+oi})),
+      answered:st.specSel[key]!=null});
+  });
+  if(cat.complete.on){
+    const what=cat.complete.label||"the bits that come with it";
+    q.push({id:"complete", title:"Is it all there?",
+      hint:what+". Missing pieces come off the price.",
+      opts:[{t:"All there", on:st.complete===true, set:"comp", v:"1"},
+            {t:"Something missing", sub:"worth "+Math.round((Number(cat.complete.mult)||0.7)*100)+"% of a complete one",
+             on:st.complete===false, set:"comp", v:"0"}],
+      answered:true});
+  }
+  q.push({id:"worth", title:"What does one sell for used?",
+    hint:"", kind:"worth", answered:!!x.checked});
+  q.push({id:"cond", title:"What shape is it in?",
+    hint:"Next to a typical used one.",
+    opts:CONDITIONS.map(c=>{const w=COND_WORDS[c.id]||[c.label,""];
+      return {t:w[0], sub:w[1]||"", on:st.cond===c.id, set:"cond", v:c.id};}),
+    answered:!!st.condSet});
+  return q;
+}
+function askHTML(x){
+  const q=askQueue(x);
+  const at=Math.max(0,Math.min(q.length-1,Number(st.askAt)||0));
+  const cur=q[at];
+  const opt=(o)=>`<button class="askOpt${o.on?" on":""}" data-ask="${esc(o.set)}" data-askv="${esc(o.v)}">`
+    +`<span class="askT">${esc(o.t)}</span>${o.sub?`<span class="askS">${esc(o.sub)}</span>`:""}</button>`;
+  const body=cur.kind==="worth"
+    ? `<div class="askWorth">${step4Inner(x,true)}</div>`
+    : `<div class="askOpts">${(cur.opts||[]).map(opt).join("")}</div>`;
+  return `<div class="card askCard" id="askCard">
+    <div class="askWhere">${at+1} of ${q.length}${q.every(z=>z.answered)?" \u00b7 all answered":""}</div>
+    <div class="askQ">${esc(cur.title)}</div>
+    ${cur.hint?`<div class="cardHint" style="margin-top:0">${esc(cur.hint)}</div>`:""}
+    ${body}
+    <div class="askNav">
+      <button class="ghostBtn" data-askmove="-1"${at<=0?" disabled":""}>&larr; Back</button>
+      <div class="askDots">${q.map((z,i)=>`<i class="${i===at?"on":""}${z.answered?" done":""}" title="${esc(z.title)}" data-askgo="${i}"></i>`).join("")}</div>
+      <button class="${at>=q.length-1?"ghostBtn":"brassBtn"}" data-askmove="1"${at>=q.length-1?" disabled":""}>${cur.answered?"Next":"Skip"} &rarr;</button>
+    </div>
+  </div>`;
+}
 function stepFlow(){
+  if(st.flow==="ask")return "ask";
   if(st.flow==="all")return "all";
   if(st.flow==="steps")return "steps";
   if(st.flow==="pages")return "pages";
-  /* A questionnaire is one question on the screen with a way forward, back
-     and past it - not every question at once with the answered ones folded
-     to a line, which is still a page you scroll. The desk pages like the
-     phone does; what the desk adds is the rail beside it, so paging never
-     takes the money off the screen. */
-  return "pages";
+  /* A questionnaire is ONE question on the screen with a way forward, back
+     and past it. "Pages" was four pages and the first of them still carried
+     six questions in a scrolling card - a form wearing a pager. The default
+     is the real thing now; the other three are still there for anyone who
+     wants the whole item at once. */
+  return "ask";
 }
 
 /* Which page each card belongs to. Every card carries a stable id, so this
@@ -1503,6 +1575,16 @@ function renderItem(){
      second one so tall it pushed the rest of the rail off the screen - the
      one thing a pinned column must never do. The loan card is still there in
      full, at the foot of the questionnaire, ring and all. */
+  /* One question on the screen, the number beside it, and nothing else to
+     scroll past. The reference cards and the ticket live at the foot for
+     when somebody wants them, but the run itself is the card. */
+  if(stepFlow()==="ask"&&st.picked)
+    return omniHTML()
+      +(deskWide()
+        ? `<div class="rail"><div id="pin">${pinHTML(x)}</div>${weightHTML(x)}</div>`
+          +`<div class="colQ">${askHTML(x)}<div id="ticket">${ticketHTML(x)}</div>${leftRef}${logCardHTML(x)}</div>`
+        : `<div id="pin">${pinHTML(x)}</div>`+weightHTML(x)+askHTML(x)
+          +`<div id="ticket">${ticketHTML(x)}</div>`+logCardHTML(x));
   if(deskRail())return omniHTML()+nextStepHTML(x)
     +`<div class="rail"><div id="pin">${pinHTML(x)}</div>${weightHTML(x)}</div>`
     +`<div class="colQ">${left}${mid}<div id="ticket">${ticketHTML(x)}</div>`
@@ -1547,7 +1629,7 @@ function wireItem(){
     st.liq=null;st.brandTyped="";st.model="";st.detail="";st.complete=true;st.editing=false;
     const h=typed?brandInText(st.catId,typed):null; st.brand=h?h.tier:"mid";
     render();});
-  v.querySelectorAll("[data-item]").forEach(b=>b.onclick=()=>{st.needKind=false;st.itemId=b.dataset.item;st.market=null;st.omniDone="";st.mpPin=null;st.mpNone=false;st.condSet=false;st.cond="good";st.bookName="";st.liq=null;st.brand="mid";st.brandTyped="";st.model="";st.detail="";st.complete=true;
+  v.querySelectorAll("[data-item]").forEach(b=>b.onclick=()=>{st.needKind=false;st.itemId=b.dataset.item;st.market=null;st.omniDone="";st.mpPin=null;st.mpNone=false;st.condSet=false;st.cond="good";st.bookName="";st.liq=null;st.brand="mid";st.brandTyped="";st.model="";st.detail="";st.complete=true;st.askAt=0;
     /* picking "Something else" with no saved value drops you straight into the price box */
     st.editing=(st.itemId===custId(st.catId));
     render();if(st.editing)document.getElementById("valIn")?.focus();});
@@ -1567,6 +1649,28 @@ function wireItem(){
   };
   v.querySelectorAll("[data-cond]").forEach(b=>b.onclick=()=>{st.cond=b.dataset.cond;st.condSet=true;render();});
   v.querySelectorAll("[data-comp]").forEach(b=>b.onclick=()=>{st.complete=b.dataset.comp==="1";render();});
+  /* Answering IS moving on. A questionnaire that makes you answer and then
+     press Next has two actions where the counter's hand expects one. The
+     last question does not advance - there is nowhere to go, and the price
+     is already beside it. */
+  v.querySelectorAll("[data-ask]").forEach(b=>b.onclick=()=>{
+    const kind=b.dataset.ask, val=b.dataset.askv;
+    if(kind==="brand"){ st.brand=val; st.brandTyped=""; }
+    else if(kind==="comp"){ st.complete=val==="1"; }
+    else if(kind==="cond"){ st.cond=val; st.condSet=true; }
+    else if(kind==="spec"){ const [gi,oi]=val.split(":"); st.specSel[st.itemId+":"+gi]=Number(oi); }
+    const q=askQueue(calcItem());
+    const at=Math.max(0,Math.min(q.length-1,Number(st.askAt)||0));
+    if(at<q.length-1)st.askAt=at+1;
+    persist(); render();
+  });
+  v.querySelectorAll("[data-askmove]").forEach(b=>b.onclick=()=>{
+    const q=askQueue(calcItem());
+    const at=Math.max(0,Math.min(q.length-1,Number(st.askAt)||0));
+    st.askAt=Math.max(0,Math.min(q.length-1,at+Number(b.dataset.askmove)));
+    render();
+  });
+  v.querySelectorAll("[data-askgo]").forEach(b=>b.onclick=()=>{ st.askAt=Number(b.dataset.askgo); render(); });
   v.querySelectorAll("[data-liq]").forEach(b=>b.onclick=()=>{st.liq=b.dataset.liq;render();});
   v.querySelectorAll("[data-spec]").forEach(b=>b.onclick=()=>{
     const [gi,oi]=b.dataset.spec.split(":").map(Number);
@@ -2296,11 +2400,12 @@ function renderSetup(){
   </div>
 ${window.PHONE?"":`  <div class="card"><span class="label">How the pricing page is laid out</span>
     <div class="pills mb14" style="border-radius:var(--r-s);margin-top:8px;flex-wrap:wrap">
+      <button class="${stepFlow()==="ask"?"on":""}" style="flex:1;padding:9px 6px;font-size:12px;min-width:110px" data-flow="ask">One question at a time</button>
       <button class="${stepFlow()==="pages"?"on":""}" style="flex:1;padding:9px 6px;font-size:12px;min-width:110px" data-flow="pages">One page at a time</button>
       <button class="${stepFlow()==="steps"?"on":""}" style="flex:1;padding:9px 6px;font-size:12px;min-width:110px" data-flow="steps">One step at a time</button>
       <button class="${stepFlow()==="all"?"on":""}" style="flex:1;padding:9px 6px;font-size:12px;min-width:110px" data-flow="all">Everything open</button>
     </div>
-    <div class="cardHint" style="margin-top:0"><b style="color:var(--ink)">One page at a time</b> puts one job on the screen &mdash; what it is, what it is worth, condition, your offer &mdash; with a bar to move between them and the price always on top. The default, because everything at once is thirteen cards.<br><b style="color:var(--ink)">One step at a time</b> shows the step you are on and folds the rest to a line carrying its answer &mdash; click any line to open it. The way the phone works, and it puts an item on about one screen.<br><b style="color:var(--ink)">Everything open</b> is the old layout, every step expanded at once.</div>
+    <div class="cardHint" style="margin-top:0"><b style="color:var(--ink)">One question at a time</b> is the questionnaire: one question on the screen, big answers, and answering it moves to the next by itself. The specifics &mdash; how many batteries, whether it is all there &mdash; are questions in the run rather than fields buried under it. Back, or tap any dot, to go anywhere.<br><b style="color:var(--ink)">One page at a time</b> puts one job on the screen &mdash; what it is, what it is worth, condition, your offer &mdash; with a bar to move between them and the price always on top. The default, because everything at once is thirteen cards.<br><b style="color:var(--ink)">One step at a time</b> shows the step you are on and folds the rest to a line carrying its answer &mdash; click any line to open it. The way the phone works, and it puts an item on about one screen.<br><b style="color:var(--ink)">Everything open</b> is the old layout, every step expanded at once.</div>
     <div class="cardHint" style="font-size:12.5px">Throws away everything this browser has cached and reloads from the site. Nothing you have recorded is touched &mdash; the shelf tags, listings and deal log are kept separately.</div>
   </div>`}
 </div>`;
@@ -5149,7 +5254,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.2350";
+const APP_BUILD="0926.2400";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -5355,22 +5460,26 @@ function marketSrcHTML(m){
   if(m.kind==="retail")return `Estimated from <b>${money(m.retail)}</b> new retail, taken to ${(m.pct||retailPct())}% for a used one. This is not a sold price &mdash; check sold prices when you can.`;
   return "Your number, typed in.";
 }
-function step4Inner(x){
+function step4Inner(x,bare){
   const m=x.market, who=[st.brandTyped,st.model].filter(Boolean).join(" "), name=displayName(x);
-  let h=`<span class="label">4 &middot; Resale value &mdash; what it sells for used</span>`;
+  /* In the one-question run the question IS the heading, and a card that
+     announces "4 - Resale value" under "What does one sell for used?" says
+     it twice and numbers it wrong: it is question five of six there, not
+     step four of anything. */
+  let h=bare?"":`<span class="label">4 &middot; Resale value &mdash; what it sells for used</span>`;
   if(st.editing){
     h+=`<div class="row2"><input id="valIn" type="number" inputmode="numeric" placeholder="What one really sells for" value="${m&&m.kind==="hand"?m.mid:""}" class="numIn" style="flex:1;min-width:0"><button class="brassBtn" id="valSave" style="padding:11px 18px">Save</button><button class="ghostBtn" id="valCancel" style="padding:11px 14px">Cancel</button></div>
       <div class="cardHint" style="font-size:13.5px;color:var(--ink-2)">What one like this actually sells for used, in normal shape. The loan works from this number.</div>`;
   } else if(x.checked){
     h+=`<div class="mkRow"><div><div class="mkBig">${money(m.mid)}</div>${m.lo!=null&&m.hi!=null&&m.lo!==m.hi?`<div class="mkRange">usually ${money(m.lo)} to ${money(m.hi)}</div>`:""}</div><span class="mkOk">&#10003; Checked</span></div>
-      <div class="mkWhat">This is what it <b>resells</b> for, used &mdash; not what you lend or pay. The pawn loan is in step 7.</div>
+      <div class="mkWhat">This is what it <b>resells</b> for, used &mdash; not what you lend or pay. The loan and the buy price are beside this.</div>
       <div class="mkSrc">${marketSrcHTML(m)}</div>
       ${m.note?`<div class="cardHint" style="font-size:13.5px;color:var(--ink-2)">What moves it: ${esc(m.note)}.</div>`:""}
       ${m.kind==="list"?`<div class="cardHint" style="font-size:13.5px;color:var(--ink-2)">Want today's exact number? Pull the sold prices above and read the screenshot.</div>`:""}
       <div class="row2" style="gap:8px;margin-top:10px;flex-wrap:wrap"><button class="ghostBtn" id="valEdit">Type my own number</button>${m.kind!=="list"?`<button class="ghostBtn" id="mkClear">Clear it</button>`:""}</div>`;
   } else {
     h+=`<div class="mkNo"><b>Not checked yet.</b> ${m&&m.stale?`The price list for ${esc(m.name)} is ${m.age} days old.`:`There's no market price for ${esc(who?who+" ":"")}${esc(name.toLowerCase())} yet.`}</div>
-      <ol class="mkSteps"><li>${pdBridge?"Click a sold-price button above. The sold page reads itself and the price lands here.":isTouch()?"Tap a sold-price button above, screenshot the sold results, and read the screenshot here.":"Open a sold-price button above, look at what these <b>actually sold for</b>, and type the middle price in."}</li><li>${who?"":`Or type the brand and model in step 3 &mdash; about ${mpCount()} common models have prices built in. `}Or type what these really sell for.</li></ol>
+      <ol class="mkSteps"><li>${pdBridge?"Click a sold-price button above. The sold page reads itself and the price lands here.":isTouch()?"Tap a sold-price button above, screenshot the sold results, and read the screenshot here.":"Open a sold-price button above, look at what these <b>actually sold for</b>, and type the middle price in."}</li><li>${who?"":`Or type the brand and model where it asks for the make &mdash; about ${mpCount()} common models have prices built in. `}Or type what these really sell for.</li></ol>
       <button class="brassBtn" id="valEdit" style="padding:11px 18px">Type the real price</button>
 `;
   }

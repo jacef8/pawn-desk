@@ -582,6 +582,33 @@
   body.phone #view.item.paged .colL,body.phone #view.item.paged .colC,body.phone #view.item.paged .colR{
     display:block!important;width:auto;max-width:none;overflow:visible;height:auto}
   .pageNav{margin:12px 0 4px}
+  /* one question at a time */
+  .askCard{padding:clamp(14px,1.6vw,20px)}
+  .askWhere{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--ink-3);
+    text-transform:uppercase}
+  .askQ{font-family:var(--sans);font-size:clamp(19px,2.2vw,25px);font-weight:800;
+    color:var(--ink);line-height:1.25;margin:6px 0 2px}
+  /* Big enough to hit without looking, and stacked rather than squeezed into
+     a row - three words in a pill 80px wide is a thing you have to read. */
+  .askOpts{display:grid;gap:8px;margin-top:13px}
+  @media (min-width:620px){ .askOpts{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))} }
+  .askOpt{display:flex;flex-direction:column;gap:3px;align-items:flex-start;text-align:left;
+    padding:14px 16px;border:1px solid rgba(255,255,255,.1);border-radius:14px;cursor:pointer;
+    background:var(--recess);color:var(--ink);font-family:var(--sans);
+    transition:border-color .12s,background .12s}
+  .askOpt:hover{border-color:var(--accent)}
+  .askOpt.on{background:var(--accent);color:#04120C;border-color:var(--accent)}
+  .askT{font-size:15.5px;font-weight:700}
+  .askS{font-size:12px;color:var(--ink-3);line-height:1.35}
+  .askOpt.on .askS{color:rgba(4,18,12,.72)}
+  .askWorth{margin-top:12px}
+  .askNav{display:flex;align-items:center;gap:12px;margin-top:16px}
+  .askDots{flex:1;display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+  /* Every question at a glance, and a way back to any of them. */
+  .askDots i{width:9px;height:9px;border-radius:999px;background:rgba(255,255,255,.16);
+    cursor:pointer;display:block}
+  .askDots i.done{background:var(--accent-2)}
+  .askDots i.on{background:var(--accent);transform:scale(1.35)}
   .pageTabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
   .pageTabs::-webkit-scrollbar{display:none}
   .pageTabs button{flex:0 0 auto;display:inline-flex;align-items:center;gap:7px;
