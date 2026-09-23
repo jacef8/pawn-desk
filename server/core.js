@@ -20,7 +20,28 @@
 
 import { createHash } from "node:crypto";
 
-export const MODEL = "claude-opus-5";
+/* WHICH MODEL READS THE PHOTO, AND WHAT IT COSTS.
+   Hard-coded to Opus 5, which reads a worn badge well and charges $5/$25 a
+   million tokens for the privilege. At 200 photos a month Haiku 4.5 does
+   the same job for about a fifth of that - IF it reads the same badges. The
+   difference is roughly $4 a month, and one misread model number on a $500
+   item costs more than a decade of that, so this is a question to settle by
+   photographing ten awkward things off the shelf rather than by arithmetic.
+   PHOTO_MODEL makes that a Railway variable rather than a code change, so
+   the comparison costs a restart instead of a deploy. The default does not
+   move: nothing changes until somebody sets it deliberately. */
+const PRICES = {
+  "claude-opus-5":   { in: 5 / 1e6,  out: 25 / 1e6 },
+  "claude-sonnet-5": { in: 2 / 1e6,  out: 10 / 1e6 },
+  "claude-haiku-4-5":{ in: 1 / 1e6,  out:  5 / 1e6 },
+};
+const DEFAULT_MODEL = "claude-opus-5";
+/* An unknown name is not quietly accepted: a typo in a Railway variable
+   would otherwise fail every photo read with an opaque upstream error, and
+   the spend accounting below would be priced against the wrong card. */
+const wanted = String(process.env.PHOTO_MODEL || "").trim();
+export const MODEL = PRICES[wanted] ? wanted : DEFAULT_MODEL;
+export const MODEL_ASKED = wanted;
 const API = "https://api.anthropic.com/v1/messages";
 /* WHAT A CALL COSTS, AND A CEILING ON THE DAY.
    On 21 Sep a harvest walked the model list through this endpoint and spent
@@ -32,7 +53,11 @@ const API = "https://api.anthropic.com/v1/messages";
    its own. That is honest about what it is - a brake on a runaway loop, not
    an accounting system. The spend limit in the Anthropic console is the
    backstop that cannot be restarted away. */
-const USD_IN = 5 / 1e6, USD_OUT = 25 / 1e6;
+/* Priced for whatever model is actually running, or - if that is somehow
+   not on the list - for the dearest one we know, so the cap errs toward
+   stopping early rather than spending past it. */
+const RATE = PRICES[MODEL] || PRICES[DEFAULT_MODEL];
+const USD_IN = RATE.in, USD_OUT = RATE.out;
 const DAY_CAP = Math.max(0, Number(process.env.DAILY_USD_CAP ?? 10));
 let spentDay = "", spentUsd = 0;
 function spendToday(add) {
@@ -140,8 +165,14 @@ export async function handle({ path, method, token, body, env, signal, query }) 
   }
 
   if (path === "/limits" || path === "/") {
+    /* Which model is live, said out loud. Comparing two of them is useless
+       if you cannot tell from outside which one answered. */
     return reply(200, { ok: true, images: { mediaTypes: OK_TYPES, maxCount: MAX_IMAGES, maxBytes: MAX_IMAGE_BYTES },
-                        ebay: ebayReady(env) });
+                        ebay: ebayReady(env),
+                        photo: { model: MODEL, asked: MODEL_ASKED || null,
+                                 ignored: !!(MODEL_ASKED && MODEL_ASKED !== MODEL),
+                                 usdPerMTok: { in: USD_IN * 1e6, out: USD_OUT * 1e6 },
+                                 dayCap: DAY_CAP, spentToday: Math.round(spendToday(0) * 100) / 100 } });
   }
   /* Comps straight from eBay. This one spends no API money at all — it is
      eBay's own listing data, read with a read-only keyset — so the harvest
@@ -254,5 +285,6 @@ export async function handle({ path, method, token, body, env, signal, query }) 
   if (!data) return fail("unreadable", 200);
 
   return reply(200, { ok: true, data,
-    spend: { usd: Math.round(usd * 1e4) / 1e4, day: Math.round(day * 100) / 100, cap: DAY_CAP } });
+    spend: { usd: Math.round(usd * 1e4) / 1e4, day: Math.round(day * 100) / 100,
+             cap: DAY_CAP, model: MODEL } });
 }

@@ -223,6 +223,76 @@ console.log("\n  the account-deletion handshake");
   ok(gated.body.challengeResponse === want, "answers eBay even though PAWN_TOKEN is set — eBay cannot send one");
 }
 
+/* WHICH MODEL READS THE PHOTO IS A RAILWAY VARIABLE.
+   Opus 5 reads a worn badge well and charges five times what Haiku does.
+   Whether Haiku reads the same badges is a question for ten awkward items
+   off the shelf, not for arithmetic - so the switch has to be a restart,
+   not a deploy, or the comparison never gets made.
+   MODEL is read once at import, so each value needs its own process. */
+console.log("\n  the photo model is a variable, and it is priced for what it is");
+{
+  const { execFileSync } = await import("node:child_process");
+  const probe = (model) => {
+    const src = `
+      const {handle} = await import(${JSON.stringify(new URL("../server/core.js", import.meta.url).href)});
+      const r = await handle({path:"/limits", method:"GET", token:"", body:null, env:{}, query:{}});
+      console.log(JSON.stringify(r.body.photo));`;
+    const out = execFileSync(process.execPath, ["--input-type=module", "-e", src],
+      { encoding: "utf8", env: { ...process.env, PHOTO_MODEL: model } });
+    return JSON.parse(out.trim().split("\n").pop());
+  };
+  const def   = probe("");
+  const haiku = probe("claude-haiku-4-5");
+  const typo  = probe("claude-haiku-45-nope");
+
+  ok(def.model === "claude-opus-5" && def.usdPerMTok.in === 5,
+     "unset leaves it on Opus 5 at $5/$25 \u2014 a deploy changes nothing by itself");
+  ok(haiku.model === "claude-haiku-4-5" && haiku.usdPerMTok.in === 1 && haiku.usdPerMTok.out === 5,
+     "  PHOTO_MODEL=claude-haiku-4-5 switches it, priced at $1/$5");
+  ok(typo.model === "claude-opus-5" && typo.ignored === true && typo.asked === "claude-haiku-45-nope",
+     "  a typo is refused and SAID, not run \u2014 it keeps the default and reports what it ignored");
+  ok(def.dayCap > 0, "  and the daily spend cap is reported so it can be checked from outside \u2014 $" + def.dayCap);
+}
+
+/* The model has to reach the wire, and the spend has to be priced for the
+   model that actually answered - reporting Opus rates for a Haiku call
+   would make the cap and the harvest's budget both wrong. */
+console.log("\n  the chosen model reaches the call, and prices it");
+{
+  const { execFileSync } = await import("node:child_process");
+  const run = (model) => {
+    const src = `
+      import {createServer} from "node:http";
+      const seen = [];
+      const srv = createServer((req,res)=>{ let b=""; req.on("data",c=>b+=c); req.on("end",()=>{
+        seen.push(JSON.parse(b));
+        res.writeHead(200,{"content-type":"application/json"});
+        res.end(JSON.stringify({stop_reason:"end_turn",content:[{type:"text",text:'{"ok":1}'}],
+          usage:{input_tokens:3500,output_tokens:300}}));});});
+      await new Promise(r=>srv.listen(0,r));
+      const url = "http://127.0.0.1:" + srv.address().port;
+      const {handle} = await import(${JSON.stringify(new URL("../server/core.js", import.meta.url).href)});
+      const r = await handle({path:"/json", method:"POST", token:"t", query:{},
+        body:{prompt:"read this", images:[]},
+        env:{PAWN_TOKEN:"t", ANTHROPIC_API_KEY:"x", ANTHROPIC_URL:url}});
+      srv.close();
+      console.log(JSON.stringify({wire: seen[0] && seen[0].model, spend: r.body.spend}));`;
+    const out = execFileSync(process.execPath, ["--input-type=module", "-e", src],
+      { encoding: "utf8", env: { ...process.env, PHOTO_MODEL: model } });
+    return JSON.parse(out.trim().split("\n").pop());
+  };
+  const o = run("claude-opus-5"), h = run("claude-haiku-4-5");
+  ok(o.wire === "claude-opus-5" && h.wire === "claude-haiku-4-5",
+     "the variable reaches the request body, not just the status page");
+  ok(o.spend.model === o.wire && h.spend.model === h.wire,
+     "  the spend names the model that answered");
+  /* 3500 in + 300 out: Opus $0.0175+$0.0075, Haiku $0.0035+$0.0015 */
+  ok(Math.abs(o.spend.usd - 0.025) < 1e-6 && Math.abs(h.spend.usd - 0.005) < 1e-6,
+     "  and is priced for it \u2014 the same read costs $" + o.spend.usd + " on Opus, $" + h.spend.usd + " on Haiku");
+  ok(Math.abs(o.spend.usd / h.spend.usd - 5) < 0.01,
+     "  a five-fold difference, which on 200 photos a month is $5.00 against $1.00");
+}
+
 stub.close();
 console.log(fails ? "\n  " + fails + " FAILED\n" : "\n  all passed\n");
 process.exit(fails ? 1 : 0);
