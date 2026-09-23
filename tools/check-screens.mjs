@@ -144,6 +144,47 @@ for (const [page, viewport] of [["index.html", {width:1400,height:900}],
   await p.close();
 }
 
+/* The update button must never loop.
+   It used to clear the caches and reload and hope. When the site was still
+   handing over the old copy the page came back on the same build with the
+   same "you are out of date" banner, and pressing again did the same thing:
+   a loop with no way out and no explanation. It checks what actually came
+   back now, and says so when there is nothing new. */
+console.log("");
+{
+  const p = await browser.newPage();
+  const errs = [];
+  p.on("pageerror", e => errs.push(String(e)));
+  await p.goto(BASE + "/index.html", {waitUntil:"networkidle"});
+  const r = await p.evaluate(async () => {
+    const out = {};
+    /* the site is serving exactly what this copy already is */
+    const realFetch = window.fetch;
+    window.fetch = async (u, o) => (String(u).includes("app.js")
+      ? {ok:true, text: async () => 'const APP_BUILD="' + APP_BUILD + '";'}
+      : realFetch(u, o));
+    let said = null;
+    await forceUpdate((m) => { said = m; });
+    out.sameSaid = said;
+    out.sameNavigated = location.search.includes("b=");
+    /* unreachable */
+    window.fetch = async () => { throw new Error("offline"); };
+    said = null;
+    await forceUpdate((m) => { said = m; });
+    out.offlineSaid = said;
+    window.fetch = realFetch;
+    return out;
+  });
+  if (r.sameSaid && /still serving/.test(r.sameSaid)) console.log("ok   update button says so when there is nothing new");
+  else { bad++; console.log("FAIL update button silent when nothing is new: " + r.sameSaid); }
+  if (!r.sameNavigated) console.log("ok   and does not reload into the same build");
+  else { bad++; console.log("FAIL update button reloaded into the same build"); }
+  if (r.offlineSaid && /Could not reach/.test(r.offlineSaid)) console.log("ok   and says when it cannot reach the site");
+  else { bad++; console.log("FAIL update button silent when offline: " + r.offlineSaid); }
+  if (errs.length) { bad++; console.log("FAIL update button — page errors: " + errs.join(" | ")); }
+  await p.close();
+}
+
 await browser.close();
 console.log(bad ? `FAILED (${bad})` : "all screens draw themselves, every id once");
 process.exit(bad ? 1 : 0);

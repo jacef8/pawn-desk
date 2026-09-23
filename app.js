@@ -2600,7 +2600,18 @@ document.addEventListener("click",e=>{
   const so=e.target&&e.target.closest?e.target.closest("#pinNew"):null;
   if(so){ startOver(); return; }
   const fr=e.target&&e.target.closest?e.target.closest("#pdFresh"):null;
-  if(fr){ fr.textContent="Fetching\u2026"; fr.disabled=true; forceUpdate(); return; }
+  if(fr){ fr.textContent="Fetching\u2026"; fr.disabled=true;
+    forceUpdate((msg)=>{
+      /* Back where it was, with the reason beside it. A button that has
+         visibly given up is kinder than one still saying "Fetching..." */
+      fr.textContent="Get the newest version"; fr.disabled=false;
+      let n=fr.parentNode&&fr.parentNode.querySelector(".freshMsg");
+      if(!n&&fr.parentNode){ n=document.createElement("div");
+        n.className="cardHint freshMsg"; n.style.flexBasis="100%";
+        fr.parentNode.appendChild(n); }
+      if(n)n.textContent=msg;
+    });
+    return; }
   const pv=e.target&&e.target.closest?e.target.closest("[data-page],[data-pgmove]"):null;
   if(pv){
     if(pv.dataset.page)return goPage(pv.dataset.page);
@@ -5099,7 +5110,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.2325";
+const APP_BUILD="0926.2330";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -5126,17 +5137,47 @@ function staleHTML(){
    The service worker already asks the network first, so this is for the
    browser's own copy - the one a plain reload can keep for ten minutes. */
 const CORE_FILES=["app.js","app-head.js","app.css","phone.js","phone.css","sw.js","prices.json","fakes.json"];
-async function forceUpdate(){
+/* This used to clear everything and reload, and trust that the reload
+   brought back something new. When it did not - a CDN edge still holding
+   the old copy, a browser that kept its own - the page came back on the
+   same build with the same "you are out of date" banner, and pressing the
+   button again did exactly the same thing. A loop with no way out and no
+   explanation.
+
+   So it now CHECKS before it reloads: pull the new app.js past every cache,
+   read the build number out of the text that actually came back, and only
+   reload once it is genuinely newer. If the site is still handing over the
+   old copy, say that, because the answer then is to wait a minute rather
+   than press the button a fifth time. */
+async function fetchedBuild(){
+  try{
+    const r=await fetch("app.js",{cache:"reload"});
+    if(!r.ok)return null;
+    const m=(await r.text()).match(/APP_BUILD\s*=\s*"([\d.]+)"/);
+    return m?m[1]:null;
+  }catch(e){ return null; }
+}
+async function forceUpdate(say){
+  const tell=(t)=>{ try{ if(typeof say==="function")say(t); }catch(e){} };
   try{
     if(window.caches){ for(const k of await caches.keys())await caches.delete(k); }
     if(navigator.serviceWorker){ const rs=await navigator.serviceWorker.getRegistrations(); for(const r of rs)await r.unregister(); }
-    /* Clearing the worker's caches is not enough on its own: the browser
-       keeps its OWN copy in front of them, and GitHub Pages tells it to hold
-       these files for ten minutes. cache:"reload" is what goes past that -
-       it refetches and replaces what the browser is holding. */
     await Promise.allSettled(CORE_FILES.map(f=>fetch(f,{cache:"reload"})));
   }catch(e){}
-  location.replace(location.pathname+"?v="+Date.now());
+  const got=await fetchedBuild();
+  if(got&&got!==APP_BUILD){
+    /* The build number rides in the address too. The script tag inside
+       index.html asks for "app.js" with nothing on it, and a browser holding
+       a copy under that exact name is within its rights to serve it. A
+       different address is a different thing to look up. */
+    location.replace(location.pathname+"?b="+encodeURIComponent(got));
+    return;
+  }
+  if(got===APP_BUILD){
+    tell("The site is still serving "+APP_BUILD+". Nothing to fetch yet \u2014 a new copy can take a few minutes to reach every device. Try again shortly.");
+    return;
+  }
+  tell("Could not reach the site to check. If you are offline the desk keeps working on what it has.");
 }
 const MP_STALE_DAYS=45;
 function mpFor(cur,text){
