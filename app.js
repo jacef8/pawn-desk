@@ -1660,6 +1660,55 @@ function needList(x){
   const n=priceMissing(x);
   return n.length<2?(n[0]||"") : n.slice(0,-1).join(", ")+" and "+n[n.length-1];
 }
+/* TYPE THREE LETTERS, TAP THE NAME, NEVER SPELL IT.
+
+   The make question offered three tiers and nothing else - "Top tier",
+   "Mid grade", "Budget" - so the counter had to know which tier a Ryobi sat
+   in to answer it, and the model box below was raw text, where "Stihl MS
+   271" and "stil ms271" are two different searches and only one of them
+   finds anything. The desk holds 423 makes across ten categories and 179
+   measured models; it was asking the counter to remember them.
+
+   Too many for buttons, so it filters as you type. Tapping a hit writes the
+   canonical spelling and sets the tier with it - one tap answers both the
+   make and which tier it sits in, which is the thing nobody should have to
+   look up. The tier buttons stay underneath for a make the book has never
+   heard of. */
+function tierLabel(x,tier){
+  const ov=itemOv(), t=(ov&&ov.tiers)||(x&&x.cat&&x.cat.brand)||{};
+  return String(t[tier]||tier);
+}
+function brandHits(catId,q){
+  const book=ovBrands(catId)||BRANDBOOK[catId]; if(!book)return [];
+  const t=String(q||"").trim().toLowerCase();
+  /* Nothing typed lists nothing. The first ten makes in book order are not a
+     shortlist of anything - they are the first ten - and a list you have to
+     read to find out it is useless is worse than no list. */
+  if(!t)return [];
+  const out=[];
+  for(const tier of["hi","mid","lo"]) for(const name of (book[tier]||[])){
+    const n=name.toLowerCase();
+    if(n===t){ out.push({name,tier,rank:0}); }
+    else if(n.indexOf(t)===0){ out.push({name,tier,rank:1}); }
+    else if(n.indexOf(t)>=0){ out.push({name,tier,rank:2}); }
+  }
+  out.sort((a,b)=>a.rank-b.rank||a.name.localeCompare(b.name));
+  return out.slice(0,10);
+}
+/* What the buttons on the NEXT screens already ask for, so the free-text
+   box stops inviting it a second time. A riding mower asked for the deck
+   and the hours as buttons and then offered "42in deck" as a placeholder
+   one step earlier; the counter typed it twice or wondered which one
+   counted. */
+function specCovered(){
+  return (SPEC_CHOICES[st.itemId]||[]).map(g=>String(g.label||"").toLowerCase()).filter(Boolean);
+}
+function coveredLine(){
+  const c=specCovered(); if(!c.length)return "";
+  const list=c.length<2?c[0]:c.slice(0,-1).join(", ")+" and "+c[c.length-1];
+  return list.charAt(0).toUpperCase()+list.slice(1)
+    +(c.length<2?" is":" are")+" asked next \u2014 no need to type "+(c.length<2?"it":"them")+" here.";
+}
 function askHTML(x){
   const q=askQueue(x);
   const at=Math.max(0,Math.min(q.length-1,Number(st.askAt)||0));
@@ -1667,14 +1716,34 @@ function askHTML(x){
   const opt=(o)=>`<button class="askOpt${o.on?" on":""}" data-ask="${esc(o.set)}" data-askv="${esc(o.v)}">`
     +`<span class="askT">${esc(o.t)}</span>${o.sub?`<span class="askS">${esc(o.sub)}</span>`:""}</button>`;
   const dh=detailHint(x);
+  const cov=coveredLine();
+  const mods=(cur.kind==="model")?mpCandidates():[];
+  const hits=(cur.id==="brand")?brandHits(st.catId,st.brandQ||""):[];
   const body=cur.kind==="worth"
     ? `<div class="askWorth">${step4Inner(x,true)}</div>`
+    : cur.id==="brand"
+    ? `<div class="askWorth">
+         <span class="label">Make</span>
+         <input id="askBrandIn" type="text" autocomplete="off" placeholder="Start typing \u2014 Stihl, DeWalt, Ryobi\u2026" value="${esc(st.brandQ||st.brandTyped||"")}" class="numIn" style="font-family:var(--sans);font-size:15px">
+         ${hits.length?`<div class="askOpts askHits">${hits.map(h=>
+             `<button class="askOpt${(st.brandTyped||"").toLowerCase()===h.name.toLowerCase()?" on":""}" data-brandpick="${esc(h.name)}" data-brandtier="${esc(h.tier)}"><span class="askT">${esc(h.name)}</span><span class="askS">${esc(tierLabel(x,h.tier))}</span></button>`
+           ).join("")}</div>`
+          :`<div class="cardHint">${st.brandQ?"<b>"+esc(st.brandQ)+"</b> is not on the list for "+esc(String(x.cat.label||"this").toLowerCase())+" \u2014 say where it sits below and the price follows.":"Nothing typed yet."}</div>`}
+         <span class="label" style="margin-top:14px">Or just say where it sits</span>
+         <div class="askOpts">${(cur.opts||[]).map(opt).join("")}</div>
+       </div>`
     : cur.kind==="model"
     ? `<div class="askWorth">
-         <span class="label">Model</span>
+         ${mods.length?`<span class="label">${esc(st.brandTyped||"Known")} models the desk has measured</span>
+           <div class="askOpts askHits">${mods.map(r=>
+             `<button class="askOpt${(st.model||"")===String(r[2])?" on":""}" data-modelpick="${esc(r[0])}"><span class="askT">${esc(r[2])}</span><span class="askS">${money(r[3])}&ndash;${money(r[4])} resale</span></button>`
+           ).join("")}</div>
+           <span class="label" style="margin-top:14px">Or type it</span>`
+          :`<span class="label">Model</span>`}
          <input id="modelIn" type="text" autocomplete="off" placeholder="870 Wingmaster, MS 271, 10/22\u2026" value="${esc(st.model)}" class="numIn" style="font-family:var(--sans);font-size:15px">
-         <span class="label" style="margin-top:12px">Details \u2014 ${esc(dh.what)} (optional)</span>
-         <input id="detailIn" type="text" autocomplete="off" placeholder="${esc(dh.ph)}" value="${esc(st.detail)}" class="numIn" style="font-family:var(--sans);font-size:15px">
+         <span class="label" style="margin-top:12px">Anything else (optional)</span>
+         <input id="detailIn" type="text" autocomplete="off" placeholder="${esc(cov?"":dh.ph)}" value="${esc(st.detail)}" class="numIn" style="font-family:var(--sans);font-size:15px">
+         ${cov?`<div class="cardHint" style="margin-top:6px">${esc(cov)}</div>`:""}
          <div class="cardHint" id="specVerdict">${specVerdictHTML(x)}</div>
        </div>`
     : `<div class="askOpts">${(cur.opts||[]).map(opt).join("")}</div>`;
@@ -1983,17 +2052,17 @@ function wireItem(){
     else { st.mpNone=false; const c=CATALOG.find(x=>x.id===st.catId); st.itemId=c.items[0].id; st.bookName=""; }
     st.needKind=false;
     if(un&&st.photoRead)st.photoRead=Object.assign({},st.photoRead,{unplaced:false});
-    st.liq=null;st.brandTyped="";st.model="";st.detail="";st.complete=true;st.editing=false;
+    st.liq=null;st.brandTyped="";st.brandQ="";st.model="";st.detail="";st.complete=true;st.editing=false;
     st.brandSet=false;
     const h=typed?brandInText(st.catId,typed):null; st.brand=h?h.tier:"mid";
     render();});
-  v.querySelectorAll("[data-item]").forEach(b=>b.onclick=()=>{st.needKind=false;st.itemId=b.dataset.item;st.market=null;st.omniDone="";st.mpPin=null;st.mpNone=false;st.condSet=false;st.cond="good";st.bookName="";st.liq=null;st.brand="mid";st.brandTyped="";st.model="";st.detail="";st.complete=true;st.askAt=0;st.brandSet=false;
+  v.querySelectorAll("[data-item]").forEach(b=>b.onclick=()=>{st.needKind=false;st.itemId=b.dataset.item;st.market=null;st.omniDone="";st.mpPin=null;st.mpNone=false;st.condSet=false;st.cond="good";st.bookName="";st.liq=null;st.brand="mid";st.brandTyped="";st.brandQ="";st.model="";st.detail="";st.complete=true;st.askAt=0;st.brandSet=false;
     /* picking "Something else" with no saved value drops you straight into the price box */
     st.editing=(st.itemId===custId(st.catId));
     render();if(st.editing)document.getElementById("valIn")?.focus();});
   /* A tier tapped by hand is the counter overruling whatever was read off
      the name, so it has to outrank it - brandSet is what says so. */
-  v.querySelectorAll("[data-brand]").forEach(b=>b.onclick=()=>{st.brand=b.dataset.brand;st.brandTyped="";st.brandSet=true;render();});
+  v.querySelectorAll("[data-brand]").forEach(b=>b.onclick=()=>{st.brand=b.dataset.brand;st.brandTyped="";st.brandQ="";st.brandSet=true;render();});
   const bIn=document.getElementById("brandIn");
   if(bIn)bIn.oninput=()=>{
     st.brandTyped=bIn.value;
@@ -2016,7 +2085,7 @@ function wireItem(){
      is already beside it. */
   v.querySelectorAll("[data-ask]").forEach(b=>b.onclick=()=>{
     const kind=b.dataset.ask, val=b.dataset.askv;
-    if(kind==="brand"){ st.brand=val; st.brandTyped=""; st.brandSet=true; }
+    if(kind==="brand"){ st.brand=val; st.brandTyped="";st.brandQ=""; st.brandSet=true; }
     else if(kind==="comp"){ st.complete=val==="1"; }
     else if(kind==="cond"){ st.cond=val; st.condSet=true; }
     else if(kind==="spec"){ const [gi,oi]=val.split(":"); st.specSel[st.itemId+":"+gi]=Number(oi); }
@@ -2052,6 +2121,34 @@ function wireItem(){
     if(u)u.onclick=()=>{const s=calcItem().spec;if(!s||!s.absSuggest)return;
       st.overrides[st.itemId]=s.absSuggest;persist();render();};
   }
+  /* The make box filters the book as you type; the hits redraw under it
+     without losing the caret, so the whole card is not rebuilt on a
+     keystroke. Tapping a hit writes the canonical spelling AND the tier. */
+  const abIn=document.getElementById("askBrandIn");
+  if(abIn)abIn.oninput=()=>{ st.brandQ=abIn.value; render();
+    const again=document.getElementById("askBrandIn");
+    if(again){ again.focus(); again.setSelectionRange(again.value.length,again.value.length); } };
+  document.querySelectorAll("[data-brandpick]").forEach(b=>b.onclick=()=>{
+    st.brandTyped=b.dataset.brandpick; st.brand=b.dataset.brandtier;
+    st.brandSet=true; st.brandQ=b.dataset.brandpick;
+    /* A different make means the model list under it is a different list. */
+    st.mpPin=null; st.market=null;
+    /* Answering is moving on here too, the same as tapping a tier. */
+    const q=askQueue(calcItem());
+    const at=Math.max(0,Math.min(q.length-1,Number(st.askAt)||0));
+    if(at<q.length-1)st.askAt=at+1;
+    persist(); render(); });
+  /* A measured row picked by hand - the same thing the phone's list does,
+     so the model is spelled the way the sold-price search expects. */
+  document.querySelectorAll("[data-modelpick]").forEach(b=>b.onclick=()=>{
+    const r=MP_BY_ID[b.dataset.modelpick]; if(!r)return;
+    st.model=String(r[2]); st.mpPin={id:r[0],model:String(r[2])};
+    st.mpNone=false; st.market=null;
+    /* Answering is moving on, the same as a tier or a make. */
+    const q=askQueue(calcItem());
+    const at=Math.max(0,Math.min(q.length-1,Number(st.askAt)||0));
+    if(at<q.length-1)st.askAt=at+1;
+    persist(); render(); });
   const mIn=document.getElementById("modelIn");
   if(mIn)mIn.oninput=()=>{st.model=mIn.value;specRefresh();};
   const dIn=document.getElementById("detailIn");
@@ -2066,7 +2163,7 @@ function wireItem(){
       document.getElementById("view").querySelectorAll("[data-hit]").forEach(b=>b.onclick=()=>{
         const e=hits[Number(b.dataset.hit)];
         st.catId=e[2]; st.itemId=custId(e[2]); st.bookName=e[0]; st.overrides[custId(e[2])]=bookVal(e);
-        st.liq=e[3]; st.brand="mid"; st.brandTyped=""; st.brandSet=false; st.complete=true; st.editing=false;
+        st.liq=e[3]; st.brand="mid"; st.brandTyped="";st.brandQ=""; st.brandSet=false; st.complete=true; st.editing=false;
         persist(); render();
       });
     };
@@ -3260,7 +3357,7 @@ function bookVal(e){
 function bookChecked(name){ return Number(BOOK_PRICES[name])>0; }
 function pickBookEntry(e){
   st.catId=e[2]; st.itemId=custId(e[2]); st.bookName=e[0]; st.overrides[custId(e[2])]=bookVal(e);
-  st.liq=e[3]; st.brand="mid"; st.brandTyped=""; st.brandSet=false; st.model=""; st.detail="";
+  st.liq=e[3]; st.brand="mid"; st.brandTyped="";st.brandQ=""; st.brandSet=false; st.model=""; st.detail="";
   st.complete=true; st.editing=false; st.specSel={};
   persist(); render();
 }
@@ -4708,7 +4805,7 @@ function applySpecPicks(spec,text){
 function startOver(){
   st.omniQ=""; st.omniDone=""; st.omniHl=null;
   st.mode="item";                 /* from the scale too, not just the item page */
-  st.picked=false; st.bookName=""; st.brandTyped=""; st.model=""; st.detail="";
+  st.picked=false; st.bookName=""; st.brandTyped="";st.brandQ=""; st.model=""; st.detail="";
   st.brand="mid"; st.brandSet=false; st.liq=null; st.market=null; st.mpPin=null; st.mpNone=false;
   st.cond="good"; st.condSet=false; st.complete=true; st.specSel={}; st.editing=false;
   st.ask=0; st.askKey=""; st.ticket=""; st.needKind=false; st.photoRead=null; st.compRead=null;
@@ -4721,7 +4818,7 @@ function omniPick(r){
   if(!r||r.kind==="sold")return;
   if(r.kind==="own"){
     st.omniQ=r.q; st.omniHl=0; st.mode="item"; st.itemId=custId(st.catId); st.bookName=r.q;
-    st.brandTyped=""; st.model=""; st.detail=""; st.brand="mid"; st.brandSet=false; st.liq=null; st.market=null;
+    st.brandTyped="";st.brandQ=""; st.model=""; st.detail=""; st.brand="mid"; st.brandSet=false; st.liq=null; st.market=null;
     st.mpPin=null; st.mpNone=true; st.condSet=false; st.phKindsOpen=true; st.omniDone=r.q;
     st.needKind=true;               /* nothing is priced until this is answered */
     render();
@@ -5728,7 +5825,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.3546";
+const APP_BUILD="0926.3702";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

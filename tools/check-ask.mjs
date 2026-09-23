@@ -114,7 +114,18 @@ console.log("\n  the make is read off the name");
       const c = CATALOG.find(x => x.items.some(i => i.id === "t1"));
       st.flow="ask"; st.mode="item"; st.catId=c.id; st.itemId="t1"; st.picked=true; st.askAt=0;
       st.brand="mid"; st.brandTyped=typed||""; st.bookName=bookName||"";
+      /* The model is part of which item this is, and the make is read off
+         it - so a model left behind by an earlier block reads as that
+         block's make. It leaked "DeWalt" into a Ryobi and priced it top
+         tier. Now that a measured model can be tapped, this has to be
+         cleared like everything else. */
+      st.model=""; st.detail="";
       st.specSel={}; st.market=null; st.brandSet=false;
+    st.mpPin=null; st.mpNone=false; st.brandQ="";
+      /* A fresh item means no pinned model row and no make left in the
+         search box from the block before - both are now tappable, so an
+         earlier block can leave them set. */
+      st.mpPin=null; st.mpNone=false; st.brandQ="";
       if (typed) { const h = brandLookup(st.catId, typed); if (h) st.brand = h.tier; }
       render();
       const x = calcItem();
@@ -158,6 +169,11 @@ console.log("\n  whatever make the desk knows, it says out loud");
       st.flow="ask"; st.mode="item"; st.catId=catId; st.itemId=itemId; st.picked=true; st.askAt=0;
       st.brand="mid"; st.brandTyped=typed||""; st.model=model||""; st.bookName="";
       st.specSel={}; st.market=null; st.brandSet=false;
+    st.mpPin=null; st.mpNone=false; st.brandQ="";
+      /* A fresh item means no pinned model row and no make left in the
+         search box from the block before - both are now tappable, so an
+         earlier block can leave them set. */
+      st.mpPin=null; st.mpNone=false; st.brandQ="";
       if (typed) { const h = brandLookup(catId, typed); if (h) st.brand = h.tier; }
       render();
       const x = calcItem();
@@ -196,6 +212,7 @@ console.log("\n  a tap overrules what was read off the name");
     st.flow="ask"; st.mode="item"; st.catId=c.id; st.itemId="t1"; st.picked=true; st.askAt=0;
     st.brand="mid"; st.brandTyped=""; st.model="DeWalt 20V drill kit"; st.bookName="";
     st.specSel={}; st.market=null; st.brandSet=false;
+    st.mpPin=null; st.mpNone=false; st.brandQ="";
     render();
     const before = calcItem().brandMult;
     document.querySelector('[data-ask="brand"][data-askv="lo"]').click();
@@ -451,6 +468,68 @@ console.log("\n  Back and Skip are the same shape");
      "they are the same height — Back " + r.back + "px, Skip " + r.next + "px");
   ok(r.back >= 36, "  and both are big enough to hit with a thumb");
   ok(r.aligned, "  and sit on the same line");
+}
+
+/* TYPE THREE LETTERS, TAP THE NAME, NEVER SPELL IT. The make question was
+   three tier buttons - answering it meant knowing which tier a Ryobi sits
+   in - and the model under it was raw text, where "stil ms271" finds
+   nothing. The desk holds 423 makes and 179 measured models and was asking
+   the counter to remember them. */
+console.log("\n  the make and the model are picked, not spelled");
+{
+  const r = await page.evaluate(() => {
+    const c = CATALOG.find(y => y.items.some(i => i.id === "p1"));
+    st.flow="ask"; st.mode="item"; st.catId=c.id; st.itemId="p1"; st.picked=true;
+    st.brandTyped=""; st.brandQ=""; st.brandSet=false; st.model=""; st.detail="";
+    st.mpPin=null; st.mpNone=false; st.market=null; st.specSel={}; st.askAt=0;
+    render();
+    const empty = document.querySelectorAll("[data-brandpick]").length;
+    st.brandQ = "sti"; render();
+    const hits = [...document.querySelectorAll("[data-brandpick]")]
+      .map(b => b.dataset.brandpick + "/" + b.dataset.brandtier);
+    /* tap it, the way a thumb would */
+    document.querySelector('[data-brandpick="Stihl"]').click();
+    const afterBrand = {name: st.brandTyped, tier: st.brand, set: st.brandSet,
+                        at: st.askAt};
+    const q = askQueue(calcItem());
+    st.askAt = q.findIndex(z => z.id === "model"); render();
+    const models = [...document.querySelectorAll("[data-modelpick]")]
+      .map(b => b.querySelector(".askT").textContent.trim());
+    document.querySelector("[data-modelpick]").click();
+    return {empty, hits, afterBrand, models, model: st.model,
+            pinned: !!st.mpPin, movedOn: st.askAt};
+  });
+  ok(r.empty === 0, "an empty box lists nothing — ten makes in book order is not a shortlist");
+  ok(r.hits.length > 0 && r.hits.some(h => /^Stihl\//.test(h)),
+     '  three letters finds it — "sti" gives ' + r.hits.join(", "));
+  ok(r.afterBrand.name === "Stihl" && r.afterBrand.tier === "hi" && r.afterBrand.set === true,
+     "  one tap sets the spelling AND the tier — " + r.afterBrand.name + "/" + r.afterBrand.tier);
+  ok(r.afterBrand.at > 0, "  and moves on, the same as tapping a tier");
+  ok(r.models.length >= 5 && r.models.every(m => /^Stihl/.test(m)),
+     "the models offered are that make's, measured — " + r.models.length + " of them");
+  ok(/^Stihl/.test(r.model) && r.pinned,
+     "  tapping one spells it the way the sold-price search expects — " + r.model);
+}
+
+/* The details box invited "42in deck" one step before the buttons asked for
+   the deck. Typed twice, or wondered which one counted. */
+console.log("\n  the free-text box stops asking for what the buttons ask");
+{
+  const r = await page.evaluate(() => {
+    const c = CATALOG.find(y => y.items.some(i => i.id === "p5"));
+    st.flow="ask"; st.mode="item"; st.catId=c.id; st.itemId="p5"; st.picked=true;
+    st.brandTyped=""; st.brandQ=""; st.model=""; st.detail=""; st.mpPin=null;
+    st.mpNone=false; st.market=null; st.specSel={}; st.askAt=0;
+    const q = askQueue(calcItem());
+    st.askAt = q.findIndex(z => z.id === "model"); render();
+    return {covered: specCovered(), line: coveredLine(),
+            ph: (document.getElementById("detailIn")||{}).placeholder || ""};
+  });
+  ok(r.covered.indexOf("deck") >= 0 && r.covered.indexOf("hours") >= 0,
+     "a riding mower asks deck and hours as buttons — " + r.covered.join(", "));
+  ok(/deck/i.test(r.line) && /hours/i.test(r.line) && /asked next/.test(r.line),
+     "  so the model step says they are coming — " + r.line);
+  ok(!/deck/i.test(r.ph), "  and stops offering them as a placeholder — " + (r.ph || "(empty)"));
 }
 
 ok(!errs.length, "no page errors" + (errs.length ? ": " + errs[0] : ""));
