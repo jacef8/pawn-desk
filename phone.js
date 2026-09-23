@@ -28,7 +28,18 @@ function phoneStepHTML(x){
   const m=x.market, what=[st.brandTyped,st.model].filter(Boolean).join(" ")||displayName(x);
   const cands=(!x.checked&&!st.mpNone)?mpCandidates():[];
   const started=!!st.picked;
-  const s1=started&&(x.checked||!cands.length), s2=started&&x.checked, s3=started&&x.checked&&!!st.condSet, ask=phAskNow();
+  /* The model question was a pick-list and nothing else. When the desk had no
+     rows to offer - a Samsung tablet, where it holds none - the list came
+     back empty and step one ticked itself DONE: "What it is, Samsung Galaxy
+     Tab", with a price under it. A Galaxy Tab runs from a Tab A7 Lite at
+     about $45 to a Tab S9 Ultra ten times that. The one thing that decides
+     the price was never asked for.
+
+     An empty list is a question now, not an answer. Only where the maker
+     matters - the same flag that turns the brand question on - because a
+     wheelbarrow has no model plate to read. */
+  const wantModel=started&&!x.checked&&!st.mpNone&&!st.model&&!cands.length&&!!(x.cat.brand&&x.cat.brand.on);
+  const s1=started&&(x.checked||(!cands.length&&!wantModel)), s2=started&&x.checked, s3=started&&x.checked&&!!st.condSet, ask=phAskNow();
   const cur=!s1?1:!s2?2:!s3?3:4;
   const cw=COND_WORDS[st.cond]||["Good",""];
   const row=(n,label,val,done,id)=>`<div class="nsStep${done?" done":""}${cur===n?" cur":""}"><span class="nsDot">${done?"&#10003;":n}</span><span class="nsL">${label}</span><span class="nsV"${id?` id="${id}"`:""}>${val}</span></div>`;
@@ -46,6 +57,11 @@ function phoneStepHTML(x){
       ?`<b>Take a picture</b> above and I'll work out what it is \u2014 or search and tap it, if you already know.`
       :`Search above and tap what it is &mdash; the resale value fills in from there.`;
     act="";
+  } else if(cur===1&&wantModel){
+    h=`Which ${esc(what)} is it?`;
+    sub=`The model decides the price here, and I don’t have a list for this one. Read it off the back, the label or the box.`;
+    act=`<div class="phIn"><input id="phModel" type="text" autocapitalize="characters" placeholder="Model number" value="${esc(st.model||"")}"><button class="nsBtn on" id="phModelGo"><span>Use it</span></button></div>`
+       +`<button class="nsBtn ghost" id="nsNone"><span>I can’t see a model</span></button>`;
   } else if(cur===1){
     h=`Which ${esc(what)} is it?`;
     sub=`Pick one and the resale value fills in.`;
@@ -106,6 +122,16 @@ function wirePhone(){
     st.model=name; st.mpPin={id:r[0],model:name}; st.mpNone=false; st.market=null; render();
   });
   const none=document.getElementById("nsNone"); if(none)none.onclick=()=>{ st.mpNone=true; render(); };
+  /* Typed by hand when the desk has no list. Enter does the same as the
+     button, because a phone keyboard puts Enter under the thumb. */
+  {
+    const mi=document.getElementById("phModel"), mg=document.getElementById("phModelGo");
+    const go=()=>{ const v=String(mi&&mi.value||"").trim().slice(0,60);
+      if(!v){ st.mpNone=true; } else { st.model=v; st.market=null; st.mpPin=null; }
+      render(); };
+    if(mg)mg.onclick=go;
+    if(mi)mi.onkeydown=e=>{ if(e.key==="Enter"){ e.preventDefault(); go(); } };
+  }
   const more=document.getElementById("phMore");
   if(more&&!more.dataset.w){ more.dataset.w="1"; more.addEventListener("toggle",()=>{ st.phMoreOpen=more.open; }); }
   const vi=document.getElementById("phVal"), vg=document.getElementById("phValGo");
