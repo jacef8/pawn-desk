@@ -226,3 +226,81 @@ already covers that.
 Of eight battery tools, five were already right, two had a real hole, and
 two apparent holes were not holes. The two that mattered were the two most
 common things on a pawn counter — a cordless drill and an impact wrench.
+
+---
+
+# The firearms check — 23 Sep 2026
+
+The same sweep run over the ten gun rows. It cannot end the same way,
+because **none of it can be measured**: eBay bans firearm sales outright, so
+SoldComps and the Browse API have never seen a gun. Every multiplier in the
+guns category is a judgement nobody has checked against a sale.
+
+What follows is therefore findings, not fixes. Nothing was changed.
+
+## What the desk can already ask
+
+| | Item | Questions |
+|---|---|---|
+| g1, g2 | Shotguns | Gauge, Barrel length |
+| g3, g4, g10 | Rifles | Caliber, Optics |
+| g5 | AR-15 | Caliber, Build |
+| g6 | .22 rifle | Action, Optics |
+| g7 | Pistol | Caliber, Size |
+| g8 | Revolver | Caliber, Barrel |
+| g9 | Muzzleloader | Type, Optics |
+
+Plus the brand book, which is the strongest part of the category: 63 makers
+sorted into three tiers, and the tiers are right — Benelli and Wilson Combat
+at the top, Glock and Ruger in the middle, Hi-Point and Jimenez at the
+bottom.
+
+## The structural problem: accessories add dollars, not percent
+
+An optic is worth what it is worth. The desk adds **15%**, so the same scope
+is worth a different amount depending on what it is bolted to:
+
+| Item | "Scoped — decent glass" adds |
+|---|---|
+| .22 rifle ($175) | **$21** |
+| Bolt rifle ($275) | $33 |
+| AR-15 ($650) | $78 |
+
+A used 3-9x40 worth having is **$150–400 on its own**. So the desk pays $21
+for a scope on a .22 and $78 for the same scope on an AR. Neither is right,
+and the .22 case is badly wrong — scoped .22s are one of the commonest
+things through a pawn counter.
+
+The same fault runs the other way through completeness. One toggle covers
+**"Magazine, choke tubes, case"** at a flat 0.70:
+
+| Item | Missing anything at all |
+|---|---|
+| .22 rifle | **−$42** |
+| AR-15 | **−$156** |
+
+A Glock magazine is $25. A hard case is $20. **Both cost the same 30%.** So
+a gun that is merely boxless gets docked as hard as a pistol with no
+magazine — and a pistol with no magazine is the one that should hurt,
+because some magazines are not obtainable at any price.
+
+## Smaller gaps
+
+- **g5 AR-15** folds optic and upgrades into one answer. A $1,200 LPVO and a
+  $40 red dot both land on 1.15.
+- **Shotgun choke tubes** are named in the completeness label but never
+  asked about, and a missing set is $80–150.
+- **No question about heavy modification.** A stock AR is usually worth more
+  than one somebody has "improved".
+
+## What would fix it
+
+**GunBroker.** eBay will never carry this, so the category is unmeasurable
+until a firearm marketplace is wired in. GunBroker publishes a REST API and
+completed-auction data, and the desk already links out to it and to
+GunWatcher by hand.
+
+Until then the honest position is: the gun numbers rest on judgement, the
+brand tiers are the part most likely to be right, and the accessory
+questions are the part most likely to be wrong. **Nothing here was changed
+on a guess.**
