@@ -62,8 +62,23 @@ ok(r.code === 2, "a single row falling past a third stops the whole run");
 ok(untouched(), "  and prices.json is not written");
 restore();
 
+/* This used to assert that one row quadrupling halts the whole run, and it
+   did - because the model lane trusted a `wild` flag written at lookup
+   time, and a synthetic finding carries none, so a mad row sailed past the
+   band and was caught further down by the circuit breaker. The band is
+   recomputed on both lanes now, which is what the file's own header always
+   said it did, so the mad row is held back by name and the good rows
+   beside it still merge. That is the stronger outcome, not the weaker one:
+   nothing bad is written either way, and one bad row no longer costs a
+   whole run. The breaker still guards what it is for - many rows moving
+   together - which the test above this one covers. */
 r = run(findings(4, 3));
-ok(r.code === 2, "a single row more than tripling stops it too");
+ok(r.code === 0, "a single row more than tripling no longer halts the run");
+ok(/held back as wild/.test(r.out),
+   "  the band holds it back by itself — " + (r.out.match(/\d+ held back as wild/) || [""])[0]);
+ok(!JSON.parse(readFileSync(PRICES, "utf8")).rows
+     .some((row, i) => i < 3 && row[3] === Math.round(pj.rows[i][3] * 4)),
+   "  and the quadrupled figure is not written");
 restore();
 
 r = run(findings(1.03, 30));

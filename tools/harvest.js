@@ -215,8 +215,20 @@ if (has("merge")) {
   for (const [key, f] of Object.entries(found)) {
     if (!f || !f.n || f.n < MIN || !(f.lo > 0) || !(f.hi >= f.lo)) { skipped++;
       if (f && f.name && f.n) heldThin.push({ name: f.name, n: f.n }); continue; }
-    if (f.wild && !has("wild")) { wild++;
-      heldWild.push({ name: f.name, lo: Math.round(f.lo), hi: Math.round(f.hi), n: f.n, book: f.book, ratio: f.ratio }); continue; }
+    /* RECOMPUTED, NOT TRUSTED. The book-row lane below has said for weeks
+       that f.wild is written at lookup time and a merge may be running
+       against a findings file from another day - and then this lane, two
+       lines above it, believed the flag anyway. It showed up when the
+       catalog rows were split: an HP Omen measured at $950 was marked wild
+       against the old $175 "Laptop" row, and stayed marked after a
+       "Gaming laptop" row at $844 made it perfectly ordinary. Every
+       finding that had ever been wrong about its row was frozen that way.
+       The band is the merge's to decide, on both lanes, every time. */
+    const mid0 = Math.round((f.lo + f.hi) / 2);
+    const w0 = wildness(f.ref, mid0) || wildness(f.name, mid0);
+    if (w0 && w0.wild && !has("wild")) { wild++;
+      heldWild.push({ name: f.name, lo: Math.round(f.lo), hi: Math.round(f.hi),
+                      n: f.n, book: w0.book, ratio: w0.ratio }); continue; }
     if (SOLD_ONLY && f.basis !== "sold") { asks++; continue; }
     if (isBookRow(f)) {
       /* The book wants one resale figure, not a range; the mid is what

@@ -1,43 +1,32 @@
 # Price changes — 2026-09-23
 
-325 rows → **336**. 11 added, 153 rewritten, 14 held back as wild, 1 held back as mixed searches, 128 too thin, 17 held back as asking-only.
+343 rows → **348**. 5 added, 164 rewritten, 9 held back as wild, 1 held back as mixed searches, 128 too thin, 17 held back as asking-only.
 
 ## Worth a look
 
 Nothing moved 25% or more. Quiet week.
 
-## New rows (11)
+## New rows (5)
 
-- Acer Aspire 5 — $327–660 (6 listings, sold)
-- Acer Swift 3 — $325–600 (7 listings, sold)
-- Asus TUF Gaming A15 — $600–750 (7 listings, sold)
-- Dell Inspiron 15 3520 — $135–255 (6 listings, sold)
-- HP Envy x360 15 — $250–592 (7 listings, sold)
-- HP Pavilion 15 — $65–200 (6 listings, sold)
-- Lenovo Legion 5 15 — $450–600 (6 listings, sold)
-- Microsoft Surface Laptop 4 — $174–300 (6 listings, sold)
-- Samsung Galaxy Tab A7 Lite — $40–65 (6 listings, sold)
-- Samsung Galaxy Tab S6 Lite — $110–150 (6 listings, sold)
-- Samsung TU7000 55in — $50–150 (6 listings, sold)
+- Alienware m15 R7 — $675–1134 (7 listings, sold)
+- Grand Theft Auto V — $4–9 (10 listings, sold)
+- HP Omen 16 — $450–1450 (10 listings, sold)
+- Madden NFL 25 — $2–7 (9 listings, sold)
+- MSI Katana 15 — $680–900 (10 listings, sold)
 
-## Held back as wild (14)
+## Held back as wild (9)
 
 Too far from what the catalog says this kind of thing is worth. Not merged.
 
-- Madden NFL 25 — $2–7 against a book value of $25 (0.16x, 9 listings)
-- Apple AirPods Max — $180–300 against a book value of $50 (4.4x, 6 listings)
-- Scuf Reflex — $118–150 against a book value of $30 (4.2x, 21 listings)
-- Asus ROG Ally — $675–780 against a book value of $170 (4.06x, 11 listings)
-- JBL PartyBox 110 — $211–245 against a book value of $50 (4.6x, 15 listings)
+- Apple AirPods Max — $180–300 against a book value of $50 (4.8x, 6 listings)
+- Scuf Reflex — $118–150 against a book value of $30 (4.47x, 21 listings)
+- Asus ROG Ally — $675–780 against a book value of $170 (4.28x, 11 listings)
+- JBL PartyBox 110 — $211–245 against a book value of $50 (4.56x, 15 listings)
 - JBL PartyBox 310 — $300–400 against a book value of $50 (7x, 11 listings)
-- JBL Boombox 3 — $179–240 against a book value of $50 (4.3x, 17 listings)
-- Grand Theft Auto V — $4–9 against a book value of $25 (0.24x, 10 listings)
+- JBL Boombox 3 — $179–240 against a book value of $50 (4.2x, 17 listings)
 - Amazon Fire HD 10 — $22–38 against a book value of $150 (0.2x, 10 listings)
 - Amazon Fire HD 8 — $20–24 against a book value of $150 (0.15x, 14 listings)
-- Amazon Fire HD 7 — $20–36 against a book value of $150 (0.18x, 11 listings)
-- HP Omen 16 — $450–1450 against a book value of $175 (5.43x, 10 listings)
-- Alienware m15 R7 — $675–1134 against a book value of $175 (4.94x, 7 listings)
-- MSI Katana 15 — $680–900 against a book value of $175 (5.02x, 10 listings)
+- Amazon Fire HD 7 — $20–36 against a book value of $150 (0.19x, 11 listings)
 
 ## Too thin to price (46)
 

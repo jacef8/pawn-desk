@@ -87,7 +87,13 @@ const CATALOG = [
       each; the name was just contradicting the picker. The $175 is still the
       50-65in figure, which is the band the picker treats as neutral. */
    {id:"e1",name:"TV — smart, any size",value:175,liq:"normal"},
-   {id:"e2",name:"Laptop",value:175,liq:"normal"},
+   /* $175 was below every laptop the harvest measured except one, a tired
+      HP Pavilion at $132. Ten mid-tier machines came back with a median
+      resale of $249 - Chromebook, Inspiron, EliteBook, Surface, Vivobook,
+      Envy, Swift, Aspire, ZenBook, Pavilion - and 249/0.8 is 311. The
+      gaming machines are a different row now rather than dragging this
+      one up. */
+   {id:"e2",name:"Laptop",value:311,liq:"normal"},
    {id:"e3",name:"Tablet",value:150,liq:"normal"},
    {id:"e4",name:"Smartphone",value:200,liq:"fast"},
    {id:"e5",name:"Game console — current gen",value:225,liq:"fast"},
@@ -400,6 +406,27 @@ const PRICEBOOK=[
     $300, $316 and $282, an RS 4 Mini at $230, a faulty Pocket 3 at $181 -
     taken a markdown step down, the way every shelf figure here is. */
  ["Gimbal / pocket camera",250,"elec","normal"],
+ /* SPLITS THE HARVEST ASKED FOR. Each of these was one row covering a
+    spread no single number could hold, and the sanity band kept refusing
+    perfectly good measurements because the row underneath them was wrong.
+
+    Gaming laptop: six measured, median resale $732, but Alienware is the
+    only hi-tier make among them and the x1.4 lands on top - so the base
+    is the mid-tier median, $675, over 0.8. Against a $175 "Laptop" row an
+    HP Omen at $950 read as 5.4x and was held back; against this it is
+    within the band and merges.
+
+    Sports title: five measured - Madden 25 at $4, NBA 2K24 $7, College
+    Football 25 $10, FC 24 $11, FC 25 $13 - and they crater on a schedule,
+    every year, which is the most predictable thing in the whole book.
+
+    Nintendo title: only TWO measured, Mario Kart 8 at $28 and Pokemon
+    Scarlet at $52, so treat this one as a placeholder with a direction
+    rather than a price. Nintendo first-party holds where everything else
+    falls; how much it holds is not yet known. */
+ ["Gaming laptop",844,"elec","normal"],
+ ["Video game — sports title",13,"elec","fast"],
+ ["Video game — Nintendo title",50,"elec","fast"],
  ["GoPro / action camera",90,"elec","fast"],["Smartwatch \u2014 Apple / Galaxy",120,"elec","fast"],["VR headset",180,"elec","normal"],
  ["Handheld game console",170,"elec","fast"],["Video game — current title",25,"elec","fast"],["Projector",120,"elec","normal"],
  ["Two-way radios — pair",40,"elec","normal"],["Wristwatch — quartz, name brand",60,"jewel","slow"],["DJ controller",120,"elec","slow"],
@@ -4271,7 +4298,11 @@ const BOOK_SYN={"Reciprocating saw":"sawzall saws all recip saw",
  "Wireless mouse \u2014 computer":"mouse mice trackball logitech computer",
  "Computer keyboard":"keyboard mechanical keys logitech","DSLR / mirrorless camera":"dslr slr mirrorless canon nikon sony rebel eos t6 t7 d3500 alpha","Band saw \u2014 benchtop":"bandsaw band saw","Audio mixer \u2014 PA board":"mixer mixing board soundboard sound board zed behringer yamaha mackie","TIG / stick welder":"tig stick arc welder weldpro everlast","Zero-turn mower":"zero turn zturn ztr","Golf cart":"golf cart","Kayak — sit-on-top":"kayak yak",
  "Jon boat — 12ft, no motor":"jon boat johnboat","UTV / side-by-side":"utv side by side sxs","Dirt bike":"motorcycle",
- "E-bike":"ebike electric bike","Camera drone":"drone","Smartwatch \u2014 Apple / Galaxy":"smartwatch smart watch apple watch galaxy watch fitbit","Handheld game console":"handheld",
+ "E-bike":"ebike electric bike","Camera drone":"drone",
+ "Gaming laptop":"gaming laptop rgb omen nitro legion katana alienware predator tuf rog zephyrus blade raider stealth",
+ "Video game — sports title":"madden nba 2k fifa fc college football nhl mlb the show ufc sports game",
+ "Video game — Nintendo title":"mario zelda pokemon smash splatoon animal crossing kirby metroid donkey kong nintendo game",
+ "Gimbal / pocket camera":"osmo gimbal pocket camera ronin stabilizer action cam","Smartwatch \u2014 Apple / Galaxy":"smartwatch smart watch apple watch galaxy watch fitbit","Handheld game console":"handheld",
  "Gaming desktop PC":"desktop pc computer tower","Air rifle / pellet gun":"bb gun pellet air rifle",
  "AK-pattern rifle":"ak ak47 ak-47","Deer feeder — barrel":"feeder","Cellular game camera":"cellular trail cam cell cam",
  "Fish finder":"depth finder sonar","Stand mixer — KitchenAid class":"kitchenaid mixer","Log splitter":"wood splitter",
@@ -5851,7 +5882,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.4126";
+const APP_BUILD="0926.4212";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

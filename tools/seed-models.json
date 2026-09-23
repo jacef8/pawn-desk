@@ -1423,7 +1423,7 @@
    "name": "Lenovo IdeaPad 3 15"
   },
   {
-   "ref": "e2",
+   "ref": "Gaming laptop",
    "name": "Lenovo Legion 5 15"
   },
   {
@@ -1431,12 +1431,12 @@
    "name": "Asus ZenBook 14"
   },
   {
-   "ref": "e2",
+   "ref": "Gaming laptop",
    "name": "Asus TUF Gaming A15",
    "alias": "a-15 a15"
   },
   {
-   "ref": "e2",
+   "ref": "Gaming laptop",
    "name": "Asus ROG Zephyrus G14",
    "alias": "g-14 g14"
   },
@@ -1445,7 +1445,7 @@
    "name": "Acer Aspire 5"
   },
   {
-   "ref": "e2",
+   "ref": "Gaming laptop",
    "name": "Acer Nitro 5"
   },
   {
@@ -3686,59 +3686,59 @@
    "name": "Call of Duty Black Ops 6"
   },
   {
-   "ref": "Video game \u2014 current title",
+   "ref": "Video game \u2014 sports title",
    "name": "Madden NFL 25"
   },
   {
-   "ref": "Video game \u2014 current title",
+   "ref": "Video game \u2014 sports title",
    "name": "Madden NFL 24"
   },
   {
-   "ref": "Video game \u2014 current title",
+   "ref": "Video game \u2014 sports title",
    "name": "NBA 2K25"
   },
   {
-   "ref": "Video game \u2014 current title",
+   "ref": "Video game \u2014 sports title",
    "name": "NBA 2K24"
   },
   {
-   "ref": "Video game \u2014 current title",
+   "ref": "Video game \u2014 sports title",
    "name": "EA Sports FC 25"
   },
   {
-   "ref": "Video game \u2014 current title",
+   "ref": "Video game \u2014 sports title",
    "name": "EA Sports FC 24"
   },
   {
-   "ref": "Video game \u2014 current title",
+   "ref": "Video game \u2014 Nintendo title",
    "name": "The Legend of Zelda Tears of the Kingdom"
   },
   {
-   "ref": "Video game \u2014 current title",
+   "ref": "Video game \u2014 Nintendo title",
    "name": "The Legend of Zelda Breath of the Wild"
   },
   {
-   "ref": "Video game \u2014 current title",
+   "ref": "Video game \u2014 Nintendo title",
    "name": "Mario Kart 8 Deluxe"
   },
   {
-   "ref": "Video game \u2014 current title",
+   "ref": "Video game \u2014 Nintendo title",
    "name": "Super Mario Odyssey"
   },
   {
-   "ref": "Video game \u2014 current title",
+   "ref": "Video game \u2014 Nintendo title",
    "name": "Super Smash Bros Ultimate"
   },
   {
-   "ref": "Video game \u2014 current title",
+   "ref": "Video game \u2014 Nintendo title",
    "name": "Pokemon Scarlet"
   },
   {
-   "ref": "Video game \u2014 current title",
+   "ref": "Video game \u2014 Nintendo title",
    "name": "Pokemon Violet"
   },
   {
-   "ref": "Video game \u2014 current title",
+   "ref": "Video game \u2014 Nintendo title",
    "name": "Animal Crossing New Horizons"
   },
   {
@@ -3774,7 +3774,7 @@
    "name": "Mortal Kombat 1"
   },
   {
-   "ref": "Video game \u2014 current title",
+   "ref": "Video game \u2014 sports title",
    "name": "EA Sports College Football 25"
   },
   {
@@ -4010,7 +4010,7 @@
    "name": "Dell XPS 15 9520"
   },
   {
-   "ref": "e2",
+   "ref": "Gaming laptop",
    "name": "HP Omen 16"
   },
   {
@@ -4030,15 +4030,15 @@
    "name": "Samsung Galaxy Book3"
   },
   {
-   "ref": "e2",
+   "ref": "Gaming laptop",
    "name": "Alienware m15 R7"
   },
   {
-   "ref": "e2",
+   "ref": "Gaming laptop",
    "name": "MSI Katana 15"
   },
   {
-   "ref": "e2",
+   "ref": "Gaming laptop",
    "name": "Razer Blade 15"
   },
   {
