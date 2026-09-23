@@ -697,9 +697,13 @@ function calcItem(){
      because st.brand defaults to "mid" and nothing read the name. Mid
      against top is 40% of the price - the desk was not just failing to
      answer a question it could answer, it was answering it wrong.
-     A make typed by hand always wins; this only fills the silence. */
-  const namedBrand=(cat.brand.on&&!st.brandTyped)
-    ? brandFromName(cat.id,(item.name||"")+" "+(st.bookName||"")) : null;
+     A make typed by hand always wins; this only fills the silence.
+     Everything the counter has told us about what this is gets read: the
+     catalog row, the model they picked off the list ("DeWalt 20V drill
+     kit" - the make is the first word of it), and anything typed in the
+     price book. A tier they tapped themselves outranks all of it. */
+  const namedBrand=(cat.brand.on&&!st.brandTyped&&!st.brandSet)
+    ? brandFromName(cat.id,(item.name||"")+" "+(st.model||"")+" "+(st.bookName||"")) : null;
   const brandTier=namedBrand?namedBrand.tier:st.brand;
   const brandMult=cat.brand.on?BRANDS.find(b=>b.id===brandTier).mult:1;
   /* What a missing piece costs. It was a flat 30% for everything, which was
@@ -1361,9 +1365,16 @@ function askQueue(x){
   const q=[], cat=x.cat, ov=itemOv();
   if(cat.brand.on){
     const tiers=(ov&&ov.tiers)||cat.brand;
-    /* If the name carries a make, that IS the answer - show it answered
-       rather than lighting a tier nobody chose. */
-    const named=x.namedBrand?{name:x.namedBrand,tier:x.brandTier}:null;
+    /* If the make is known, that IS the answer - show it answered rather
+       than lighting a tier nobody chose.
+       Known two ways, and both have to say the make out loud. Typing
+       "Sony Laptop" lit "Apple / Samsung flagship" and explained nothing,
+       so the screen read as the desk calling a Sony an Apple. It is the
+       right TIER - the buttons are named after their examples, and Sony
+       keeps company with Apple - but the counter is owed the word Sony. */
+    const typedHit=st.brandTyped?brandLookup(st.catId,st.brandTyped):null;
+    const named=x.namedBrand?{name:x.namedBrand,tier:x.brandTier}
+      :typedHit?{name:typedHit.name,tier:typedHit.tier}:null;
     /* Nothing lit until something actually says so. A default that lights
        "Ryobi / Ridgid" reads as an answer somebody gave, and the counter
        walks past it. The price still uses mid as its neutral - it has to
@@ -1372,7 +1383,12 @@ function askQueue(x){
     const sel=known?x.brandTier:null;
     q.push({id:"brand", title:"What make is it?",
       named:named&&named.name,
-      opts:BRANDS.map(br=>({t:tiers[br.id], on:sel===br.id, set:"brand", v:br.id})),
+      /* The lit button wears the actual make, with the tier it sits in
+         underneath. The other two keep their examples, so there is still
+         somewhere obvious to move it. */
+      opts:BRANDS.map(br=>({t:(named&&sel===br.id)?named.name:tiers[br.id],
+        sub:(named&&sel===br.id)?tiers[br.id]:"",
+        on:sel===br.id, set:"brand", v:br.id})),
       hint:known?"":"Nothing picked yet \u2014 the price is using the standard tier until you say.",
       answered:known});
   }
@@ -1717,16 +1733,20 @@ function wireItem(){
     st.needKind=false;
     if(un&&st.photoRead)st.photoRead=Object.assign({},st.photoRead,{unplaced:false});
     st.liq=null;st.brandTyped="";st.model="";st.detail="";st.complete=true;st.editing=false;
+    st.brandSet=false;
     const h=typed?brandInText(st.catId,typed):null; st.brand=h?h.tier:"mid";
     render();});
   v.querySelectorAll("[data-item]").forEach(b=>b.onclick=()=>{st.needKind=false;st.itemId=b.dataset.item;st.market=null;st.omniDone="";st.mpPin=null;st.mpNone=false;st.condSet=false;st.cond="good";st.bookName="";st.liq=null;st.brand="mid";st.brandTyped="";st.model="";st.detail="";st.complete=true;st.askAt=0;st.brandSet=false;
     /* picking "Something else" with no saved value drops you straight into the price box */
     st.editing=(st.itemId===custId(st.catId));
     render();if(st.editing)document.getElementById("valIn")?.focus();});
-  v.querySelectorAll("[data-brand]").forEach(b=>b.onclick=()=>{st.brand=b.dataset.brand;st.brandTyped="";render();});
+  /* A tier tapped by hand is the counter overruling whatever was read off
+     the name, so it has to outrank it - brandSet is what says so. */
+  v.querySelectorAll("[data-brand]").forEach(b=>b.onclick=()=>{st.brand=b.dataset.brand;st.brandTyped="";st.brandSet=true;render();});
   const bIn=document.getElementById("brandIn");
   if(bIn)bIn.oninput=()=>{
     st.brandTyped=bIn.value;
+    st.brandSet=false;
     const hit=brandLookup(st.catId,st.brandTyped);
     if(hit)st.brand=hit.tier;
     document.getElementById("brandVerdict").innerHTML=brandVerdictHTML();
@@ -1792,7 +1812,7 @@ function wireItem(){
       document.getElementById("view").querySelectorAll("[data-hit]").forEach(b=>b.onclick=()=>{
         const e=hits[Number(b.dataset.hit)];
         st.catId=e[2]; st.itemId=custId(e[2]); st.bookName=e[0]; st.overrides[custId(e[2])]=bookVal(e);
-        st.liq=e[3]; st.brand="mid"; st.brandTyped=""; st.complete=true; st.editing=false;
+        st.liq=e[3]; st.brand="mid"; st.brandTyped=""; st.brandSet=false; st.complete=true; st.editing=false;
         persist(); render();
       });
     };
@@ -2967,7 +2987,7 @@ function bookVal(e){
 }
 function pickBookEntry(e){
   st.catId=e[2]; st.itemId=custId(e[2]); st.bookName=e[0]; st.overrides[custId(e[2])]=bookVal(e);
-  st.liq=e[3]; st.brand="mid"; st.brandTyped=""; st.model=""; st.detail="";
+  st.liq=e[3]; st.brand="mid"; st.brandTyped=""; st.brandSet=false; st.model=""; st.detail="";
   st.complete=true; st.editing=false; st.specSel={};
   persist(); render();
 }
@@ -4363,7 +4383,7 @@ function startOver(){
   st.omniQ=""; st.omniDone=""; st.omniHl=null;
   st.mode="item";                 /* from the scale too, not just the item page */
   st.picked=false; st.bookName=""; st.brandTyped=""; st.model=""; st.detail="";
-  st.brand="mid"; st.liq=null; st.market=null; st.mpPin=null; st.mpNone=false;
+  st.brand="mid"; st.brandSet=false; st.liq=null; st.market=null; st.mpPin=null; st.mpNone=false;
   st.cond="good"; st.condSet=false; st.complete=true; st.specSel={}; st.editing=false;
   st.ask=0; st.askKey=""; st.ticket=""; st.needKind=false; st.photoRead=null; st.compRead=null;
   st.fakeAns={}; st.fakeKey=""; st.stepAt=0; st.openS3=st.openS4=st.openS5=false;
@@ -4375,7 +4395,7 @@ function omniPick(r){
   if(!r||r.kind==="sold")return;
   if(r.kind==="own"){
     st.omniQ=r.q; st.omniHl=0; st.mode="item"; st.itemId=custId(st.catId); st.bookName=r.q;
-    st.brandTyped=""; st.model=""; st.detail=""; st.brand="mid"; st.liq=null; st.market=null;
+    st.brandTyped=""; st.model=""; st.detail=""; st.brand="mid"; st.brandSet=false; st.liq=null; st.market=null;
     st.mpPin=null; st.mpNone=true; st.condSet=false; st.phKindsOpen=true; st.omniDone=r.q;
     st.needKind=true;               /* nothing is priced until this is answered */
     render();
@@ -4402,6 +4422,7 @@ function omniPick(r){
   else { st.itemId=custId(r.catId); st.bookName=r.name; st.liq=null; }
   st.needKind=false;
   st.brandTyped=r.brand||"";
+  st.brandSet=false;
   const hit=st.brandTyped?brandLookup(st.catId,st.brandTyped):null; st.brand=hit?hit.tier:"mid";
   st.model=r.model||""; st.detail=r.detail||"";
   st.complete=r.complete!==false;
@@ -5344,7 +5365,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.2430";
+const APP_BUILD="0926.2512";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

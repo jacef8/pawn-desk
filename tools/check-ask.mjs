@@ -135,6 +135,96 @@ console.log("\n  the make is read off the name");
      "a make typed by hand beats the one read off the name — " + r.typed.tier);
 }
 
+/* Typing "Sony Laptop" lit "Apple / Samsung flagship" and explained
+   nothing. The TIER was right - the buttons are named after their
+   examples and Sony keeps company with Apple - but on the screen it read
+   as the desk calling a Sony an Apple, with no line anywhere saying where
+   that came from. Whatever the desk knows the make to be, it has to say
+   the make out loud.
+   And the make can arrive three ways: written in the catalog row, typed
+   into the brand box, or sitting in the model picked off the list. The
+   third was not being read at all, so "DeWalt 20V drill kit" - the make
+   is the first word of it - still priced as a standard brand. */
+console.log("\n  whatever make the desk knows, it says out loud");
+{
+  const r = await page.evaluate(() => {
+    const look = (catId, itemId, typed, model) => {
+      const c = CATALOG.find(x => x.id === catId);
+      st.flow="ask"; st.mode="item"; st.catId=catId; st.itemId=itemId; st.picked=true; st.askAt=0;
+      st.brand="mid"; st.brandTyped=typed||""; st.model=model||""; st.bookName="";
+      st.specSel={}; st.market=null; st.brandSet=false;
+      if (typed) { const h = brandLookup(catId, typed); if (h) st.brand = h.tier; }
+      render();
+      const x = calcItem();
+      const lit = [...document.querySelectorAll(".askOpt")].find(b => b.classList.contains("on"));
+      return {tier:x.brandTier, mult:x.brandMult,
+              lit: lit ? lit.querySelector(".askT").textContent.trim() : null,
+              sub: lit && lit.querySelector(".askS") ? lit.querySelector(".askS").textContent.trim() : "",
+              hint: (document.querySelector("#askCard .cardHint")||{}).textContent||""};
+    };
+    return {sony:  look("elec", "e2", "Sony"),
+            model: look("tools", "t1", "", "DeWalt 20V drill kit"),
+            none:  look("elec", "e2", "")};
+  });
+  ok(r.sony.lit === "Sony",
+     'a Sony laptop lights a button that says SONY, not somebody else\'s name — got ' + JSON.stringify(r.sony.lit));
+  ok(/Apple/.test(r.sony.sub),
+     "  with the tier it sits in underneath, so the tap is still obvious — " + r.sony.sub);
+  ok(/Sony/.test(r.sony.hint) && /read off the name/.test(r.sony.hint),
+     "  and a line saying where the make came from — " + r.sony.hint);
+  ok(r.sony.tier === "hi", "  the tier itself was never wrong — " + r.sony.tier);
+  ok(r.model.tier === "hi" && r.model.mult === 1.4,
+     "the make in the MODEL is read too: DeWalt 20V drill kit prices as top tier — " + r.model.tier + " x" + r.model.mult);
+  ok(r.model.lit === "DeWalt", "  and that button says DeWalt — got " + JSON.stringify(r.model.lit));
+  ok(r.none.lit === null && /standard tier until you say/.test(r.none.hint),
+     "a laptop with no make anywhere still lights nothing");
+}
+
+/* A tier tapped by hand has to beat the one read off the name, and go on
+   beating it. It did not: namedBrand was recomputed on every render and
+   won outright, so on a DeWalt row the tap moved the button and left the
+   price where it was. */
+console.log("\n  a tap overrules what was read off the name");
+{
+  const r = await page.evaluate(() => {
+    const c = CATALOG.find(x => x.items.some(i => i.id === "t1"));
+    st.flow="ask"; st.mode="item"; st.catId=c.id; st.itemId="t1"; st.picked=true; st.askAt=0;
+    st.brand="mid"; st.brandTyped=""; st.model="DeWalt 20V drill kit"; st.bookName="";
+    st.specSel={}; st.market=null; st.brandSet=false;
+    render();
+    const before = calcItem().brandMult;
+    document.querySelector('[data-ask="brand"][data-askv="lo"]').click();
+    st.askAt = 0; render();
+    const x = calcItem();
+    const lit = [...document.querySelectorAll(".askOpt")].find(b => b.classList.contains("on"));
+    return {before, after: x.brandMult, tier: x.brandTier,
+            lit: lit ? lit.querySelector(".askT").textContent.trim() : null};
+  });
+  ok(r.before === 1.4, "reads DeWalt off the model first — x" + r.before);
+  ok(r.after < r.before && r.tier === "lo",
+     "tapping the budget tier actually moves the PRICE, not just the button — x" + r.before + " → x" + r.after);
+  ok(/Harbor Freight/.test(r.lit || ""), "  and the budget button is the lit one — " + r.lit);
+}
+
+/* brandSet is what makes a tap stick, so it has to be cleared when the
+   next thing is put on the counter - otherwise one override silences the
+   name-reading for every item after it. */
+console.log("\n  the override does not follow you to the next item");
+{
+  const r = await page.evaluate(() => {
+    const c = CATALOG.find(x => x.items.some(i => i.id === "t1"));
+    st.flow="ask"; st.mode="item"; st.catId=c.id; st.itemId="t1"; st.picked=true;
+    st.brand="mid"; st.brandTyped=""; st.model="DeWalt 20V drill kit"; st.brandSet=false;
+    st.specSel={}; st.market=null; st.askAt=0; render();
+    document.querySelector('[data-ask="brand"][data-askv="lo"]').click();
+    const stuck = st.brandSet;
+    startOver();
+    return {stuck, after: st.brandSet};
+  });
+  ok(r.stuck === true, "the tap is remembered while that item is on the counter");
+  ok(r.after === false, "  and forgotten when the next one is — got " + r.after);
+}
+
 ok(!errs.length, "no page errors" + (errs.length ? ": " + errs[0] : ""));
 await browser.close();
 console.log(`\n  ${pass} passed, ${fail} failed\n`);
