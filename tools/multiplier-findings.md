@@ -179,3 +179,50 @@ are listed.
 Every other battery tool in the catalogue should be checked for the same
 hole: a cordless item that cannot be marked bare will over-lend by about
 half on what may be the commonest version of it.
+
+---
+
+# The battery-tool sweep — 23 Sep 2026
+
+Every item in the catalogue that is a battery tool, checked for whether the
+counter can say the battery is missing. Eight of them.
+
+| | Item | Can say bare? | |
+|---|---|---|---|
+| p2 | String trimmer | yes | |
+| p3 | Backpack blower | yes | |
+| p4 | Push mower | **no** | on purpose — see below |
+| t1 | Cordless drill / driver | **added** | 0.52, measured on 274 bare listings |
+| t2 | Impact wrench | **added** | 0.55, thin — one good model |
+| t3 | Angle grinder | yes | 1.35 vs corded |
+| t8 | Framing nailer | yes | 1.8, measured across six models |
+| a10 | Vacuum cleaner | **no** | on purpose — see below |
+
+Two were fixed. Two look like holes and are not.
+
+## p4 push mower — eBay cannot price it, so no number was invented
+
+Zero of ten push mowers in the harvest came back usable, and four were
+marked local-only outright: a Honda HRX217 returned **4 real machines out of
+39 listings**, the rest spindles and deck belts.
+
+Measuring bare against with-battery on that data gave bare as **DEARER, at
+1.25x** — the pooled-mix trap, not a market. Per model it read 1.04, 1.52
+and 0.50, and a $30 "mower" got through the filter.
+
+A battery mower without its battery is a real thing that walks into a pawn
+shop. It is just not a thing eBay can put a number on. Price it off the
+shelf record and your own sales.
+
+## a10 cordless stick vacuum — not a configuration
+
+Checked across Dyson V8, V10 and Shark: **one bare listing in 35.** The
+battery in a stick vacuum is built in, so one without a working battery is
+not something people sell — it is a dead vacuum, and the condition scale
+already covers that.
+
+## The shape of the finding
+
+Of eight battery tools, five were already right, two had a real hole, and
+two apparent holes were not holes. The two that mattered were the two most
+common things on a pawn counter — a cordless drill and an impact wrench.

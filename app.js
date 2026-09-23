@@ -1035,6 +1035,15 @@ const SPEC_CHOICES={
  g10:[CH_CALIBER,CH_OPTIC],
  p1:[{label:"Bar length",options:[{t:"Under 16 in",m:.85,note:"short bar — homeowner saw: −15%"},{t:"16–18 in",m:1},{t:"19 in +",m:1.15,note:"pro-length bar: +15%, slower buyer"}]},CH_GRADE],
  p2:[CH_PWR,CH_GRADE],p3:[CH_PWR,CH_GRADE],
+ /* No "battery mower, no battery" option, and that is deliberate. eBay
+    cannot price a mower at all: 0 of 10 push mowers in the harvest came
+    back usable, and the share gate marked four of them local-only outright
+    - a Honda HRX217 returned 4 real machines out of 39 listings, the rest
+    spindles and deck belts. Measuring bare against with-battery on that
+    data gave bare as DEARER, 1.25x, which is the pooled-mix trap and not a
+    market. A mower without its battery is a real thing that walks in; it is
+    just not a thing eBay can put a number on. Price it off the shelf record
+    and your own sales, and do not invent a multiplier here. */
  p4:[{label:"Drive",options:[{t:"Gas push",m:1},{t:"Self-propelled",m:1.15,note:"self-propelled: +15%"},{t:"Battery — with battery",m:.9,note:"battery mower: −10%"},{t:"Corded electric",m:.5,note:"corded: about half"}]},
      {label:"Deck",options:[{t:"Standard 20–22 in",m:1},{t:"Wide-area 26 in +",m:1.2,note:"wide-area: +20%"}]}],
  p5:[{label:"Deck",options:[{t:"Under 42 in",m:.85,note:"small deck: −15%"},{t:"42–45 in",m:1},{t:"46 in +",m:1.15,note:"bigger deck: +15%"}]},
@@ -1176,6 +1185,11 @@ const SPEC_CHOICES={
     was. Worth noting the brands disagree sharply (Dyson 1.46, Shark 0.92):
     a stick is worth more than an upright of the same make only where the
     make is one people want cordless. */
+ /* No "cordless stick, no battery" option, and that is deliberate too.
+    Checked 23 Sep across Dyson V8, V10 and Shark: ONE bare listing in 35.
+    The battery in a stick vacuum is built in, so one without a working
+    battery is not a configuration somebody sells - it is a dead vacuum,
+    and the condition scale already says that. */
  a10:[{label:"Type",options:[{t:"Upright / canister",m:1},{t:"Cordless stick",m:1.2,note:"cordless stick: +20%"},{t:"Shop vac",m:.8,note:"shop vac: \u221220%"}]}],
  e2:[CH_AGE,{label:"Class",options:[{t:"Standard",m:1},{t:"Gaming / workstation",m:1.3,note:"gaming class: +30%"}]}],
  e3:[CH_AGE],
@@ -5330,7 +5344,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.2420";
+const APP_BUILD="0926.2430";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
