@@ -2225,17 +2225,17 @@ function renderSetup(){
   </div>
   ${pdServer()?harvCardHTML():""}
   ${sheetCardHTML()}
-  ${pdServer()?"":`<div class="card" style="border:1px dashed var(--e2-hi)"><span class="label">\uD83D\uDCF7 The camera is off on this device</span>
-    <div class="cardHint" style="margin-top:0">Nothing on this device can read a photo yet. Switch it on here, or \u2014 far easier \u2014 open <b style="color:var(--ink)">Setup</b> on the desk computer and point this phone\u2019s camera at the QR code it shows.</div>
-    <div class="cardHint" style="font-size:12.5px">The two lines below are the same ones printed on the desk under Setup. Every device keeps its own copy, which is why this one has to be told too.</div>
-  </div>`}
-  ${pdServer()&&window.PHONE?`<div class="card"><span class="label">\uD83D\uDCF7 Camera</span>
-    <div class="cardHint" style="margin-top:0"><b style="color:var(--accent)">Switched on.</b> Photo lookups work on this device. The camera card is on the <b style="color:var(--ink)">Check a price</b> tab, headed <i>Photograph it</i>.</div>
+  /* There used to be a card here announcing that the camera was off, above
+     a card headed "Camera and photo lookups - off", above a third saying
+     nothing was switched on anywhere. Three cards to say one thing, and the
+     only one with a box to type in was last. The connect card says it. */
+  ${pdServer()&&window.PHONE?`<div class="card"><span class="label">Connected</span>
+    <div class="cardHint" style="margin-top:0"><b style="color:var(--accent)">This phone is on.</b> It can look up what things sold for, and the camera works \u2014 the card for it is on the <b style="color:var(--ink)">Check a price</b> tab, headed <i>Snap it</i>.</div>
   </div>`:""}
-  ${window.PHONE?"":`<div class="card"><span class="label">Switching the camera on for another device</span>
-    <div class="cardHint" style="margin-top:0">${pdServer()
-      ?`This computer is switched on. Every phone and tablet keeps its own copy, so each one has to be told once. On the other device open the price page, find the card headed <b style="color:var(--ink)">\uD83D\uDCF7 Camera &amp; photo lookups &mdash; off</b>, and type these two lines into it.`
-      :`Nothing is switched on yet, here or anywhere. Switch this computer on first, using the <b style="color:var(--ink)">\uD83D\uDCF7 Camera &amp; photo lookups</b> card on the price page \u2014 then this panel will print what to type into the phone.`}</div>
+  /* Only once there is something to hand off. Empty, it was a card whose
+     whole content was "there is nothing here yet". */
+  ${window.PHONE||!pdServer()?"":`<div class="card"><span class="label">Switching another device on</span>
+    <div class="cardHint" style="margin-top:0">This computer is connected. Every phone and tablet keeps its own copy, so each one has to be told once \u2014 point its camera at the code below, or type these two lines into it.</div>
     ${pdServer()?`<span class="label" style="margin-top:12px">Service address</span>
     <div class="roOut" style="user-select:all">${esc(pdServer())}</div>
     <span class="label" style="margin-top:10px">Token</span>
@@ -2459,15 +2459,18 @@ function pdHandoffLink(){
 function pdConnectHTML(){
   if(window.claude&&window.claude.use)return "";
   const on=!!pdServer();
-  /* "Connect" read as "connect a camera", and there is no camera to buy:
-     it uses the one in this device. What has to be switched on is the shop's
-     service, because reading a photo needs the API key and the key cannot
-     live in a web page. Say that. */
-  return '<div class="card" id="pdConnCard" style="border:1px dashed var(--e2-hi)"><span class="label">\uD83D\uDCF7 Camera &amp; photo lookups \u2014 off</span>'+
+  /* Named for the camera for a long time, and that was wrong twice over.
+     "Connect" read as "connect a camera", and there is none to buy - it uses
+     the one in the device. Worse, the camera is the SMALLEST thing behind
+     this switch: what it really turns on is the shop's service, and the
+     service is what looks up sold prices. Somebody who did not want to
+     photograph anything read "Camera and photo lookups" as optional and
+     left the price lookups switched off. */
+  return '<div class="card" id="pdConnCard" style="border:1px dashed var(--e2-hi)"><span class="label">This device is not connected to the shop&rsquo;s service</span>'+
     '<div class="cardHint">'+(on
-      ? "Switched on, but the shop&rsquo;s service did not answer. Check that it is running."
-      : "Switch on the shop&rsquo;s service and this device will <b style=\"color:var(--ink)\">photograph an item and price it</b>, read another shop&rsquo;s tag, and look up sold prices for you.")+'</div>'+
-    '<div class="cardHint" style="font-size:12.5px">No camera to buy \u2014 it uses the one in this phone or tablet (a desk PC needs a webcam, or just use the phone). Switching on means pasting the service address and token once; that is where the key lives, and it never touches this page.</div>'+
+      ? "Connected, but the shop&rsquo;s service did not answer. Check that it is running."
+      : "Until it is, this device cannot <b style=\"color:var(--ink)\">look up what things sold for</b>. It works off the built-in price list alone, and you do the searching by hand.")+'</div>'+
+    '<div class="cardHint" style="font-size:12.5px">Connecting also lets this device photograph an item and price it, read another shop&rsquo;s price tag, and share the shelf record with your other devices. It means pasting two lines once. The API key lives on the service, never in this page.</div>'+
     /* These used to be two browser prompt() boxes. A prompt is torn down the
        moment the tab loses focus - and the token lives in another tab, so
        going to fetch it closed the box you were pasting into. Fields on the
@@ -2912,8 +2915,8 @@ function photoCardHTML(){
        fix it. The phone still gets the full card: it is the phone's main
        move, and there is no second column to lose. */
     if(!window.PHONE && st.picked) return `<div class="card" id="photoCard">
-      <span class="label" style="margin:0">Camera &amp; photo lookups &mdash; off</span>
-      <div class="cardHint" style="margin:5px 0 0">Switch the shop's service on and this device can photograph an item, read another shop's tag and look up sold prices.
+      <span class="label" style="margin:0">Not connected &mdash; no sold-price lookups on this device</span>
+      <div class="cardHint" style="margin:5px 0 0">Connect it to the shop's service and it can look up what things sold for, photograph an item and price it, and read another shop's tag.
         <button class="ghostBtn" data-gotab="setup" type="button" style="padding:5px 12px;font-size:12px;margin-left:6px">Set it up</button></div>
     </div>`;
     return pdConnectHTML();
@@ -5102,7 +5105,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.2310";
+const APP_BUILD="0926.2320";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

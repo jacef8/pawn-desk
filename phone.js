@@ -279,7 +279,7 @@ function snapHTML(){
        </div>`
     : (has ? "" : pdConnectHTML());
   const camOff=(!camOn&&has)
-    ? `<div class="snapOff">\uD83D\uDCF7 Camera and photo lookups are off on this phone.
+    ? `<div class="snapOff">This phone is not connected \u2014 no sold-price lookups.
         <button class="ghostBtn" data-gotab="setup" type="button">Set it up</button></div>`
     : "";
 
