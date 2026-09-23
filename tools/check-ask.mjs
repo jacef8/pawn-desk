@@ -343,12 +343,19 @@ console.log("\n  a size the desk understood is not a different item");
   const r = await page.evaluate(() => {
     const kinds = (q) => omniRows(q).rows.map(x => x.kind);
     return {tv: kinds("samsung 55 inch tv"), bare: kinds("samsung tv"),
-            pods: kinds("apple airpods pro")};
+            pods: kinds("apple airpods pro"),
+            miss: kinds("zzz nonesuch widget 9000")};
   });
   ok(r.tv[0] === "item", '"samsung 55 inch tv" leads with the TV row — ' + r.tv.join(","));
   ok(r.bare[0] === "item", "  as it always did without the size — " + r.bare.join(","));
-  ok(r.pods[0] === "own",
-     "  and a real miss is still offered as one, not forced onto a row — " + r.pods.join(","));
+  /* This asked for something the desk had never heard of, and AirPods Pro
+     was the example - until the electronics harvest priced it off ten real
+     sales. A model the desk now KNOWS is the right answer to lead with, so
+     the example moved to something still genuinely absent. */
+  ok(r.pods[0] === "mp",
+     "  a model the desk has since measured leads with that row — " + r.pods.join(","));
+  ok(r.miss[0] === "own",
+     "  and a real miss is still offered as one, not forced onto a row — " + r.miss.join(","));
 }
 
 /* THE DESK MUST ANSWER - BUT ONLY ONCE IT HAS BEEN ASKED.

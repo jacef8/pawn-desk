@@ -120,6 +120,28 @@ try {
     KIND[e[0]] = e[0];
   });
 } catch (e) { console.error("  (could not read the catalog: " + e.message + " - the sanity band is off)"); }
+/* THE MIDDLE HALF OF ONE PRODUCT IS NOT TEN TIMES WIDE.
+ *
+ * lo and hi are the 25th and 75th percentiles - the middle half of what
+ * sold. For a single product that band is tight: condition and storage
+ * move it, a factor of two at the outside. When it comes back ten times
+ * wide the search was not measuring one thing. A BenQ GW2480 came back
+ * $40-$399 off thirteen real sales, and an HTC Vive Pro 2 $45-$350 off
+ * fourteen - the low ends are a cable and a controller, the high ends are
+ * the headset. Both would have merged: every sale was genuine, the count
+ * was healthy, and the MIDPOINT sat close enough to the book for the
+ * sanity band to wave it through. The band watches the middle; this
+ * watches the width.
+ *
+ * Deliberately loose at 5x, well past the spread real condition produces,
+ * so it catches mixed products and not a wide market. */
+const MIX_SPREAD = 5;
+const mixedness = (lo, hi) => {
+  const a = Number(lo), b = Number(hi);
+  if (!(a > 0) || !(b > 0)) return null;
+  const spread = Math.round((b / a) * 10) / 10;
+  return { spread, mixed: spread > MIX_SPREAD };
+};
 const wildness = (ref, med) => {
   const b = BOOK[ref];
   if (!b || !med) return null;
@@ -185,8 +207,8 @@ if (has("merge")) {
   const isBookRow = (f) => f && f.ref === f.name && BOOK[f.ref] !== undefined
                         && !/^[a-z]\d{1,2}$/.test(String(f.ref));
   const byName = new Map(rows.map((r, i) => [String(r[1]) + "|" + String(r[2]).toLowerCase(), i]));
-  let added = 0, updated = 0, skipped = 0, wild = 0, asks = 0;
-  const touched = [], touchedMoves = [], newRows = [], heldWild = [], heldThin = [];
+  let added = 0, updated = 0, skipped = 0, wild = 0, asks = 0, mixed = 0;
+  const touched = [], touchedMoves = [], newRows = [], heldWild = [], heldThin = [], heldMixed = [];
   let n = 0;
   const nextId = () => { let id; do { id = "h" + (++n); } while (rows.some(r => r[0] === id)); return id; };
   for (const [key, f] of Object.entries(found)) {
@@ -206,6 +228,13 @@ if (has("merge")) {
          this script from before the price book had a band at all - which
          is exactly how a dry run put a $600 e-bike in at $2,583. The merge
          is the last gate before the counter, so it checks for itself. */
+      const mx = mixedness(f.lo, f.hi);
+      if (mx && mx.mixed && !has("mixed")) {
+        mixed++;
+        heldMixed.push({ name: f.name, lo: Math.round(f.lo), hi: Math.round(f.hi),
+                         n: f.n, spread: mx.spread });
+        continue;
+      }
       const w = wildness(f.name, mid);
       if (w && w.wild && !has("wild")) {
         wild++;
@@ -218,6 +247,13 @@ if (has("merge")) {
         bookMap[f.name] = mid;
         updated++;
       }
+      continue;
+    }
+    const mxr = mixedness(f.lo, f.hi);
+    if (mxr && mxr.mixed && !has("mixed")) {
+      mixed++;
+      heldMixed.push({ name: f.name, lo: Math.round(f.lo), hi: Math.round(f.hi),
+                       n: f.n, spread: mxr.spread });
       continue;
     }
     const row = [f.id || nextId(), f.ref, f.name, Math.round(f.lo), Math.round(f.hi),
@@ -325,6 +361,7 @@ if (has("merge")) {
   L.push("");
   L.push(`${pj.rows.length} rows \u2192 **${rows.length}**. ${added} added, ${updated} rewritten` +
     (wild ? `, ${wild} held back as wild` : "") +
+    (mixed ? `, ${mixed} held back as mixed searches` : "") +
     (skipped ? `, ${skipped} too thin` : "") +
     (asks ? `, ${asks} held back as asking-only` : "") + ".");
   L.push("");
@@ -396,6 +433,7 @@ if (has("merge")) {
 
   console.log(`\n  ${added} added, ${updated} updated, ${skipped} skipped (under ${MIN} listings)` +
     (wild ? `, ${wild} held back as wild (--wild merges them)` : "") +
+    (mixed ? `, ${mixed} held back as mixed searches (--mixed merges them)` : "") +
     (asks ? `, ${asks} held back as asking-price only` : "") + ".");
   if (touched.length) {
     console.log("\n  Rewritten (these had a price already):");

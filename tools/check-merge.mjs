@@ -149,7 +149,14 @@ console.log("\n  a one-off lands in the book map, not the model list");
   try { unlinkSync(PRICES + ".bak"); } catch (e) {}
   try { unlinkSync(tmp); } catch (e) {}
   const restored = JSON.parse(readFileSync(PRICES, "utf8"));
-  ok(!restored.book && restored.rows.length === before.rows.length,
+  /* This used to assert prices.json carried NO book map at all, which was
+     only true while no one-off had ever been priced. The electronics
+     harvest gave real figures to "Wireless earbuds", "Monitor - 27in" and
+     the rest, so an absent book map is no longer the resting state - and an
+     assertion that only holds on an empty shelf tests nothing. Compare it
+     with what was there before the block instead. */
+  ok(JSON.stringify(restored.book || null) === JSON.stringify(before.book || null)
+     && restored.rows.length === before.rows.length,
      "prices.json is back exactly as it started");
 }
 
@@ -205,13 +212,19 @@ console.log("\n  the breaker counts the one-offs");
   }
   const tmp = join(TMP, "bookbreak.json");
   writeFileSync(tmp, JSON.stringify({ updated: "2026-09-23", found }));
+  /* "Nothing was written" used to mean "prices.json has no book map", which
+     held only while no one-off had ever been priced. It carries real ones
+     now, so the check is that the refusal left the map exactly as it
+     found it. */
+  const bookBefore = JSON.stringify(JSON.parse(readFileSync(PRICES, "utf8")).book || null);
   let code = 0, out = "";
   try { out = execFileSync(process.execPath, [join(ROOT, "tools/harvest.js"), "--merge", "--out", tmp],
                            { cwd: ROOT, encoding: "utf8" }); }
   catch (e) { code = e.status; out = String(e.stdout || "") + String(e.stderr || ""); }
   ok(code === 2, "a run where every one-off jumps 80% is refused — exit " + code);
   ok(/moved more than 60%/.test(out), "  and it says why — " + (out.match(/.*moved more than 60%.*/) || [""])[0].trim());
-  ok(!JSON.parse(readFileSync(PRICES, "utf8")).book, "  and nothing was written");
+  ok(JSON.stringify(JSON.parse(readFileSync(PRICES, "utf8")).book || null) === bookBefore,
+     "  and nothing was written");
   restore(); restoreReport();
 }
 

@@ -5832,7 +5832,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.3748";
+const APP_BUILD="0926.3844";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
