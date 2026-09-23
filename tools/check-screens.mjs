@@ -63,6 +63,32 @@ for (const [page, viewport] of [["index.html", {width:1280,height:900}],
     } else console.log(`ok   ${page} ${mode}`);
   }
   if (errs.length) { bad++; console.log(`FAIL ${page} — page errors: ${errs.join(" | ")}`); }
+
+  /* Source comments on the counter's screen.
+     A /* block written INSIDE a template literal is not a comment - it is
+     text, and it renders. Two of them shipped to the live site sitting above
+     the Setup card, explaining to the pawnbroker why a card had been removed.
+     Every suite passed: nothing throws, no id repeats, the screen still
+     draws. Only a person reading the page would notice, and by then it is
+     on the counter. So: read what the screens actually SAY. */
+  for (const on of [false, true]) {
+    const stray = await p.evaluate((connected) => {
+      if (connected) { try { pdSetServer("https://x.up.railway.app", "tok"); } catch (e) {} }
+      const out = [];
+      const tabs = [...document.querySelectorAll("#tabs [data-tab]")].map(b => b.dataset.tab);
+      for (const t of tabs) {
+        st.mode = t; render();
+        const txt = document.getElementById("view").innerText;
+        /* the opening of a block comment, or the line form at the start of
+           a line - both are things a reader should never see */
+        const m = txt.match(/\/\*[\s\S]{0,60}/) || txt.match(/^\s*\/\/ .{0,60}/m);
+        if (m) out.push(t + ": " + m[0].replace(/\s+/g, " "));
+      }
+      return out;
+    }, on);
+    if (stray.length) { bad++; console.log(`FAIL ${page} ${on ? "connected" : "off"} — source comment on screen: ${stray.join(" | ")}`); }
+    else console.log(`ok   ${page} no source comments on any tab (${on ? "connected" : "off"})`);
+  }
   await p.close();
 }
 /* Cards get moved between columns, and a card emitted twice is not a visible
@@ -89,6 +115,32 @@ for (const [page, viewport] of [["index.html", {width:1400,height:900}],
     else console.log(`ok   ${page} ids unique${cond ? " (priced)" : ""}`);
   }
   if (errs.length) { bad++; console.log(`FAIL ${page} — page errors: ${errs.join(" | ")}`); }
+
+  /* Source comments on the counter's screen.
+     A /* block written INSIDE a template literal is not a comment - it is
+     text, and it renders. Two of them shipped to the live site sitting above
+     the Setup card, explaining to the pawnbroker why a card had been removed.
+     Every suite passed: nothing throws, no id repeats, the screen still
+     draws. Only a person reading the page would notice, and by then it is
+     on the counter. So: read what the screens actually SAY. */
+  for (const on of [false, true]) {
+    const stray = await p.evaluate((connected) => {
+      if (connected) { try { pdSetServer("https://x.up.railway.app", "tok"); } catch (e) {} }
+      const out = [];
+      const tabs = [...document.querySelectorAll("#tabs [data-tab]")].map(b => b.dataset.tab);
+      for (const t of tabs) {
+        st.mode = t; render();
+        const txt = document.getElementById("view").innerText;
+        /* the opening of a block comment, or the line form at the start of
+           a line - both are things a reader should never see */
+        const m = txt.match(/\/\*[\s\S]{0,60}/) || txt.match(/^\s*\/\/ .{0,60}/m);
+        if (m) out.push(t + ": " + m[0].replace(/\s+/g, " "));
+      }
+      return out;
+    }, on);
+    if (stray.length) { bad++; console.log(`FAIL ${page} ${on ? "connected" : "off"} — source comment on screen: ${stray.join(" | ")}`); }
+    else console.log(`ok   ${page} no source comments on any tab (${on ? "connected" : "off"})`);
+  }
   await p.close();
 }
 

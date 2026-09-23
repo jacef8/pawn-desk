@@ -2225,15 +2225,9 @@ function renderSetup(){
   </div>
   ${pdServer()?harvCardHTML():""}
   ${sheetCardHTML()}
-  /* There used to be a card here announcing that the camera was off, above
-     a card headed "Camera and photo lookups - off", above a third saying
-     nothing was switched on anywhere. Three cards to say one thing, and the
-     only one with a box to type in was last. The connect card says it. */
   ${pdServer()&&window.PHONE?`<div class="card"><span class="label">Connected</span>
     <div class="cardHint" style="margin-top:0"><b style="color:var(--accent)">This phone is on.</b> It can look up what things sold for, and the camera works \u2014 the card for it is on the <b style="color:var(--ink)">Check a price</b> tab, headed <i>Snap it</i>.</div>
   </div>`:""}
-  /* Only once there is something to hand off. Empty, it was a card whose
-     whole content was "there is nothing here yet". */
   ${window.PHONE||!pdServer()?"":`<div class="card"><span class="label">Switching another device on</span>
     <div class="cardHint" style="margin-top:0">This computer is connected. Every phone and tablet keeps its own copy, so each one has to be told once \u2014 point its camera at the code below, or type these two lines into it.</div>
     ${pdServer()?`<span class="label" style="margin-top:12px">Service address</span>
@@ -5105,7 +5099,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.2320";
+const APP_BUILD="0926.2325";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
