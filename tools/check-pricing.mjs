@@ -199,6 +199,67 @@ console.log("\n  what a missing piece costs");
      "  so an incomplete console is worth more than the old flat rate said");
 }
 
+/* The meter has to exist on the devices that get carried. It was drawn
+   inside the rail, the rail needs 1080px, so a phone and a tablet held
+   upright had no meter at all - and those are the two that go to a yard
+   sale, where a thin number and a solid one look identical. */
+console.log("\n  the meter reaches every screen");
+{
+  for (const [label, w, h] of [["desk", 1440, 1000], ["tablet upright", 768, 1024], ["tablet sideways", 1024, 768]]) {
+    const pg = await browser.newPage({viewport:{width:w, height:h}});
+    await pg.goto(BASE + "/index.html", {waitUntil:"networkidle"});
+    const n = await pg.evaluate(() => {
+      const c = CATALOG.find(x => x.items.some(i => i.id === "t1"));
+      st.mode="item"; st.catId=c.id; st.itemId="t1"; st.picked=true; st.condSet=true;
+      st.market={kind:"found", key:mkKey(), n:12, med:110, lo:95, hi:130, sold:9, conf:"h", mid:110};
+      render();
+      return document.querySelectorAll(".wCard").length;
+    });
+    ok(n >= 1, label + " (" + w + "px) shows the meter, got " + n);
+    await pg.close();
+  }
+  const ph = await browser.newPage({viewport:{width:390, height:844}});
+  await ph.goto(BASE + "/phone.html", {waitUntil:"networkidle"});
+  const n = await ph.evaluate(() => {
+    const c = CATALOG.find(x => x.items.some(i => i.id === "t1"));
+    st.mode="item"; st.catId=c.id; st.itemId="t1"; st.picked=true; st.condSet=true;
+    st.market={kind:"found", key:mkKey(), n:12, med:110, lo:95, hi:130, sold:9, conf:"h", mid:110};
+    render();
+    return document.querySelectorAll(".wCard").length;
+  });
+  ok(n >= 1, "phone shows the meter, got " + n);
+  await ph.close();
+}
+
+/* "1 of 4" beside a panel reading ALL ANSWERED read as a contradiction,
+   and fairly: one is where you are LOOKING, the other is what is DONE. */
+console.log("\n  the pager and the panel agree");
+{
+  const pg = await browser.newPage({viewport:{width:900, height:1200}});
+  await pg.goto(BASE + "/index.html", {waitUntil:"networkidle"});
+  const r = await pg.evaluate(() => {
+    const go = (done) => {
+      const c = CATALOG.find(x => x.items.some(i => i.id === "t1"));
+      st.mode="item"; st.catId=c.id; st.itemId="t1"; st.picked=true; st.flow="pages"; st.page="what";
+      st.condSet = done;
+      st.market = done ? {kind:"found", key:mkKey(), n:12, med:220, lo:190, hi:260, sold:9, conf:"h", mid:220} : null;
+      render();
+      const tabs = [...document.querySelectorAll(".pageTabs button")];
+      return {where: (document.querySelector(".pageWhere")||{}).textContent || "",
+              ticked: tabs.filter(b => b.classList.contains("done")).length,
+              total: tabs.length,
+              skip: !!document.querySelector(".pageSkip")};
+    };
+    return {open: go(false), done: go(true)};
+  });
+  ok(/^page 1 of/.test(r.open.where), "unanswered reads as a position, not progress: " + r.open.where);
+  ok(/all answered/.test(r.done.where), "answered says so beside the page number: " + r.done.where);
+  ok(r.done.ticked === r.done.total, "every page is ticked when every page is answered, got " + r.done.ticked + "/" + r.done.total);
+  ok(r.open.ticked < r.open.total, "not every page is ticked before they are answered, got " + r.open.ticked + "/" + r.open.total);
+  ok(!r.done.skip, "an answered page offers no Skip - there is nothing to leave unanswered");
+  await pg.close();
+}
+
 ok(!errs.length, "no page errors" + (errs.length ? ": " + errs[0] : ""));
 await browser.close();
 console.log(fails ? "\n  " + fails + " FAILED\n" : "\n  all passed\n");

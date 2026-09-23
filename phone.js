@@ -318,6 +318,11 @@ function snapHTML(){
              ? "Used ones on the web"+(st.photoRead.webPrice.where?" \u2014 "+esc(st.photoRead.webPrice.where):"")
              :esc(checkedNote(x)))}</div></div>`}
     <div class="snapCond">${CONDITIONS.map(c=>`<button class="${c.id===st.cond?"on":""}" data-cond="${c.id}">${c.label.replace("New in box","New")}</button>`).join("")}</div>
+    ${/* How much is behind that number. The desk grew this card and the
+          phone never got it, which is backwards: the phone is the one
+          carried to a yard sale, where a thin number and a solid one look
+          identical and only one of them is worth acting on. */""}
+    ${typeof weightHTML==="function"?weightHTML(x):""}
     ${camOff}${snapFootHTML()}
   </div>`;
 }

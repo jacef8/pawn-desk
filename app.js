@@ -1306,12 +1306,23 @@ function applyPages(){
   }));
   const nav=document.createElement("div");
   nav.id="pageNav"; nav.className="pageNav";
+  /* "1 of 4" next to a panel saying ALL ANSWERED - NOTHING LEFT TO SET read
+     as a contradiction, and fairly: one is where you are LOOKING and the
+     other is what is DONE, and nothing on screen said which was which.
+     A tick on the pages that are answered settles it - the strip now shows
+     the same thing the panel does, and the counter is plainly just standing
+     on page one of a finished item. */
+  const x=calcItem();
+  const done={ what:!!st.picked, check:true, worth:!!x.checked,
+               cond:!!st.condSet, offer:!!(x.checked&&st.condSet) };
+  const allDone=pages.every(([id])=>done[id]!==false);
   nav.innerHTML=`<div class="pageTabs">${pages.map(([id,label],i)=>
-      `<button class="${id===st.page?"on":""}" data-page="${id}"><i>${i+1}</i>${esc(label)}</button>`).join("")}</div>
+      `<button class="${id===st.page?"on":""}${done[id]?" done":""}" data-page="${id}">`
+      +`<i>${done[id]?"\u2713":i+1}</i>${esc(label)}</button>`).join("")}</div>
     <div class="pageStep">
       <button class="ghostBtn" data-pgmove="-1"${at<=0?" disabled":""}>&larr; Back</button>
-      <span class="pageWhere">${at+1} of ${pages.length}</span>
-      ${at<pages.length-1?`<button class="ghostBtn pageSkip" data-pgmove="1" title="Leave this one unanswered and carry on. You can come back to it from the row above.">Skip</button>`:""}
+      <span class="pageWhere">${allDone?"all answered \u00b7 ":""}page ${at+1} of ${pages.length}</span>
+      ${at<pages.length-1&&!done[st.page]?`<button class="ghostBtn pageSkip" data-pgmove="1" title="Leave this one unanswered and carry on. You can come back to it from the row above.">Skip</button>`:""}
       <button class="brassBtn" data-pgmove="1"${at>=pages.length-1?" disabled":""}>Next &rarr;</button>
     </div>`;
   /* In the rail layout the nav steers the left column, so it lives at the
@@ -1479,7 +1490,15 @@ function renderItem(){
     +`<div class="rail"><div id="pin">${pinHTML(x)}</div>${weightHTML(x)}</div>`
     +`<div class="colQ">${left}${mid}<div id="ticket">${ticketHTML(x)}</div>`
       +`${leftRef}${logCardHTML(x)}</div>`;
-  return omniHTML()+nextStepHTML(x)+`<div id="pin">${pinHTML(x)}</div>`+left+mid+right;
+  /* The meter went out with the rail, and the rail needs 1080px - so on a
+     phone, and on a tablet held upright, the one card that says how much
+     evidence is behind the number simply did not exist. It was asked for
+     precisely so a thin number could not pass as a solid one, and it was
+     missing on the two devices that get carried to a yard sale. It goes
+     under the pin here, where the pin is. */
+  return omniHTML()+nextStepHTML(x)
+    +`<div id="pin">${pinHTML(x)}</div>`+weightHTML(x)
+    +left+mid+right;
 }
 function wireItem(){
   const v=document.getElementById("view");
@@ -5110,7 +5129,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.2330";
+const APP_BUILD="0926.2340";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
