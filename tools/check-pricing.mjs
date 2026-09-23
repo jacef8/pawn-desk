@@ -346,7 +346,9 @@ console.log("\n  a row too thin to buy is too thin to lend on");
        before there is anything to assert. A wheelbarrow has no model, which
        is itself an answer; the sold price is entered by hand at the figure
        the book already carries, so the row stays exactly as thin as it was. */
-    st.mpNone = true; st.condSet = true; st.brandSet = true;
+    /* No make and no model on a wheelbarrow - the desk does not ask for
+       either on a cheap book row, so neither is set here. */
+    st.condSet = true;
     (SPEC_CHOICES[st.itemId] || []).forEach((g, gi) => {
       st.specSel[st.itemId + ":" + gi] = specBase(g); });
     st.market = {kind: "hand", key: mkKey(), mid: 28};
@@ -549,7 +551,43 @@ console.log("\n  a make the list does not carry lights nothing");
      "  and nothing typed at all still reads as nothing picked");
 }
 
+/* A WHEELBARROW HAS NO MAKE AND A HAMMER HAS NO MODEL, BUT A ZERO-TURN HAS
+   BOTH. The price now waits for the whole run, which on a $28 wheelbarrow
+   meant waiting on two questions the thing does not have. The exemption is
+   drawn where the answer could change the decision: the make tiers swing
+   about 40%, so when 40% of the thing's own value falls under the floor,
+   no answer can move what you do. This pins both sides of that line. */
+console.log("\n  cheap book rows are not asked for a make or a model");
+{
+  const r = await page.evaluate(() => {
+    const look = (name) => {
+      const e = PRICEBOOK.find(x => x[0] === name);
+      if (!e) return null;
+      pickBookEntry(e); st.picked = true;
+      st.condSet = false; st.market = null; st.mpNone = false;
+      const x = calcItem();
+      return {resale: Math.round(x.resale), floor: x.buyFloor,
+              easy: bookSimple(x), need: priceMissing(x)};
+    };
+    return {barrow: look("Wheelbarrow"), saw: look("Circular saw"),
+            safe: look("Gun safe"), turn: look("Zero-turn mower")};
+  });
+  const asks = (o) => o.need.indexOf("the make") >= 0 || o.need.indexOf("the model") >= 0;
+  ok(r.barrow.easy === true && !asks(r.barrow),
+     "a $" + r.barrow.resale + " wheelbarrow is asked for neither — needs " + r.barrow.need.join(", "));
+  ok(r.saw.easy === true && !asks(r.saw),
+     "  nor a $" + r.saw.resale + " circular saw");
+  ok(r.barrow.need.indexOf("what it sells for") >= 0,
+     "  but the sold price is still required — the book figure is not a sale");
+  ok(r.safe.easy === false && asks(r.safe),
+     "a $" + r.safe.resale + " gun safe is asked for both");
+  ok(r.turn.easy === false && asks(r.turn),
+     "  as is a $" + r.turn.resale + " zero-turn, where 40% is $"
+     + Math.round(r.turn.resale * 0.4) + " against a $" + r.turn.floor + " floor");
+}
+
 ok(!errs.length, "no page errors" + (errs.length ? ": " + errs[0] : ""));
 await browser.close();
 console.log(fails ? "\n  " + fails + " FAILED\n" : "\n  all passed\n");
 process.exit(fails ? 1 : 0);
+

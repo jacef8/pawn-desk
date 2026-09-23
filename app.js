@@ -1510,8 +1510,29 @@ function detailHint(x){
         : id==="power"?"size & wattage"
         : id==="elec"?"size & year":"specs"};
 }
+/* A WHEELBARROW HAS NO MAKE AND A HAMMER HAS NO MODEL.
+
+   Picking a line out of the price book already names the exact thing -
+   "Wheelbarrow", "Jigsaw", "Shop vac" - and for most of that book the make
+   is not worth a tap. But the same book holds a $2,200 zero-turn and a $400
+   gun safe, where it certainly is, so "came out of the book" cannot be the
+   whole rule.
+
+   The line is drawn where the answer could change the decision. The make
+   tiers swing about 40% either way, so when 40% of the thing's own value
+   comes to less than the floor you want to clear, no answer to "what make"
+   can move what you do. A $40 jigsaw: sixteen dollars, under the $25 floor,
+   so it is not asked. A $400 gun safe: a hundred and sixty, so it is. The
+   floor is yours to set, and this follows it.
+
+   The questions are still offered - a branded wheelbarrow can still be said -
+   they just do not hold the price back. */
+function bookSimple(x){
+  return isCustom() && !!st.bookName
+      && (Number(x.resale)||0)*0.4 < (Number(x.buyFloor)||25);
+}
 function askQueue(x){
-  const q=[], cat=x.cat, ov=itemOv();
+  const q=[], cat=x.cat, ov=itemOv(), easy=bookSimple(x);
   if(cat.brand.on){
     const tiers=(ov&&ov.tiers)||cat.brand;
     /* If the make is known, that IS the answer - show it answered rather
@@ -1537,7 +1558,7 @@ function askQueue(x){
     const unknownTyped=!!st.brandTyped&&!named;
     const known=!!named||!!st.brandSet;
     const sel=known?x.brandTier:null;
-    q.push({id:"brand", title:"What make is it?",
+    q.push({id:"brand", title:"What make is it?", optional:easy,
       named:named&&named.name,
       /* The lit button wears the actual make, with the tier it sits in
          underneath. The other two keep their examples, so there is still
@@ -1562,7 +1583,7 @@ function askQueue(x){
      default - walked straight past it to the price and left the lookup
      searching for "laptop".
      Never required. A model nobody knows is a blank box and a Skip. */
-  q.push({id:"model", title:"Which one is it?", kind:"model",
+  q.push({id:"model", title:"Which one is it?", kind:"model", optional:easy,
     hint:"Model number or name, and anything that changes the price. Skip it if you cannot see one.",
     /* Skip is an ANSWER here, not a dodge: plenty of things - a wheelbarrow,
        a gold chain - carry no model at all, and the price now waits for
@@ -1623,12 +1644,12 @@ function askQueue(x){
    works, because looking it up is not the only way to answer "what does it
    sell for" - typing the number, or the new price, answers it too. What is
    gone is the desk answering a question nobody finished asking. */
-function priceReady(x){ return !!st.picked && askQueue(x).every(q=>q.answered); }
+function priceReady(x){ return !!st.picked && askQueue(x).every(q=>q.answered||q.optional); }
 const NEED_WORD={brand:"the make", model:"the model", worth:"what it sells for",
                  cond:"the condition", complete:"what's with it"};
 function priceMissing(x){
   if(!st.picked)return [];
-  return askQueue(x).filter(q=>!q.answered).map(q=>NEED_WORD[q.id]
+  return askQueue(x).filter(q=>!q.answered&&!q.optional).map(q=>NEED_WORD[q.id]
     || (String(q.id).indexOf("spec:")===0
         ? String(q.title||"").replace(/\?+$/,"").toLowerCase()
         : "one more answer"));
@@ -5707,7 +5728,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.3520";
+const APP_BUILD="0926.3546";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
