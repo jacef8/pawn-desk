@@ -251,19 +251,64 @@ const BRANDBOOK={
  *
  * Whole words only. brandLookup matches on substrings, which is right when
  * somebody is typing a name into a box and wrong when scanning a sentence -
- * "kit" would find Kitchenaid. */
+ * "kit" would find Kitchenaid.
+ *
+ * It used to be only the word scan below, and that could not see a make
+ * whose name is two words - it asked for ONE word equal to a whole book
+ * entry. Eighty-two of the makes on the books are two words, so Sig Sauer,
+ * Smith & Wesson, John Deere, Harbor Freight, Black & Decker, Speed Queen,
+ * Michael Kors and seventy others read as no make at all, and the card said
+ * "nothing picked yet" with the name sitting in front of it.
+ *
+ * Five read as the WRONG make, which costs money rather than silence: the
+ * scan stopped at the first word it knew, so a Fender Squier priced as a
+ * Fender (+40%), a Bosch 300 as a Bosch (+40%), a Frigidaire Gallery as a
+ * Frigidaire (-45%), and a Grand Seiko and an ASUS ROG both lost their
+ * premium (-29%). brandInText matches whole names and the longest one wins,
+ * which is what settles every one of those - the same guard brandLookup
+ * already had, which is why "seiko" does not answer Grand Seiko.
+ *
+ * The word scan stays as the fallback: brandInText skips anything under
+ * four characters, so S&W, PSA, IWI, JBL, TCL, RCA, IWC, PRS and seventeen
+ * others are only findable that way. Strongest reader first, and it only
+ * falls through when that one found nothing. */
 function brandFromName(catId,txt){
-  const words=String(txt||"").split(/[^A-Za-z0-9&+.-]+/).filter(w=>w.length>=3);
+  const whole=brandInText(catId,txt);
+  if(whole)return whole;
+  /* Two characters is safe HERE because this scan only accepts a word that
+     equals a whole book entry - it is the containment matching that needs a
+     floor, and there is none in this loop. */
+  const words=String(txt||"").split(/[^A-Za-z0-9&+.-]+/).filter(w=>w.length>=2);
   for(const w of words){
     const hit=brandLookup(catId,w);
     if(hit&&hit.name.toLowerCase()===w.toLowerCase())return hit;
   }
   return null;
 }
+/* The override belongs to the item on the counter, so it may only answer
+   for that item's OWN category. It was applied whatever catId was asked
+   about, so after pricing a Harbor Freight generator the generator's brand
+   list answered for tools too - DeWalt was not in it, "DeWalt 20V drill
+   kit" read as carrying no maker, and a Black & Decker drill was handed
+   the DeWalt row at +40%. Which book answered depended on what had been
+   looked at last, which is why the same search gave two answers. */
+function ovBrands(catId){
+  const ov=(catId===st.catId)?ITEM_OVERRIDES[st.itemId]:null;
+  return (ov&&ov.brands)||null;
+}
 function brandLookup(catId,txt){
-  const ov=ITEM_OVERRIDES[st.itemId];
-  const book=(ov&&ov.brands)||BRANDBOOK[catId]; if(!book)return null;
-  const t=String(txt).trim().toLowerCase(); if(t.length<3)return null;
+  const book=ovBrands(catId)||BRANDBOOK[catId]; if(!book)return null;
+  const t=String(txt).trim().toLowerCase(); if(!t)return null;
+  /* Three characters was the floor for EVERY kind of match, so the makes
+     with two-letter names could not be looked up at all: LG, GE, HK, FN,
+     CZ, DC are all on the books and none of them was reachable. An LG OLED
+     read as no maker and priced as standard, which on a set the book puts
+     in the top tier is 29% of it. The floor is there to stop a short
+     fragment matching by CONTAINMENT - "lg" inside something else - so it
+     belongs on that loop only. An exact name is never a fragment. */
+  for(const tier of["hi","mid","lo"]) for(const b of book[tier])
+    if(b.toLowerCase()===t)return {tier,name:b};
+  if(t.length<3)return null;
   let best=null;
   for(const tier of["hi","mid","lo"]) for(const b of book[tier]){
     const bl=b.toLowerCase();
@@ -282,8 +327,7 @@ function brandLookup(catId,txt){
    inside a sentence, so it has to be spotted on word boundaries - and names
    too short to be safe that way (HK, FN, ATI) are left to the tier buttons. */
 function brandInText(catId,txt){
-  const ov=ITEM_OVERRIDES[st.itemId];
-  const book=(ov&&ov.brands)||BRANDBOOK[catId]; if(!book)return null;
+  const book=ovBrands(catId)||BRANDBOOK[catId]; if(!book)return null;
   const flat=x=>String(x).toLowerCase().replace(/[^a-z0-9& ]+/g," ").replace(/\s+/g," ").trim();
   const t=" "+flat(txt)+" "; if(t.length<5)return null;
   let best=null;
@@ -4223,7 +4267,26 @@ function omniRows(q){
     const keys=mq.length?mq:bw;
     if(keys.length){
       const r0=rows[0], strongId=r0&&r0.strong?((mpFor(r0.kind==="item"?r0.itemId:r0.name,[r0.brand,r0.model,r0.detail].join(" "))||[])[0]):null;
-      MODEL_PRICES.map(r=>{ const nw=omniWords(r[2]); let s=0; for(const w of keys){ const h=wordHit(w,nw); if(!h)return null; s+=h; } if(omniNorm(r[2]).indexOf(omniNorm(q))>=0)s+=5; return {r,s}; })
+      /* These rows are measured prices for a NAMED tool, and the maker is
+         most of what they are worth. Nothing here compared that maker to
+         the one typed, so "milwaukee drill" put the DeWalt row on top with
+         the Milwaukee row third - $65-110 offered for a tool the desk's
+         own row prices at $150-220. "black & decker drill" was handed a
+         DeWalt (+40%), and "john deere mower" a Honda, which is not even
+         the same kind of machine.
+         A row carrying a maker the counter did not type is a different
+         product, so it is dropped rather than demoted - the plain catalog
+         row underneath answers properly, and reads the typed make itself.
+         Rows that name no maker are left alone; so is a query that names
+         none. */
+      const qb=omniNorm(P.brand||"");
+      const rowBrand=r=>{ const e=findEntry(String(r[1]).split("|")[0]);
+        const h=e?brandInText(e.catId,r[2]):null; return h?omniNorm(h.name):""; };
+      MODEL_PRICES.map(r=>{ const nw=omniWords(r[2]); let s=0; for(const w of keys){ const h=wordHit(w,nw); if(!h)return null; s+=h; } if(omniNorm(r[2]).indexOf(omniNorm(q))>=0)s+=5;
+          if(qb){ const rb=rowBrand(r);
+            if(rb&&rb!==qb&&rb.indexOf(qb)<0&&qb.indexOf(rb)<0)return null;
+            if(rb)s+=6; }
+          return {r,s}; })
         .filter(Boolean).sort((a,b)=>b.s-a.s||a.r[2].length-b.r[2].length).slice(0,5)
         .forEach(({r})=>{ if(rows.length>=OMNI_MAX||r[0]===strongId)return; const e=findEntry(String(r[1]).split("|")[0]); if(!e)return;
           rows.push(Object.assign({},e,{kind:"mp",base:e.kind,mp:r,brand:"",model:"",detail:"",spec:{},cond:P.cond,complete:P.complete}));   strong=true; });
@@ -4251,7 +4314,15 @@ function omniRows(q){
        and therefore understood the whole thing. */
     if(sc.length){
       const bw=omniWords(P.brand||"");
-      const need=omniWords(q).filter(w=>!STOP.has(w)&&bw.indexOf(w)<0);
+      /* A word the parser already PLACED is not a word the entry has to
+         carry. "samsung 55 inch tv" was built from the raw query, so 55
+         and inch counted as unmatched, the TV row was called a miss and
+         "not on the lists" went above it - on the commonest thing in the
+         shop, and the make was dropped along with the row. The TV row is
+         named "any size" and asks the screen size itself; the size is an
+         answer to that question, not evidence of a different item. */
+      const placed=omniWords(P.detail.join(" ")+" "+Object.values(P.spec||{}).join(" "));
+      const need=omniWords(q).filter(w=>!STOP.has(w)&&bw.indexOf(w)<0&&placed.indexOf(w)<0);
       const top=sc.slice().sort((a,b)=>b.s-a.s)[0].e;
       strong=!!P.modelLabel||!need.length||need.every(w=>wordHit(w,top.words));
     }
@@ -5365,7 +5436,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.2512";
+const APP_BUILD="0926.2604";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -5435,15 +5506,26 @@ async function forceUpdate(say){
   tell("Could not reach the site to check. If you are offline the desk keeps working on what it has.");
 }
 const MP_STALE_DAYS=45;
+/* A measured row is pinned to the item so the counter gets a real price
+   instead of the desk's own estimate - but these rows are named tools, and
+   the maker is most of what one is worth. Nothing checked it, so typing
+   "black & decker drill" pinned the DeWalt row and priced a budget drill
+   as a top-tier one. A row naming a different maker than the text does is
+   not this tool; a row naming no maker still answers. */
 function mpFor(cur,text){
   const t=" "+omniNorm(text)+" ";
   if(!t.trim())return null;
+  const said=brandInText(st.catId,text);
+  const agrees=r=>{ if(!said||!r)return true;
+    const h=brandInText(st.catId,r[2]);
+    return !h||omniNorm(h.name)===omniNorm(said.name); };
   for(const [id,re] of MP_MATCH){
     const r=MP_BY_ID[id]; if(!r)continue;
     if(String(r[1]).split("|").indexOf(cur)<0)continue;
-    if(re.test(t))return r;
+    if(re.test(t)&&agrees(r))return r;
   }
-  return mpAuto(cur,text);
+  const a=mpAuto(cur,text);
+  return agrees(a)?a:null;
 }
 /* Every row above was recognized by a pattern somebody wrote by hand, which
    is fine for 180 rows and impossible for the thousands this shop actually

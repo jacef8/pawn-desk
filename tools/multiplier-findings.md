@@ -304,3 +304,69 @@ Until then the honest position is: the gun numbers rest on judgement, the
 brand tiers are the part most likely to be right, and the accessory
 questions are the part most likely to be wrong. **Nothing here was changed
 on a guess.**
+
+## The brand-read sweep — 26 Sep
+
+Prompted by "Sony Laptop" lighting "Apple / Samsung flagship". Every place
+the desk reads a make was checked against every make on every book. Six
+holes, all fixed; two left alone and written down here.
+
+**The reader could not see two-word makes.** It asked for one word equal to
+a whole book entry, and 82 of the makes on the books are two words — Sig
+Sauer, Smith & Wesson, John Deere, Harbor Freight, Black & Decker, Speed
+Queen, Michael Kors and 75 others read as no make at all.
+
+**Five read as the wrong make**, which costs money rather than silence,
+because the scan stopped at the first word it recognised:
+
+| typed | read as | cost |
+|---|---|---|
+| Fender Squier | Fender | +40% |
+| Bosch 300 | Bosch | +40% |
+| Frigidaire Gallery | Frigidaire | −45% |
+| Grand Seiko | Seiko | −29% |
+| ASUS ROG | Asus | −29% |
+
+**An item's own brand list answered for other categories.** The override
+belongs to the item on the counter and was applied whatever category was
+asked about, so the last thing priced decided which book answered. After
+pricing a Harbor Freight generator, "black & decker drill" was handed the
+DeWalt row at +40%. The same search gave two different answers depending on
+what had been looked at before it — the hardest kind of fault to report.
+
+**Two-letter makes were unreachable.** A three-character floor guarded the
+containment match and was applied to every match, so LG, GE, HK, FN, CZ and
+DC were on the books and could not be looked up at all. An LG set the book
+puts in the top tier read as no maker: −29%.
+
+**A measured row could carry somebody else's make.** These rows are named
+tools and the maker is most of what one is worth, but nothing compared it
+to what was typed. "milwaukee drill" put the DeWalt row on top with the
+Milwaukee row third — $65–110 offered for a tool the desk's own measured
+row prices at $150–220. "john deere mower" was handed a Honda, which is not
+even the same kind of machine.
+
+**A size the desk understood counted as a miss.** The strong-match test was
+built from the raw query, so in "samsung 55 inch tv" the words 55 and inch
+counted as unmatched, the TV row was called a miss, and "not on the lists"
+was offered above it — on the commonest thing in the shop, dropping the
+make along with the row. The TV row is named "any size" and asks the screen
+size itself.
+
+### Left alone
+
+**Harbor Freight is not in the outdoor-power book.** Typing "harbor freight
+generator" lands on the generator row, the make is read and shown, and the
+tier falls to standard because that book carries Generac, Champion and
+Westinghouse but not Harbor Freight. Predator generators are budget, so
+standard overpays. Not fixed here because the honest fix is a book entry
+somebody has checked, not a guess — and the same question applies to every
+maker that sells across two categories.
+
+**"Smartwatch — Apple / Galaxy"** reads as Apple. The row names two makers
+and the reader takes the first. Both are top tier in electronics so the
+price is unaffected; only the word on the button is a coin toss.
+
+Eighteen assertions in check-ask hold all of it, including a sweep over
+every make on every book asserting that none reads to a tier that is not
+its own.

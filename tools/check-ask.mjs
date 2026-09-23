@@ -225,6 +225,110 @@ console.log("\n  the override does not follow you to the next item");
   ok(r.after === false, "  and forgotten when the next one is — got " + r.after);
 }
 
+/* THE SWEEP. Every make on every book, read back out of a sentence.
+   The one-word scan could not see a make whose name is two words - 82 of
+   them - and stopped at the first word it knew on five more, so a Fender
+   Squier priced as a Fender and a Grand Seiko lost its premium. Nothing
+   may read to a tier that is not its own. */
+console.log("\n  every make on the books reads to its own tier");
+{
+  const r = await page.evaluate(() => {
+    const wrong = [], blind = [];
+    for (const catId of Object.keys(BRANDBOOK))
+      for (const tier of ["hi","mid","lo"])
+        for (const nm of BRANDBOOK[catId][tier]) {
+          st.catId = catId; st.itemId = "__none__";
+          const h = brandFromName(catId, nm + " 1234 thing");
+          if (!h) blind.push(catId + " " + nm);
+          else if (h.tier !== tier) wrong.push(catId + " " + nm + " -> " + h.name + " " + h.tier);
+        }
+    return {wrong, blind, total: Object.keys(BRANDBOOK).length};
+  });
+  ok(r.wrong.length === 0,
+     "no make reads as a DIFFERENT tier than its own — " + (r.wrong.slice(0,4).join(" | ") || "none"));
+  ok(r.blind.length === 0,
+     "no make on the books is invisible to the reader — " + (r.blind.slice(0,6).join(" | ") || "none"));
+}
+
+/* An item's own brand list belongs to that item's category. It was applied
+   whatever category was asked about, so the last thing priced decided which
+   book answered: after a Harbor Freight generator, "black & decker drill"
+   was handed the DeWalt row at +40%. The same search has to give the same
+   answer whatever came before it. */
+console.log("\n  one search, one answer, whatever came before it");
+{
+  const r = await page.evaluate(() => {
+    const run = (q) => { st.catId = "tools"; st.itemId = "t1";
+                         return brandInText("tools", q); };
+    const clean = run("DeWalt 20V drill kit");
+    /* park on an item that carries its own brand list, in another category */
+    st.catId = "power"; st.itemId = "p7";
+    const after = brandInText("tools", "DeWalt 20V drill kit");
+    return {clean: clean && clean.name, after: after && after.name};
+  });
+  ok(r.clean === "DeWalt", "reads DeWalt from the tools book — " + r.clean);
+  ok(r.after === "DeWalt",
+     "  and still does while parked on a generator — got " + r.after);
+}
+
+/* Two-letter makes were unreachable: the three-character floor guarded the
+   CONTAINMENT match and was applied to every match, so LG, GE, HK, FN, CZ
+   and DC were on the books and could not be looked up. An LG set the book
+   calls top tier read as no maker at all. */
+console.log("\n  the two-letter makes are reachable");
+{
+  const r = await page.evaluate(() => {
+    const out = {};
+    for (const [cat, nm] of [["elec","LG"],["appl","GE"],["guns","CZ"],["guns","FN"],["guns","HK"]]) {
+      st.catId = cat; st.itemId = "__none__";
+      const h = brandLookup(cat, nm);
+      out[nm] = h ? h.name + ":" + h.tier : null;
+    }
+    st.catId = "tools"; st.itemId = "__none__";
+    out.junk = brandLookup("tools", "zz");
+    return out;
+  });
+  ok(r.LG && r.GE && r.CZ && r.FN && r.HK,
+     "LG, GE, CZ, FN and HK all look up — " + JSON.stringify(r));
+  ok(r.junk === null, "  and a two-letter non-make still finds nothing");
+}
+
+/* The measured rows are named tools and the maker is most of what one is
+   worth, but nothing compared it to the make that was typed. "milwaukee
+   drill" put the DeWalt row on top and the Milwaukee row third - $65-110
+   offered for a tool the desk's own row prices at $150-220. */
+console.log("\n  a measured row may not carry somebody else's make");
+{
+  const r = await page.evaluate(() => {
+    const first = (q) => { const {rows} = omniRows(q);
+      const m = rows.find(x => x.kind === "mp"); return m ? m.mp[2] : null; };
+    return {mil: first("milwaukee drill"), dew: first("dewalt drill"),
+            bnd: first("black & decker drill"), plain: first("drill kit")};
+  });
+  ok(/Milwaukee/.test(r.mil || ""), '"milwaukee drill" offers the Milwaukee row — ' + r.mil);
+  ok(/DeWalt/.test(r.dew || ""),    '"dewalt drill" still offers the DeWalt row — ' + r.dew);
+  ok(r.bnd === null,
+     '"black & decker drill" is offered no named row at all rather than a DeWalt — ' + r.bnd);
+  ok(r.plain !== null, "  a search naming no make still reaches them — " + r.plain);
+}
+
+/* A word the parser already placed is not a word the entry has to carry.
+   Built from the raw query, "55" and "inch" counted as unmatched, so the
+   TV row was called a miss and "not on the lists" went above it - on the
+   commonest thing in the shop, taking the make down with it. */
+console.log("\n  a size the desk understood is not a different item");
+{
+  const r = await page.evaluate(() => {
+    const kinds = (q) => omniRows(q).rows.map(x => x.kind);
+    return {tv: kinds("samsung 55 inch tv"), bare: kinds("samsung tv"),
+            pods: kinds("apple airpods pro")};
+  });
+  ok(r.tv[0] === "item", '"samsung 55 inch tv" leads with the TV row — ' + r.tv.join(","));
+  ok(r.bare[0] === "item", "  as it always did without the size — " + r.bare.join(","));
+  ok(r.pods[0] === "own",
+     "  and a real miss is still offered as one, not forced onto a row — " + r.pods.join(","));
+}
+
 ok(!errs.length, "no page errors" + (errs.length ? ": " + errs[0] : ""));
 await browser.close();
 console.log(`\n  ${pass} passed, ${fail} failed\n`);
