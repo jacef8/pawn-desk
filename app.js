@@ -825,15 +825,28 @@ function calcItem(){
      one. You never lend more than you would pay to own it outright.
      Nothing new is invented here: the loan is simply held to the same three
      caps the buy price already answers to. */
+  /* MONEY THAT CHANGES HANDS IS ROUNDED TO THE NEAREST FIVE.
+     Nobody counts $31 out of a till, and "thirty" is a number a customer
+     hears and repeats. The resale value, the cushion and the fee are NOT
+     rounded - they are the arithmetic behind the offer, not the offer.
+     Rounding happens after the caps, and the caps are then re-applied to
+     the rounded figures: $42 rounds down to $40 while $38 rounds UP to
+     $40, so without that the loan could land above the buy price and undo
+     the very thing the caps are for. */
+  const r5=(n)=>Math.max(5,Math.round(n/5)*5);
   const lendWant=Math.round(resale*ltv/100);
-  const target=Math.max(1,Math.min(lendWant,Math.round(cap.pay)));
-  const lendCapped=lendWant>target;
+  const targetRaw=Math.min(lendWant,cap.pay);
+  const lendCapped=lendWant>cap.pay;
   /* Below this there is no deal to write, buy or loan. The desk already
      refused to write a loan under five dollars; the same five dollars now
      decides whether there is anything here at all, rather than printing a
      one-dollar offer next to an eight-dollar loan. */
   const buyTooThin=cap.pay<5;
-  const buy=Math.max(1,Math.round(cap.pay));
+  /* A row too thin to deal on keeps its true pennies: the screens say walk
+     away rather than naming a figure, and rounding $1 up to $5 would put a
+     number back on a deal that has none. */
+  const buy=buyTooThin?Math.max(1,Math.round(cap.pay)):r5(cap.pay);
+  const target=buyTooThin?Math.max(1,Math.round(targetRaw)):Math.min(buy,r5(targetRaw));
   return {cat,item,baseValue,baseLtv,condition,liquidity,liqId,resale,ltv,target,market,checked,handSet,buyBase,buyPct,buy,lendWant,lendCapped,
           brandTier,namedBrand:namedBrand&&namedBrand.name,
           brandMult,brandName:cat.brand.on?(((ITEM_OVERRIDES[st.itemId]||{}).tiers)||cat.brand)[brandTier]:null,spec,specMult:spec.mult,
@@ -843,8 +856,10 @@ function calcItem(){
              ceiling, not at the suggested loan: clamping to the suggestion
              would flatten the range to a single number on every ordinary
              row, where the top loan is meant to sit above it. */
-          low:Math.max(1,Math.min(Math.round(cap.pay),Math.round(resale*Math.max(8,ltv-12)/100))),
-          high:Math.max(1,Math.min(Math.round(cap.pay),Math.round(resale*Math.min(100,ltv+8)/100))),
+          low:buyTooThin?Math.max(1,Math.round(resale*Math.max(8,ltv-12)/100))
+              :Math.min(target,r5(resale*Math.max(8,ltv-12)/100)),
+          high:buyTooThin?Math.max(1,Math.min(Math.round(cap.pay),Math.round(resale*Math.min(100,ltv+8)/100)))
+              :Math.min(buy,r5(resale*Math.min(100,ltv+8)/100)),
           charge:Math.max(5,target*0.25),margin:resale-target,buyMargin:resale-buy,
           buyCapBy,buyTooThin,buyFloor,buyMult};
 }
@@ -935,9 +950,14 @@ function weightHTML(x){
     <div class="wHead"><b>${head}</b><span>${right}</span></div>
     ${barHTML}${foot?`<div class="wFoot">${foot}</div>`:""}</div>`;
 
+  /* A meter that means "no evidence" was drawn FULL and merely greyed out.
+     Grey or not, a full bar reads as a full bar at arm's length across a
+     counter - the one glance this card exists for said maximum confidence
+     when it meant none at all. Empty is the honest picture, and it is the
+     same shape as the sentence underneath it. */
   if(!m||!x.checked)
-    return card("Not checked","built-in estimate",bar(100,"none"),
-      "Nothing has been looked up for this one. The figure is the desk's own starting point, not a sale anybody made. Look it up and this fills in.");
+    return card("Not checked","nothing looked up",bar(0,"none"),
+      "No sale behind this yet. The figure is the desk's own starting point, not a price anybody paid. Look one up and this bar fills with what it found.");
 
   if(m.kind==="found"||m.kind==="harvest"){
     const n=m.n||0, sold=m.sold||0, share=n?sold/n:0;
@@ -1002,9 +1022,24 @@ function ticketHTML(x){
     <div class="cardHint" style="font-size:14px;color:var(--ink-2)">If you want it anyway,
       set your own price in the run above and the desk will work from that.</div>
   </div>`;
+  /* WHEN THE RAIL IS THERE, THE RAIL IS THE MONEY.
+     The panel on the right already carries buy, lend, resale, cushion, fee,
+     loan-to-resale, the range and the estimate warning. This card then drew
+     a gauge of the same loan, three tiles of the same range, the same buy
+     price and a fold to the same cushion and fee - the whole card was one
+     duplicate, and it pushed everything worth reading below the fold.
+     What the rail cannot say stays: a check that failed, a missing title,
+     which model the price came from, and the reasoning behind the cap. */
+  if(deskRail())return `<div class="card${x.checked?"":" unchecked"}">
+    <span class="label">7 &middot; Pawn loan &mdash; the detail</span>
+    ${(st.model||st.detail)?`<div class="cardHint" style="margin-top:0">Pricing: <b style="color:var(--ink)">${[st.model,st.detail].filter(Boolean).map(esc).join(" \u00b7 ")}</b></div>`:""}
+    ${x.spec&&x.spec.stop?`<div class="tagWarn" style="border-left-color:var(--bad);background:rgba(255,66,87,.12);color:#FFAAB4"><b>NO TITLE &mdash; NO DEAL.</b> Don't negotiate around a missing title, at any price.</div>`:""}
+    <div class="cardHint" style="margin-top:0">Open at <b style="color:var(--ink)">${money(x.target)}</b>. Go low when cash is tight or the deal feels off; go toward <b style="color:var(--ink)">${money(x.high)}</b> for a regular you want back. Never above the top &mdash; that is your cushion.</div>
+    ${ticketDetailHTML(x)}
+  </div>${paybackHTML(x)}`;
   return `<div class="card${x.checked?"":" unchecked"}">
     <span class="label">7 &middot; Pawn loan &mdash; the cash you lend him</span>
-    ${x.checked?"":`<div class="mkNo" style="margin-bottom:6px"><b>Starting point, not a checked price.</b> This is the desk's own estimate for a typical one. Look it up in the run above and these numbers move.</div>`}
+    ${x.checked?"":`<div class="mkNo" style="margin-bottom:6px"><b>Nothing looked up yet.</b> This is the desk's own figure for a typical one, not a sale anybody made. Check the sold prices and it will change.</div>`}
     ${gauge(x.ltv/100,"Lend him",money(x.target),x.checked?"pawn loan":"estimate","gi")}
     ${(st.model||st.detail)?`<div class="cardHint" style="text-align:center;margin-top:2px">Pricing: <b style="color:var(--ink)">${[st.model,st.detail].filter(Boolean).map(esc).join(" · ")}</b></div>`:""}
     ${x.spec&&x.spec.stop?`<div class="tagWarn" style="border-left-color:var(--bad);background:rgba(255,66,87,.12);color:#FFAAB4"><b>NO TITLE — NO DEAL.</b> Don't negotiate around a missing title, at any price.</div>`:""}
@@ -1482,8 +1517,15 @@ function askQueue(x){
     /* Nothing lit until something actually says so. A default that lights
        "Ryobi / Ridgid" reads as an answer somebody gave, and the counter
        walks past it. The price still uses mid as its neutral - it has to
-       use something - but the screen does not claim that was a choice. */
-    const known=!!st.brandTyped||!!named||!!st.brandSet;
+       use something - but the screen does not claim that was a choice.
+       TYPED IS NOT THE SAME AS KNOWN. This counted any text at all as an
+       answer, so a make the category's list does not carry - Harbor Freight
+       among the generators, anything at all on a chainsaw - fell to the
+       standard tier and lit "Mid grade" as though somebody had picked it.
+       The make was typed, the desk did not recognise it, and the screen
+       said it had. It has to have resolved to a tier, or be a tap. */
+    const unknownTyped=!!st.brandTyped&&!named;
+    const known=!!named||!!st.brandSet;
     const sel=known?x.brandTier:null;
     q.push({id:"brand", title:"What make is it?",
       named:named&&named.name,
@@ -1493,7 +1535,13 @@ function askQueue(x){
       opts:BRANDS.map(br=>({t:(named&&sel===br.id)?named.name:tiers[br.id],
         sub:(named&&sel===br.id)?tiers[br.id]:"",
         on:sel===br.id, set:"brand", v:br.id})),
-      hint:known?"":"Nothing picked yet \u2014 the price is using the standard tier until you say.",
+      /* Saying WHICH make went unrecognised beats a blank "nothing picked":
+         the counter typed it, and being told the list does not carry it is
+         the difference between a bug and a question. */
+      hint:known?""
+        :unknownTyped?"<b>"+esc(st.brandTyped)+"</b> is not on the list for "
+          +esc(String(cat.label||"this").toLowerCase())+" \u2014 say where it sits and the price follows."
+        :"Nothing picked yet \u2014 the price is using the standard tier until you say.",
       answered:known});
   }
   /* WHICH ONE IS IT. The run never asked, and the model is the single
@@ -5549,7 +5597,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.3108";
+const APP_BUILD="0926.3226";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

@@ -376,6 +376,164 @@ console.log("\n  ordinary rows are untouched");
   ok(r.high <= r.buy, "  with the top loan still under the buy price — " + r.high + " ≤ " + r.buy);
 }
 
+/* MONEY THAT CHANGES HANDS IS ROUNDED TO THE NEAREST FIVE.
+   Nobody counts $31 out of a till, and "thirty" is a number a customer
+   hears and repeats. The resale value, the cushion and the fee are the
+   arithmetic BEHIND the offer, not the offer, and stay exact.
+   Rounding runs after the caps and the caps are re-applied to the rounded
+   figures: $42 rounds down to $40 while $38 rounds UP to $40, so without
+   that the loan could land above the buy price and undo the caps. */
+console.log("\n  every figure the counter says out loud ends in 0 or 5");
+{
+  const r = await page.evaluate(() => {
+    const bad = [], five = (n) => n % 5 === 0;
+    let n = 0, thin = 0;
+    const check = (x, name) => {
+      n++;
+      if (x.buyTooThin) { thin++; return; }
+      if (!five(x.buy) || !five(x.target) || !five(x.low) || !five(x.high))
+        bad.push(name + " not /5: " + [x.buy, x.target, x.low, x.high].join("/"));
+      if (x.target > x.buy) bad.push(name + " lend>buy after rounding");
+      if (x.high > x.buy)   bad.push(name + " top loan>buy after rounding");
+      if (x.low > x.target) bad.push(name + " low>suggested after rounding");
+    };
+    for (const e of PRICEBOOK) { pickBookEntry(e); st.picked = true; check(calcItem(), e[0]); }
+    for (const c of CATALOG) for (const it of c.items) {
+      st.catId = c.id; st.itemId = it.id; st.picked = true; st.brand = "mid"; st.brandSet = true;
+      st.cond = "good"; st.complete = true; st.specSel = {}; st.market = null;
+      st.bookName = ""; st.model = ""; st.detail = "";
+      check(calcItem(), it.name);
+    }
+    /* the exact figures must NOT be rounded - they are the reasoning */
+    const e = PRICEBOOK.find(x => x[0] === "Socket set — complete");
+    pickBookEntry(e); st.picked = true;
+    const x = calcItem();
+    return {bad, n, thin, resale: Math.round(x.resale), margin: x.margin,
+            buy: x.buy, target: x.target, low: x.low, high: x.high};
+  });
+  ok(r.bad.length === 0,
+     "all " + r.n + " rows round to a five, and every cap survives it — "
+     + (r.bad.slice(0, 3).join(" | ") || "none"));
+  ok(r.thin > 0, "  a row too thin to deal on keeps its real pennies — " + r.thin + " of them");
+  ok(r.buy % 5 === 0 && r.target % 5 === 0,
+     "  socket set: buy $" + r.buy + ", lend $" + r.target + ", range $" + r.low + "–$" + r.high);
+  ok(r.resale % 5 !== 0 || r.margin % 5 !== 0,
+     "  while resale ($" + r.resale + ") and the cushion ($" + r.margin + ") stay exact — they are not offers");
+}
+
+/* A meter that means "no evidence" was drawn FULL and merely greyed out.
+   Grey or not, a full bar reads as a full bar across a counter: the one
+   glance this card exists for said maximum confidence when it meant none. */
+console.log("\n  an empty confidence meter looks empty");
+{
+  const r = await page.evaluate(() => {
+    const e = PRICEBOOK.find(x => x[0] === "Socket set — complete");
+    pickBookEntry(e); st.picked = true; st.market = null; render();
+    const w = document.querySelector(".wCard");
+    const i = w && w.querySelector(".wBar i");
+    const empty = {w: i ? parseInt(i.style.width) : -1,
+                   paint: i ? getComputedStyle(i).backgroundColor : "",
+                   txt: w ? w.innerText : ""};
+    /* nine listings, seven of them real sales */
+    st.market = {kind: "found", key: mkKey(), mid: 180, lo: 150, hi: 210, n: 9, sold: 7};
+    render();
+    const j = document.querySelector(".wCard .wBar i");
+    const full = {w: j ? parseInt(j.style.width) : -1, txt: document.querySelector(".wCard").innerText};
+    /* the same nine, mostly asking prices */
+    st.market = {kind: "found", key: mkKey(), mid: 180, lo: 150, hi: 210, n: 9, sold: 2};
+    render();
+    const k = document.querySelector(".wCard .wBar i");
+    const asks = {w: k ? parseInt(k.style.width) : -1, cls: k ? k.className : "",
+                  txt: document.querySelector(".wCard").innerText};
+    return {empty, full, asks};
+  });
+  ok(r.empty.w <= 3 && /rgba\(0, 0, 0, 0\)|transparent/.test(r.empty.paint),
+     "nothing looked up draws no fill at all — width " + r.empty.w + "%, " + r.empty.paint);
+  ok(/Not checked/.test(r.empty.txt) && /not a price anybody paid/.test(r.empty.txt),
+     "  and says why in words as well as shape");
+  ok(r.full.w > 70 && /7 sold/.test(r.full.txt),
+     "  seven sales in nine listings fills it — " + r.full.w + "%");
+  ok(r.asks.w < 30 && /warn/.test(r.asks.cls) && /Mostly asking prices/.test(r.asks.txt),
+     "  two sales in nine drops it and warns — " + r.asks.w + "%");
+  ok(r.empty.w < r.asks.w && r.asks.w < r.full.w,
+     "  the three states read in the right order: none < thin < solid");
+}
+
+/* THE RAIL IS THE MONEY. WHEN IT IS THERE, NOTHING ELSE SAYS IT.
+   The panel on the right carries buy, lend, resale, cushion, fee, the
+   loan-to-resale share, the range and the estimate warning. The loan card
+   then drew a gauge of the same loan, three tiles of the same range, the
+   same buy price and a fold to the same cushion and fee. Every number in
+   it was a duplicate, and it pushed what was worth reading below the fold.
+   Narrow, with no rail, that card is the only place the money appears and
+   has to keep all of it. */
+console.log("\n  the loan card does not repeat the rail");
+{
+  const look = async (width) => {
+    await page.setViewportSize({width, height: 900});
+    return page.evaluate(() => {
+      const c = CATALOG.find(y => y.items.some(i => i.id === "p1"));
+      st.catId = c.id; st.itemId = "p1"; st.picked = true; st.brand = "mid"; st.brandSet = true;
+      st.cond = "good"; st.complete = true; st.specSel = {}; st.market = null;
+      st.model = "MS 271"; st.detail = ""; render();
+      const t = document.getElementById("ticket");
+      return {rail: deskRail(), txt: t ? t.innerText : "",
+              pin: (document.getElementById("pin") || {}).innerText || ""};
+    });
+  };
+  const wide = await look(1400), narrow = await look(900);
+  ok(wide.rail === true && narrow.rail === false, "the rail shows wide and not narrow");
+  ok(/LEND HIM/.test(wide.pin) && /BUY IT FOR/.test(wide.pin),
+     "  wide, the rail carries the loan and the buy price");
+  ok(!/LOW LOAN/.test(wide.txt) && !/SUGGESTED LOAN/.test(wide.txt) && !/TOP LOAN/.test(wide.txt),
+     "  so the card drops the three range tiles");
+  ok(!/OR BUY IT OUTRIGHT/.test(wide.txt), "  and the buy row");
+  ok(wide.txt.length < narrow.txt.length / 1.5,
+     "  leaving a much shorter card — " + wide.txt.length + " chars against " + narrow.txt.length);
+  /* what the rail cannot say has to survive */
+  ok(/Pricing:/.test(wide.txt) && /MS 271/.test(wide.txt),
+     "  it still says which model the price came from");
+  ok(/Go low when cash is tight/.test(wide.txt), "  and still says when to go high or low");
+  ok(/cushion, fee, and why it is this much/.test(wide.txt), "  and keeps the reasoning fold");
+  /* narrow keeps everything, because nothing else has it */
+  ok(/LOW LOAN/.test(narrow.txt) && /OR BUY IT OUTRIGHT/.test(narrow.txt) && /LEND HIM/.test(narrow.txt),
+     "narrow, with no rail, the card still carries every figure");
+  await page.setViewportSize({width: 1400, height: 900});
+}
+
+/* TYPED IS NOT THE SAME AS KNOWN.
+   Any text at all counted as an answer, so a make the category's list does
+   not carry - Harbor Freight among the generators - fell to the standard
+   tier and lit "Mid grade" as though somebody had picked it. The make was
+   typed, the desk did not recognise it, and the screen said it had. */
+console.log("\n  a make the list does not carry lights nothing");
+{
+  const r = await page.evaluate(() => {
+    const probe = (catId, itemId, typed) => {
+      st.catId = catId; st.itemId = itemId; st.picked = true; st.flow = "ask"; st.askAt = 0;
+      st.brand = "mid"; st.brandTyped = typed; st.brandSet = false; st.model = ""; st.bookName = "";
+      st.specSel = {}; st.market = null;
+      const h = brandLookup(catId, typed); if (h) st.brand = h.tier;
+      render();
+      const lit = [...document.querySelectorAll(".askOpt")].find(b => b.classList.contains("on"));
+      return {lit: lit ? lit.querySelector(".askT").textContent.trim() : null,
+              hint: (document.querySelector("#askCard .cardHint") || {}).textContent || "",
+              tier: calcItem().brandTier};
+    };
+    return {unknown: probe("power", "p7", "Harbor Freight"),
+            known:   probe("power", "p1", "Stihl"),
+            blank:   probe("power", "p1", "")};
+  });
+  ok(r.unknown.lit === null,
+     'a make the outdoor-power list does not carry lights NOTHING — got ' + JSON.stringify(r.unknown.lit));
+  ok(/Harbor Freight/.test(r.unknown.hint) && /not on the list/.test(r.unknown.hint),
+     "  and names it rather than going blank — " + r.unknown.hint.trim().slice(0, 72));
+  ok(r.known.lit === "Stihl" && r.known.tier === "hi",
+     "  while one it does carry still lights and prices — " + r.known.lit + "/" + r.known.tier);
+  ok(r.blank.lit === null && /Nothing picked yet/.test(r.blank.hint),
+     "  and nothing typed at all still reads as nothing picked");
+}
+
 ok(!errs.length, "no page errors" + (errs.length ? ": " + errs[0] : ""));
 await browser.close();
 console.log(fails ? "\n  " + fails + " FAILED\n" : "\n  all passed\n");

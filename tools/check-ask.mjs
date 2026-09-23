@@ -358,7 +358,7 @@ console.log("\n  the built-in estimate is shown, and labelled");
   ok(!/No resale value yet/.test(r.pin), "the numbers strip no longer goes blank");
   ok(r.pin.indexOf("$" ) >= 0 && /Estimate/i.test(r.pin),
      "  it shows the money and calls it an estimate — " + r.pin.replace(/\s+/g," ").slice(0,90));
-  ok(/\$/.test(r.ticket) && /Starting point, not a checked price/.test(r.ticket),
+  ok(/\$/.test(r.ticket) && /Nothing looked up yet/.test(r.ticket),
      "the loan card shows a loan and says where it came from");
   ok(!/Hold off/.test(r.ticket), "  and no longer tells the counter to come back later");
 }
