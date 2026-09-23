@@ -129,3 +129,53 @@ guess it is.
 **Worth measuring next**, in rough order of how often it bites: tools
 (battery, charger, case), guns (magazine, choke tubes), instruments (case).
 Each is the same shape of question and the same method.
+
+---
+
+# "Drill kit" meant nothing — 23 Sep 2026
+
+The catalogue called it **"Cordless drill / driver kit"**, which said two
+things at once and got both wrong. "Drill / driver" is the TOOL - not a
+hammer drill, not an impact driver. "Kit" was meant to be tool plus
+batteries plus charger. Then the desk asked "Kit?" on top of it.
+
+Worse, it was named after the rarest case. 629 listings:
+
+| What came with it | n | Median | vs a two-battery kit |
+|---|---|---|---|
+| **Tool only, no battery** | **274** | $45 | **0.52x** |
+| One battery + charger | 266 | $75 | 0.87x |
+| Two batteries + charger | 25 | $86 | 1.00x |
+| Combo, a second tool | 64 | $141 | 1.64x |
+
+**Bare is the biggest group at 274 and it was not on the list at all.** A
+bare drill could only be entered as "One battery", which prices a $45 tool
+at $75 - a two-thirds over-lend on the commonest thing that crosses the
+counter.
+
+The item is "Cordless drill / driver" now and the question is "What came
+with it", with all four answers. The baseline stays on two-batteries so the
+catalogue value does not have to move.
+
+## The same hole in the impact wrench
+
+t2 asks Battery platform, so it is a battery tool, and it had no way to say
+the battery was gone either. Measured, and THIN - of three models only the
+Milwaukee 2767 had a usable sample:
+
+| Model | Bare | Kit | Ratio |
+|---|---|---|---|
+| Milwaukee 2767 | $122 (n=4) | $221 (n=8) | **0.55x** |
+| DeWalt DCF899 | $125 (n=1) | $165 (n=2) | 0.76x — one listing |
+| Milwaukee 2863 | $180 (n=1) | $209 (n=4) | 0.86x — one listing |
+
+Set to **0.55**, on the one well-sampled model, and because the drill says
+**0.52** off 274 bare listings independently - the same battery and the same
+charger are what is missing in both. Recheck when more bare impact wrenches
+are listed.
+
+## What to look at next
+
+Every other battery tool in the catalogue should be checked for the same
+hole: a cordless item that cannot be marked bare will over-lend by about
+half on what may be the commonest version of it.

@@ -41,7 +41,13 @@ const CATALOG = [
   brand:{on:true,hi:"DeWalt / Milwaukee / Makita",mid:"Ryobi / Ridgid",lo:"Harbor Freight / no name"},
   complete:{on:true,label:"Battery, charger, case"},
   items:[
-   {id:"t1",name:"Cordless drill / driver kit",value:110,liq:"fast"},
+   /* Was "Cordless drill / driver kit", which said two things at once and
+      got both wrong. "Drill / driver" is the TOOL - not a hammer drill, not
+      an impact driver - and "kit" was meant to mean tool plus batteries plus
+      charger. But the desk then asked "Kit?" on top of it, and worse, it was
+      named after the rarest case: two batteries and a charger is 25 listings
+      out of 629. What came with it is the question, not the name. */
+   {id:"t1",name:"Cordless drill / driver",value:110,liq:"fast"},
    {id:"t2",name:"Impact wrench",value:130,liq:"fast"},
    {id:"t3",name:"Angle grinder",value:45,liq:"normal"},
    {id:"t4",name:"Air compressor — pancake",value:70,liq:"normal"},
@@ -1049,8 +1055,38 @@ const SPEC_CHOICES={
     Worth knowing for the baseline: of 560 real listings only 23 were a
     single tool with two batteries. The used drill kit that actually walks
     in has ONE battery, and a bare one is 0.60 of that. */
- t1:[CH_VOLT,{label:"Kit",options:[{t:"Two batteries + charger",m:1},{t:"One battery",m:.9,note:"single battery: −10%"},{t:"Combo kit, extra tools",m:1.6,note:"combo kit — two tools, not one: +60%"}]}],
- t2:[CH_VOLT,{label:"Drive",options:[{t:"1/2 in",m:1},{t:"3/8 in",m:.9,note:"3/8 drive: −10%"},{t:"1 in / big iron",m:1.2,note:"heavy drive: +20%"}]}],
+ /* Measured 23 Sep off 629 listings. The shares matter as much as the
+    prices: BARE is the biggest group at 274, and it was not on the list at
+    all. A bare drill could only be entered as "One battery", which prices a
+    $45 tool at $75 - a two-thirds over-lend on the commonest thing that
+    crosses the counter.
+
+      bare    n=274   $45   0.52x
+      one     n=266   $75   0.87x
+      two     n= 25   $86   1.00x   <- the baseline, and the rarest
+      combo   n= 64   $141  1.64x
+
+    The baseline stays on two-batteries so the catalogue value does not have
+    to move; what changes is that the other three can now be said. */
+ t1:[CH_VOLT,{label:"What came with it",options:[
+   {t:"Two batteries + charger",m:1},
+   {t:"One battery + charger",m:.87,note:"one battery: −13%"},
+   {t:"Tool only — no battery",m:.52,note:"bare tool: about half a kit"},
+   {t:"Combo — a second tool with it",m:1.64,note:"two tools, not one: +64%"}]}],
+ /* An impact wrench asks Battery platform, so it is a battery tool - and it
+    had no way to say the battery was missing. A bare one entered as a kit
+    prices 45% over.
+
+    Measured 23 Sep and THIN: of three models only the Milwaukee 2767 had a
+    usable sample (bare n=4 $122, kit n=8 $221, 0.55x); the other two rested
+    on a single bare listing each and are worth nothing. What makes 0.55
+    usable is that the drill says 0.52 off 274 bare listings, independently,
+    and it is the same battery and the same charger missing. Recheck when
+    there are more bare impact wrenches on the market. */
+ t2:[CH_VOLT,{label:"Drive",options:[{t:"1/2 in",m:1},{t:"3/8 in",m:.9,note:"3/8 drive: −10%"},{t:"1 in / big iron",m:1.2,note:"heavy drive: +20%"}]},
+  {label:"What came with it",options:[
+    {t:"Battery + charger",m:1},
+    {t:"Tool only — no battery",m:.55,note:"bare tool: about half"}]}],
  /* A corded grinder and a cordless one are not the same tool wearing a
     different cord - they are two tools that happen to share a name, and the
     gap is about two and a half times, not ten percent. Priced at +10% the
@@ -5294,7 +5330,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.2410";
+const APP_BUILD="0926.2420";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
