@@ -553,6 +553,11 @@
   .nsBtn:hover{background:linear-gradient(160deg,rgba(52,59,80,.96),var(--e2-hi))}
   .nsBtn.on{background:linear-gradient(150deg,#4DFFC4,var(--accent));color:#04150F}
   .nsBtn.on b{color:#04150F}
+  /* The sub-note and the "in use" tag are <i>, and .nsBtn i paints them
+     --ink-2 - a light grey that is invisible on the mint fill. The one
+     card carrying the sold prices was the one card you could not read. */
+  .nsBtn.on i{color:rgba(4,21,15,.78)}
+  .nsBtn.on span i{color:rgba(4,21,15,.72)}
   .nsBtn.ghost{background:transparent;box-shadow:inset 0 0 0 1px rgba(255,255,255,.28);color:var(--ink)}
   .nsBtn:focus-visible,.srcLink:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
   .srcLink{color:var(--accent);font-weight:700;text-decoration:underline;text-underline-offset:3px}

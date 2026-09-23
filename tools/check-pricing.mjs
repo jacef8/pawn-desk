@@ -613,6 +613,41 @@ console.log("\n  every harvest target points at something real");
      "  and none is listed twice" + (r.dupes.length ? " — " + r.dupes.slice(0,4).join(", ") : ""));
 }
 
+/* A DJI OSMO IS NOT A DRONE, AND $25 IS NOT A CAMERA.
+   The brand was mapped straight to "Camera drone", so every DJI thing
+   became one - and Osmo is the gimbal and pocket-camera line. It landed
+   on a $300 drone row, searched as a drone, and came back at $25 off a
+   battery charger, a phone clamp and a selfie stick. The desk called that
+   "good data" and put it in use, because nothing on that screen compared
+   the answer with the book. The harvest has refused numbers like that for
+   weeks; the counter got them anyway. */
+console.log("\n  DJI's lines go to the right rows, and a mad answer says so");
+{
+  const r = await page.evaluate(() => {
+    const route = (q) => { const h = modelHit(q, "");
+      return h ? (typeof h.m.item === "function" ? h.m.item(h.mm) : h.m.item) : null; };
+    st.mode = "item"; st.catId = "elec"; st.itemId = "e1"; st.picked = true;
+    st.brandTyped = ""; st.model = ""; st.market = null;
+    const ev = (mid, book) => { st.evidence = {key: mkKey(),
+      comps: {n: 6, sold: 6, mid, lo: Math.round(mid*0.9), hi: Math.round(mid*1.1), from: "eBay 6"},
+      book}; return evidenceHTML(); };
+    return {gimbal: ["dji osmo pocket 3", "dji osmo action 4", "dji rs 4"].map(route),
+            drone: ["dji mavic 3", "dji avata", "dji phantom 4"].map(route),
+            row: !!PRICEBOOK.find(x => x[0] === "Gimbal / pocket camera"),
+            low: /far below/.test(ev(25, 300)),
+            high: /far above/.test(ev(2000, 300)),
+            sane: !/far below|far above/.test(ev(282, 250))};
+  });
+  ok(r.row, "there is a row for a gimbal camera to land on");
+  ok(r.gimbal.every(x => x === "Gimbal / pocket camera"),
+     "  Osmo and RS go to it — " + r.gimbal.join(", "));
+  ok(r.drone.every(x => x === "Camera drone"),
+     "  and Mavic, Avata and Phantom are still drones — " + r.drone.join(", "));
+  ok(r.low, "$25 against a $300 book row is called out, not called good data");
+  ok(r.high, "  and so is $2,000 against $300");
+  ok(r.sane, "  while a figure near the book passes without a word");
+}
+
 ok(!errs.length, "no page errors" + (errs.length ? ": " + errs[0] : ""));
 await browser.close();
 console.log(fails ? "\n  " + fails + " FAILED\n" : "\n  all passed\n");

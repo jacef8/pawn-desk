@@ -395,6 +395,11 @@ const PRICEBOOK=[
  /* electronics */
  ["Soundbar",60,"elec","fast"],["AV receiver",80,"elec","slow"],["Turntable",70,"elec","normal"],
  ["Gaming desktop PC",550,"elec","normal"],["Monitor — 27in",80,"elec","fast"],["Camera drone",300,"elec","normal"],
+ /* A DJI Osmo is not a drone and has nowhere else to land. Priced off the
+    five real sold listings the search returned on 23 Sep - a Pocket 3 at
+    $300, $316 and $282, an RS 4 Mini at $230, a faulty Pocket 3 at $181 -
+    taken a markdown step down, the way every shelf figure here is. */
+ ["Gimbal / pocket camera",250,"elec","normal"],
  ["GoPro / action camera",90,"elec","fast"],["Smartwatch \u2014 Apple / Galaxy",120,"elec","fast"],["VR headset",180,"elec","normal"],
  ["Handheld game console",170,"elec","fast"],["Video game — current title",25,"elec","fast"],["Projector",120,"elec","normal"],
  ["Two-way radios — pair",40,"elec","normal"],["Wristwatch — quartz, name brand",60,"jewel","slow"],["DJ controller",120,"elec","slow"],
@@ -4302,7 +4307,13 @@ const EXTRA_BRANDS=[
  ["Honda","rolling",["r2","UTV / side-by-side","Dirt bike"]],["Yamaha","rolling",["r2","UTV / side-by-side","Dirt bike","Golf cart"]],
  ["Suzuki","rolling",["r2","Dirt bike"]],["KTM","rolling",["Dirt bike"]],["Club Car","rolling",["Golf cart"]],
  ["EZGO","rolling",["Golf cart"]],["Humminbird","hunt",["Fish finder"]],["Lowrance","hunt",["Fish finder"]],
- ["DJI","elec",["Camera drone"]],["GoPro","elec",["GoPro / action camera"]],["Thompson Center","guns",["g9"]],
+ /* DJI was mapped to "Camera drone" outright, so every DJI thing became a
+    drone - and Osmo is not one. Osmo is the gimbal and pocket-camera line,
+    Ronin and RS are gimbals, Mic is a microphone; the drones are Mavic,
+    Mini, Air, Avata, Neo, Phantom and Inspire. A DJI Osmo Pocket 3 landed
+    on a $300 drone row and then searched as one. The rows are listed in
+    the order the model word picks them. */
+ ["DJI","elec",["Camera drone","Gimbal / pocket camera"]],["GoPro","elec",["GoPro / action camera"]],["Thompson Center","guns",["g9"]],
  ["Howa","guns",["g3"]],["Mossberg","guns",null]];
 const BRAND_ALIAS=[[/\bsmith\s*(and|&|n)\s*wesson\b/,"smith & wesson"],[/\bsig\b(?!\s*sauer)/,"sig sauer"],
  [/\bh\s*&\s*k\b/,"heckler & koch"],[/\b(jd|deere)\b/,"john deere"],[/\bez\s*-?\s*go\b|\be\s*-\s*z\s*-\s*go\b/,"ezgo"],
@@ -4345,6 +4356,14 @@ function findBrand(text){
 const MB=(re,brand,item,o)=>Object.assign({re,brand,item},o||{});
 const pick=(m,map,dflt)=>{ const s=m[0]; for(const k in map){ if(new RegExp(k).test(s))return map[k]; } return dflt; };
 const MODELBOOK=[
+ /* DJI. The brand alone used to mean "Camera drone", so an Osmo Pocket 3
+    landed on a $300 drone row and then searched as a drone. Osmo, Ronin
+    and RS are the gimbal and pocket-camera lines; Mavic, Mini, Air,
+    Avata, Neo, Phantom and Inspire are the aircraft. */
+ MB(/\b(dji\s*)?osmo\s*(pocket|action|mobile|nano)?\s*\d*\b/,"DJI","Gimbal / pocket camera",
+    {label:m=>("Osmo "+(m[2]||"")).replace(/\s+/g," ").trim()}),
+ MB(/\b(dji\s*)?(ronin|rs)\s*-?\s*\d*\b/,"DJI","Gimbal / pocket camera"),
+ MB(/\b(dji\s*)?(mavic|avata|phantom|inspire|neo)\b/,"DJI","Camera drone"),
  /* shotguns */
  MB(/\b(mossberg\s*)?maverick\s*88\b/,"Mossberg","g1"),
  MB(/\bmossberg\s*(500|590|835|535|930|940|sa\s*-?\s*(20|28|410))\w*/,"Mossberg",m=>/9[34]0|sa/.test(m[1])?"g2":"g1"),
@@ -5832,7 +5851,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.4040";
+const APP_BUILD="0926.4126";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -6637,9 +6656,22 @@ function evidenceHTML(){
       <span>${label}${note?`<i style="display:block;font-style:normal;opacity:.7;font-size:11.5px">${note}</i>`:""}</span>
       <b>${money(num)}</b><i>${on?"in use":"use this"}</i></button>`;
   };
+  /* THE HARVEST CHECKS ITS OWN ANSWERS AND THE APP DID NOT.
+     A search for a DJI Osmo came back at $25 against a $300 book row -
+     a battery charger, a phone clamp and a selfie stick - and the desk
+     called it "good data" and put it in use, because nothing on this
+     screen compared the two. The harvest has refused numbers like that
+     for weeks; the counter got them anyway. Same band, 4x and a quarter,
+     and it does not overrule anything - the figure is still offered,
+     it just no longer arrives unremarked. */
+  const odd=(E.comps&&E.book>0&&E.comps.mid>0)
+    ? (E.comps.mid/E.book>4 ? "high" : E.comps.mid/E.book<0.25 ? "low" : "") : "";
   let h=`<div class="label" style="margin-top:14px">Everything it found</div>`;
   if(E.comps)h+=row("comps",`${E.comps.n} listing${E.comps.n===1?"":"s"}${E.comps.sold?`, ${E.comps.sold} sold`:""}`,
-    E.comps.mid,`middle half ${money(E.comps.lo)}–${money(E.comps.hi)}${E.comps.from?" · "+esc(E.comps.from):""}`);
+    E.comps.mid,`middle half ${money(E.comps.lo)}–${money(E.comps.hi)}${E.comps.from?" · "+esc(E.comps.from):""}`)
+    +(odd?`<div class="mkNo" style="margin:-4px 0 8px"><b>That is ${odd==="low"?"far below":"far above"} the ${money(E.book)} this kind of thing books at.</b>
+        ${odd==="low"?"A search that comes back this cheap has usually found the accessories \u2014 chargers, cases, mounts \u2014 rather than the thing itself. Open the sold page and look before you use it."
+                     :"Check the listings are the same thing you have in front of you, and not a newer or larger one."}</div>`:"");
   if(E.own)h+=row("own",`Your own sales — ${E.own.n}`,E.own.mid,"what this shop actually got");
   if(E.seen)h+=row("seen",`Shelf tags you recorded — ${E.seen.n}`,E.seen.mid,
     `asking ${money(E.seen.lo)}–${money(E.seen.hi)}`);
