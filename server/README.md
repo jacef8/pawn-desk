@@ -42,6 +42,18 @@ Once it's running you get, on the phone and at the desk:
    `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET`, and — to get the keyset switched
    on at all — `EBAY_VERIFY_TOKEN` and `EBAY_DELETION_URL`.
 
+   Two more are optional, and both exist because of one afternoon in
+   September when a harvest spent $43.77 through this service before anybody
+   noticed:
+
+   | Name | Value | What it does |
+   |---|---|---|
+   | `DAILY_USD_CAP` | a number, default `10` | `/json` refuses once the day's spend passes it. Counted in memory, so a redeploy resets it and a second instance keeps its own — a brake on a runaway loop, not an accounting system. The spend limit in the Anthropic console is the backstop that cannot be restarted away. `0` turns it off. |
+   | `PHOTO_MODEL` | `claude-opus-5` (default), `claude-sonnet-5` or `claude-haiku-4-5` | Which model reads the photo. Opus reads a worn badge well and costs five times what Haiku does — about $5 against $1 for 200 photos a month. Whether Haiku reads the same badges is a question for ten awkward things off the shelf, not for arithmetic, and this makes that test a restart rather than a deploy. A name that is not on the list is ignored, the default is kept, and `/limits` says so. |
+
+   `/limits` reports which model is live, what it costs per million tokens,
+   the cap and the day's spend so far.
+
 4. **Settings** → **Networking** → **Generate Domain**. That address is the
    service.
 5. Check it: open `https://your-address/limits` in a browser. A short line of

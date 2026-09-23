@@ -5,6 +5,11 @@ Pricing tools for the counter at Lamar's. Two views of one app.
 - **https://jacef8.github.io/pawn-desk/** — the full desk
 - **https://jacef8.github.io/pawn-desk/phone.html** — Price Check, the phone view
 
+Moving it to another computer or another account? **`HANDOVER.md`** is the
+list of everything that is *not* in this repository and therefore does not
+come with a clone — the accounts, the Railway variables, and the things
+that live only on the device at the counter.
+
 ## Layout
 
 The app is one codebase. `index.html` and `phone.html` are thin shells that
