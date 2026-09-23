@@ -334,33 +334,64 @@ console.log("\n  a size the desk understood is not a different item");
      "  and a real miss is still offered as one, not forced onto a row — " + r.pods.join(","));
 }
 
-/* THE DESK MUST ANSWER. It computes a resale value from its own price book
-   whether or not anything has been looked up - that book is the whole
-   reason it knows what a laptop is worth - and then refused to show any of
-   it, saying "No resale value yet". On a tablet with no service connection,
-   which is the one carried to the counter, the tool never answered at all.
-   An estimate is worth having as long as it is labelled one. */
-console.log("\n  the built-in estimate is shown, and labelled");
+/* THE DESK MUST ANSWER - BUT ONLY ONCE IT HAS BEEN ASKED.
+
+   This test used to assert the opposite, and it was right at the time. The
+   desk computed a resale value from its own price book, refused to show any
+   of it, and said "No resale value yet"; on an unconnected tablet the tool
+   never answered at all. The fix was to show the built-in figure with an
+   estimate label on it.
+
+   The label was not enough. A Samsung tablet with no model named came back
+   "pay up to $40, resells for $168" in mint green, with the caveat under it
+   in small orange - and a Galaxy Tab runs from a Tab A7 Lite at about $45
+   to a Tab S9 Ultra ten times that. The counter read the number, not the
+   caveat, which is what numbers are for.
+
+   So the contract is now: no figure until the run has been made - make,
+   model, the specs that move the price, what it sells for, and the shape.
+   The stranding this test was written to prevent is still prevented,
+   because the strip never goes blank and always says what is outstanding,
+   and because "what does it sell for" can be answered by typing a number
+   with no service at all. What is gone is the desk answering a question
+   nobody finished asking. */
+console.log("\n  no figure until the run has been made");
 {
   const r = await page.evaluate(() => {
     const c = CATALOG.find(x => x.items.some(i => i.id === "e2"));
     st.flow="ask"; st.mode="item"; st.catId=c.id; st.itemId="e2"; st.picked=true;
     st.brandTyped="Microsoft"; st.brandSet=false; st.market=null; st.specSel={};
-    st.model=""; st.detail=""; st.askAt=0;
+    st.model=""; st.detail=""; st.mpNone=false; st.condSet=false; st.askAt=0;
+    render();
+    const half = {ready: priceReady(calcItem()),
+                  pin: (document.getElementById("pin")||{}).innerText || "",
+                  ticket: (document.getElementById("ticket")||{}).innerText || ""};
+    /* Now finish it, the way a counter with no signal would: the model off
+       the label, the specs, the price typed by hand, the shape. */
+    st.model="Surface Pro 7"; st.condSet=true;
+    (SPEC_CHOICES[st.itemId]||[]).forEach((g,gi)=>{
+      st.specSel[st.itemId+":"+gi]=specBase(g); });
+    st.market={kind:"hand", key:mkKey(), mid:300};
     render();
     const x = calcItem();
-    return {checked: x.checked, resale: x.resale, target: x.target,
+    return {half, ready: priceReady(x), resale: x.resale, target: x.target,
             pin: (document.getElementById("pin")||{}).innerText || "",
             ticket: (document.getElementById("ticket")||{}).innerText || ""};
   });
-  ok(r.checked === false, "nothing has been looked up on this one");
-  ok(r.resale > 0 && r.target > 0, "  but the desk has a number — resale " + r.resale + ", loan " + r.target);
-  ok(!/No resale value yet/.test(r.pin), "the numbers strip no longer goes blank");
-  ok(r.pin.indexOf("$" ) >= 0 && /Estimate/i.test(r.pin),
-     "  it shows the money and calls it an estimate — " + r.pin.replace(/\s+/g," ").slice(0,90));
-  ok(/\$/.test(r.ticket) && /Nothing looked up yet/.test(r.ticket),
-     "the loan card shows a loan and says where it came from");
-  ok(!/Hold off/.test(r.ticket), "  and no longer tells the counter to come back later");
+  ok(r.half.ready === false, "half-run, the desk is not ready to price");
+  ok(!/\$\d/.test(r.half.pin), "  the numbers strip quotes no figure");
+  ok(!/No resale value yet/.test(r.half.pin) && /still needs/i.test(r.half.pin),
+     "  but it does not go blank - it names what is outstanding: "
+     + r.half.pin.replace(/\s+/g," ").slice(0,80));
+  ok(!/\$\d/.test(r.half.ticket) && /still needs/i.test(r.half.ticket),
+     "  and the loan card quotes none either");
+
+  ok(r.ready === true, "run finished - with no service, by hand - the desk prices it");
+  ok(r.resale > 0 && r.target > 0,
+     "  resale " + Math.round(r.resale) + ", loan " + r.target);
+  ok(/\$/.test(r.pin), "  and the numbers strip says the money");
+  ok(/\$/.test(r.ticket) && !/Hold off/.test(r.ticket),
+     "  as does the loan card, without telling the counter to come back later");
 }
 
 /* WHICH ONE IS IT. The model is the thing on the page that moves money

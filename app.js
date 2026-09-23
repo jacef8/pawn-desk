@@ -878,6 +878,8 @@ function pinHTML(x){
   const bare=t=>`<div class="pinStrip"><span class="pinLab">${window.PHONE?"What it's worth to you":"The numbers"}</span><span class="pinNote">${t}</span></div>`;
   if(F&&F.blocks)return bare(F.verdict==="fail"?"A check failed \u2014 don't lend on the name."
     :"Not checked yet \u2014 "+F.done+" of "+F.n+" on the "+esc(F.sh.title.toLowerCase())+" sheet.");
+  if(!priceReady(x))return bare("<b>No price yet \u2014 still needs "+esc(needList(x))
+    +".</b> Finish the run and the number comes with everything behind it.");
   /* It used to stop here and say "no resale value yet". The desk HAD a
      value - the built-in price book is the whole reason it knows what a
      laptop is worth - and it computed it, called it "the desk's own
@@ -1008,6 +1010,14 @@ function paintPin(x){ const p=document.getElementById("pin"); if(p)p.innerHTML=p
 function ticketHTML(x){
   const F=fakeState(fakeSheet(x));
   if(F&&F.blocks)return fakeHoldHTML(F);
+  /* Same gate as the numbers strip: a loan figure is a price like any other,
+     and quoting one off a half-finished run is the thing being stopped. */
+  if(!priceReady(x))return `<div class="card unchecked">
+    <span class="label">7 &middot; Pawn loan &mdash; the cash you lend him</span>
+    <div class="cardHint" style="margin-top:0">No loan figure yet. The run still needs
+      <b style="color:var(--ink)">${esc(needList(x))}</b> &mdash; each one moves the number,
+      and a figure quoted without them is a guess wearing a dollar sign.</div>
+  </div>`;
   /* A loan the shop would lose money owning is not a smaller loan, it is
      no loan. The desk used to print one anyway - "lend $8" beside "pay $1"
      for a wheelbarrow - so the card says the same thing the numbers strip
@@ -1554,7 +1564,17 @@ function askQueue(x){
      Never required. A model nobody knows is a blank box and a Skip. */
   q.push({id:"model", title:"Which one is it?", kind:"model",
     hint:"Model number or name, and anything that changes the price. Skip it if you cannot see one.",
-    answered:!!(st.model||st.detail)});
+    /* Skip is an ANSWER here, not a dodge: plenty of things - a wheelbarrow,
+       a gold chain - carry no model at all, and the price now waits for
+       every question, so a question with no way to say "there isn't one"
+       would wait for ever. st.mpNone is the phone's existing "I can't see a
+       model" flag; the desk's Skip sets the same one.
+
+       Only this question works that way. The specs each have a default that
+       is wrong often enough to matter - defaulting a bare drill to a
+       two-battery kit doubles it - and the shape and the sold price can
+       always be answered, so neither may be waved past. */
+    answered:!!(st.model||st.detail||st.mpNone)});
   const sc=SPEC_CHOICES[st.itemId]||[];
   sc.forEach((g,gi)=>{
     const key=st.itemId+":"+gi, sel=st.specSel[key]??specBase(g);
@@ -1580,6 +1600,44 @@ function askQueue(x){
       return {t:w[0], sub:w[1]||"", on:st.cond===c.id, set:"cond", v:c.id};}),
     answered:!!st.condSet});
   return q;
+}
+/* NOTHING IS PRICED UNTIL THE RUN HAS BEEN MADE.
+
+   The desk used to answer the moment an item was picked: a Samsung tablet
+   with no model named came back "pay up to $40, resells for $168" in mint
+   green, with "nothing looked up yet" underneath in small orange. A Galaxy
+   Tab runs from a Tab A7 Lite at about $45 to a Tab S9 Ultra ten times
+   that, so $168 was not an estimate - it was the middle of a range wide
+   enough to be useless, printed in the same type as a checked price.
+
+   The run already asks everything that moves the number: the make, the
+   model, the specs that matter for the thing in hand (age, battery, barrel,
+   deck), what it sells for, and the shape it is in. Every one of those
+   carries an `answered` flag. So the gate is the run itself - no hand-picked
+   list of conditions to drift out of date, and a question added later gates
+   the price for free.
+
+   This deliberately reverses an earlier call. The price used to be hidden
+   when the market was unknown, that stranded an unconnected tablet, and it
+   was made to show the built-in figure instead. The offline case still
+   works, because looking it up is not the only way to answer "what does it
+   sell for" - typing the number, or the new price, answers it too. What is
+   gone is the desk answering a question nobody finished asking. */
+function priceReady(x){ return !!st.picked && askQueue(x).every(q=>q.answered); }
+const NEED_WORD={brand:"the make", model:"the model", worth:"what it sells for",
+                 cond:"the condition", complete:"what's with it"};
+function priceMissing(x){
+  if(!st.picked)return [];
+  return askQueue(x).filter(q=>!q.answered).map(q=>NEED_WORD[q.id]
+    || (String(q.id).indexOf("spec:")===0
+        ? String(q.title||"").replace(/\?+$/,"").toLowerCase()
+        : "one more answer"));
+}
+/* "the make, the model and what it sells for" - an Oxford-less list, because
+   it is read aloud off a counter. */
+function needList(x){
+  const n=priceMissing(x);
+  return n.length<2?(n[0]||"") : n.slice(0,-1).join(", ")+" and "+n[n.length-1];
 }
 function askHTML(x){
   const q=askQueue(x);
@@ -1949,6 +2007,9 @@ function wireItem(){
   v.querySelectorAll("[data-askmove]").forEach(b=>b.onclick=()=>{
     const q=askQueue(calcItem());
     const at=Math.max(0,Math.min(q.length-1,Number(st.askAt)||0));
+    /* Moving on from the model question without typing one IS the answer
+       "there is no model". Every other question stays where it is. */
+    if(Number(b.dataset.askmove)>0&&q[at]&&q[at].id==="model"&&!q[at].answered)st.mpNone=true;
     st.askAt=Math.max(0,Math.min(q.length-1,at+Number(b.dataset.askmove)));
     render();
   });
@@ -5646,7 +5707,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.3448";
+const APP_BUILD="0926.3520";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

@@ -341,7 +341,16 @@ console.log("\n  a row too thin to buy is too thin to lend on");
 {
   const r = await page.evaluate(() => {
     const e = PRICEBOOK.find(x => x[0] === "Wheelbarrow");
-    pickBookEntry(e); st.picked = true; render();
+    pickBookEntry(e); st.picked = true;
+    /* The price waits for the whole run now, so the run has to be made
+       before there is anything to assert. A wheelbarrow has no model, which
+       is itself an answer; the sold price is entered by hand at the figure
+       the book already carries, so the row stays exactly as thin as it was. */
+    st.mpNone = true; st.condSet = true; st.brandSet = true;
+    (SPEC_CHOICES[st.itemId] || []).forEach((g, gi) => {
+      st.specSel[st.itemId + ":" + gi] = specBase(g); });
+    st.market = {kind: "hand", key: mkKey(), mid: 28};
+    render();
     const x = calcItem();
     return {thin: x.buyTooThin, buy: x.buy, lend: x.target,
             pin: (document.getElementById("pin")||{}).innerText || "",
@@ -475,7 +484,13 @@ console.log("\n  the loan card does not repeat the rail");
       const c = CATALOG.find(y => y.items.some(i => i.id === "p1"));
       st.catId = c.id; st.itemId = "p1"; st.picked = true; st.brand = "mid"; st.brandSet = true;
       st.cond = "good"; st.complete = true; st.specSel = {}; st.market = null;
-      st.model = "MS 271"; st.detail = ""; render();
+      st.model = "MS 271"; st.detail = "";
+      /* Same reason: no figures are drawn until the run is finished. */
+      st.condSet = true;
+      (SPEC_CHOICES[st.itemId] || []).forEach((g, gi) => {
+        st.specSel[st.itemId + ":" + gi] = specBase(g); });
+      st.market = {kind: "hand", key: mkKey(), mid: 300};
+      render();
       const t = document.getElementById("ticket");
       return {rail: deskRail(), txt: t ? t.innerText : "",
               pin: (document.getElementById("pin") || {}).innerText || ""};

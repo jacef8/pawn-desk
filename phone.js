@@ -331,18 +331,26 @@ function snapHTML(){
   /* "out of a buy" was right when the floor only governed buying. It now
      governs the loan too - an unredeemed one leaves you owning the thing
      with the same hauling and listing - so the phone says both. */
-  const big = x.buyTooThin ? `<div class="snapNo">Walk away</div>
+  /* The phone's front screen led with a figure the instant something was
+     picked, which is exactly where the Samsung tablet said "pay up to $40"
+     having never been asked which tablet it was. Walk-away is gated too: it
+     is a verdict on a price, so it needs the same run behind it. */
+  const ready=priceReady(x);
+  const big = !ready ? `<div class="snapLab">No price yet</div>
+        <div class="snapSub">Still needs <b>${esc(needList(x))}</b>. Answer below and the
+        number comes with everything behind it.</div>`
+    : x.buyTooThin ? `<div class="snapNo">Walk away</div>
         <div class="snapSub">It resells for about ${money(Math.round(x.resale))}, and clearing the ${money(x.buyFloor)} you want leaves ${money(x.buy)} to offer \u2014 not worth buying, and not worth lending on either.</div>`
     : `<div class="snapLab">Pay up to</div><div class="snapBig">${money(x.buy)}</div>
        <div class="snapSub">Resells for <b>${money(Math.round(x.resale))}</b> \u00b7 you\u2019d make <b>${money(x.buyMargin)}</b></div>`;
 
   return `<div class="snapWrap">${cam}
     <div class="snapName">${esc(name)}${bits?`<span>${esc(bits)}</span>`:""}</div>
-    ${busy?`<div class="snapCard busy"><div class="snapLab">Checking what it sells for\u2026</div>
+    ${busy&&ready?`<div class="snapCard busy"><div class="snapLab">Checking what it sells for\u2026</div>
         <div class="snapBig dim">${money(x.buy)}</div>
         <div class="snapSub">${esc(findMsg||"Searching the sold pages\u2026")} This is the built-in number until it lands \u2014 up to a minute, then it gives up and keeps this one.</div></div>`
-      :`<div class="snapCard${x.buyTooThin?" bad":""}">${big}
-        <div class="snapSrc">${priced?esc(nsSrcShort(x.market))
+      :`<div class="snapCard${ready&&x.buyTooThin?" bad":""}">${big}
+        <div class="snapSrc">${!ready?"":priced?esc(nsSrcShort(x.market))
           :(st.photoRead&&st.photoRead.webPrice
              ? "Used ones on the web"+(st.photoRead.webPrice.where?" \u2014 "+esc(st.photoRead.webPrice.where):"")
              :esc(checkedNote(x)))}</div></div>`}
