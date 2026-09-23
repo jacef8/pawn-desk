@@ -98,7 +98,7 @@ const COMPONENT = /\b(carburet(or|tor)|carb kit|sprocket|crankshaft|crankcase|pi
    would use. The point is that a listing for the TOOL says what the tool
    is; a listing for a sprocket does not. */
 const KIND_STOP = new Set(["and","the","with","kit","for","any","size","current","gen","gal","max","new","used"]);
-function kindWords(kind) {
+export function kindWords(kind) {
   const head = String(kind || "").toLowerCase().split(/[\u2014\u2013(,]/)[0];
   return head.split(/[^a-z]+/).filter((w) => w.length >= 2 && !KIND_STOP.has(w));
 }
@@ -111,7 +111,7 @@ const squash = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
 /* Whole tokens, not a regex slid along the string - that read "Milwaukee
    2904-20" as "ukee290420" and then threw away every real listing for not
    matching it. Three digits minimum, so M18, 20V and 4Ah are not models. */
-function modelCodes(t) {
+export function modelCodes(t) {
   const out = new Set();
   for (let tok of String(t || "").toLowerCase().split(/[^a-z0-9-]+/)) {
     tok = tok.replace(/^-+|-+$/g, "");
