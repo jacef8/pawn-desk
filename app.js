@@ -68,7 +68,12 @@ const CATALOG = [
   driver:"Age. Model year is nearly the whole equation — two years old is half price.",
   killer:"Activation lock. A locked phone is a brick. See the Devices tab before you lend a dollar.",
   brand:{on:true,hi:"Apple / Samsung flagship",mid:"Mainstream",lo:"Off brand"},
-  complete:{on:true,label:"Charger, cables, remote"},
+  /* 0.90 measured 23 Sep off sold comps: an Xbox Series X, Series S, PS5 or
+     Switch listed "console only" went for 0.92, 0.94, 0.89 and 0.88 of one
+     with a controller. The same run says EXTRAS are worth nothing - two or
+     more controllers came out at 1.03x and 0.95x, and games included at
+     1.04x - so there is no question to ask about them, only this toggle. */
+  complete:{on:true,label:"Charger, cables, remote",mult:.9},
   items:[
    /* Named for a size band, it read as the only size the desk knew - the
       counter with a 75in TCL in front of them saw "50 to 65in" and stopped.
@@ -663,7 +668,14 @@ function calcItem(){
   const baseLtv=st.ltvs[st.catId]??cat.ltv;
   const condition=CONDITIONS.find(c=>c.id===st.cond);
   const brandMult=cat.brand.on?BRANDS.find(b=>b.id===st.brand).mult:1;
-  const completeMult=cat.complete.on&&!st.complete?0.7:1;
+  /* What a missing piece costs. It was a flat 30% for everything, which was
+     a guess nobody had checked - and it is the wrong number where it has
+     been checked. Consoles sold WITHOUT a controller went for 0.88 to 0.94
+     of one with, across four models: a tenth off, not a third. Docking 30%
+     for a missing controller was lending $180 against an Xbox that resells
+     for $500. Per-category now; the ones still at 0.7 are still guesses and
+     say so in the catalog. */
+  const completeMult=cat.complete.on&&!st.complete?(Number(cat.complete.mult)||0.7):1;
   const liqId=st.liq||item.liq;
   const liquidity=LIQUIDITY.find(l=>l.id===liqId);
   let spec;
@@ -5090,7 +5102,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.2300";
+const APP_BUILD="0926.2310";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

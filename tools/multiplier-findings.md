@@ -86,3 +86,46 @@ well under 0.85. 0.70 is the middle, and low is the safe side to lend from.
   original measurement and was deliberately left alone — it is the lending
   side. Worth revisiting with sold data.
 - h5's bare-bow figure rests on 8 listings. Thin.
+
+---
+
+# Consoles and what comes with them — 23 Sep 2026
+
+Asked: should the desk ask how many controllers came with a console?
+
+**No.** Sold comps through SoldComps, four consoles:
+
+| | Console only | 2+ controllers | With games |
+|---|---|---|---|
+| Xbox Series X | 0.92x | — | — |
+| PlayStation 5 | 0.89x | **1.03x** | **1.04x** |
+| Xbox Series S | 0.94x | **0.95x** | — |
+| Nintendo Switch | 0.88x | — | — |
+
+**Extras are worth nothing.** Two or more controllers: 1.03x and 0.95x, which
+is noise either side of zero. Games included: 1.04x. An Xbox with four
+controllers sells for what an Xbox with one sells for. A question about it
+would have three options where two are identical - a tap that costs the
+counter time and changes no number.
+
+What DOES move is having none: **0.88 to 0.94, about a tenth off**,
+consistent across all four.
+
+Sample sizes are thin in the interesting buckets - one to four listings -
+so the level is soft. The direction is not: console-only never once came
+out above a console with a controller.
+
+## The bug it turned up
+
+`completeMult` was a flat **0.7** for every category, never measured. The
+measurement says a tenth for electronics, not a third.
+
+Docking 30% for a missing controller was lending about $180 against an Xbox
+Series X that resells near $500, when the same console minus a controller
+really sells for about $450. It is now per-category: electronics 0.90,
+measured; everything else left at 0.70 and marked in the catalog as the
+guess it is.
+
+**Worth measuring next**, in rough order of how often it bites: tools
+(battery, charger, case), guns (magazine, choke tubes), instruments (case).
+Each is the same shape of question and the same method.

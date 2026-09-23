@@ -171,6 +171,34 @@ console.log("\n  the comps the number was built from");
   ok(t.noPics.n === 0, "comps with no pictures draw no strip");
 }
 
+/* What a missing piece costs, per category. A flat 30% was a guess, and
+   where it has been measured it is wrong by a factor of three - which on an
+   Xbox is the difference between lending $180 and lending $300. */
+console.log("\n  what a missing piece costs");
+{
+  const c = await page.evaluate(() => {
+    const out = {};
+    const run = (catId, itemId) => {
+      const cat = CATALOG.find(x => x.id === catId);
+      st.mode="item"; st.catId=catId; st.itemId=itemId; st.picked=true;
+      st.market=null; st.cond="good"; st.condSet=true; st.overrides={}; st.specSel={};
+      st.complete = true;  const whole = calcItem().resale;
+      st.complete = false; const part  = calcItem().resale;
+      st.complete = true;
+      return {whole, part, ratio: whole ? part/whole : null, label: cat.complete.label||""};
+    };
+    out.elec  = run("elec", "e5");
+    out.tools = run("tools", "t1");
+    return out;
+  });
+  ok(Math.abs(c.elec.ratio - 0.9) < 0.005,
+     "electronics docks 10% for a missing piece (measured), got " + c.elec.ratio.toFixed(3));
+  ok(Math.abs(c.tools.ratio - 0.7) < 0.005,
+     "a category with no measurement still docks 30%, got " + c.tools.ratio.toFixed(3));
+  ok(c.elec.part > c.tools.ratio * c.elec.whole,
+     "  so an incomplete console is worth more than the old flat rate said");
+}
+
 ok(!errs.length, "no page errors" + (errs.length ? ": " + errs[0] : ""));
 await browser.close();
 console.log(fails ? "\n  " + fails + " FAILED\n" : "\n  all passed\n");
