@@ -1012,7 +1012,11 @@ const SPEC_CHOICES={
     came out of asking prices, which read high, but the RATIO between two
     asks taken from the same search carries the same bias on both sides and
     largely cancels - it is a far safer thing to lean on than either level.
-    Recheck against sold prices when eBay grants them. */
+    There will be no recheck against sold prices through the API. eBay
+    declined the Marketplace Insights application on 23 Sep 2026 - "highly
+    limited and generally reserved for eBay's approved partners only" - so
+    the ratio is what the desk has, and it is a sounder thing to stand on
+    than either level. */
  t3:[{label:"Power",options:[{t:"Corded",m:1},{t:"Cordless — with battery",m:2.4,note:"cordless with a battery — a different tool: about 2.4x the corded one"},{t:"Cordless — bare",m:1.35,note:"bare cordless — the battery was most of it, but still over a corded unit"}]},
      {label:"Size",options:[{t:"4.5–6 in",m:1},{t:"7–9 in",m:1.15,note:"big grinder: +15%"}]}],
  t4:[{label:"Size",options:[{t:"Mini 2–3 gal",m:.8,note:"small tank: −20%"},{t:"Pancake 4–6 gal",m:1},{t:"8 gal +",m:1.15,note:"bigger tank: +15%"}]},
@@ -5038,7 +5042,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.2240";
+const APP_BUILD="0926.2250";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

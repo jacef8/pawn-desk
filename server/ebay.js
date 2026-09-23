@@ -324,7 +324,13 @@ export async function ebayComps({ q, limit, kind, env, signal }) {
       return withBands({ ok: true, basis: "sold", source: "marketplace_insights", q: query }, all);
     } catch (e) {
       if (e.code === "ebay_scope") {
-        /* Not granted. Say so once, then stop asking for the rest of the run. */
+        /* Not granted. Say so once, then stop asking for the rest of the
+           run. This is now the permanent state: eBay declined the
+           application on 23 Sep 2026 ("highly limited and generally
+           reserved for eBay's approved partners only", ticket closed). The
+           try above is left in place anyway - it costs one refused call per
+           cold start, and if the shop ever becomes an approved partner the
+           whole desk switches to sold prices without a line changing. */
         insightsDenied = true;
         note = "sold data unavailable: this keyset is not granted Marketplace Insights";
       } else if (e.code === "no_ebay_key" || e.code === "ebay_auth") {

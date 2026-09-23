@@ -3,7 +3,9 @@
 Fill in the last column. Twelve lookups, about fifteen minutes.
 
 Every price in The Pawn Desk that came out of the eBay harvest is an ASKING
-price, because eBay has not granted Marketplace Insights. Asks read high: the
+price. eBay declined the Marketplace Insights application on 23 Sep 2026, so
+that stays true: this worksheet is no longer a stopgap while an application
+is pending, it is the only sold data the desk has. Asks read high: the
 overpriced listing that sat six months is still in the index, the one that
 sold in a day is gone. Nobody knows how high. These twelve say how high.
 

@@ -77,8 +77,10 @@ well under 0.85. 0.70 is the middle, and low is the safe side to lend from.
 
 ## Still open
 
-- Everything above is asks. Re-run against sold comps if Insights is granted,
-  or against Product Research (the tool eBay used to call Terapeak).
+- Everything above is asks, and now permanently so through the API: eBay
+  declined the Marketplace Insights application on 23 Sep 2026. Re-run
+  against sold comps only if a sold-price source is found - Product Research
+  by hand, or a licensed third party.
 - The t8 kit multiplier itself now measures **2.5** ($280 cordless vs $110
   pneumatic), not the 2.0 in the app. 2.0 is the conservative end of the
   original measurement and was deliberately left alone — it is the lending

@@ -40,7 +40,13 @@ pawns a month, and not until there is a reason to trust the query.
 More sources is not the bottleneck. Every marketplace that will talk to a
 program sells ASKING prices; the ones with sold prices (eBay Marketplace
 Insights, Product Research, WorthPoint) are gated, and no amount of extra
-sources fixes that. Four asking-price sources average to a better-supported
+sources fixes that.
+
+**eBay settled this on 23 Sep 2026: the Marketplace Insights application was
+declined.** "Highly limited and generally reserved for eBay's approved
+partners only." Ticket closed. A licensed pawnbroker running an internal
+valuation tool is not who that API is for, and asking again will not change
+it. The asking-price fallback is the arrangement now, not a stopgap. Four asking-price sources average to a better-supported
 asking price, not to a sale.
 
 The thing worth doing is still the calibration: twelve sold lookups by hand,
