@@ -3105,10 +3105,29 @@ function bookHitsHTML(){
    next book row overwrote - so "what this shop really gets for a chainsaw"
    could not be recorded against the row it belonged to. It can now, and the
    master price sheet writes straight into it. */
+/* WHAT THE HARVEST FOUND FOR A ONE-OFF.
+   A price-book row is the generic kind of thing - "Wheelbarrow", "Grease
+   gun" - and it has no model number in its name. Both of the routes a
+   measured price normally travels, mpAuto and harvFind, require a token
+   with a DIGIT in it before they will pin a row, because a model number is
+   the one part of a name that cannot be coincidence. So a harvested
+   wheelbarrow could never have reached the counter: the lookup would have
+   been paid for and thrown away.
+   These get their own lane instead. prices.json may carry a "book" map of
+   name to value, and it sits between the baked-in guess and the counter's
+   own figure - published measurement beats my estimate, and what the
+   counter typed beats both, because they are holding the thing. */
+let BOOK_PRICES={};
 function bookVal(e){
-  const v=Number(st.bookVals&&st.bookVals[e[0]]);
-  return v>0?Math.round(v):e[1];
+  const mine=Number(st.bookVals&&st.bookVals[e[0]]);
+  if(mine>0)return Math.round(mine);
+  const pub=Number(BOOK_PRICES[e[0]]);
+  if(pub>0)return Math.round(pub);
+  return e[1];
 }
+/* Is this row still the figure nobody checked? The screens say so, and the
+   answer has to survive a harvest landing. */
+function bookChecked(name){ return Number(BOOK_PRICES[name])>0; }
 function pickBookEntry(e){
   st.catId=e[2]; st.itemId=custId(e[2]); st.bookName=e[0]; st.overrides[custId(e[2])]=bookVal(e);
   st.liq=e[3]; st.brand="mid"; st.brandTyped=""; st.brandSet=false; st.model=""; st.detail="";
@@ -5232,6 +5251,18 @@ async function refreshPrices(){
     if(!mpOk(rows))return;
     MODEL_PRICES=rows;
     MP_BY_ID=Object.fromEntries(MODEL_PRICES.map(r=>[r[0],r]));
+    /* Same rule as the rows: a malformed map must never wipe the book, so
+       only the entries that look like a price are taken and the rest of
+       the file is ignored rather than the whole load being refused. */
+    const bk=j&&j.book;
+    if(bk&&typeof bk==="object"&&!Array.isArray(bk)){
+      const clean={};
+      for(const k of Object.keys(bk)){
+        const v=Number(bk[k]);
+        if(typeof k==="string"&&k&&v>0&&v<1000000)clean[k]=Math.round(v);
+      }
+      BOOK_PRICES=clean;
+    }
     try{ render(); }catch(e){}
   }catch(e){}
 }
@@ -5516,7 +5547,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.2836";
+const APP_BUILD="0926.2951";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

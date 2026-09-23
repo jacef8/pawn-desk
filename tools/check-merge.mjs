@@ -110,5 +110,48 @@ restoreReport();
 
 ok(untouched(), "prices.json is back exactly as it started");
 ok(existsSync(REPORT) === (reportBefore !== null), "the test leaves no report behind");
+/* A PRICE-BOOK ROW CANNOT TRAVEL AS A MODEL ROW.
+   The one-offs are the generic kind of thing - "Wheelbarrow", "Grease gun"
+   - and their names carry no model number. Both routes a measured price
+   normally takes to the counter, mpAuto and harvFind, refuse to pin
+   without a token containing a DIGIT, because a model number is the one
+   part of a name that cannot be coincidence. So harvesting these into the
+   model list would have paid for 166 lookups and thrown every one away.
+   They travel in prices.json's "book" map instead. */
+console.log("\n  a one-off lands in the book map, not the model list");
+{
+  const tmp = join(tmpdir(), "bookmerge-" + Date.now() + ".json");
+  const before = JSON.parse(readFileSync(PRICES, "utf8"));
+  writeFileSync(tmp, JSON.stringify({ updated: "2026-09-23", found: {
+    "Wheelbarrow|Wheelbarrow": { ref: "Wheelbarrow", name: "Wheelbarrow",
+      lo: 55, hi: 85, n: 14, conf: "m", date: "2026-09-23", basis: "sold" },
+    "Remington 870 Express|x": { ref: "g1", name: "Remington 870 Express",
+      lo: 310, hi: 410, n: 9, conf: "m", date: "2026-09-23", basis: "sold" },
+  }}));
+  let out = "";
+  try { out = execFileSync("node", [join(ROOT, "tools/harvest.js"), "--merge", "--out", tmp],
+                           { cwd: ROOT, encoding: "utf8" }); } catch (e) { out = String(e.stdout || e); }
+  const after = JSON.parse(readFileSync(PRICES, "utf8"));
+  ok(after.book && after.book["Wheelbarrow"] === 70,
+     "the wheelbarrow lands in the book map at the mid of 55-85 — " + JSON.stringify(after.book));
+  ok(after.rows.length === before.rows.length,
+     "  and adds no row to the model list — " + before.rows.length + " → " + after.rows.length);
+  ok(!after.rows.some(r => r[2] === "Wheelbarrow"),
+     "  there is no 'Wheelbarrow' row among the models");
+  const shot = after.rows.find(r => r[2] === "Remington 870 Express");
+  ok(shot && shot[3] === 310 && shot[4] === 410,
+     "  while an ordinary model row still goes where it always did — " + (shot ? shot[3] + "-" + shot[4] : "MISSING"));
+  const report = readFileSync(join(ROOT, "tools/price-changes.md"), "utf8");
+  ok(/One-off rows/.test(report) && /Wheelbarrow/.test(report),
+     "  and the change report gives the one-offs their own section");
+  /* put everything back */
+  writeFileSync(PRICES, JSON.stringify(before, null, 0));
+  try { unlinkSync(PRICES + ".bak"); } catch (e) {}
+  try { unlinkSync(tmp); } catch (e) {}
+  const restored = JSON.parse(readFileSync(PRICES, "utf8"));
+  ok(!restored.book && restored.rows.length === before.rows.length,
+     "prices.json is back exactly as it started");
+}
+
 console.log(`\n  ${pass} passed, ${fail} failed\n`);
 process.exit(fail ? 1 : 0);

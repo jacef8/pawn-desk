@@ -107,6 +107,18 @@ try {
        $180 saw look like $8. */
     KIND[it.id] = it.name;
   }));
+  /* The price book counts too. It was read as catalog-only, so a target
+     aimed at a price-book row - "Wheelbarrow", "Grease gun" - came back
+     with BOTH guards switched off: no kind word, so the parts filter had
+     nothing to match against, and no book value, so wildness() returned
+     null and the sanity band never ran. Those two are what stop a $180 saw
+     reading $8, and they were silently absent on exactly the 166 rows that
+     most need pricing. A book row is keyed by its NAME, which is also what
+     the app uses as its ref. */
+  literal(APP, "const PRICEBOOK=[").forEach(e => {
+    BOOK[e[0]] = e[1];
+    KIND[e[0]] = e[0];
+  });
 } catch (e) { console.error("  (could not read the catalog: " + e.message + " - the sanity band is off)"); }
 const wildness = (ref, med) => {
   const b = BOOK[ref];
@@ -163,6 +175,15 @@ const save = () => writeFileSync(OUT,
 if (has("merge")) {
   const pj = JSON.parse(readFileSync(PRICES, "utf8"));
   const rows = pj.rows.slice();
+  /* A price-book row is the generic kind of thing and its name carries no
+     model number, so it can never pin through the model list - both routes
+     in app.js require a digit before they will match. It goes in the book
+     map instead, which bookVal() reads. Keyed by the row's own name, which
+     is also its ref. */
+  const bookMap = Object.assign({}, pj.book || {});
+  const bookMoves = [];
+  const isBookRow = (f) => f && f.ref === f.name && BOOK[f.ref] !== undefined
+                        && !/^[a-z]\d{1,2}$/.test(String(f.ref));
   const byName = new Map(rows.map((r, i) => [String(r[1]) + "|" + String(r[2]).toLowerCase(), i]));
   let added = 0, updated = 0, skipped = 0, wild = 0, asks = 0;
   const touched = [], touchedMoves = [], newRows = [], heldWild = [], heldThin = [];
@@ -174,6 +195,18 @@ if (has("merge")) {
     if (f.wild && !has("wild")) { wild++;
       heldWild.push({ name: f.name, lo: Math.round(f.lo), hi: Math.round(f.hi), n: f.n, book: f.book, ratio: f.ratio }); continue; }
     if (SOLD_ONLY && f.basis !== "sold") { asks++; continue; }
+    if (isBookRow(f)) {
+      /* The book wants one resale figure, not a range; the mid is what
+         marketNow() would have shown for the same row anyway. */
+      const mid = Math.round((f.lo + f.hi) / 2);
+      const was = bookMap[f.name] != null ? bookMap[f.name] : BOOK[f.name];
+      if (mid > 0 && mid !== was) {
+        bookMoves.push({ name: f.name, was, now: mid, n: f.n, basis: f.basis || "asking" });
+        bookMap[f.name] = mid;
+        updated++;
+      }
+      continue;
+    }
     const row = [f.id || nextId(), f.ref, f.name, Math.round(f.lo), Math.round(f.hi),
                  f.conf, f.date, f.src || "https://www.ebay.com", f.note, f.alias || ""];
     const at = byName.get(f.ref + "|" + f.name.toLowerCase());
@@ -243,7 +276,8 @@ if (has("merge")) {
   if (bad.length) { console.error("  " + bad.length + " row(s) the app would reject - nothing written."); process.exit(1); }
   copyFileSync(PRICES, PRICES + ".bak");
   writeFileSync(PRICES, JSON.stringify({ updated: today(),
-    note: pj.note, rows }, null, 0));
+    note: pj.note, rows,
+    ...(Object.keys(bookMap).length ? { book: bookMap } : {}) }, null, 0));
   /* ---- the change report --------------------------------------------
      The breaker above stops a catastrophe. This is for everything that is
      not a catastrophe: an ordinary week of movement, ranked biggest first,
@@ -258,6 +292,12 @@ if (has("merge")) {
     .sort((a, b) => Math.abs(b.pct) - Math.abs(a.pct));
   const sign = (v) => (v > 0 ? "+" : "") + v + "%";
   const band = (m) => `$${m.wasLo}\u2013${m.wasHi} \u2192 $${m.nowLo}\u2013${m.nowHi}`;
+  /* The one-offs move as a single figure, not a band, so they cannot share
+     the table above - and they are the rows that most need reading, since
+     166 of them had never been checked against anything at all. */
+  const bookPct = (m) => (m.was > 0 ? Math.round((m.now / m.was - 1) * 100) : 0);
+  const bookSorted = bookMoves.map((m) => ({ ...m, pct: bookPct(m) }))
+    .sort((a, b) => Math.abs(b.pct) - Math.abs(a.pct));
   const look = withPct.filter((m) => Math.abs(m.pct) >= 25);
   const rest = withPct.filter((m) => Math.abs(m.pct) < 25 && m.pct !== 0);
   const L = [];
@@ -287,6 +327,18 @@ if (has("merge")) {
     L.push("## Worth a look");
     L.push("");
     L.push("Nothing moved 25% or more. Quiet week.");
+    L.push("");
+  }
+  if (bookSorted.length) {
+    L.push(`## One-off rows \u2014 the price book (${bookSorted.length})`);
+    L.push("");
+    L.push("These carried a figure nobody had checked against anything. A measured");
+    L.push("price now stands in front of it for every device.");
+    L.push("");
+    L.push("| Item | Was | Now | Change | Listings |");
+    L.push("|---|---|---|---|---|");
+    bookSorted.forEach((m) => L.push(
+      `| ${m.name} | $${m.was} | $${m.now} | **${sign(m.pct)}** | ${m.n} |`));
     L.push("");
   }
   if (rest.length) {

@@ -1,6 +1,6 @@
 {
- "note": "Targets for tools/harvest.js. ref is the catalog item the model belongs to; alias is extra ways it gets typed. Nothing here is a price - the harvest fills those in.",
- "count": 610,
+ "note": "Targets for tools/harvest.js. ref is the catalog item the model belongs to; alias is extra ways it gets typed. Nothing here is a price - the harvest fills those in. Rows whose ref is a NAME rather than an item id (g1, t3...) are price-book entries - the one-off walk-ins. They were never harvested, so 166 of the 176 carried a value nobody had checked against anything.",
+ "count": 776,
  "rows": [
   {
    "ref": "p1",
@@ -2680,6 +2680,670 @@
   {
    "ref": "r1",
    "name": "PJ Trailers U7 utility trailer"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "Wireless earbuds"
+  },
+  {
+   "ref": "DSLR / mirrorless camera",
+   "name": "DSLR / mirrorless camera"
+  },
+  {
+   "ref": "Wireless mouse — computer",
+   "name": "Wireless mouse — computer"
+  },
+  {
+   "ref": "Computer keyboard",
+   "name": "Computer keyboard"
+  },
+  {
+   "ref": "Band saw — benchtop",
+   "name": "Band saw — benchtop"
+  },
+  {
+   "ref": "Audio mixer — PA board",
+   "name": "Audio mixer — PA board"
+  },
+  {
+   "ref": "TIG / stick welder",
+   "name": "TIG / stick welder"
+  },
+  {
+   "ref": "Gun safe",
+   "name": "Gun safe"
+  },
+  {
+   "ref": "Single-shot shotgun",
+   "name": "Single-shot shotgun"
+  },
+  {
+   "ref": "Derringer",
+   "name": "Derringer"
+  },
+  {
+   "ref": "Air rifle / pellet gun",
+   "name": "Air rifle / pellet gun"
+  },
+  {
+   "ref": "Reloading press",
+   "name": "Reloading press"
+  },
+  {
+   "ref": "Black-powder revolver",
+   "name": "Black-powder revolver"
+  },
+  {
+   "ref": "Bayonet / military knife",
+   "name": "Bayonet / military knife"
+  },
+  {
+   "ref": "Tiller",
+   "name": "Tiller"
+  },
+  {
+   "ref": "Log splitter",
+   "name": "Log splitter"
+  },
+  {
+   "ref": "Pole saw",
+   "name": "Pole saw"
+  },
+  {
+   "ref": "Hedge trimmer",
+   "name": "Hedge trimmer"
+  },
+  {
+   "ref": "Lawn edger",
+   "name": "Lawn edger"
+  },
+  {
+   "ref": "Water pump — gas",
+   "name": "Water pump — gas"
+  },
+  {
+   "ref": "Inverter generator — 2kW",
+   "name": "Inverter generator — 2kW"
+  },
+  {
+   "ref": "Welder/generator combo",
+   "name": "Welder/generator combo"
+  },
+  {
+   "ref": "Table saw",
+   "name": "Table saw"
+  },
+  {
+   "ref": "Miter saw / chop saw",
+   "name": "Miter saw / chop saw"
+  },
+  {
+   "ref": "Circular saw",
+   "name": "Circular saw"
+  },
+  {
+   "ref": "Reciprocating saw",
+   "name": "Reciprocating saw"
+  },
+  {
+   "ref": "Jigsaw",
+   "name": "Jigsaw"
+  },
+  {
+   "ref": "Router",
+   "name": "Router"
+  },
+  {
+   "ref": "Benchtop planer",
+   "name": "Benchtop planer"
+  },
+  {
+   "ref": "Drill press",
+   "name": "Drill press"
+  },
+  {
+   "ref": "Bench grinder",
+   "name": "Bench grinder"
+  },
+  {
+   "ref": "Shop vac",
+   "name": "Shop vac"
+  },
+  {
+   "ref": "Extension ladder",
+   "name": "Extension ladder"
+  },
+  {
+   "ref": "Floor jack",
+   "name": "Floor jack"
+  },
+  {
+   "ref": "Jack stands — pair",
+   "name": "Jack stands — pair"
+  },
+  {
+   "ref": "Socket set — complete",
+   "name": "Socket set — complete"
+  },
+  {
+   "ref": "Torque wrench",
+   "name": "Torque wrench"
+  },
+  {
+   "ref": "Come-along / hand winch",
+   "name": "Come-along / hand winch"
+  },
+  {
+   "ref": "Chain hoist",
+   "name": "Chain hoist"
+  },
+  {
+   "ref": "Engine hoist",
+   "name": "Engine hoist"
+  },
+  {
+   "ref": "Finish nail gun",
+   "name": "Finish nail gun"
+  },
+  {
+   "ref": "Tile saw",
+   "name": "Tile saw"
+  },
+  {
+   "ref": "Concrete mixer",
+   "name": "Concrete mixer"
+  },
+  {
+   "ref": "Stick welder",
+   "name": "Stick welder"
+  },
+  {
+   "ref": "Plasma cutter",
+   "name": "Plasma cutter"
+  },
+  {
+   "ref": "Oxy-acetylene torch set",
+   "name": "Oxy-acetylene torch set"
+  },
+  {
+   "ref": "Sewing machine",
+   "name": "Sewing machine"
+  },
+  {
+   "ref": "Stand mixer — KitchenAid class",
+   "name": "Stand mixer — KitchenAid class"
+  },
+  {
+   "ref": "Climbing tree stand",
+   "name": "Climbing tree stand"
+  },
+  {
+   "ref": "Ladder stand",
+   "name": "Ladder stand"
+  },
+  {
+   "ref": "Ground blind",
+   "name": "Ground blind"
+  },
+  {
+   "ref": "Deer feeder — barrel",
+   "name": "Deer feeder — barrel"
+  },
+  {
+   "ref": "Cellular game camera",
+   "name": "Cellular game camera"
+  },
+  {
+   "ref": "Duck decoys — dozen",
+   "name": "Duck decoys — dozen"
+  },
+  {
+   "ref": "Kayak — sit-on-top",
+   "name": "Kayak — sit-on-top"
+  },
+  {
+   "ref": "Jon boat — 12ft, no motor",
+   "name": "Jon boat — 12ft, no motor"
+  },
+  {
+   "ref": "Boat trailer",
+   "name": "Boat trailer"
+  },
+  {
+   "ref": "Cast net",
+   "name": "Cast net"
+  },
+  {
+   "ref": "Offshore rod & reel",
+   "name": "Offshore rod & reel"
+  },
+  {
+   "ref": "Fly rod & reel",
+   "name": "Fly rod & reel"
+  },
+  {
+   "ref": "Hard gun case",
+   "name": "Hard gun case"
+  },
+  {
+   "ref": "Waders",
+   "name": "Waders"
+  },
+  {
+   "ref": "Spotting scope",
+   "name": "Spotting scope"
+  },
+  {
+   "ref": "Red dot sight",
+   "name": "Red dot sight"
+  },
+  {
+   "ref": "Crossbow bolts & broadheads — lot",
+   "name": "Crossbow bolts & broadheads — lot"
+  },
+  {
+   "ref": "Soundbar",
+   "name": "Soundbar"
+  },
+  {
+   "ref": "AV receiver",
+   "name": "AV receiver"
+  },
+  {
+   "ref": "Turntable",
+   "name": "Turntable"
+  },
+  {
+   "ref": "Gaming desktop PC",
+   "name": "Gaming desktop PC"
+  },
+  {
+   "ref": "Monitor — 27in",
+   "name": "Monitor — 27in"
+  },
+  {
+   "ref": "Smartwatch — Apple / Galaxy",
+   "name": "Smartwatch — Apple / Galaxy"
+  },
+  {
+   "ref": "Video game — current title",
+   "name": "Video game — current title"
+  },
+  {
+   "ref": "Projector",
+   "name": "Projector"
+  },
+  {
+   "ref": "Two-way radios — pair",
+   "name": "Two-way radios — pair"
+  },
+  {
+   "ref": "Wristwatch — quartz, name brand",
+   "name": "Wristwatch — quartz, name brand"
+  },
+  {
+   "ref": "DJ controller",
+   "name": "DJ controller"
+  },
+  {
+   "ref": "Bass guitar",
+   "name": "Bass guitar"
+  },
+  {
+   "ref": "Keyboard — 61 key",
+   "name": "Keyboard — 61 key"
+  },
+  {
+   "ref": "Digital piano — 88 key",
+   "name": "Digital piano — 88 key"
+  },
+  {
+   "ref": "Banjo",
+   "name": "Banjo"
+  },
+  {
+   "ref": "Mandolin",
+   "name": "Mandolin"
+  },
+  {
+   "ref": "Fiddle / violin",
+   "name": "Fiddle / violin"
+  },
+  {
+   "ref": "Full drum set",
+   "name": "Full drum set"
+  },
+  {
+   "ref": "Vocal mic — SM58 class",
+   "name": "Vocal mic — SM58 class"
+  },
+  {
+   "ref": "Powered PA speaker",
+   "name": "Powered PA speaker"
+  },
+  {
+   "ref": "Guitar pedal",
+   "name": "Guitar pedal"
+  },
+  {
+   "ref": "Trumpet",
+   "name": "Trumpet"
+  },
+  {
+   "ref": "Alto saxophone",
+   "name": "Alto saxophone"
+  },
+  {
+   "ref": "Dirt bike",
+   "name": "Dirt bike"
+  },
+  {
+   "ref": "Go-kart",
+   "name": "Go-kart"
+  },
+  {
+   "ref": "Lawn / dump trailer cart",
+   "name": "Lawn / dump trailer cart"
+  },
+  {
+   "ref": "Enclosed trailer — 6x12",
+   "name": "Enclosed trailer — 6x12"
+  },
+  {
+   "ref": "Jet ski with trailer",
+   "name": "Jet ski with trailer"
+  },
+  {
+   "ref": "Truck toolbox",
+   "name": "Truck toolbox"
+  },
+  {
+   "ref": "ATV winch",
+   "name": "ATV winch"
+  },
+  {
+   "ref": "Truck rims & tires — set",
+   "name": "Truck rims & tires — set"
+  },
+  {
+   "ref": "Bicycle — adult",
+   "name": "Bicycle — adult"
+  },
+  {
+   "ref": "E-bike",
+   "name": "E-bike"
+  },
+  {
+   "ref": "Gas grill",
+   "name": "Gas grill"
+  },
+  {
+   "ref": "Charcoal grill / kettle",
+   "name": "Charcoal grill / kettle"
+  },
+  {
+   "ref": "Pellet grill / smoker",
+   "name": "Pellet grill / smoker"
+  },
+  {
+   "ref": "Offset smoker",
+   "name": "Offset smoker"
+  },
+  {
+   "ref": "Flat-top griddle — Blackstone class",
+   "name": "Flat-top griddle — Blackstone class"
+  },
+  {
+   "ref": "Propane tank — 20lb, full",
+   "name": "Propane tank — 20lb, full"
+  },
+  {
+   "ref": "Camp stove",
+   "name": "Camp stove"
+  },
+  {
+   "ref": "Tent — 4 to 6 person",
+   "name": "Tent — 4 to 6 person"
+  },
+  {
+   "ref": "Sleeping bag",
+   "name": "Sleeping bag"
+  },
+  {
+   "ref": "Hard cooler — Yeti class",
+   "name": "Hard cooler — Yeti class"
+  },
+  {
+   "ref": "Soft cooler / tote",
+   "name": "Soft cooler / tote"
+  },
+  {
+   "ref": "Camp chairs — pair",
+   "name": "Camp chairs — pair"
+  },
+  {
+   "ref": "Air fryer",
+   "name": "Air fryer"
+  },
+  {
+   "ref": "Pressure cooker — Instant Pot class",
+   "name": "Pressure cooker — Instant Pot class"
+  },
+  {
+   "ref": "Blender",
+   "name": "Blender"
+  },
+  {
+   "ref": "Coffee maker",
+   "name": "Coffee maker"
+  },
+  {
+   "ref": "Space heater",
+   "name": "Space heater"
+  },
+  {
+   "ref": "Box fan / tower fan",
+   "name": "Box fan / tower fan"
+  },
+  {
+   "ref": "Dehumidifier",
+   "name": "Dehumidifier"
+  },
+  {
+   "ref": "Portable air conditioner",
+   "name": "Portable air conditioner"
+  },
+  {
+   "ref": "Dishwasher",
+   "name": "Dishwasher"
+  },
+  {
+   "ref": "Garbage disposal",
+   "name": "Garbage disposal"
+  },
+  {
+   "ref": "Recliner",
+   "name": "Recliner"
+  },
+  {
+   "ref": "Sofa / couch",
+   "name": "Sofa / couch"
+  },
+  {
+   "ref": "Dresser / chest of drawers",
+   "name": "Dresser / chest of drawers"
+  },
+  {
+   "ref": "Dining table & chairs",
+   "name": "Dining table & chairs"
+  },
+  {
+   "ref": "TV stand / entertainment center",
+   "name": "TV stand / entertainment center"
+  },
+  {
+   "ref": "Gun cabinet — wood",
+   "name": "Gun cabinet — wood"
+  },
+  {
+   "ref": "Post hole digger — gas",
+   "name": "Post hole digger — gas"
+  },
+  {
+   "ref": "Fence charger",
+   "name": "Fence charger"
+  },
+  {
+   "ref": "Sprayer tank — 25 to 55 gal",
+   "name": "Sprayer tank — 25 to 55 gal"
+  },
+  {
+   "ref": "Earth auger — one man",
+   "name": "Earth auger — one man"
+  },
+  {
+   "ref": "Livestock water trough",
+   "name": "Livestock water trough"
+  },
+  {
+   "ref": "Chicken coop",
+   "name": "Chicken coop"
+  },
+  {
+   "ref": "Paint sprayer — airless",
+   "name": "Paint sprayer — airless"
+  },
+  {
+   "ref": "Laser level",
+   "name": "Laser level"
+  },
+  {
+   "ref": "OBD scan tool",
+   "name": "OBD scan tool"
+  },
+  {
+   "ref": "Scaffolding — section",
+   "name": "Scaffolding — section"
+  },
+  {
+   "ref": "Wheelbarrow",
+   "name": "Wheelbarrow"
+  },
+  {
+   "ref": "Mechanic's creeper",
+   "name": "Mechanic's creeper"
+  },
+  {
+   "ref": "Drywall lift",
+   "name": "Drywall lift"
+  },
+  {
+   "ref": "Battery charger / jump box",
+   "name": "Battery charger / jump box"
+  },
+  {
+   "ref": "Transfer pump — gas",
+   "name": "Transfer pump — gas"
+  },
+  {
+   "ref": "Grease gun",
+   "name": "Grease gun"
+  },
+  {
+   "ref": "Clarinet",
+   "name": "Clarinet"
+  },
+  {
+   "ref": "Flute",
+   "name": "Flute"
+  },
+  {
+   "ref": "Trombone",
+   "name": "Trombone"
+  },
+  {
+   "ref": "French horn",
+   "name": "French horn"
+  },
+  {
+   "ref": "Cello",
+   "name": "Cello"
+  },
+  {
+   "ref": "Ukulele",
+   "name": "Ukulele"
+  },
+  {
+   "ref": "Bowling ball",
+   "name": "Bowling ball"
+  },
+  {
+   "ref": "Skateboard",
+   "name": "Skateboard"
+  },
+  {
+   "ref": "Surfboard",
+   "name": "Surfboard"
+  },
+  {
+   "ref": "Paddle board — SUP",
+   "name": "Paddle board — SUP"
+  },
+  {
+   "ref": "Life jackets — set",
+   "name": "Life jackets — set"
+  },
+  {
+   "ref": "Ring / smart doorbell",
+   "name": "Ring / smart doorbell"
+  },
+  {
+   "ref": "Dash camera",
+   "name": "Dash camera"
+  },
+  {
+   "ref": "Security camera system",
+   "name": "Security camera system"
+  },
+  {
+   "ref": "Wifi router / modem",
+   "name": "Wifi router / modem"
+  },
+  {
+   "ref": "Printer — all in one",
+   "name": "Printer — all in one"
+  },
+  {
+   "ref": "Record player / turntable set",
+   "name": "Record player / turntable set"
+  },
+  {
+   "ref": "Karaoke machine",
+   "name": "Karaoke machine"
+  },
+  {
+   "ref": "E-reader — Kindle class",
+   "name": "E-reader — Kindle class"
+  },
+  {
+   "ref": "Power wheels / ride-on toy",
+   "name": "Power wheels / ride-on toy"
+  },
+  {
+   "ref": "Wet tile saw",
+   "name": "Wet tile saw"
+  },
+  {
+   "ref": "Scooter / moped",
+   "name": "Scooter / moped"
+  },
+  {
+   "ref": "Pop-up camper",
+   "name": "Pop-up camper"
+  },
+  {
+   "ref": "Boat anchor & rode",
+   "name": "Boat anchor & rode"
   }
  ]
 }
