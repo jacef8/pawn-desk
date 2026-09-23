@@ -262,9 +262,30 @@ export async function handle({ path, method, token, body, env, signal, query }) 
     return fail("upstream_error", 502);
   }
 
+  /* SAY WHY IT FAILED, NOT JUST THAT IT DID.
+     Everything except 401 and 429 used to come back as "upstream_error",
+     so an empty balance - which Anthropic reports as a 400, not a 401 -
+     looked exactly like a network fault. On the day the key was swapped to
+     a fresh account that is the single likeliest cause, and the counter was
+     told nothing that pointed at it.
+     The upstream STATUS and error TYPE are carried through; the upstream
+     message is not, because it is somebody else's text and may say anything.
+     The one exception is the word "credit", which is the difference between
+     "something broke" and "go and top up the account". */
   if (!r.ok) {
-    const code = r.status === 429 ? "rate_limited" : r.status === 401 ? "no_key" : "upstream_error";
-    return fail(code, r.status === 429 ? 429 : 502);
+    let type = "", low = false;
+    try {
+      const e = (await r.clone().json()).error || {};
+      type = String(e.type || "").slice(0, 40);
+      low = /credit|balance|quota/i.test(String(e.message || ""));
+    } catch (e) {}
+    const code = r.status === 429 ? "rate_limited"
+      : r.status === 401 ? "no_key"
+      : low ? "no_credit"
+      : r.status === 403 ? "not_allowed"
+      : "upstream_error";
+    return reply(r.status === 429 ? 429 : 502,
+      { ok: false, code, status: r.status, upstream: type || undefined });
   }
 
   let msg;

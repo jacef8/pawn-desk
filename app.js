@@ -3498,6 +3498,8 @@ function photoErrCopy(code){
     case "server_error": return "The service hit an error reading it. Try again, then look at the Railway logs.";
     case "no_answer": return "Couldn't reach the service at all. Check the phone has signal, and that the address under Setup is right.";
     case "no_server": return "No service address saved on this device. Switch it on under Setup.";
+    case "no_credit": return "The Anthropic account behind the service is out of credit. Top it up at platform.claude.com \u2014 nothing is wrong with the tool.";
+    case "not_allowed": return "Anthropic refused the key for this call. Check the key is active and the account has access to the model set in PHOTO_MODEL.";
     case "upstream_error": return "The service answered, but the read failed upstream. Usually an empty Anthropic balance or a bad key - check Railway.";
     default: return "The read failed. Fill the form in by hand — the tool works fine without it.";
   }
@@ -5547,7 +5549,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.2951";
+const APP_BUILD="0926.3108";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

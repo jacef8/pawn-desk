@@ -293,6 +293,51 @@ console.log("\n  the chosen model reaches the call, and prices it");
      "  a five-fold difference, which on 200 photos a month is $5.00 against $1.00");
 }
 
+/* A FAILURE HAS TO SAY WHY.
+   Everything but 401 and 429 came back as "upstream_error", so an empty
+   balance - which Anthropic reports as a 400, not a 401 - looked exactly
+   like a network fault. On the day the key moved to a fresh account that
+   was the likeliest cause of all, and the counter was told nothing that
+   pointed at it. The upstream status and error type carry through; the
+   upstream MESSAGE does not, because it is somebody else's text. */
+console.log("\n  a failed read names its own cause");
+{
+  const { createServer } = await import("node:http");
+  const { handle: h } = await import("../server/core.js");
+  const cases = [
+    [400, "invalid_request_error", "Your credit balance is too low to access the Claude API.", "no_credit"],
+    [401, "authentication_error",  "invalid x-api-key",  "no_key"],
+    [403, "permission_error",      "not allowed",        "not_allowed"],
+    [429, "rate_limit_error",      "slow down",          "rate_limited"],
+    [500, "api_error",             "boom",               "upstream_error"],
+  ];
+  let at = 0;
+  const srv = createServer((req, res) => { let b = ""; req.on("data", c => b += c); req.on("end", () => {
+    const [st, type, message] = cases[at];
+    res.writeHead(st, {"content-type": "application/json"});
+    res.end(JSON.stringify({ error: { type, message } })); }); });
+  await new Promise(r => srv.listen(0, r));
+  const url = "http://127.0.0.1:" + srv.address().port;
+  for (at = 0; at < cases.length; at++) {
+    const [st, type, message, want] = cases[at];
+    const r = await h({ path: "/json", method: "POST", token: "t", query: {},
+      body: { prompt: "x", images: [] },
+      env: { PAWN_TOKEN: "t", ANTHROPIC_API_KEY: "k", ANTHROPIC_URL: url } });
+    ok(r.body.code === want,
+       `upstream ${st} reads as "${want}" \u2014 got "${r.body.code}"`);
+    ok(r.body.status === st && r.body.upstream === type,
+       `  carrying the status and type through \u2014 ${r.body.status}/${r.body.upstream}`);
+    ok(!JSON.stringify(r.body).includes(message),
+       "  without repeating the upstream's own words");
+  }
+  srv.close();
+  /* The counter has to be told something it can act on. */
+  const app = (await import("node:fs")).readFileSync(new URL("../app.js", import.meta.url), "utf8");
+  ok(/case "no_credit":/.test(app) && /platform\.claude\.com/.test(app),
+     "and the counter is told to top the account up, not that the tool is broken");
+  ok(/case "not_allowed":/.test(app), "  with its own line for a refused key");
+}
+
 stub.close();
 console.log(fails ? "\n  " + fails + " FAILED\n" : "\n  all passed\n");
 process.exit(fails ? 1 : 0);
