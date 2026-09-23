@@ -39,7 +39,17 @@ function phoneStepHTML(x){
      matters - the same flag that turns the brand question on - because a
      wheelbarrow has no model plate to read. */
   const wantModel=started&&!x.checked&&!st.mpNone&&!st.model&&!cands.length&&!!(x.cat.brand&&x.cat.brand.on);
-  const s1=started&&(x.checked||(!cands.length&&!wantModel)), s2=started&&x.checked, s3=started&&x.checked&&!!st.condSet, ask=phAskNow();
+  /* THE PHONE WAS NAMING THINGS IT HAD NO WAY TO ASK FOR.
+     "Still needs the make, what it sells for and the condition" is built
+     from the same question list the desk uses - but the phone's own flow
+     was four steps and none of them was the make. There was no field, on
+     any screen, and the run could not be finished from the phone at all.
+     So the make joins step one, in front of the model: the same list the
+     desk filters, the same one tap that sets the spelling and the tier. */
+  const _q=askQueue(x);
+  const needs=(id)=>_q.some(z=>z.id===id&&!z.answered&&!z.optional);
+  const wantBrand=started&&!x.checked&&needs("brand");
+  const s1=started&&(x.checked||(!wantBrand&&!cands.length&&!wantModel)), s2=started&&x.checked, s3=started&&x.checked&&!!st.condSet, ask=phAskNow();
   const cur=!s1?1:!s2?2:!s3?3:4;
   const cw=COND_WORDS[st.cond]||["Good",""];
   const row=(n,label,val,done,id)=>`<div class="nsStep${done?" done":""}${cur===n?" cur":""}"><span class="nsDot">${done?"&#10003;":n}</span><span class="nsL">${label}</span><span class="nsV"${id?` id="${id}"`:""}>${val}</span></div>`;
@@ -57,6 +67,15 @@ function phoneStepHTML(x){
       ?`<b>Take a picture</b> above and I'll work out what it is \u2014 or search and tap it, if you already know.`
       :`Search above and tap what it is &mdash; the resale value fills in from there.`;
     act="";
+  } else if(cur===1&&wantBrand){
+    const hits=brandHits(st.catId,st.brandQ||"");
+    h=`Who makes it?`;
+    sub=`Start typing and tap it &mdash; that sets the spelling and where it sits in one go.`;
+    act=`<div class="phIn"><input id="phBrand" type="text" placeholder="Make" value="${esc(st.brandQ||st.brandTyped||"")}"></div>`
+      +(hits.length?hits.map(b=>`<button class="nsBtn" data-phbrand="${esc(b.name)}" data-phtier="${esc(b.tier)}"><span>${esc(b.name)}</span><b>${esc(tierLabel(x,b.tier))}</b></button>`).join("")
+        :st.brandQ?`<div class="cardHint"><b>${esc(st.brandQ)}</b> is not on the list for ${esc(String(x.cat.label||"this").toLowerCase())} &mdash; say where it sits.</div>`
+          +BRANDS.map(br=>`<button class="nsBtn" data-phtieronly="${esc(br.id)}"><span>${esc(tierLabel(x,br.id))}</span></button>`).join("")
+        :"");
   } else if(cur===1&&wantModel){
     h=`Which ${esc(what)} is it?`;
     sub=`The model decides the price here, and I don’t have a list for this one. Read it off the back, the label or the box.`;
@@ -122,6 +141,17 @@ function wirePhone(){
     st.model=name; st.mpPin={id:r[0],model:name}; st.mpNone=false; st.market=null; render();
   });
   const none=document.getElementById("nsNone"); if(none)none.onclick=()=>{ st.mpNone=true; render(); };
+  {
+    const bi=document.getElementById("phBrand");
+    if(bi)bi.oninput=()=>{ st.brandQ=bi.value; render();
+      const again=document.getElementById("phBrand");
+      if(again){ again.focus(); again.setSelectionRange(again.value.length,again.value.length); } };
+  }
+  ns.querySelectorAll("[data-phbrand]").forEach(b=>b.onclick=()=>{
+    st.brandTyped=b.dataset.phbrand; st.brand=b.dataset.phtier; st.brandSet=true;
+    st.brandQ=b.dataset.phbrand; st.mpPin=null; st.market=null; render(); });
+  ns.querySelectorAll("[data-phtieronly]").forEach(b=>b.onclick=()=>{
+    st.brand=b.dataset.phtieronly; st.brandSet=true; render(); });
   /* Typed by hand when the desk has no list. Enter does the same as the
      button, because a phone keyboard puts Enter under the thumb. */
   {
@@ -199,6 +229,11 @@ function phoneBoot(){
       _wire.apply(this,arguments);
       const more=document.getElementById("snapMore");
       if(more)more.onclick=()=>{ st.snapDetail=true; render(); };
+      /* Naming what is missing and leaving the counter to find it was the
+         bug. The same tap that reads the sentence opens the screen the
+         answers live on. */
+      const ans=document.getElementById("snapAnswer");
+      if(ans)ans.onclick=()=>{ st.snapDetail=true; render(); };
       /* The four questions. Kept in state as they are typed, so a re-render
          never wipes what has been entered. */
       document.querySelectorAll("[data-hint]").forEach(inp=>{
@@ -337,8 +372,10 @@ function snapHTML(){
      is a verdict on a price, so it needs the same run behind it. */
   const ready=priceReady(x);
   const big = !ready ? `<div class="snapLab">No price yet</div>
-        <div class="snapSub">Still needs <b>${esc(needList(x))}</b>. Answer below and the
-        number comes with everything behind it.</div>`
+        <div class="snapSub">Still needs <b>${esc(needList(x))}</b>.
+        ${priceMissing(x).filter(n=>n!=="the condition").length
+          ? `<button class="nsBtn on" id="snapAnswer" style="margin-top:10px"><span>Answer them \u2014 open the detail</span></button>`
+          : "Tap the shape it is in, below."}</div>`
     : x.buyTooThin ? `<div class="snapNo">Walk away</div>
         <div class="snapSub">It resells for about ${money(Math.round(x.resale))}, and clearing the ${money(x.buyFloor)} you want leaves ${money(x.buy)} to offer \u2014 not worth buying, and not worth lending on either.</div>`
     : `<div class="snapLab">Pay up to</div><div class="snapBig">${money(x.buy)}</div>
@@ -354,7 +391,7 @@ function snapHTML(){
           :(st.photoRead&&st.photoRead.webPrice
              ? "Used ones on the web"+(st.photoRead.webPrice.where?" \u2014 "+esc(st.photoRead.webPrice.where):"")
              :esc(checkedNote(x)))}</div></div>`}
-    <div class="snapCond">${CONDITIONS.map(c=>`<button class="${c.id===st.cond?"on":""}" data-cond="${c.id}">${c.label.replace("New in box","New")}</button>`).join("")}</div>
+    <div class="snapCond">${CONDITIONS.map(c=>`<button class="${st.condSet&&c.id===st.cond?"on":""}" data-cond="${c.id}">${c.label.replace("New in box","New")}</button>`).join("")}</div>
     ${/* How much is behind that number. The desk grew this card and the
           phone never got it, which is backwards: the phone is the one
           carried to a yard sale, where a thin number and a solid one look
