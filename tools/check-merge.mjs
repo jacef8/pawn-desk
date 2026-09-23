@@ -218,5 +218,41 @@ console.log("\n  the breaker counts the one-offs");
 ok(untouched(), "prices.json is back exactly as it started after the one-off tests");
 ok(existsSync(REPORT) === (reportBefore !== null), "  and no report is left behind");
 
+/* THE EXPENSIVE PATH HAS TO BE ASKED FOR.
+   --via claude searches the open web on Opus 5, one call per pass per
+   target. A run on 21 Sep cost $43.77 against a banner that had estimated
+   $0.02 a lookup. Nothing between the flag and the bill. It now refuses to
+   start without a target limit and a dollar budget, neither defaulted -
+   a path that spends money should not be reachable by forgetting a flag. */
+console.log("\n  the money path refuses an unbounded run");
+{
+  const run = (args) => {
+    try { return {code: 0, out: execFileSync(process.execPath,
+      [join(ROOT, "tools/harvest.js"), ...args], {cwd: ROOT, encoding: "utf8"})}; }
+    catch (e) { return {code: e.status, out: String(e.stdout || "") + String(e.stderr || "")}; }
+  };
+  const bare   = run(["--via", "claude", "--go"]);
+  const noSpend= run(["--via", "claude", "--limit", "5", "--go"]);
+  const noLimit= run(["--via", "claude", "--spend", "2", "--go"]);
+  ok(bare.code === 2 && /--limit/.test(bare.out) && /--spend/.test(bare.out),
+     "--via claude --go alone is refused, and says what it needs");
+  ok(noSpend.code === 2 && /--spend/.test(noSpend.out), "  a limit without a budget is still refused");
+  ok(noLimit.code === 2 && /--limit/.test(noLimit.out), "  a budget without a limit is still refused");
+  ok(/43\.77/.test(bare.out), "  and it names what the unguarded run actually cost");
+
+  /* A dry run must stay free whatever the flags say. */
+  const dry = run(["--via", "claude", "--limit", "5", "--spend", "2"]);
+  ok(dry.code === 0 && /Nothing was searched and nothing was spent/.test(dry.out),
+     "without --go it is still a dry run, spending nothing");
+  ok(/\$0\.12|about \$1\.20/.test(dry.out),
+     "  the estimate is the measured $0.12 a lookup, not the old $0.02 — "
+     + (dry.out.match(/Rough cost.*/) || [""])[0].trim());
+
+  /* and the free path must not have been dragged into the gate */
+  const free = run(["--limit", "3"]);
+  ok(free.code === 0 && /nothing - eBay's API is free/.test(free.out),
+     "the eBay path still needs no flags and costs nothing");
+}
+
 console.log(`\n  ${pass} passed, ${fail} failed\n`);
 process.exit(fail ? 1 : 0);

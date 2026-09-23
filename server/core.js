@@ -22,6 +22,25 @@ import { createHash } from "node:crypto";
 
 export const MODEL = "claude-opus-5";
 const API = "https://api.anthropic.com/v1/messages";
+/* WHAT A CALL COSTS, AND A CEILING ON THE DAY.
+   On 21 Sep a harvest walked the model list through this endpoint and spent
+   $43.77 in one afternoon. Nothing here knew that was happening, nothing
+   stopped it, and the first anyone knew was the balance. Opus 5 is $5 per
+   million tokens in and $25 out, so the endpoint can now say what it just
+   spent and refuse to keep going past a day's budget.
+   The count is in memory: a redeploy resets it and a second instance keeps
+   its own. That is honest about what it is - a brake on a runaway loop, not
+   an accounting system. The spend limit in the Anthropic console is the
+   backstop that cannot be restarted away. */
+const USD_IN = 5 / 1e6, USD_OUT = 25 / 1e6;
+const DAY_CAP = Math.max(0, Number(process.env.DAILY_USD_CAP ?? 10));
+let spentDay = "", spentUsd = 0;
+function spendToday(add) {
+  const day = new Date().toISOString().slice(0, 10);
+  if (day !== spentDay) { spentDay = day; spentUsd = 0; }
+  spentUsd += add || 0;
+  return spentUsd;
+}
 import { syncMerge } from "./store.js";
 import { ebayComps, ebayReady } from "./ebay.js";
 const DEFAULT_ORIGIN = "https://jacef8.github.io";
@@ -181,6 +200,10 @@ export async function handle({ path, method, token, body, env, signal, query }) 
   }));
   content.push({ type: "text", text: prompt });
 
+  /* Checked before the call, not after: the point is not to make the last
+     one cheap, it is not to make the next one at all. */
+  if (DAY_CAP > 0 && spendToday(0) >= DAY_CAP) return fail("day_cap", 429);
+
   const req = {
     model: MODEL,
     max_tokens: 8000,
@@ -220,9 +243,16 @@ export async function handle({ path, method, token, body, env, signal, query }) 
      the content is read or it looks like an empty answer. */
   if (msg.stop_reason === "refusal") return fail("refused", 200);
 
+  /* Web search is billed on top of this and does not appear in usage, so a
+     searched call really costs more than the figure returned here says. */
+  const u = msg.usage || {};
+  const usd = (Number(u.input_tokens) || 0) * USD_IN + (Number(u.output_tokens) || 0) * USD_OUT;
+  const day = spendToday(usd);
+
   const text = (msg.content || []).filter((b) => b.type === "text").map((b) => b.text).join("\n");
   const data = extractJSON(text);
   if (!data) return fail("unreadable", 200);
 
-  return reply(200, { ok: true, data });
+  return reply(200, { ok: true, data,
+    spend: { usd: Math.round(usd * 1e4) / 1e4, day: Math.round(day * 100) / 100, cap: DAY_CAP } });
 }

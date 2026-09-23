@@ -497,13 +497,20 @@ const prompt = (q, p) =>
   'Only listings for the same thing - not parts, not accessories, not multi-item lots. ' +
   'If you find none, reply {"comps":[]}.';
 
+/* Every /json answer now carries what it cost. Adding it up here is what
+   turns --spend from a warning printed before the run into a thing that
+   actually stops it, and it reports the REAL total at the end rather than
+   the estimate - the estimate is what was wrong on 21 Sep. */
+let spentUsd = 0;
 async function ask(text) {
   const r = await fetch(SERVER + "/json", { method: "POST",
     headers: { "content-type": "application/json", "x-pawn-token": TOKEN },
     body: JSON.stringify({ prompt: text, search: true }) });
   if (!r.ok) throw new Error("service answered " + r.status);
   const j = await r.json();
-  if (!j.ok) throw new Error(j.code || "service said no");
+  if (!j.ok) throw new Error(j.code === "day_cap"
+    ? "the service has hit its daily spend cap (DAILY_USD_CAP)" : (j.code || "service said no"));
+  if (j.spend && Number(j.spend.usd) > 0) spentUsd += Number(j.spend.usd);
   return ((j.data && j.data.comps) || []).filter(c => c && Number(c.price) > 0);
 }
 
@@ -525,6 +532,35 @@ if (VIA !== "ebay" && VIA !== "claude") {
 }
 const gather = VIA === "ebay" ? viaEbay : viaClaude;
 
+/* WHAT THE CLAUDE PATH ACTUALLY COSTS.
+   This file used to quote $0.02 a lookup. On 21 Sep a run through it cost
+   $43.77 - roughly $0.12 a lookup, six times the estimate - and there was
+   nothing between the flag and the bill. eBay and SoldComps carry the book
+   now, so this path is for the handful of things they do not carry, and it
+   has to be asked for deliberately:
+     --limit N   how many targets, because an unbounded run is how $43.77
+                 happens by accident
+     --spend N   the dollars you are agreeing to, checked against the
+                 estimate before anything is searched and against the real
+                 total as it runs
+   Neither has a default. A path that can spend money should not be
+   reachable by forgetting a flag. */
+const USD_PER_LOOKUP = 0.12;
+const SPEND_CAP = Number(arg("spend", 0)) || 0;
+if (VIA === "claude" && GO) {
+  const why = [];
+  if (!(limit > 0)) why.push("--limit N  (how many targets this run may price)");
+  if (!(SPEND_CAP > 0)) why.push("--spend N  (the dollars you are agreeing to)");
+  if (why.length) {
+    console.error("\n  --via claude spends real money against your Anthropic balance.");
+    console.error("  A run on 21 Sep cost $43.77. It needs to be bounded:\n");
+    why.forEach((w) => console.error("    " + w));
+    console.error("\n  eBay and SoldComps price the book for nothing - only use this");
+    console.error("  path for things they do not carry.\n");
+    process.exit(2);
+  }
+}
+
 console.log("");
 console.log("  Targets in the list      : " + targets.length);
 {
@@ -539,7 +575,11 @@ console.log("  Source                   : " + (VIA === "ebay"
   : "Claude web search - asking prices"));
 console.log("  Lookups                  : up to " + todo.length * 2 + "  (a second only when the first is thin)");
 console.log("  Rough cost               : " + (VIA === "ebay" ? "nothing - eBay's API is free"
-  : "about $" + (todo.length * 2 * 0.02).toFixed(2) + " against your Anthropic balance, worst case"));
+  : "about $" + (todo.length * 2 * USD_PER_LOOKUP).toFixed(2) + " against your Anthropic balance, worst case"
+    + (SPEND_CAP > 0 ? "  (stopping at $" + SPEND_CAP.toFixed(2) + ")" : "")));
+if (VIA === "claude" && GO && SPEND_CAP > 0 && todo.length * 2 * USD_PER_LOOKUP > SPEND_CAP) {
+  console.log("  \u2014 the estimate is over your --spend, so the run will stop part way.");
+}
 console.log("");
 if (!GO) {
   console.log("  Dry run. Nothing was searched and nothing was spent.");
@@ -561,6 +601,11 @@ if (!TOKEN) {
 let hit = 0, miss = 0, fails = 0, said = false;
 for (let i = 0; i < todo.length; i++) {
   const t = todo[i];
+  if (VIA === "claude" && SPEND_CAP > 0 && spentUsd >= SPEND_CAP) {
+    console.log(`\n  Stopping: spent $${spentUsd.toFixed(2)} of the $${SPEND_CAP.toFixed(2)} you agreed to.`);
+    console.log(`  ${todo.length - i} target(s) left. Raise --spend to carry on.\n`);
+    break;
+  }
   const tag = `[${i + 1}/${todo.length}] ${t.name}`;
   let got;
   try { got = await gather(t); }
