@@ -97,6 +97,44 @@ ok(/^4 of/.test(r.where), "tapping a dot jumps to that question — " + r.where)
 /* nothing else on screen to scroll past */
 ok(r.cards <= 5, "the run is the screen, not one card among many — " + r.cards + " cards");
 
+/* The make is usually written on the thing that was picked.
+   "DeWalt 20V drill kit" came off the price list and the make question
+   opened with Ryobi / Ridgid lit, because st.brand defaults to "mid" and
+   nothing read the name. Mid against top is 40% of the price - not a
+   question left unanswered, an answer given wrongly. */
+console.log("\n  the make is read off the name");
+{
+  const r = await page.evaluate(() => {
+    const pick = (bookName, typed) => {
+      const c = CATALOG.find(x => x.items.some(i => i.id === "t1"));
+      st.flow="ask"; st.mode="item"; st.catId=c.id; st.itemId="t1"; st.picked=true; st.askAt=0;
+      st.brand="mid"; st.brandTyped=typed||""; st.bookName=bookName||"";
+      st.specSel={}; st.market=null; st.brandSet=false;
+      if (typed) { const h = brandLookup(st.catId, typed); if (h) st.brand = h.tier; }
+      render();
+      const x = calcItem();
+      const lit = [...document.querySelectorAll(".askOpt")].find(b => b.classList.contains("on"));
+      return {tier:x.brandTier, named:x.namedBrand||null, mult:x.brandMult,
+              lit: lit ? lit.querySelector(".askT").textContent.trim() : null,
+              hint: (document.querySelector("#askCard .cardHint")||{}).textContent||""};
+    };
+    return {dewalt: pick("DeWalt 20V drill kit"), ryobi: pick("Ryobi One+ drill kit"),
+            blank: pick("Cordless drill"), typed: pick("DeWalt 20V drill kit", "Harbor Freight")};
+  });
+  ok(r.dewalt.tier === "hi" && r.dewalt.mult === 1.4,
+     "a DeWalt off the price list prices as top tier, not standard — " + r.dewalt.tier + " x" + r.dewalt.mult);
+  ok(/DeWalt/.test(r.dewalt.lit || "") && /read off the name/.test(r.dewalt.hint),
+     "  the right tier is lit and says where it came from");
+  ok(r.ryobi.tier === "mid" && /Ryobi/.test(r.ryobi.named || ""),
+     "a Ryobi reads as standard — " + r.ryobi.tier);
+  ok(r.blank.lit === null,
+     "a name with no make in it lights NOTHING — a default is not an answer somebody gave");
+  ok(/standard tier until you say/.test(r.blank.hint),
+     "  and says the price is using standard until told");
+  ok(r.typed.tier === "lo" && r.typed.mult < 1,
+     "a make typed by hand beats the one read off the name — " + r.typed.tier);
+}
+
 ok(!errs.length, "no page errors" + (errs.length ? ": " + errs[0] : ""));
 await browser.close();
 console.log(`\n  ${pass} passed, ${fail} failed\n`);

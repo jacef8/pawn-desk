@@ -235,6 +235,25 @@ const BRANDBOOK={
   mid:["Squier","Epiphone","Yamaha","Ibanez","Jackson","ESP","LTD","Schecter","Takamine","Seagull","Alvarez","Peavey","Orange","Marshall","Boss","Line 6","Blackstar","Fender Squier","Mitchell"],
   lo:["First Act","Rogue","Glarry","Donner","Monoprice","Sawtooth","Best Choice","Lyx"]}
 };
+/* The brand is often already written on the thing that was picked.
+ *
+ * "DeWalt 20V drill kit" was picked from the price list, and the make
+ * question opened with Ryobi / Ridgid lit - because st.brand defaults to
+ * "mid" and nothing had read the name. Mid tier against top tier is 40% of
+ * the price, so the desk was not merely asking a question it could answer:
+ * it was answering it wrong and waiting to be corrected.
+ *
+ * Whole words only. brandLookup matches on substrings, which is right when
+ * somebody is typing a name into a box and wrong when scanning a sentence -
+ * "kit" would find Kitchenaid. */
+function brandFromName(catId,txt){
+  const words=String(txt||"").split(/[^A-Za-z0-9&+.-]+/).filter(w=>w.length>=3);
+  for(const w of words){
+    const hit=brandLookup(catId,w);
+    if(hit&&hit.name.toLowerCase()===w.toLowerCase())return hit;
+  }
+  return null;
+}
 function brandLookup(catId,txt){
   const ov=ITEM_OVERRIDES[st.itemId];
   const book=(ov&&ov.brands)||BRANDBOOK[catId]; if(!book)return null;
@@ -667,7 +686,16 @@ function calcItem(){
   const baseValue=st.overrides[item.id]??item.value;
   const baseLtv=st.ltvs[st.catId]??cat.ltv;
   const condition=CONDITIONS.find(c=>c.id===st.cond);
-  const brandMult=cat.brand.on?BRANDS.find(b=>b.id===st.brand).mult:1;
+  /* The make is often written on the thing itself: "DeWalt 20V drill kit"
+     was picked off the price list and the desk still priced it as Ryobi,
+     because st.brand defaults to "mid" and nothing read the name. Mid
+     against top is 40% of the price - the desk was not just failing to
+     answer a question it could answer, it was answering it wrong.
+     A make typed by hand always wins; this only fills the silence. */
+  const namedBrand=(cat.brand.on&&!st.brandTyped)
+    ? brandFromName(cat.id,(item.name||"")+" "+(st.bookName||"")) : null;
+  const brandTier=namedBrand?namedBrand.tier:st.brand;
+  const brandMult=cat.brand.on?BRANDS.find(b=>b.id===brandTier).mult:1;
   /* What a missing piece costs. It was a flat 30% for everything, which was
      a guess nobody had checked - and it is the wrong number where it has
      been checked. Consoles sold WITHOUT a controller went for 0.88 to 0.94
@@ -735,7 +763,8 @@ function calcItem(){
   const buyTooThin=cap.pay<1;
   const buy=Math.max(1,Math.round(cap.pay));
   return {cat,item,baseValue,baseLtv,condition,liquidity,liqId,resale,ltv,target,market,checked,handSet,buyBase,buyPct,buy,
-          brandMult,brandName:cat.brand.on?(((ITEM_OVERRIDES[st.itemId]||{}).tiers)||cat.brand)[st.brand]:null,spec,specMult:spec.mult,
+          brandTier,namedBrand:namedBrand&&namedBrand.name,
+          brandMult,brandName:cat.brand.on?(((ITEM_OVERRIDES[st.itemId]||{}).tiers)||cat.brand)[brandTier]:null,spec,specMult:spec.mult,
           low:Math.max(5,Math.round(resale*Math.max(8,ltv-12)/100)),
           high:Math.max(5,Math.round(resale*Math.min(100,ltv+8)/100)),
           charge:Math.max(5,target*0.25),margin:resale-target,buyMargin:resale-buy,
@@ -1282,10 +1311,20 @@ function askQueue(x){
   const q=[], cat=x.cat, ov=itemOv();
   if(cat.brand.on){
     const tiers=(ov&&ov.tiers)||cat.brand;
+    /* If the name carries a make, that IS the answer - show it answered
+       rather than lighting a tier nobody chose. */
+    const named=x.namedBrand?{name:x.namedBrand,tier:x.brandTier}:null;
+    /* Nothing lit until something actually says so. A default that lights
+       "Ryobi / Ridgid" reads as an answer somebody gave, and the counter
+       walks past it. The price still uses mid as its neutral - it has to
+       use something - but the screen does not claim that was a choice. */
+    const known=!!st.brandTyped||!!named||!!st.brandSet;
+    const sel=known?x.brandTier:null;
     q.push({id:"brand", title:"What make is it?",
-      hint:"The name on it. Tier is what moves the price, not the spelling.",
-      opts:BRANDS.map(br=>({t:tiers[br.id], on:st.brand===br.id, set:"brand", v:br.id})),
-      answered:!!st.brandTyped||st.brand!=="mid"});
+      named:named&&named.name,
+      opts:BRANDS.map(br=>({t:tiers[br.id], on:sel===br.id, set:"brand", v:br.id})),
+      hint:known?"":"Nothing picked yet \u2014 the price is using the standard tier until you say.",
+      answered:known});
   }
   const sc=SPEC_CHOICES[st.itemId]||[];
   sc.forEach((g,gi)=>{
@@ -1325,7 +1364,8 @@ function askHTML(x){
   return `<div class="card askCard" id="askCard">
     <div class="askWhere">${at+1} of ${q.length}${q.every(z=>z.answered)?" \u00b7 all answered":""}</div>
     <div class="askQ">${esc(cur.title)}</div>
-    ${cur.hint?`<div class="cardHint" style="margin-top:0">${esc(cur.hint)}</div>`:""}
+    ${cur.named?`<div class="cardHint" style="margin-top:0"><b style="color:var(--accent)">${esc(cur.named)}</b> &mdash; read off the name. Tap another if it is wrong.</div>`
+      :cur.hint?`<div class="cardHint" style="margin-top:0">${esc(cur.hint)}</div>`:""}
     ${body}
     <div class="askNav">
       <button class="ghostBtn" data-askmove="-1"${at<=0?" disabled":""}>&larr; Back</button>
@@ -1629,7 +1669,7 @@ function wireItem(){
     st.liq=null;st.brandTyped="";st.model="";st.detail="";st.complete=true;st.editing=false;
     const h=typed?brandInText(st.catId,typed):null; st.brand=h?h.tier:"mid";
     render();});
-  v.querySelectorAll("[data-item]").forEach(b=>b.onclick=()=>{st.needKind=false;st.itemId=b.dataset.item;st.market=null;st.omniDone="";st.mpPin=null;st.mpNone=false;st.condSet=false;st.cond="good";st.bookName="";st.liq=null;st.brand="mid";st.brandTyped="";st.model="";st.detail="";st.complete=true;st.askAt=0;
+  v.querySelectorAll("[data-item]").forEach(b=>b.onclick=()=>{st.needKind=false;st.itemId=b.dataset.item;st.market=null;st.omniDone="";st.mpPin=null;st.mpNone=false;st.condSet=false;st.cond="good";st.bookName="";st.liq=null;st.brand="mid";st.brandTyped="";st.model="";st.detail="";st.complete=true;st.askAt=0;st.brandSet=false;
     /* picking "Something else" with no saved value drops you straight into the price box */
     st.editing=(st.itemId===custId(st.catId));
     render();if(st.editing)document.getElementById("valIn")?.focus();});
@@ -1655,7 +1695,7 @@ function wireItem(){
      is already beside it. */
   v.querySelectorAll("[data-ask]").forEach(b=>b.onclick=()=>{
     const kind=b.dataset.ask, val=b.dataset.askv;
-    if(kind==="brand"){ st.brand=val; st.brandTyped=""; }
+    if(kind==="brand"){ st.brand=val; st.brandTyped=""; st.brandSet=true; }
     else if(kind==="comp"){ st.complete=val==="1"; }
     else if(kind==="cond"){ st.cond=val; st.condSet=true; }
     else if(kind==="spec"){ const [gi,oi]=val.split(":"); st.specSel[st.itemId+":"+gi]=Number(oi); }
@@ -5254,7 +5294,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.2400";
+const APP_BUILD="0926.2410";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
