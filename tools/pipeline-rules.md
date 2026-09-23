@@ -61,10 +61,31 @@ is, and the fallback says WHY — "only 2 used sales in 90 days" is a
 different thing from a spent quota, and both are worth repeating in the
 report rather than summarising away.
 
-**The quota is finite.** A full sweep is roughly 610 requests against a
-monthly allowance. A duplicated run costs real money, so never re-run a
-sweep that already completed. The harvest is resumable and skips targets it
-has already priced; let it.
+**The quota is finite**, and the arithmetic matters:
+
+| | |
+|---|---|
+| Targets in the seed list | 610 |
+| Lookups per target | up to 2 (a second only when the first is thin) |
+| A full sweep | up to **1,220 requests** |
+| The $9 Starter plan | **2,000 requests a month** |
+
+A finding is repriced once it is **28 days old** (120 days for rows eBay
+cannot price at all - mowers and trimmers nobody ships, where the answer is
+a fact about the market rather than a price). Without that the harvest runs
+once and is a no-op for ever after, and the book freezes at whatever the
+first Monday said.
+
+Because the whole list was priced on the same day, it also comes due on the
+same day: expect one heavy week roughly every four, not a steady trickle.
+That fits 2,000 with room, but it means a WASTED sweep is most of a month's
+allowance. Never re-run one that completed. The harvest already skips what
+is still fresh; let it.
+
+If the seed list grows much past 610, either raise the plan or widen
+`--stale`. `--limit N` caps a single run when the allowance is tight -
+targets come up oldest first, so a capped run refreshes what needed it
+most.
 
 ## The report
 

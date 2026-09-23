@@ -35,6 +35,7 @@
  *                (the old web-search path - asking prices, spends balance)
  *   --sold-only  drop any finding not built on sold prices
  *   --limit N    only the first N targets still outstanding
+ *   --stale N    reprice findings older than N days (default 28; 0 = never)
  *   --ref ID     only targets for one catalog item (p1, t1, e4 ...)
  *   --only WORD  only targets whose name contains WORD
  *   --seed FILE  a different target list
@@ -340,7 +341,39 @@ const ref = arg("ref", ""), only = arg("only", ""), limit = Number(arg("limit", 
 if (typeof ref  === "string" && ref)  targets = targets.filter(t => t.ref === ref);
 if (typeof only === "string" && only) targets = targets.filter(t => t.name.toLowerCase().includes(only.toLowerCase()));
 const key = (t) => t.ref + "|" + t.name;
-let todo = targets.filter(t => !found[key(t)]);
+
+/* ---- what still needs pricing -------------------------------------------
+ * Skipping everything already found is right for RESUMING a run that died -
+ * it is what stops a stopped sweep paying twice. Left at that, though, the
+ * weekly harvest runs once and is a no-op for ever after: all 610 are
+ * "already found", nothing is outstanding, and the price book freezes at
+ * whatever that first Monday said. A price book that never moves is a
+ * diary of one afternoon.
+ *
+ * So a finding also goes back on the list once it is old. Twenty-eight days
+ * means roughly a quarter of the list comes up for repricing each week,
+ * which spreads the work and the spend instead of doing all 610 at once.
+ *
+ * Rows eBay cannot price at all - the mowers and trimmers nobody ships -
+ * are left alone far longer. That is a fact about the market, not a price,
+ * and re-proving it monthly would spend 127 lookups to learn nothing.
+ */
+const STALE_DAYS = Math.max(0, Number(arg("stale", 28)) || 0);
+const LOCAL_STALE_DAYS = 120;
+const ageOf = (d) => {
+  const t = Date.parse(String(d || "") + "T12:00:00Z");
+  return Number.isFinite(t) ? Math.round((Date.now() - t) / 864e5) : Infinity;
+};
+const needsPricing = (t) => {
+  const f = found[key(t)];
+  if (!f) return true;
+  if (!STALE_DAYS) return false;                    /* --stale 0: never reprice */
+  return ageOf(f.date) >= (f.local ? LOCAL_STALE_DAYS : STALE_DAYS);
+};
+let todo = targets.filter(needsPricing);
+/* Oldest first, so a run cut short by a quota or a crash refreshes the
+   rows that needed it most rather than whichever came first alphabetically. */
+todo.sort((a, b) => ageOf((found[key(b)] || {}).date) - ageOf((found[key(a)] || {}).date));
 if (limit > 0) todo = todo.slice(0, limit);
 
 /* ---------- where a target's comps come from ---------- */
@@ -422,7 +455,12 @@ const gather = VIA === "ebay" ? viaEbay : viaClaude;
 
 console.log("");
 console.log("  Targets in the list      : " + targets.length);
-console.log("  Already harvested        : " + (targets.length - targets.filter(t => !found[key(t)]).length));
+{
+  const priced = targets.filter(t => found[key(t)]).length;
+  const fresh  = targets.filter(t => found[key(t)] && !needsPricing(t)).length;
+  console.log("  Already priced           : " + priced + (STALE_DAYS ? "  (" + fresh + " still fresh, the rest due a recheck)" : ""));
+  if (STALE_DAYS) console.log("  Repriced after           : " + STALE_DAYS + " days  (" + LOCAL_STALE_DAYS + " for rows eBay cannot price)");
+}
 console.log("  This run                 : " + todo.length);
 console.log("  Source                   : " + (VIA === "ebay"
   ? "eBay API - sold prices where the keyset is granted them, asking prices otherwise"
