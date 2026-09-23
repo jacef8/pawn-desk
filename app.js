@@ -1134,7 +1134,7 @@ const CH_VOLT={label:"Battery platform",options:[
 const CH_PWR={label:"Power",options:[
   {t:"Gas",m:1},
   {t:"Battery — with battery & charger",m:.9,note:"battery unit: −10%, and the battery is most of the value"},
-  {t:"Battery — bare, no battery",m:.4,note:"bare battery tool: −60%"},
+  {t:"Battery — bare, no battery",q:"tool only",m:.4,note:"bare battery tool: −60%"},
   {t:"Corded electric",m:.5,note:"corded: about half"}]};
 const CH_AGE={label:"Age",options:[
   {t:"Under 3 yr",m:1},
@@ -1212,8 +1212,8 @@ const SPEC_CHOICES={
  t1:[CH_VOLT,{label:"What came with it",options:[
    {t:"Two batteries + charger",m:1},
    {t:"One battery + charger",m:.87,note:"one battery: −13%"},
-   {t:"Tool only — no battery",m:.52,note:"bare tool: about half a kit"},
-   {t:"Combo — a second tool with it",m:1.64,note:"two tools, not one: +64%"}]}],
+   {t:"Tool only — no battery",q:"tool only",m:.52,note:"bare tool: about half a kit"},
+   {t:"Combo — a second tool with it",q:"combo kit",m:1.64,note:"two tools, not one: +64%"}]}],
  /* An impact wrench asks Battery platform, so it is a battery tool - and it
     had no way to say the battery was missing. A bare one entered as a kit
     prices 45% over.
@@ -1227,7 +1227,7 @@ const SPEC_CHOICES={
  t2:[CH_VOLT,{label:"Drive",options:[{t:"1/2 in",m:1},{t:"3/8 in",m:.9,note:"3/8 drive: −10%"},{t:"1 in / big iron",m:1.2,note:"heavy drive: +20%"}]},
   {label:"What came with it",options:[
     {t:"Battery + charger",m:1},
-    {t:"Tool only — no battery",m:.55,note:"bare tool: about half"}]}],
+    {t:"Tool only — no battery",q:"tool only",m:.55,note:"bare tool: about half"}]}],
  /* A corded grinder and a cordless one are not the same tool wearing a
     different cord - they are two tools that happen to share a name, and the
     gap is about two and a half times, not ten percent. Priced at +10% the
@@ -1240,7 +1240,7 @@ const SPEC_CHOICES={
     limited and generally reserved for eBay's approved partners only" - so
     the ratio is what the desk has, and it is a sounder thing to stand on
     than either level. */
- t3:[{label:"Power",options:[{t:"Corded",m:1},{t:"Cordless — with battery",m:2.4,note:"cordless with a battery — a different tool: about 2.4x the corded one"},{t:"Cordless — bare",m:1.35,note:"bare cordless — the battery was most of it, but still over a corded unit"}]},
+ t3:[{label:"Power",options:[{t:"Corded",m:1},{t:"Cordless — with battery",m:2.4,note:"cordless with a battery — a different tool: about 2.4x the corded one"},{t:"Cordless — bare",q:"tool only",m:1.35,note:"bare cordless — the battery was most of it, but still over a corded unit"}]},
      {label:"Size",options:[{t:"4.5–6 in",m:1},{t:"7–9 in",m:1.15,note:"big grinder: +15%"}]}],
  t4:[{label:"Size",options:[{t:"Mini 2–3 gal",m:.8,note:"small tank: −20%"},{t:"Pancake 4–6 gal",m:1},{t:"8 gal +",m:1.15,note:"bigger tank: +15%"}]},
      {label:"Extras",options:[{t:"Unit only",m:1},{t:"With hose & nailer",m:1.1,note:"working combo: +10%"}]}],
@@ -1268,7 +1268,7 @@ const SPEC_CHOICES={
     $110 for a pneumatic, which is 2.5, not 2.0. 2.0 is the conservative
     end of the original $230-300 measurement and it is left alone on
     purpose - it is the lending side, and low is the safe way to be wrong. */
- t8:[{label:"Drive",options:[{t:"Pneumatic",m:1},{t:"Cordless — with battery",m:2,note:"cordless with a battery — roughly twice a pneumatic"},{t:"Cordless — bare",m:1.8,note:"bare cordless — no battery or charger, about a tenth under the kit"}]}],
+ t8:[{label:"Drive",options:[{t:"Pneumatic",m:1},{t:"Cordless — with battery",m:2,note:"cordless with a battery — roughly twice a pneumatic"},{t:"Cordless — bare",q:"tool only",m:1.8,note:"bare cordless — no battery or charger, about a tenth under the kit"}]}],
  h1:[{label:"Type",options:[{t:"Standard 3-9x class",m:1},{t:"High-mag 4-16x+",m:1.1,note:"high-mag glass: +10%"},{t:"Fixed / oddball",m:.85,note:"odd configuration: −15%"}]},
      {label:"Features",options:[{t:"Standard",m:1},{t:"Illuminated / FFP",m:1.1,note:"premium features: +10%"}]}],
  h2:[{label:"Size",options:[{t:"Full-size (8/10x42)",m:1},{t:"Compact",m:.8,note:"compacts: −20%"}]}],
@@ -3207,8 +3207,23 @@ function wireBookHits(){
    eBay sign-in, and it shows the price a Best Offer sale actually closed at
    instead of the crossed-out list price. It only opens the search; it never
    pulls prices back into this page (the site blocks automated readers). */
+/* A few spec answers split the market so hard that searching without them
+   pools two different tools into one price. A bare drill is 0.52 of a kit
+   and a combo is 1.64 of it, so a search that says neither returns a blend
+   of all three and the counter reads the blend as the answer. Those
+   options carry a `q` - the words a seller actually types in the title,
+   "tool only" and "combo kit" - and only those. Every other answer stays
+   out: the voltage is already in the model number, and each extra word
+   narrows an eBay search that is thin to begin with. */
+function specQuery(){
+  return (SPEC_CHOICES[st.itemId]||[]).map((g,gi)=>{
+    const o=g.options[st.specSel[st.itemId+":"+gi]??specBase(g)];
+    return (o&&o.q)||"";
+  }).filter(Boolean).join(" ");
+}
 function compQuery(x){
-  const bits=[st.brandTyped||"", st.model||"", displayName(x).replace(/\s*—.*$/,""), st.detail||""];
+  const bits=[st.brandTyped||"", st.model||"", displayName(x).replace(/\s*—.*$/,""),
+              st.detail||"", specQuery()];
   return bits.map(s=>String(s).trim()).filter(Boolean).join(" ").slice(0,120);
 }
 /* GunWatcher looks a gun up by model name. The category word the keyword
@@ -3240,8 +3255,17 @@ function compTargets(x){
   t.push({id:"wc",name:"WatchCount &mdash; eBay sold",
     sub:guns?"parts &amp; optics only &mdash; eBay bans guns":"real Best Offer prices, no eBay sign-in",
     url:watchCountUrl(q)});
-  t.push({id:"ebay",name:"eBay sold",sub:"backup &mdash; sign in first or it bounces you",
-    url:"https://www.ebay.com/sch/i.html?_nkw="+e+"&LH_Sold=1&LH_Complete=1"});
+  /* This used to be the plain sold search, ?LH_Sold=1&LH_Complete=1. It
+     reaches back 90 days and no further, so anything that sells a few times
+     a year comes back empty - a Kobalt string trimmer returns nothing at
+     all, and an empty page reads as "worthless" when it means "not this
+     quarter". Seller Hub research covers a full year and gives an average
+     rather than a list to eyeball. It needs a seller sign-in, which the
+     desk has; WatchCount above is the no-sign-in lane and is unchanged. */
+  t.push({id:"ebay",name:"eBay Seller Hub \u2014 a year of sold",
+    sub:"sign in as a seller &mdash; 365 days, not 90",
+    url:"https://www.ebay.com/sh/research?marketplace=EBAY-US&keywords="+e
+       +"&dayRange=365&categoryId=0&offset=0&limit=50&tabName=SOLD&sorting=-sold"});
   return t;
 }
 function compsCardHTML(x){
@@ -5597,7 +5621,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.3226";
+const APP_BUILD="0926.3310";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
