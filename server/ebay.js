@@ -97,6 +97,25 @@ const PARTS = /\b(part|parts|motor assembly|switch and (board|bord)|armature|sta
    three on the right, or the hyphenated triple. */
 const PARTNO = /\b\d{3,6}-[a-z0-9]{2,4}-[a-z0-9]{3,6}\b|\b\d{3}-\d{3,6}\b|\b\d{6}-\d{2}\b|\b\d{4}\s+\d{3}\s+\d{2,4}\b/i;
 
+/* THE SAME PROBLEM, IN ELECTRONICS. Everything above is small-engine
+   vocabulary - carburettors, sprockets, deck belts - because outdoor power
+   was where this was first measured. Nobody extended it when electronics
+   arrived, so a television search came back as stands, main boards and
+   T-CON boards and none of it was recognised: an LG C2, a $700 set,
+   returned nine listings of which eight were parts at $30-$140, and the
+   one real TV at $350 was outvoted. It was reported as "eBay can't price
+   a television" when the truth was that nothing here knew what a TV stand
+   was.
+
+   High-precision on purpose. A real laptop listing says "Screen Defect",
+   "SCREEN ISSUE", "NO LCD" - bare "screen", "lcd" or "panel" would throw
+   away the machines along with the parts, and a real television says "w/
+   Stand" while a part says "TV Stand". So every entry here is a phrase
+   that appears in parts listings and not in whole-unit ones. Checked
+   against nineteen real titles pulled off the live search, TVs and
+   laptops both, and it gets all nineteen right. */
+const ELEC_PART = /\b(stand base|base plate|base front stand|tv stand|t-?con|main ?board|power ?board|logic ?board|mother ?board|inverter board|backlight (strip|kit|led)|led strips?|ribbon cable|flex cable|digitizer|palm ?rest|top case|bottom case|hinge (set|kit)|lcd panel|display panel|screen (replacement|assembly)|replacement screen|speakers? set|loudspeaker|w\/ ?screws|no screws|bezel|stand legs?|feet only|screen only)\b/i;
+
 const COMPONENT = /\b(carburet(or|tor)|carb kit|sprocket|crankshaft|crankcase|piston|cylinder|muffler|exhaust|flywheel|recoil|ignition coil|spark plug|gasket|handguard|hand guard|spindle|deck belt|air filter|fuel (cap|line|filter|pump|tank)|oil (pump|tank)|clutch (cover|drum)|top cover|side cover|bar cover|intake boot|choke lever|brake lever|handle wrap|rear handle|pull cord|starter rope|primer bulb|av spring|worm gear|oil seal|bearing kit|throttle (lever|control)|manifold|shroud|drive (shaft|tube)|tensioner|trimmer head|autocut|cutting head|bump head|oem head|idler|pulley|fan wheel|wheel rim|(rear|front) wheels?|set screw|insulator|bail plate|control plate|spring arms?|elbow hose|blade guard|deflector|axle coll?er|oil pan|sump|grass bag|grass catcher|bag (and|&) frame|mulch plug|chute)\b/i;
 
 /* What the catalogue calls this kind of thing, reduced to words a seller
@@ -137,7 +156,7 @@ const sameModel = (a, b) => a === b || a.startsWith(b) || b.startsWith(a);
 
 export function fitOf(title, wanted, kinds) {
   const t = String(title || "");
-  if (PARTS.test(t) || COMPONENT.test(t) || PARTNO.test(t)) return "part";
+  if (PARTS.test(t) || COMPONENT.test(t) || ELEC_PART.test(t) || PARTNO.test(t)) return "part";
   /* Does this listing even say it is the thing being priced? A sprocket
      never claims to be a chainsaw. Checked against the squashed title so
      "Chain Saw" and "chainsaw" are the same word. */
@@ -314,6 +333,7 @@ function split(comps) {
   };
 }
 
+export { ELEC_PART };
 export async function ebayComps({ q, limit, kind, env, signal }) {
   const query = String(q || "").trim().slice(0, 120);
   const kinds = kindWords(kind);

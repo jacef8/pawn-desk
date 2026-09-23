@@ -7,6 +7,7 @@ import { execFileSync } from "node:child_process";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
+import { ELEC_PART } from "../server/ebay.js";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const PRICES = join(ROOT, "prices.json");
@@ -226,6 +227,57 @@ console.log("\n  the breaker counts the one-offs");
   ok(JSON.stringify(JSON.parse(readFileSync(PRICES, "utf8")).book || null) === bookBefore,
      "  and nothing was written");
   restore(); restoreReport();
+}
+
+/* A TELEVISION IS NOT A TELEVISION STAND.
+   The parts vocabulary was all small-engine - carburettors, sprockets,
+   deck belts - because outdoor power is where it was first measured, and
+   nothing extended it when electronics arrived. An LG C2, a $700 set,
+   came back as eight parts at $30-$140 and one real TV at $350, and none
+   of the parts were recognised; it was reported as "eBay can't price a
+   television". These nineteen titles are real, pulled off the live search
+   on 23 Sep, and they include the traps: a real laptop says "Screen
+   Defect", "SCREEN ISSUE" and "NO LCD", and a real television says "w/
+   Stand" where a part says "TV Stand". Matching bare "screen", "lcd" or
+   "panel" would throw the machines away with the parts. */
+console.log("\n  the parts filter knows an electronics part when it sees one");
+{
+  const ITEMS = [
+    'Samsung TU7000 55" LED 1080p FHD Flat Screen TV w/ Stand - Black',
+    'Samsung UN55TU7000FXZA 55in LED 4K 2160p Smart TV, Black HDMI USB',
+    '55" Class TU7000 Crystal UHD 4K Smart TV',
+    'Samsung 55" TU7000 4K UHD Smart TV (Model UN55TU7000FXZA) With Remote And Feet',
+    '55\u201d LG C2 OLED TV',
+    'Apple MacBook Air M1 13in Laptop 8GB RAM 128GB SSD Silver (2020)',
+    'Apple MacBook Air 13in M1 2020 [8GB/256GB] Space Gray - Screen Defect - READ',
+    'Dell XPS 9320 Core i7-1260P 3.76GHz 32GB RAM NO HDD NO OS NO LCD',
+    'Dell XPS 13 9310 Core i7-1165G7 2.8GHz 16GB RAM NO SSD 13.4" UHD+ Touch READ',
+    'Dell XPS 9320 13.4" i7-1270p 16GB 1TB SCREEN ISSUE',
+  ];
+  const PARTS_T = [
+    'LG OLED55C2AUA TV Stand Base W/Screws (UP 3)',
+    'LG OLED55C2PUA/PUB Main Board (No Issues)',
+    'LG OLED 55" & 65" TV STAND FOR MODELS OLED65C2PUA & OLED55C2PUA W/SCREWS',
+    'LG OLED55C2 OLED65C2 OLED48C3 TV Stand Base Plate MAM660004Pre-Owned',
+    'LG  OLED55C2PUA OLED55C3PUA  T-CON BOARD  6870C-0908B  6972B',
+    'LG OLED55/65C2 Stand Base for 65" TV Black Silver MAM660004',
+    'LG OLED 55/65C2 Base Front Stand MAM660004 Titanium Gray - No Screws',
+    'LG OLED 55/65 C2  Stand Base (OEM)  - No Screws',
+    'LG OLED65C2PUA LOUDSPEAKER Speakers Set Left and Right',
+  ];
+  const keptItems = ITEMS.filter(t => !ELEC_PART.test(t));
+  const caughtParts = PARTS_T.filter(t => ELEC_PART.test(t));
+  ok(keptItems.length === ITEMS.length,
+     "every real television and laptop survives — " + keptItems.length + "/" + ITEMS.length
+     + (keptItems.length === ITEMS.length ? "" : ", LOST: "
+        + ITEMS.filter(t => ELEC_PART.test(t)).join(" | ")));
+  ok(caughtParts.length === PARTS_T.length,
+     "  and every stand, board and speaker set is caught — " + caughtParts.length + "/" + PARTS_T.length
+     + (caughtParts.length === PARTS_T.length ? "" : ", MISSED: "
+        + PARTS_T.filter(t => !ELEC_PART.test(t)).join(" | ")));
+  ok(!ELEC_PART.test("Dell XPS 9320 13.4\" i7 16GB 1TB SCREEN ISSUE")
+     && !ELEC_PART.test("MacBook Air M1 - Screen Defect - READ"),
+     "  a broken screen is still a laptop, not a screen");
 }
 
 ok(untouched(), "prices.json is back exactly as it started after the one-off tests");

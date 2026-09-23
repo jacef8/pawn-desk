@@ -57,6 +57,7 @@
  */
 import { readFileSync, writeFileSync, existsSync, copyFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { ELEC_PART } from "../server/ebay.js";
 import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -668,7 +669,14 @@ for (let i = 0; i < todo.length; i++) {
   if (got.warning && !said) { said = true; console.log(`\n  ! ${got.warning}\n    Findings from this run are asking prices. They will be graded and labelled as such.\n`); }
 
   const seen = new Set();
-  const uniq = got.comps.filter(c => { const k = Math.round(c.price) + "|" + String(c.where || "").toLowerCase() + "|" + String(c.what || "").slice(0, 40).toLowerCase();
+  const uniq = got.comps.filter(c => {
+    /* The service classifies parts, but a service that has not been
+       redeployed yet does not know the electronics words. Applying the
+       same expression here - imported, not copied - means a harvest run
+       gets it right today rather than after a deploy, and the two can
+       never drift apart. */
+    if (ELEC_PART.test(String(c.what || ""))) return false;
+    const k = Math.round(c.price) + "|" + String(c.where || "").toLowerCase() + "|" + String(c.what || "").slice(0, 40).toLowerCase();
     if (seen.has(k)) return false; seen.add(k); return true; });
   const ps = uniq.map(c => Math.round(Number(c.price))).filter(n => n > 0).sort((a, b) => a - b);
   if (ps.length < 3) {
@@ -686,8 +694,17 @@ for (let i = 0; i < todo.length; i++) {
      So rather than name the categories by hand and keep being wrong, the
      share decides. Below a third and this is a parts counter, and a price
      built on whatever survived the filter is a price built on leftovers. */
+  /* THE SHARE WAS MEASURING THE NOISE, NOT THE ANSWER.
+     A Samsung TU7000 came back with six genuine televisions, $50 to $200,
+     a coherent price for a coherent set - and was thrown away because
+     fourteen stands and boards came back alongside them and six of twenty
+     is under a third. The gate was written for a Toro mower that returned
+     ONE real machine out of thirty-six, which is a different thing
+     entirely: there the survivors cannot carry a price, here they can.
+     So both have to be true now. A low share alone is just a noisy
+     search; a low share with nothing left standing is a parts counter. */
   const realShare = got.found ? uniq.length / got.found : 1;
-  if (got.found >= 10 && realShare < 0.3) {
+  if (got.found >= 10 && realShare < 0.3 && uniq.length < 6) {
     found[key(t)] = { ref: t.ref, name: t.name, n: 0, date: today(), local: true,
       note: `eBay can't price this - only ${uniq.length} of ${got.found} listings were the machine, the rest were spare parts. Nothing wrong with the item; it sells locally, so the shelf record and your own sales are what price it.` };
     miss++; save();
