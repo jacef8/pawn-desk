@@ -4753,8 +4753,26 @@ function shotMax(){ const n=CAP.imgLimits&&CAP.imgLimits.maxCount; return Math.m
    scene sails past that. So shrink to a BYTE budget, stepping the quality and
    then the size down until it fits. 380KB encodes to about 500KB of base64,
    which is comfortably inside what was measured to get through. */
-const IMG_MAX_EDGE=2600, IMG_MAX_BYTES=200e3;
+/* The byte budget above was set for a phone on a cell signal at a yard sale,
+   and it was the right call there. On the desk it was throttling the tool by
+   forty times: the service accepts an 8MB body, and the page was shrinking
+   every photograph to fit 200KB - which on a busy shot means stepping the
+   ladder down to about 1500px. Claude can see 2576, so half the detail in a
+   model plate was being thrown away before it was ever sent.
+
+   So the budget forks. A real desk - no touch screen, not the phone page -
+   gets 1.5MB, which at 2576px lands on the first rung of the ladder and
+   sends the picture at full size. Everything else keeps the tight budget,
+   because a tablet in the yard is still a tablet in the yard.
+
+   The cap comes down from 2600 to 2576 on both. Nothing is lost: the far end
+   discards anything past 2576 anyway, and the extra 24px were paid for in
+   upload time and then thrown away. */
+const IMG_MAX_EDGE=2576;
+function imgDesk(){ try{ return !window.PHONE && !isTouch(); }catch(e){ return false; } }
+function imgMaxBytes(){ return imgDesk()?1.5e6:200e3; }
 async function normImage(f){
+  const IMG_MAX_BYTES=imgMaxBytes();
   try{
     /* from-image so a picture taken sideways arrives the right way up. */
     let b=null;
@@ -5030,7 +5048,14 @@ async function startCam(){
   const msg=document.getElementById("camMsg");
   if(camStream){ camStream.getTracks().forEach(t=>t.stop()); camStream=null; }
   let saved=null; try{ saved=localStorage.getItem("pawndesk:cam"); }catch(e){}
-  const video={width:{ideal:1920},height:{ideal:1080}}, dev=camDevices[camIdx];
+  /* 1080p was asked for on every machine, so a 4K camera on an arm over the
+     table handed back 1080p and the extra sensor did nothing. "ideal" is a
+     preference, not a demand - a 1080p webcam still answers 1080p - so the
+     desk asks for 4K and takes whatever it gets. The phone stays at 1080p:
+     it is holding the thing in one hand, and the frame is already full. */
+  const want=imgDesk()?{width:{ideal:3840},height:{ideal:2160}}
+                      :{width:{ideal:1920},height:{ideal:1080}};
+  const video=want, dev=camDevices[camIdx];
   if(dev)video.deviceId={exact:dev.deviceId}; else if(saved)video.deviceId={ideal:saved}; else video.facingMode={ideal:"environment"};
   try{
     camStream=await navigator.mediaDevices.getUserMedia({video,audio:false});
@@ -5621,7 +5646,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.3310";
+const APP_BUILD="0926.3402";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
