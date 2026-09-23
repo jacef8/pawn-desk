@@ -20,9 +20,11 @@
  * down and labelled, so nothing pretends to be a receipt that is not one.
  * eBay's API costs nothing, so a run over the whole seed list is free.
  *
- *   PAWN_SERVER=https://pawn-desk-production.up.railway.app \
  *   PAWN_TOKEN=your-token \
  *   node tools/harvest.js --limit 5             # dry run, prints the plan
+ *
+ * PAWN_SERVER defaults to the shop's Railway service; set it only to point
+ * somewhere else.
  *   node tools/harvest.js --limit 5 --go        # really runs it
  *   node tools/harvest.js --ref p1 --go         # only chainsaws
  *   node tools/harvest.js --merge               # write findings into prices.json
@@ -62,7 +64,14 @@ const arg = (n, d) => { const i = process.argv.indexOf("--" + n);
   return i < 0 ? d : (process.argv[i + 1] || "").startsWith("--") ? true : process.argv[i + 1]; };
 const has = (n) => process.argv.includes("--" + n);
 
-const SERVER = (process.env.PAWN_SERVER || "").replace(/\/+$/, "");
+/* The shop's service. Not a secret - it is a public URL that answers 403
+   to anyone without the token - so it has a default and one less thing has
+   to be set up on a machine that only runs the harvest. Override it with
+   PAWN_SERVER to point at a staging copy. */
+const DEFAULT_SERVER = "https://pawn-desk-production.up.railway.app";
+const SERVER = (process.env.PAWN_SERVER || DEFAULT_SERVER).replace(/\/+$/, "");
+/* The token IS a secret and has no default. It lives in the environment,
+   never in this file and never in the repository. */
 const TOKEN  = process.env.PAWN_TOKEN || "";
 const GO     = has("go");
 const VIA    = String(arg("via", "ebay")).toLowerCase();
@@ -430,7 +439,14 @@ if (!GO) {
   console.log("");
   process.exit(0);
 }
-if (!SERVER || !TOKEN) { console.error("  Set PAWN_SERVER and PAWN_TOKEN first.\n"); process.exit(2); }
+if (!TOKEN) {
+  console.error("\n  PAWN_TOKEN is not set, so the service will refuse every lookup.");
+  console.error("  It is the same token the desk and the phones use - Setup on the");
+  console.error("  desk prints it, or Railway holds it under PAWN_TOKEN.\n");
+  console.error("    PAWN_TOKEN=... node tools/harvest.js --go\n");
+  console.error("  Pointing at " + SERVER + (process.env.PAWN_SERVER ? " (from PAWN_SERVER)" : " (the default)") + "\n");
+  process.exit(2);
+}
 
 let hit = 0, miss = 0, fails = 0, said = false;
 for (let i = 0; i < todo.length; i++) {
