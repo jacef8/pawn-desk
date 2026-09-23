@@ -1386,7 +1386,10 @@ function renderItem(){
      when the work moves to a different step. */
   if(ST&&st.stepAt!==LIVE){ st.openS3=st.openS4=st.openS5=false; st.stepAt=LIVE; }
   let mid=`<div class="colC">${fakeCardHTML(x)}${deskRail()?"":compsCardHTML(x)}${ST?`<details class="card stepCard" id="s3"${st.openS3?" open":""}>`+stepHead(3,"Brand, make &amp; model",brandAnswer(x),false):`<div class="card" id="s3"><span class="label">3 &middot; Brand, make &amp; model</span>`}
-    <div class="driver"><p><b class="go">What sets the price:</b> ${(itemOv()&&itemOv().driver)||cat.driver}</p><p><b class="no">What kills it:</b> ${(itemOv()&&itemOv().killer)||cat.killer}</p></div>`;
+    ${/* Four lines of coaching, every item, for ever. True and worth
+          reading - once. Folded, so it is one line until somebody wants it. */""}
+    <details class="fold driverFold"${st.openDriver?" open":""} id="driverFold"><summary class="foldLine">What sets the price on one of these</summary>
+    <div class="driver"><p><b class="go">What sets the price:</b> ${(itemOv()&&itemOv().driver)||cat.driver}</p><p><b class="no">What kills it:</b> ${(itemOv()&&itemOv().killer)||cat.killer}</p></div></details>`;
   if(cat.brand.on){
     const ov=itemOv();
     const book=(ov&&ov.brands)||BRANDBOOK[cat.id];
@@ -1395,7 +1398,15 @@ function renderItem(){
     <input id="brandIn" type="text" autocomplete="off" list="dlBrands" placeholder="${book?book.hi[0]+", "+book.lo[0]+"…":"brand…"}" value="${esc(st.brandTyped)}" class="numIn" style="font-family:var(--sans);font-size:15px">
     ${book?`<datalist id="dlBrands">${["hi","mid","lo"].flatMap(t=>book[t]).sort().map(b=>`<option value="${b}">`).join("")}</datalist>`:""}
     <div class="cardHint" id="brandVerdict" style="min-height:16px">${brandVerdictHTML()}</div>
-    <div class="pills mb14" style="border-radius:var(--r-s);margin-top:8px">${BRANDS.map(br=>`<button class="${st.brand===br.id?"on":""}" style="flex:1;font-size:11px;padding:7px 6px" data-brand="${br.id}">${tiers[br.id]}</button>`).join("")}</div>`;
+    ${/* Typing "DeWalt" and being told "DeWalt - top tier here" already
+          answers the tier. Showing three buttons underneath asks the same
+          question a second time, and the counter has to read all three to
+          notice the right one is already lit. Only when the book does NOT
+          know the brand is there a question left to ask. */""}
+    ${brandLookup(st.catId,st.brandTyped)
+      ? `<details class="fold"${st.openTier?" open":""} id="tierFold"><summary class="foldLine">Placed as ${esc(tiers[st.brand])} &mdash; change it</summary>
+         <div class="pills mb14" style="border-radius:var(--r-s);margin-top:8px">${BRANDS.map(br=>`<button class="${st.brand===br.id?"on":""}" style="flex:1;font-size:11px;padding:7px 6px" data-brand="${br.id}">${tiers[br.id]}</button>`).join("")}</div></details>`
+      : `<div class="pills mb14" style="border-radius:var(--r-s);margin-top:8px">${BRANDS.map(br=>`<button class="${st.brand===br.id?"on":""}" style="flex:1;font-size:11px;padding:7px 6px" data-brand="${br.id}">${tiers[br.id]}</button>`).join("")}</div>`}`;
   }
   const _ov=itemOv();
   const dh=(_ov&&_ov.detail)||DETAIL_HINTS[cat.id]||{ph:"",hint:""};
@@ -1404,13 +1415,19 @@ function renderItem(){
     const sel=st.specSel[st.itemId+":"+gi]??specBase(g);
     mid+=`<span class="label">${g.label}</span><div class="pills mb14" style="border-radius:var(--r-s)">${g.options.map((o,oi)=>`<button class="${sel===oi?"on":""}" style="flex:1;padding:7px 5px;font-size:11px" data-spec="${gi}:${oi}">${o.t}</button>`).join("")}</div>`;
   });
-  mid+=`<span class="label">Model (optional)</span>
+  /* Both optional, and when the pickers above set the price these are notes
+     for the ticket rather than questions. Folded unless something has been
+     typed in them, so a page that was six questions is four. */
+  const notes=!!(st.model||st.detail);
+  mid+=`<details class="fold"${notes||st.openNotes?" open":""} id="notesFold"><summary class="foldLine">Model and specs${notes?` &mdash; ${esc([st.model,st.detail].filter(Boolean).join(" \u00b7 ").slice(0,44))}`:" (optional)"}</summary>
+    <span class="label">Model (optional)</span>
     <input id="modelIn" type="text" autocomplete="off" placeholder="870 Wingmaster, MS 271, 10/22…" value="${esc(st.model)}" class="numIn" style="font-family:var(--sans);font-size:15px">
     <span class="label" style="margin-top:12px">Details — ${_ov?"specs for this item":cat.id==="guns"?"caliber & barrel":cat.id==="power"?"size & wattage":cat.id==="elec"?"size & year":"specs"} (optional)</span>
     <input id="detailIn" type="text" autocomplete="off" placeholder="${dh.ph}" value="${esc(st.detail)}" class="numIn" style="font-family:var(--sans);font-size:15px">
     <div class="cardHint" id="specVerdict">${specVerdictHTML(x)}</div>
     ${_sc&&!x.checked?`<div class="cardHint" style="opacity:.8">This item prices from the pickers above — the text boxes are for the ticket record${/gener/i.test(x.item.name)?" (watts typed here still compute a value)":""}.</div>`:""}
     <div class="cardHint">${dh.hint?dh.hint+" ":""}The exact model and specs can move money more than anything else on this page — when they matter, check sold listings and put the real number in step 4.</div>
+    </details>
   ${ST?"</details>":"</div>"}
   ${ST?`<details class="card stepCard" id="s4"${LIVE===4||st.openS4?" open":""}>`+stepHead(4,"Resale value",x.checked?money(Math.round(x.resale)):"not checked",LIVE===4)+`<div id="step4">${step4Inner(x)}</div>`
       :`<div class="card" id="s4"><div id="step4">${step4Inner(x)}</div>`}`;
@@ -1507,7 +1524,10 @@ function wireItem(){
      category causes. */
   const br=document.getElementById("browseBox");
   if(br)br.ontoggle=()=>{ st.browse=br.open; };
+  /* Opened by hand, it stays open through the re-render a click inside it
+     causes - otherwise it shuts under the hand that opened it. */
   for(const [id,key] of [["whyFold","openWhy"],["paybackFold","openPayback"],["rateFold","openRates"],
+                         ["driverFold","openDriver"],["tierFold","openTier"],["notesFold","openNotes"],
                          ["s3","openS3"],["s4","openS4"],["s5","openS5"]]){
     const d=document.getElementById(id); if(d)d.ontoggle=()=>{ st[key]=d.open; };
   }
@@ -5129,7 +5149,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.2340";
+const APP_BUILD="0926.2350";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

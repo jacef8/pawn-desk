@@ -260,6 +260,48 @@ console.log("\n  the pager and the panel agree");
   await pg.close();
 }
 
+/* The brand page was asking things it had already been told.
+   Typing "DeWalt" and being answered "DeWalt - top tier here" settles the
+   tier; three buttons underneath ask it again. The coaching paragraph is
+   true and worth reading once, not on every item for ever. And Model and
+   Details are notes for the ticket when the pickers set the price. */
+console.log("\n  the brand page stops repeating itself");
+{
+  const pg = await browser.newPage({viewport:{width:900, height:1400}});
+  await pg.goto(BASE + "/index.html", {waitUntil:"networkidle"});
+  const r = await pg.evaluate(() => {
+    const c = CATALOG.find(x => x.items.some(i => i.id === "t1"));
+    const go = (brand, model, detail) => {
+      st.mode="item"; st.catId=c.id; st.itemId="t1"; st.picked=true; st.flow="pages"; st.page="what";
+      st.brandTyped=brand; st.model=model||""; st.detail=detail||"";
+      st.openDriver=st.openTier=st.openNotes=false;
+      render();
+      const card=document.getElementById("s3");
+      const tier=document.getElementById("tierFold"), notes=document.getElementById("notesFold");
+      const shut=Math.round(card.getBoundingClientRect().height);
+      /* read the fold state BEFORE prising them open to measure the other
+         height, or every one of them reports open */
+      const notesOpen = notes ? notes.open : null;
+      const summary = notes ? notes.querySelector("summary").textContent.trim() : "";
+      [...card.querySelectorAll("details.fold")].forEach(d=>d.open=true);
+      const open=Math.round(card.getBoundingClientRect().height);
+      return {shut, open, tierFolded:!!tier, pills:!!card.querySelector("[data-brand]"), notesOpen, summary};
+    };
+    return {known: go("DeWalt"), unknown: go("Zibblewhack"), typed: go("DeWalt","2904","18V hammer")};
+  });
+  ok(r.known.shut < r.known.open * 0.7,
+     "a known brand halves the card — " + r.known.shut + "px shut against " + r.known.open + "px open");
+  ok(r.known.tierFolded && r.known.pills,
+     "  the tier is folded away, not thrown away — it is still there to change");
+  ok(!r.unknown.tierFolded && r.unknown.pills,
+     "a brand the book does not know still asks the tier outright");
+  ok(r.typed.notesOpen === true && /2904/.test(r.typed.summary),
+     "a model that was typed stays open and shows in the summary — " + r.typed.summary);
+  ok(r.known.notesOpen === false,
+     "  and folds away when there is nothing in it");
+  await pg.close();
+}
+
 ok(!errs.length, "no page errors" + (errs.length ? ": " + errs[0] : ""));
 await browser.close();
 console.log(fails ? "\n  " + fails + " FAILED\n" : "\n  all passed\n");
