@@ -35,7 +35,11 @@ const BASE = process.env.PD_BASE || "http://127.0.0.1:8099";
 const EXE  = process.env.PW_CHROME || "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
 /* Loose on purpose: a phrase each screen cannot render without. */
 const WANT = {
-  item:   /take a picture|photograph|camera|what it is|try stihl/i,
+  /* "try stihl" was the desk's prose hint. The desk lists its worked
+     examples as buttons now and the phone keeps the words, so the phrase
+     moved rather than vanished - both spellings are accepted, and the
+     press-it-and-it-works half is pinned separately below. */
+  item:   /take a picture|photograph|camera|what it is|try stihl|start from one of these/i,
   metal:  /gold|silver/i,
   device: /money changes hands/i,
   flags:  /answer is no/i,
@@ -212,6 +216,42 @@ console.log("");
   if (leaks.length) { bad++;
     console.log("FAIL shelf-tag record is on the pricing page at " + leaks.join(", ")); }
   else console.log("ok   the shelf-tag record stays off the pricing page, every width and flow");
+}
+
+/* A WORKED EXAMPLE IS ONLY WORTH SHOWING IF PRESSING IT WORKS.
+   The front page used to name four things you could type, as prose, under
+   a search box - a list of instructions for retyping something by hand,
+   with 600px of empty screen beneath it. They are buttons now, and the
+   twelve kinds the desk carries are laid out instead of folded away. Both
+   are only an improvement while they still DO anything, and a chip that
+   fills nothing looks exactly like a chip that works. */
+{
+  const p = await browser.newPage({viewport: {width: 1440, height: 900}});
+  const errs = [];
+  p.on("pageerror", e => errs.push(String(e)));
+  await p.goto(BASE + "/index.html", {waitUntil: "networkidle"});
+  const r = await p.evaluate(() => {
+    const out = {};
+    st.picked = false; st.omniDone = ""; render();
+    const chips = [...document.querySelectorAll("[data-try]")];
+    const tiles = [...document.querySelectorAll(".kindTile[data-cat]")];
+    out.chips = chips.length;
+    out.tiles = tiles.length;
+    out.kinds = CATALOG.length;
+    if (chips.length) {
+      chips[0].click();
+      const inp = document.getElementById("omniIn");
+      out.filled = inp ? inp.value : "";
+      const list = document.getElementById("omniList");
+      out.opened = !!(list && !list.hidden && list.querySelectorAll("[data-omni]").length);
+    }
+    return out;
+  });
+  const ok = r.chips >= 4 && r.tiles === r.kinds && r.filled && r.opened;
+  if (!ok) { bad++; console.log(`FAIL front page ways in — chips:${r.chips} tiles:${r.tiles}/${r.kinds} filled:"${r.filled}" listOpened:${r.opened}`); }
+  else console.log(`ok   ${r.chips} worked examples fill the box and open the list, ${r.tiles} kinds laid out`);
+  if (errs.length) { bad++; console.log("FAIL front page — page errors: " + errs.join(" | ")); }
+  await p.close();
 }
 
 /* THE PAGE ITSELF MUST NOT SCROLL ON A DESK SCREEN.

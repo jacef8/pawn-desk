@@ -721,6 +721,12 @@ function avgOf(m){ return st.manual ? st.manual.avg90[m] : FEED[m+"90"]; }
 function makeManual(){ if(!st.manual) st.manual={date:FEED.date,spot:{gold:FEED.gold,silver:FEED.silver},avg90:{gold:FEED.gold90,silver:FEED.silver90}}; }
 
 const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
+/* The worked examples, in one place. They were prose under the search box
+   naming four things you could type - which is a list of instructions for
+   retyping something by hand. They are buttons now, and the hint line and
+   the buttons cannot drift apart because they read the same array. */
+const START_TRY=["stihl 271","remington 870 12 gauge","dewalt dcd791","iphone 15",
+                 "kayak","14k ring","generac 7500","yamaha p-125"];
 
 /* fill the recessed track up to the knob */
 function paintSlider(el){
@@ -2119,9 +2125,37 @@ function renderItem(){
      in the box directly above it, word for word, and repeating it put two
      lines of small print nose to nose under the search bar. What is left is
      the one thing the box does not already say - how much it knows. */
+  /* THE FRONT PAGE WAS A SEARCH BOX AND 600px OF NOTHING.
+     Under the box sat two lines of prose naming four things you could
+     type, then a closed fold and, when disconnected, the setup card -
+     and then the bottom two-thirds of a 1440x900 screen, empty. The
+     prose was the worst of it: it listed the four best ways in as text
+     you have to retype by hand, and the fold hid the twelve categories
+     behind a click, so the page managed to be both bare AND to withhold
+     everything it knew.
+
+     Both become controls. The examples are buttons that run themselves,
+     and the twelve kinds the desk carries are laid out rather than
+     folded away. Same information, no more cards, and the screen is
+     doing something. */
   if(!st.picked&&!window.PHONE)return omniHTML()+`<div class="startPane">
-    <p class="startLede">It knows <b>${CATALOG.reduce((a,c)=>a+c.items.length,0)}</b> kinds of thing and <b>${mpCount()}</b> models by name. Anything else, type it in anyway and set the price yourself.</p>
-    <div class="startTwo">${left.replace('<div class="colL">','<div class="startCol">')}</div>
+    <div class="startWays">
+      <span class="label" style="margin:0">Or start from one of these</span>
+      <div class="startChips">${START_TRY.map(t=>
+        `<button class="tryChip" type="button" data-try="${esc(t)}">${esc(t)}</button>`).join("")}</div>
+    </div>
+    <div class="startWays">
+      <span class="label" style="margin:0">Or pick the kind of thing it is &mdash; ${CATALOG.reduce((a,c)=>a+c.items.length,0)} of them, and ${mpCount()} models by name</span>
+      <div class="startGrid">${CATALOG.map(c=>
+        `<button class="kindTile" type="button" data-cat="${c.id}"><b>${esc(c.label)}</b>`
+        +`<span>${c.items.length} kind${c.items.length===1?"":"s"}</span></button>`).join("")}</div>
+    </div>
+    ${/* "Browse the lists - 11 groups, 72 items" is a fold over exactly
+          the twelve tiles above it. Two ways to the same place, one of
+          them hidden, is the kind of thing that makes a page feel busy
+          and bare at the same time. */""}
+    <div class="startTwo">${left.replace('<div class="colL">','<div class="startCol">')
+      .replace(/<details class="browse"[\s\S]*?<\/details>/,"")}</div>
   </div>`;
   /* The phone hides the three columns outright, and the camera card lived in
      one of them - so the phone has had a photo reader built, wired and
@@ -2190,6 +2224,14 @@ function wireItem(){
                          ["s3","openS3"],["s4","openS4"],["s5","openS5"]]){
     const d=document.getElementById(id); if(d)d.ontoggle=()=>{ st[key]=d.open; };
   }
+  /* A worked example is only worth showing if pressing it works. */
+  v.querySelectorAll("[data-try]").forEach(b=>b.onclick=()=>{
+    const inp=document.getElementById("omniIn"); if(!inp)return;
+    inp.value=b.dataset.try;
+    inp.dispatchEvent(new Event("input",{bubbles:true}));
+    inp.focus();
+    try{ inp.scrollIntoView({block:"nearest"}); }catch(e){}
+  });
   v.querySelectorAll("[data-cat]").forEach(b=>b.onclick=()=>{
     /* Typing something the lists don't carry parks you on a custom item and
        asks what kind of thing it is - and these buttons are the answer on this
@@ -5042,7 +5084,12 @@ function isTouch(){ try{ return matchMedia("(pointer:coarse)").matches; }catch(e
 function omniHintHTML(){
   /* The box holds what was chosen now, so this stopped saying it twice. */
   if(st.omniDone)return `Follow <b>Next step</b> below. Type here again to price something else.`;
-  return `Try <b>stihl 271</b>, <b>remington 870 12 gauge</b>, <b>kayak</b> or <b>14k ring</b>.${isTouch()?"":" On a computer you can just start typing."}`;
+  /* The desk lists the same four examples as buttons directly underneath
+     now, so naming them here printed them twice - once as something to
+     press and once as something to copy out by hand. The phone has no
+     buttons, so it keeps the words. */
+  if(!window.PHONE)return isTouch()?"":`Just start typing &mdash; the box takes focus on its own.`;
+  return `Try <b>${esc(START_TRY[0])}</b>, <b>${esc(START_TRY[1])}</b>, <b>${esc(START_TRY[4])}</b> or <b>${esc(START_TRY[5])}</b>.`;
 }
 const SEARCH_SVG=`<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="var(--accent-ink)" stroke-width="2.6"/><path d="M15.5 15.5L21 21" stroke="var(--accent-ink)" stroke-width="2.6" stroke-linecap="round"/></svg>`;
 function omniHTML(){
@@ -5069,7 +5116,15 @@ function omniRowHTML(r,i){
   const mp=(r.kind==="item"||r.kind==="book")?mpFor(r.kind==="item"?r.itemId:r.name,[r.brand,r.model,r.detail,r.kind==="book"?r.name:""].join(" ")):null;
   if(r.kind==="book")bits.push("price book");
   if(r.kind==="custom")bits.push("not on any list &mdash; you set the price");
-  return `<button type="button" class="omniRow${hl}" data-omni="${i}" role="option"><span class="ot"><span class="on1">${esc(head)}</span><span class="on2">${bits.map(b=>b.indexOf("&mdash;")>=0?b:esc(b)).join(" &middot; ")}</span></span>${mp?`<span class="ov">${money(mp[3])}&ndash;${money(mp[4])}<small>resale</small></span>`:""}</button>`;
+  /* The column always says something. A price means the desk has a
+     researched figure for this one; "you set it" means it knows the KIND
+     of thing and the number comes out of the run. Leaving the slot empty
+     on the second sort made the difference an absence, and an absence is
+     not something you can scan a list for. */
+  const val=mp
+    ? `<span class="ov">${money(mp[3])}&ndash;${money(mp[4])}<small>resale</small></span>`
+    : `<span class="ov none">&mdash;<small>you set it</small></span>`;
+  return `<button type="button" class="omniRow${hl}" data-omni="${i}" role="option"><span class="ot"><span class="on1">${esc(head)}</span><span class="on2">${bits.map(b=>b.indexOf("&mdash;")>=0?b:esc(b)).join(" &middot; ")}</span></span>${val}</button>`;
 }
 /* Which row, if any, Enter should take. Typing a brand is not choosing a
    model: "husq" brings up four Husqvarnas and arming the first of them makes
@@ -6165,7 +6220,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0924.0248";
+const APP_BUILD="0924.0255";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

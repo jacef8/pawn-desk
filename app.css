@@ -163,7 +163,7 @@
   /* ══ GLASS ════════════════════════════════════════════════════════════
      One material, three elevations, and every card must hold something at
      a different one than itself. */
-  .card,.bar,.pinStrip,.omniList{
+  .card,.bar,.pinStrip{
     background:linear-gradient(155deg,var(--glass-hi),var(--glass) 72%);
     -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
     border:1px solid var(--line);box-shadow:var(--raise)}
@@ -498,8 +498,16 @@
   #omniIn:placeholder-shown ~ .omniClr{visibility:hidden}
   .omniHint{font-size:13.5px;color:var(--ink-2);margin:clamp(13px,1.2vw,17px) 4px 0;line-height:1.5}
   .omniHint b{color:var(--ink);font-weight:600}
+  /* A DROPDOWN IS NOT A WINDOW.
+     This was folded in with the cards when the glass material went in, so
+     the suggestion list became translucent and you could read the page's
+     own hint line straight through the rows - "Try stihl 271, remington
+     870" running underneath the thing you were trying to pick from. Glass
+     is for surfaces you look AT. A list you read off is opaque. */
   .omniList{position:absolute;left:0;right:0;top:calc(100% + 8px);display:grid;gap:6px;padding:8px;
-    max-height:min(64vh,560px);overflow-y:auto;border-radius:var(--r);box-shadow:var(--lift);z-index:30}
+    max-height:min(64vh,560px);overflow-y:auto;border-radius:var(--r);
+    background:#1B1F27;border:1px solid var(--line);
+    box-shadow:0 22px 48px -14px rgba(0,0,0,.95);z-index:30}
   .omniRow{display:flex;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;
     padding:11px 14px;border:1px solid var(--line);border-radius:var(--r-s);color:var(--ink);
     text-decoration:none;background:linear-gradient(160deg,var(--g2-hi),var(--g2));
@@ -508,8 +516,22 @@
   .omniRow .ot{flex:1;min-width:0;display:block}
   .omniRow .on1{display:block;font-size:16px;font-weight:700;line-height:1.25}
   .omniRow .on2{display:block;font-size:13.5px;color:var(--ink-2);margin-top:2px;line-height:1.35}
-  .omniRow .ov{font-family:var(--mono);font-size:15px;font-weight:600;flex-shrink:0;color:var(--info-ink)}
-  .omniRow .ov small{display:block;font:600 11px var(--sans);color:var(--ink-2);text-align:right}
+  /* IN THE BOOK, OR NOT. The right-hand column is how you tell at a
+     glance which suggestions already have a researched price behind them
+     and which are only a kind of thing. It used to be present on the
+     priced rows and simply absent on the others, so telling them apart
+     meant noticing an absence halfway down a list. It always says
+     something now: a price, or "you set it". */
+  .omniRow .ov{font-family:var(--mono);font-size:15px;font-weight:700;flex-shrink:0;
+    color:var(--accent-ink);text-align:right;padding:5px 9px;border-radius:var(--r-xs);
+    background:color-mix(in srgb,var(--accent) 14%,transparent);
+    border:1px solid color-mix(in srgb,var(--accent) 30%,transparent)}
+  .omniRow .ov small{display:block;font:600 10px var(--sans);color:var(--ink-3);
+    text-align:right;letter-spacing:.06em;text-transform:uppercase;margin-top:1px}
+  .omniRow .ov.none{color:var(--ink-3);background:transparent;border-color:var(--line);font-weight:600}
+  .omniRow .ov.none small{color:var(--ink-3)}
+  .omniRow.hl .ov{background:rgba(255,255,255,.22);border-color:transparent}
+  .omniRow.hl .ov small{color:color-mix(in srgb,var(--on-accent) 76%,transparent)}
   .omniRow.sold{background:transparent;border-color:var(--ink-3);box-shadow:none}
   .omniRow.hl{background:linear-gradient(150deg,var(--accent-2),var(--accent));
     color:var(--on-accent);border-color:transparent;box-shadow:var(--fill-sh)}
@@ -857,3 +879,27 @@
     #view{grid-column:2;grid-row:2}
     .foot{grid-column:2}
   }
+
+  /* ══ THE FRONT PAGE ═══════════════════════════════════════════════════
+     It was a search box and 600px of nothing, with the four best ways in
+     written out as prose to retype and the twelve categories folded shut.
+     Both are controls now. */
+  .startWays{display:flex;flex-direction:column;gap:10px}
+  .startChips{display:flex;flex-wrap:wrap;gap:8px}
+  .tryChip{padding:9px 15px;border-radius:999px;cursor:pointer;
+    border:1px solid var(--line);background:linear-gradient(160deg,var(--g2-hi),var(--g2));
+    color:var(--ink-2);font-size:13.5px;font-weight:600;box-shadow:var(--raise);
+    transition:transform .12s,color .12s,border-color .12s}
+  .tryChip:hover{transform:translateY(-1px);color:var(--ink);border-color:var(--accent)}
+  .tryChip:active{transform:translateY(1px)}
+  .startGrid{display:grid;gap:9px;grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
+  .kindTile{display:flex;flex-direction:column;gap:3px;align-items:flex-start;text-align:left;
+    padding:14px 15px;border-radius:var(--r-s);cursor:pointer;border:1px solid var(--line);
+    background:linear-gradient(160deg,var(--g2-hi),var(--g2));box-shadow:var(--raise);
+    transition:transform .12s,border-color .12s,box-shadow .12s}
+  .kindTile:hover{transform:translateY(-2px);border-color:var(--accent);box-shadow:var(--lift)}
+  .kindTile:active{transform:translateY(0)}
+  .kindTile b{font-family:var(--disp);font-size:15.5px;font-weight:700;color:var(--ink);
+    letter-spacing:-.02em;line-height:1.2}
+  .kindTile span{font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;
+    text-transform:uppercase;color:var(--ink-3)}
