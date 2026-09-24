@@ -94,7 +94,7 @@
   body.phone .snapCond{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:3px;
     padding:4px;border-radius:999px;background:var(--well);box-shadow:var(--well-sh)}
   body.phone .snapCond button{min-width:0;padding:10px 2px;font-size:12px}
-  body.phone .snapCond button.on{box-shadow:var(--brass-sh);font-weight:700}
+  body.phone .snapCond button.on{box-shadow:var(--fill-sh);font-weight:700}
 
   /* ---- out of the detailed screen ------------------------------------
      A chip. It was a full-width brass button - the loudest thing on the

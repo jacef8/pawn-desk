@@ -5533,13 +5533,11 @@ function closeCam(){
 
 /* the tab icon, for when the page is opened on its own */
 (function(){ try{
-  /* The icon and the browser chrome follow the theme. They used to be a
-     mint arc on #0B0D13 pinned in the source, which on the new paper
-     canvas meant the tab and the phone's status bar stayed black while
-     the app under them went light. */
-  const dark=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches;
-  const paper=dark?"#0F1014":"#EFEBE2", track=dark?"#26241F":"#DED7C8", brass=dark?"#F2A93B":"#E8971A";
-  const svg="<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='16' fill='"+paper+"'/><circle cx='32' cy='32' r='19' fill='none' stroke='"+track+"' stroke-width='8'/><path d='M18.6 45.4A19 19 0 1 1 45.4 45.4' fill='none' stroke='"+brass+"' stroke-width='8' stroke-linecap='round'/></svg>";
+  /* The icon is the app's own dial, in the app's own colours - graphite
+     ring, electric-blue arc. It is pinned rather than read off the page
+     because the palette is pinned: there is one, and it is dark. */
+  const paper="#15171C", track="#2A2F3A", arc="#3B82F6";
+  const svg="<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='16' fill='"+paper+"'/><circle cx='32' cy='32' r='19' fill='none' stroke='"+track+"' stroke-width='8'/><path d='M18.6 45.4A19 19 0 1 1 45.4 45.4' fill='none' stroke='"+arc+"' stroke-width='8' stroke-linecap='round'/></svg>";
   const href="data:image/svg+xml,"+encodeURIComponent(svg), head=document.head||document.documentElement;
   const put=(rel,h,type)=>{ let l=document.querySelector('link[rel="'+rel+'"]'); if(!l){ l=document.createElement("link"); l.rel=rel; head.appendChild(l); } if(type)l.type=type; l.href=h; };
   put("icon",href,"image/svg+xml");
@@ -6099,7 +6097,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0924.0227";
+const APP_BUILD="0924.0234";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

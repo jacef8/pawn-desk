@@ -8,8 +8,14 @@
    it exactly as the browser does, and computes the real ratio.
 
    Glass sits over the ambient field, which is a gradient, so each pair is
-   checked against the lightest AND the darkest place that field reaches.
-   A ratio that only holds in the pale corner is not a ratio.
+   checked against every place that field reaches. A ratio that only holds
+   in one corner of the screen is not a ratio.
+
+   One palette, because the app commits to dark. When there were two this
+   ran both and the light one failed four pairs on its first run - hint
+   text, warning text, the verdict green and the label inside a well. That
+   is what the suite is for, and it is why the light one is gone rather
+   than shipped with four unreadable pairs in it.
 
      python3 -m http.server 8099 &
      node tools/check-contrast.mjs                                        */
@@ -50,8 +56,8 @@ const PAIRS = [
 
 const browser = await chromium.launch({executablePath: EXE});
 let bad = 0;
-for (const scheme of ["light", "dark"]) {
-  const p = await browser.newPage({colorScheme: scheme});
+{
+  const p = await browser.newPage({colorScheme: "dark"});
   await p.goto(BASE + "/index.html", {waitUntil: "networkidle"});
   const rows = await p.evaluate((pairs) => {
     const cs = getComputedStyle(document.documentElement);
@@ -97,7 +103,7 @@ for (const scheme of ["light", "dark"]) {
     return out;
   }, PAIRS);
 
-  console.log("── " + scheme);
+  console.log("── graphite");
   for (const r of rows) {
     const ok = r.r >= r.min;
     if (!ok) bad++;
@@ -107,5 +113,5 @@ for (const scheme of ["light", "dark"]) {
 }
 await browser.close();
 console.log(bad ? `\nFAILED (${bad}) — a colour that cannot be read is a colour that is wrong`
-                : "\nevery ink clears its surface, light and dark");
+                : "\nevery ink clears the glass it lands on, everywhere the field reaches");
 process.exit(bad ? 1 : 0);

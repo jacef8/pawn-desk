@@ -24,43 +24,57 @@
      brass you READ is a darker brass than the brass you LOOK at.
      ═══════════════════════════════════════════════════════════════════ */
   :root{
-    color-scheme:light;
+    /* DARK, AND COMMITTED TO IT. Not dark-preferred with a light palette
+       behind it - there is one palette here and this is it. A counter is
+       worked at night as often as at noon and a light screen in a dim shop
+       is a lamp pointed at the person you are talking to.
+
+       Graphite, not black: #15171C has no warmth in it at all, which is
+       the whole point after a canvas of cream. Electric blue is the fill,
+       and the blue you READ is a paler one than the blue you LOOK at -
+       #3B82F6 is a good button and a bad 13px caption. check-contrast
+       measures both against the glass they land on. */
+    color-scheme:dark;
+
     /* ---- the field: what the glass has to refract --------------------- */
-    --paper:#E6DFD0;
-    --field-a:rgba(232,151,26,.42);
-    --field-b:rgba(46,107,230,.26);
-    --field-c:rgba(196,88,44,.24);
+    --paper:#15171C;
+    --field-a:rgba(59,130,246,.22);
+    --field-b:rgba(96,165,250,.16);
+    --field-c:rgba(120,140,170,.14);
 
-    /* ---- the glass ladder: closer = more opaque, more lit ------------- */
-    --glass:rgba(255,255,255,.40);        /* passive housing               */
-    --glass-hi:rgba(255,255,255,.58);
-    --g2:rgba(255,255,255,.66);           /* interactive widget            */
-    --g2-hi:rgba(255,255,255,.84);
-    --well:rgba(45,34,14,.11);           /* cut into the surface          */
-    --edge:rgba(255,255,255,.90);         /* specular top lip              */
-    --line:rgba(45,34,14,.17);
+    /* ---- the glass ladder: closer = lighter, the dark-mode reversal --- */
+    --glass:rgba(255,255,255,.055);       /* passive housing               */
+    --glass-hi:rgba(255,255,255,.09);
+    --g2:rgba(255,255,255,.11);           /* interactive widget            */
+    --g2-hi:rgba(255,255,255,.165);
+    --well:rgba(0,0,0,.36);               /* cut into the surface          */
+    --edge:rgba(255,255,255,.15);         /* specular top lip              */
+    --line:rgba(255,255,255,.13);
 
-    /* ---- ink. Every one measured against the surface under it -------- */
-    --ink:#171410;
-    --ink-2:rgba(23,20,16,.76);
-    --ink-3:rgba(23,20,16,.70);
-    --on-accent:#2B1800;                  /* ink ON a brass fill           */
+    /* ---- ink --------------------------------------------------------- */
+    --ink:#FFFFFF;
+    --ink-2:rgba(255,255,255,.80);
+    --ink-3:rgba(255,255,255,.64);
+    --on-accent:#04122E;                  /* ink ON a blue fill            */
 
-    /* ---- brass. Two of them, and the difference is the whole point:
+    /* ---- blue. Two of them, and the difference is the whole point:
             --accent is a FILL you look at, --accent-ink is TEXT you read,
-            and a fill that passes as a fill fails as 15px type. -------- */
-    --accent:#DE8A09;
-    --accent-2:#FFC145;
-    --accent-ink:#8A5300;
-    --info:#2E6BE6;
-    --info-ink:#1A4CC0;
-    --good:#0A6544;
-    --warn:#C2660A;
-    --warn-ink:#763A00;
-    --warn-wash:rgba(194,102,10,.13);
-    --bad:#C62B42;
-    --bad-ink:#9A1226;
-    --bad-wash:rgba(198,43,66,.12);
+            and the one that passes as a fill fails as 13px type. ------- */
+    --accent:#3B82F6;
+    --accent-2:#7DB1FF;
+    --accent-ink:#A9CEFF;
+    --info:#7DB1FF;
+    --info-ink:#A8CCFF;
+
+    /* ---- status. These never move when the theme does: the bar under
+            "Behind this number" means the same thing in every palette. -- */
+    --good:#3FD69B;
+    --warn:#FFA53D;
+    --warn-ink:#FFC98F;
+    --warn-wash:rgba(255,165,61,.14);
+    --bad:#FF5A70;
+    --bad-ink:#FFAAB4;
+    --bad-wash:rgba(255,90,112,.14);
 
     /* ---- shape: concentric, committed -------------------------------- */
     --r:26px; --r-s:18px; --r-xs:12px;
@@ -69,90 +83,26 @@
     --blur:blur(20px) saturate(165%);
     --raise:
       inset 0 1px 0 var(--edge),
-      inset 0 -1px 0 rgba(38,30,16,.05),
-      0 1px 2px rgba(45,34,14,.10),
-      0 12px 24px -14px rgba(45,34,14,.55);
-    --lift:
-      inset 0 1px 0 var(--edge),
-      0 2px 5px rgba(45,34,14,.13),
-      0 18px 34px -16px rgba(45,34,14,.62);
-    --well-sh:
-      inset 0 2px 6px rgba(45,34,14,.22),
-      inset 0 -1px 0 var(--edge);
-    --brass-sh:
-      0 1px 2px rgba(120,70,0,.25),
-      0 8px 18px -10px rgba(180,110,10,.60),
-      inset 0 1px 0 rgba(255,255,255,.55);
-
-    --disp:'Sora','Instrument Sans','Segoe UI Variable Display',system-ui,sans-serif;
-    --sans:'Instrument Sans',system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
-    --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,'Courier New',monospace;
-  }
-  /* Dark is a redefinition of the same tokens, never a second stylesheet.
-     The glass inverts: on paper it is white haze over colour, at night it
-     is a pale film over near-black, and everything built on the ladder
-     follows without knowing which it is in. */
-  @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
-    color-scheme:dark;
-    --paper:#0F1014;
-    --field-a:rgba(240,160,32,.20);
-    --field-b:rgba(46,107,230,.18);
-    --field-c:rgba(210,120,60,.13);
-    --glass:rgba(255,255,255,.055);
-    --glass-hi:rgba(255,255,255,.085);
-    --g2:rgba(255,255,255,.11);
-    --g2-hi:rgba(255,255,255,.16);
-    --well:rgba(0,0,0,.34);
-    --edge:rgba(255,255,255,.14);
-    --line:rgba(255,255,255,.12);
-    --ink:#FFFFFF;
-    --ink-2:rgba(255,255,255,.80);
-    --ink-3:rgba(255,255,255,.62);
-    --accent:#F2A93B;
-    --accent-2:#FFD98A;
-    --accent-ink:#FFC66A;
-    --info:#6AA0FF;
-    --info-ink:#9DC2FF;
-    --good:#3FD69B;
-    --warn:#FFA53D;
-    --warn-ink:#FFC98F;
-    --warn-wash:rgba(255,165,61,.14);
-    --bad:#FF5A70;
-    --bad-ink:#FFAAB4;
-    --bad-wash:rgba(255,90,112,.14);
-    --raise:
-      inset 0 1px 0 var(--edge),
       inset 0 -1px 0 rgba(0,0,0,.40),
       0 1px 2px rgba(0,0,0,.50),
       0 12px 26px -16px rgba(0,0,0,.90);
     --lift:
       inset 0 1px 0 var(--edge),
       0 2px 5px rgba(0,0,0,.55),
-      0 16px 32px -18px rgba(0,0,0,.95);
+      0 18px 34px -18px rgba(0,0,0,.95);
     --well-sh:
       inset 0 2px 6px rgba(0,0,0,.60),
       inset 0 -1px 0 rgba(255,255,255,.06);
-    --brass-sh:
+    /* The shadow under an accent fill, coloured by the accent so a lit
+       button glows its own colour rather than dropping a grey blob. */
+    --fill-sh:
       0 1px 3px rgba(0,0,0,.50),
-      0 8px 18px -10px rgba(242,169,59,.45),
+      0 8px 20px -10px rgba(59,130,246,.65),
       inset 0 1px 0 rgba(255,255,255,.35);
-  }}
-  :root[data-theme="dark"]{
-    color-scheme:dark;
-    --paper:#0F1014;
-    --field-a:rgba(240,160,32,.20); --field-b:rgba(46,107,230,.18); --field-c:rgba(210,120,60,.13);
-    --glass:rgba(255,255,255,.055); --glass-hi:rgba(255,255,255,.085);
-    --g2:rgba(255,255,255,.11); --g2-hi:rgba(255,255,255,.16);
-    --well:rgba(0,0,0,.34); --edge:rgba(255,255,255,.14); --line:rgba(255,255,255,.12);
-    --ink:#FFFFFF; --ink-2:rgba(255,255,255,.80); --ink-3:rgba(255,255,255,.62);
-    --accent:#F2A93B; --accent-2:#FFD98A; --accent-ink:#FFC66A;
-    --info:#6AA0FF; --info-ink:#9DC2FF; --good:#3FD69B;
-    --warn:#FFA53D; --warn-ink:#FFC98F; --warn-wash:rgba(255,165,61,.14);
-    --bad:#FF5A70; --bad-ink:#FFAAB4; --bad-wash:rgba(255,90,112,.14);
-    --raise:inset 0 1px 0 var(--edge),inset 0 -1px 0 rgba(0,0,0,.40),0 1px 2px rgba(0,0,0,.50),0 12px 26px -16px rgba(0,0,0,.90);
-    --lift:inset 0 1px 0 var(--edge),0 2px 5px rgba(0,0,0,.55),0 16px 32px -18px rgba(0,0,0,.95);
-    --well-sh:inset 0 2px 6px rgba(0,0,0,.60),inset 0 -1px 0 rgba(255,255,255,.06);
-    --brass-sh:0 1px 3px rgba(0,0,0,.50),0 8px 18px -10px rgba(242,169,59,.45),inset 0 1px 0 rgba(255,255,255,.35);
+
+    --disp:'Sora','Instrument Sans','Segoe UI Variable Display',system-ui,sans-serif;
+    --sans:'Instrument Sans',system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,'Courier New',monospace;
   }
 
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -260,7 +210,7 @@
   .pills button:hover{color:var(--ink)}
   .pills button.on{color:var(--on-accent);font-weight:700;
     background:linear-gradient(150deg,var(--accent-2),var(--accent));
-    box-shadow:var(--brass-sh)}
+    box-shadow:var(--fill-sh)}
   .pills.ref{background:transparent;box-shadow:none;padding:0;gap:6px}
   .pills.ref button{background:transparent;color:var(--ink-2);font-weight:600;padding:7px 13px;
     border:1px solid var(--line);border-radius:999px}
@@ -269,7 +219,7 @@
 
   .brassBtn{background:linear-gradient(150deg,var(--accent-2),var(--accent));
     color:var(--on-accent);border:none;border-radius:999px;padding:0 20px;
-    font-weight:700;font-size:13.5px;cursor:pointer;box-shadow:var(--brass-sh);
+    font-weight:700;font-size:13.5px;cursor:pointer;box-shadow:var(--fill-sh);
     transition:transform .12s,box-shadow .12s}
   .brassBtn:hover{transform:translateY(-1px)}
   .brassBtn:active{transform:translateY(1px);box-shadow:var(--raise)}
@@ -308,7 +258,7 @@
     box-shadow:var(--raise);transition:transform .12s}
   .catBtn:hover{transform:translateY(-1px);color:var(--ink)}
   .catBtn.on{color:var(--on-accent);font-weight:700;border-color:transparent;
-    background:linear-gradient(150deg,var(--accent-2),var(--accent));box-shadow:var(--brass-sh)}
+    background:linear-gradient(150deg,var(--accent-2),var(--accent));box-shadow:var(--fill-sh)}
   .itemBtn{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;
     padding:10px 12px;margin-top:6px;border:1px solid var(--line);border-radius:var(--r-s);
     cursor:pointer;text-align:left;font-size:13.5px;font-weight:600;color:var(--ink-2);
@@ -319,7 +269,7 @@
     place-content:center;font-family:var(--mono);font-size:10px;color:var(--ink-3);
     background:var(--well);box-shadow:var(--well-sh)}
   .itemBtn.on{color:var(--on-accent);border-color:transparent;
-    background:linear-gradient(150deg,var(--accent-2),var(--accent));box-shadow:var(--brass-sh)}
+    background:linear-gradient(150deg,var(--accent-2),var(--accent));box-shadow:var(--fill-sh)}
   .itemBtn.on .idx{color:var(--on-accent);background:rgba(255,255,255,.42);box-shadow:none}
   .itemBtn .price{font-family:var(--mono);font-size:12.5px;flex-shrink:0;color:var(--ink-3)}
   .itemBtn.on .price{color:var(--on-accent)}
@@ -355,7 +305,7 @@
     text-transform:uppercase;color:var(--ink-3)}
   .stepSum .stepA{margin-left:auto;font-size:14.5px;font-weight:700;color:var(--ink);text-align:right}
   .stepSum.live .stepN{background:linear-gradient(150deg,var(--accent-2),var(--accent));
-    color:var(--on-accent);box-shadow:var(--brass-sh)}
+    color:var(--on-accent);box-shadow:var(--fill-sh)}
   .stepSum.live .stepT{color:var(--ink-2)}
   .stepCard[open]>summary{margin-bottom:11px;padding-bottom:10px;border-bottom:1px solid var(--line)}
   .stepCard[open] .stepA{color:var(--ink-3);font-weight:600}
@@ -487,7 +437,7 @@
   .rules .sect{border-top:1px solid var(--line);margin-top:10px;padding-top:10px;font-size:13px}
   .step .n{width:28px;height:28px;border-radius:50%;flex-shrink:0;display:grid;place-content:center;
     font-family:var(--mono);font-size:11px;color:var(--on-accent);font-weight:700;
-    background:linear-gradient(150deg,var(--accent-2),var(--accent));box-shadow:var(--brass-sh)}
+    background:linear-gradient(150deg,var(--accent-2),var(--accent));box-shadow:var(--fill-sh)}
   .step .t{font-family:var(--disp);font-size:15px;font-weight:700;line-height:1.3}
   .step .d{font-size:13px;color:var(--ink-2);line-height:1.55;margin-top:4px}
   .flag{font-size:13.5px;line-height:1.55;color:var(--ink-2);font-weight:500}
@@ -528,7 +478,7 @@
   .compBtn .cs{font-family:var(--mono);font-size:11px;color:var(--ink-3);text-align:right;
     flex-shrink:0;max-width:52%}
   .compBtn.pending{background:linear-gradient(150deg,var(--accent-2),var(--accent));
-    color:var(--on-accent);border-color:transparent;box-shadow:var(--brass-sh)}
+    color:var(--on-accent);border-color:transparent;box-shadow:var(--fill-sh)}
   .compBtn.pending .cs{color:var(--on-accent)}
 
   /* ══ THE SEARCH BAR ═══════════════════════════════════════════════════ */
@@ -562,7 +512,7 @@
   .omniRow .ov small{display:block;font:600 11px var(--sans);color:var(--ink-2);text-align:right}
   .omniRow.sold{background:transparent;border-color:var(--ink-3);box-shadow:none}
   .omniRow.hl{background:linear-gradient(150deg,var(--accent-2),var(--accent));
-    color:var(--on-accent);border-color:transparent;box-shadow:var(--brass-sh)}
+    color:var(--on-accent);border-color:transparent;box-shadow:var(--fill-sh)}
   .omniRow.hl .on2,.omniRow.hl .ov{color:var(--on-accent)}
   .omniEmpty{font-size:14px;color:var(--ink-2);padding:6px 6px 2px;line-height:1.5}
   .omniEmpty b{color:var(--ink)}
@@ -612,7 +562,7 @@
   .mkRange{font-family:var(--mono);font-size:14px;color:var(--ink-2);margin-top:5px}
   .mkOk{flex-shrink:0;font-size:13px;font-weight:800;color:var(--on-accent);
     background:linear-gradient(150deg,var(--accent-2),var(--accent));border-radius:999px;
-    padding:6px 13px;box-shadow:var(--brass-sh)}
+    padding:6px 13px;box-shadow:var(--fill-sh)}
   .mkSrc{font-size:14px;color:var(--ink);margin-top:11px;line-height:1.5}
   .mkSrc b{font-weight:700}
   .mkNo{font-size:14.5px;line-height:1.55;color:var(--warn-ink);background:var(--warn-wash);
@@ -643,7 +593,7 @@
     font:700 12px var(--mono);border:2px solid var(--line);color:var(--ink-2)}
   .nsStep.cur .nsDot{border-color:var(--accent);color:var(--accent-ink)}
   .nsStep.done .nsDot{background:linear-gradient(150deg,var(--accent-2),var(--accent));
-    border-color:transparent;color:var(--on-accent);box-shadow:var(--brass-sh)}
+    border-color:transparent;color:var(--on-accent);box-shadow:var(--fill-sh)}
   .nsL{font:600 11.5px var(--mono);letter-spacing:.08em;text-transform:uppercase}
   .nsV{font-size:15px;font-weight:700;color:var(--ink);line-height:1.25;min-width:0;
     overflow-wrap:anywhere}
@@ -662,7 +612,7 @@
   .nsBtn b{font-family:var(--mono);font-weight:700;color:var(--accent-ink)}
   .nsBtn i{font-style:normal;font-size:12px;font-weight:600;color:var(--ink-2);margin-left:-6px}
   .nsBtn.on{background:linear-gradient(150deg,var(--accent-2),var(--accent));
-    color:var(--on-accent);border-color:transparent;box-shadow:var(--brass-sh)}
+    color:var(--on-accent);border-color:transparent;box-shadow:var(--fill-sh)}
   .nsBtn.on b{color:var(--on-accent)}
   .nsBtn.on i,.nsBtn.on span i{color:color-mix(in srgb,var(--on-accent) 76%,transparent)}
   .nsBtn.ghost{background:transparent;box-shadow:none;border-color:var(--ink-3);color:var(--ink)}
@@ -724,7 +674,7 @@
     box-shadow:var(--raise);transition:transform .12s,border-color .12s,box-shadow .12s}
   .askOpt:hover{border-color:var(--accent);transform:translateY(-1px);box-shadow:var(--lift)}
   .askOpt.on{background:linear-gradient(150deg,var(--accent-2),var(--accent));
-    color:var(--on-accent);border-color:transparent;box-shadow:var(--brass-sh)}
+    color:var(--on-accent);border-color:transparent;box-shadow:var(--fill-sh)}
   .askT{font-size:15.5px;font-weight:700}
   .askS{font-size:12px;color:var(--ink-3);line-height:1.4}
   .askOpt.on .askS{color:color-mix(in srgb,var(--on-accent) 78%,transparent)}
@@ -745,7 +695,7 @@
     color:var(--ink-2);font-size:14px;font-weight:600;box-shadow:var(--well-sh)}
   .pageTabs button i{font-style:normal;font-family:var(--mono);font-size:11px;opacity:.75}
   .pageTabs button.on{background:linear-gradient(150deg,var(--accent-2),var(--accent));
-    color:var(--on-accent);box-shadow:var(--brass-sh)}
+    color:var(--on-accent);box-shadow:var(--fill-sh)}
   .pageTabs button.on i{opacity:.6}
   .pageTabs button.done:not(.on){color:var(--ink)}
   .pageTabs button.done:not(.on) i{color:var(--good);opacity:1;font-weight:700}
@@ -801,7 +751,7 @@
   .snapPin{position:sticky;top:6px;z-index:40;display:block;width:100%;margin:0 0 12px;
     padding:13px 16px;border:none;border-radius:999px;cursor:pointer;text-align:center;
     background:linear-gradient(150deg,var(--accent-2),var(--accent));color:var(--on-accent);
-    font-size:15px;font-weight:700;box-shadow:var(--brass-sh)}
+    font-size:15px;font-weight:700;box-shadow:var(--fill-sh)}
   .snapAsk{display:flex;flex-direction:column;gap:9px;margin-top:12px}
   .snapAsk label{display:flex;flex-direction:column;gap:4px}
   .snapAsk span{font-size:12.5px;color:var(--ink-3)}
