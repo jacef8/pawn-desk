@@ -889,6 +889,39 @@ console.log("\n  the desk does not search eBay where eBay is blind");
      "  while a saw, a drill, a console and a laptop still search, because they do sell there");
 }
 
+/* THE BLIND LIST IS A MEASUREMENT, SO IT IS CHECKED AGAINST ONE.
+   Sixteen aisles were harvested model by model and graded on the rule
+   the harvest prints: sold basis, inside the sanity band, quartiles
+   within 3x. Each of these cleared under a quarter of its models, so
+   the desk stops paying for lookups there. The ones that DID clear
+   still search, and that half matters just as much - a blind list that
+   quietly grows is how a tool stops answering. */
+console.log("\n  the blind list matches what was measured");
+{
+  const page2 = await browser.newPage({viewport:{width:1280, height:900}});
+  await page2.goto(BASE + "/index.html", {waitUntil:"networkidle"});
+  const r = await page2.evaluate(() => {
+    const say = (id) => {
+      const cat = CATALOG.find(c => c.items.some(i => i.id === id));
+      if (!cat) return "NO SUCH ITEM";
+      st.mode = "item"; st.catId = cat.id; st.itemId = id; st.picked = true;
+      st.brandTyped = ""; st.model = ""; st.bookName = "";
+      return ebayBlind(calcItem());
+    };
+    const blind = ["h9","t5","a2","a3","a4","a6","a7","f1","f3","f4","f6","t6","t7","p6","j3"];
+    const sees  = ["h7","j1","j2","f7","t8","h4","t3","a9","t4","f2"];
+    return {mute: blind.filter(id => !say(id)), loud: sees.filter(id => !!say(id)),
+            sample: say("f1")};
+  });
+  ok(!r.mute.length,
+     "every aisle measured under a quarter is muted — unmuted: " + (r.mute.join(", ") || "none"));
+  ok(!r.loud.length,
+     "and every aisle that DID price still searches — wrongly muted: " + (r.loud.join(", ") || "none"));
+  ok(/belts, motors and consoles/i.test(r.sample),
+     "  and each one says what the search actually returns instead");
+  await page2.close();
+}
+
 /* WHAT A MAKE ACTUALLY SELLS. A brand carries a category, not a product
    list, so typing one alone offered every item in that category: Garmin
    proposed a compound bow and a crossbow, Leupold a trolling motor,

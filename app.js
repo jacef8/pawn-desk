@@ -4109,6 +4109,51 @@ function wireLook(){
    done this since the snap screen was built; the desk was still waiting to be
    told, which made the built-in list look like the tool's final answer when
    it was only its first. */
+/* THE LOOKUP ONLY EVER FIRED AFTER A PHOTO.
+   autoPriceAfterPhoto is the only thing that ever started a search on its
+   own, so the camera path got live sold prices and the path everybody
+   actually uses - type it, pick it off the list - got the book figure and
+   a button to press. Nothing said so; the number just sat there dated
+   whenever the harvest last ran.
+
+   It fires on a pick now, but only where the query is worth spending on:
+   a make AND a model, which is what an "mp" row or a recognised model
+   name gives. A bare category pick ("Laptop - Sony") is deliberately
+   left alone - the search would be the word "laptop" and would come back
+   with screens and batteries, which is exactly what the "you set it"
+   column in the list is telling you. Same reason it is not wired to
+   typing: one lookup per keystroke against a 2,000-a-month quota.
+
+   priceFind already refuses where eBay is blind, so a television or a
+   quad costs nothing here. */
+let pickChase=false, pickLast="";
+function autoPriceOnPick(){
+  if(pickChase||findBusy||!CAP.sample||!st.picked)return;
+  if(!String(st.brandTyped||"").trim()||!String(st.model||"").trim())return;
+  const x=calcItem();
+  /* NOT x.checked. "Checked" is true the moment the desk has ANY figure,
+     and the book price list is a figure - so a DeWalt DCD791, which the
+     book knows, was gated out of the very lookup it most needs. That is
+     the whole complaint: the row says "as of Sep 23" and nothing goes and
+     refreshes it.
+
+     What must not be re-run is a LIVE result: a search already done, a
+     sold page photographed, the counter's own sales or shelf tags. A
+     book row and a worked-back retail figure are exactly what a live
+     lookup is meant to replace. */
+  const k=x.market&&x.market.kind;
+  if(k==="found"||k==="harvest"||k==="shot"||k==="own"||k==="seen"||k==="hand")return;
+  if(ebayBlind(x))return;
+  const q=compQuery(x); if(!q||q===pickLast)return;
+  pickLast=q; pickChase=true;
+  setTimeout(async()=>{
+    const ctl=new AbortController();
+    const t=setTimeout(()=>ctl.abort(),60000);
+    try{ await priceFind(ctl.signal,true); }catch(e){}
+    clearTimeout(t); pickChase=false;
+    try{ render(); }catch(e){}
+  },0);
+}
 let photoChase=false;
 function autoPriceAfterPhoto(){
   if(photoChase||findBusy||!CAP.sample||!st.picked)return;
@@ -5255,6 +5300,7 @@ function omniPick(r){
      not where the run starts. */
   st.askAt=firstOpenAsk(calcItem());
   render();
+  try{ autoPriceOnPick(); }catch(e){}
   if(st.editing){ const vi=document.getElementById("valIn"); if(vi)vi.focus(); }
   else if(!matchMedia("(min-width:1080px)").matches){ const c=document.getElementById("nextStep")||document.querySelector(".colC"); if(c&&c.scrollIntoView)c.scrollIntoView({behavior:"smooth",block:"start"}); }
 }
@@ -6029,7 +6075,87 @@ let MODEL_PRICES=[
  ["h334","Gaming laptop","Alienware m15 R7",675,1134,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Alienware%20m15%20R7&LH_Sold=1&LH_Complete=1","7 eBay sales in the last 90 days",""],
  ["h336","Gaming laptop","MSI Katana 15",680,900,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=MSI%20Katana%2015&LH_Sold=1&LH_Complete=1","10 eBay sales in the last 90 days",""],
  ["h335","e2","Lenovo ThinkPad T14",240,430,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Lenovo%20ThinkPad%20T14&LH_Sold=1&LH_Complete=1","9 eBay sales in the last 90 days","t-14 t14"],
- ["h341","e2","Microsoft Surface Laptop 5",180,249,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Microsoft%20Surface%20Laptop%205&LH_Sold=1&LH_Complete=1","16 eBay sales in the last 90 days",""]
+ ["h341","e2","Microsoft Surface Laptop 5",180,249,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Microsoft%20Surface%20Laptop%205&LH_Sold=1&LH_Complete=1","16 eBay sales in the last 90 days",""],
+ ["h344","j1","Rolex Datejust 36",4999,6450,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Rolex%20Datejust%2036&LH_Sold=1&LH_Complete=1","12 eBay sales in the last 90 days",""],
+ ["h346","j1","Rolex Explorer",5900,8299,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Rolex%20Explorer&LH_Sold=1&LH_Complete=1","8 eBay sales in the last 90 days",""],
+ ["h348","j1","Omega Seamaster 300M",1800,3200,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Omega%20Seamaster%20300M&LH_Sold=1&LH_Complete=1","7 eBay sales in the last 90 days",""],
+ ["h350","j1","Omega Speedmaster Professional",1975,4101,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Omega%20Speedmaster%20Professional&LH_Sold=1&LH_Complete=1","20 eBay sales in the last 90 days",""],
+ ["h352","j1","Tudor Black Bay 58",3900,4200,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Tudor%20Black%20Bay%2058&LH_Sold=1&LH_Complete=1","7 eBay sales in the last 90 days","bay-58 bay58"],
+ ["h354","j1","Cartier Tank Must",1395,2900,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Cartier%20Tank%20Must&LH_Sold=1&LH_Complete=1","22 eBay sales in the last 90 days",""],
+ ["h356","j1","Breitling Navitimer",3250,3950,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Breitling%20Navitimer&LH_Sold=1&LH_Complete=1","10 eBay sales in the last 90 days",""],
+ ["h358","j1","TAG Heuer Carrera",449,1820,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=TAG%20Heuer%20Carrera&LH_Sold=1&LH_Complete=1","16 eBay sales in the last 90 days",""],
+ ["h360","j1","TAG Heuer Aquaracer",575,1199,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=TAG%20Heuer%20Aquaracer&LH_Sold=1&LH_Complete=1","15 eBay sales in the last 90 days",""],
+ ["h362","f1","NordicTrack Commercial 1750",60,280,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=NordicTrack%20Commercial%201750&LH_Sold=1&LH_Complete=1","14 eBay sales in the last 90 days",""],
+ ["h364","f1","Bowflex Treadmill 10",100,150,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Bowflex%20Treadmill%2010&LH_Sold=1&LH_Complete=1","8 eBay sales in the last 90 days",""],
+ ["h366","t6","Lincoln Power MIG 140C",240,470,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Lincoln%20Power%20MIG%20140C&LH_Sold=1&LH_Complete=1","8 eBay sales in the last 90 days","mig-140c mig140c"],
+ ["h368","a3","LG WM3400CW washer",40,75,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=LG%20WM3400CW%20washer&LH_Sold=1&LH_Complete=1","5 eBay sales in the last 90 days","wm-3400cw wm3400cw"],
+ ["h370","t7","Snap-on KRA tool box",36,170,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Snap-on%20KRA%20tool%20box&LH_Sold=1&LH_Complete=1","28 eBay sales in the last 90 days",""],
+ ["h372","a1","Whirlpool WFE505W0HS range",80,125,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Whirlpool%20WFE505W0HS%20range&LH_Sold=1&LH_Complete=1","15 eBay sales in the last 90 days",""],
+ ["h374","f2","Peloton Bike",190,350,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Peloton%20Bike&LH_Sold=1&LH_Complete=1","18 eBay sales in the last 90 days",""],
+ ["h376","f2","Peloton Bike Plus",200,350,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Peloton%20Bike%20Plus&LH_Sold=1&LH_Complete=1","21 eBay sales in the last 90 days",""],
+ ["h378","f2","NordicTrack S22i",85,375,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=NordicTrack%20S22i&LH_Sold=1&LH_Complete=1","10 eBay sales in the last 90 days","s-22i s22i"],
+ ["h380","f2","Schwinn IC4",179,450,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Schwinn%20IC4&LH_Sold=1&LH_Complete=1","14 eBay sales in the last 90 days",""],
+ ["h382","f2","Schwinn 170",23,110,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Schwinn%20170&LH_Sold=1&LH_Complete=1","10 eBay sales in the last 90 days",""],
+ ["h384","f2","Keiser M3i",305,650,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Keiser%20M3i&LH_Sold=1&LH_Complete=1","5 eBay sales in the last 90 days",""],
+ ["h386","f3","Sole E25",100,300,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Sole%20E25&LH_Sold=1&LH_Complete=1","5 eBay sales in the last 90 days","e-25 e25"],
+ ["h388","f3","Schwinn 470",99,150,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Schwinn%20470&LH_Sold=1&LH_Complete=1","5 eBay sales in the last 90 days",""],
+ ["h390","f7","Callaway Strata complete set",275,325,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Callaway%20Strata%20complete%20set&LH_Sold=1&LH_Complete=1","12 eBay sales in the last 90 days",""],
+ ["h392","f7","TaylorMade SIM2 iron set",385,473,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=TaylorMade%20SIM2%20iron%20set&LH_Sold=1&LH_Complete=1","6 eBay sales in the last 90 days",""],
+ ["h394","f7","TaylorMade M4 iron set",349,360,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=TaylorMade%20M4%20iron%20set&LH_Sold=1&LH_Complete=1","11 eBay sales in the last 90 days",""],
+ ["h396","f7","Mizuno JPX 921 iron set",420,550,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Mizuno%20JPX%20921%20iron%20set&LH_Sold=1&LH_Complete=1","7 eBay sales in the last 90 days","jpx-921 jpx921"],
+ ["h398","f7","Wilson Profile complete set",115,220,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Wilson%20Profile%20complete%20set&LH_Sold=1&LH_Complete=1","11 eBay sales in the last 90 days",""],
+ ["h400","p6","Ryobi 3100 PSI pressure washer",30,40,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Ryobi%203100%20PSI%20pressure%20washer&LH_Sold=1&LH_Complete=1","12 eBay sales in the last 90 days",""],
+ ["h402","t8","Paslode CF325XP",130,200,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Paslode%20CF325XP&LH_Sold=1&LH_Complete=1","18 eBay sales in the last 90 days","cf-325xp cf325xp"],
+ ["h404","t8","Paslode 900420",70,100,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Paslode%20900420&LH_Sold=1&LH_Complete=1","4 eBay sales in the last 90 days",""],
+ ["h406","t8","Bostitch F21PL",118,165,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Bostitch%20F21PL&LH_Sold=1&LH_Complete=1","9 eBay sales in the last 90 days","f-21pl f21pl"],
+ ["h408","t8","Metabo HPT NR90AES1",80,126,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Metabo%20HPT%20NR90AES1&LH_Sold=1&LH_Complete=1","22 eBay sales in the last 90 days",""],
+ ["h410","j2","Seiko SKX007",145,340,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Seiko%20SKX007&LH_Sold=1&LH_Complete=1","15 eBay sales in the last 90 days","skx-007 skx007"],
+ ["h412","j2","Seiko 5 Sports SRPD",190,199,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Seiko%205%20Sports%20SRPD&LH_Sold=1&LH_Complete=1","8 eBay sales in the last 90 days",""],
+ ["h414","j2","Seiko Prospex Turtle",328,499,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Seiko%20Prospex%20Turtle&LH_Sold=1&LH_Complete=1","13 eBay sales in the last 90 days",""],
+ ["h416","j2","Citizen Eco-Drive Promaster",145,280,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Citizen%20Eco-Drive%20Promaster&LH_Sold=1&LH_Complete=1","10 eBay sales in the last 90 days",""],
+ ["h418","j2","Bulova Marine Star",93,229,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Bulova%20Marine%20Star&LH_Sold=1&LH_Complete=1","7 eBay sales in the last 90 days",""],
+ ["h420","j2","Fossil Grant",40,55,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Fossil%20Grant&LH_Sold=1&LH_Complete=1","27 eBay sales in the last 90 days",""],
+ ["h422","j2","Tissot PRX",195,415,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Tissot%20PRX&LH_Sold=1&LH_Complete=1","14 eBay sales in the last 90 days",""],
+ ["h424","j2","Hamilton Khaki Field",425,495,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Hamilton%20Khaki%20Field&LH_Sold=1&LH_Complete=1","8 eBay sales in the last 90 days",""],
+ ["h426","j2","Invicta Pro Diver 8926",50,70,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Invicta%20Pro%20Diver%208926&LH_Sold=1&LH_Complete=1","14 eBay sales in the last 90 days",""],
+ ["h428","j2","Movado Museum",85,260,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Movado%20Museum&LH_Sold=1&LH_Complete=1","18 eBay sales in the last 90 days",""],
+ ["h430","j2","Michael Kors Lexington",25,75,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Michael%20Kors%20Lexington&LH_Sold=1&LH_Complete=1","10 eBay sales in the last 90 days",""],
+ ["h432","j2","Apple Watch Series 7",70,140,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Apple%20Watch%20Series%207&LH_Sold=1&LH_Complete=1","25 eBay sales in the last 90 days",""],
+ ["h434","j2","Apple Watch Series 8",59,120,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Apple%20Watch%20Series%208&LH_Sold=1&LH_Complete=1","23 eBay sales in the last 90 days",""],
+ ["h436","j2","Apple Watch SE",75,110,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Apple%20Watch%20SE&LH_Sold=1&LH_Complete=1","23 eBay sales in the last 90 days",""],
+ ["h438","j2","Garmin Fenix 6",175,217,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Garmin%20Fenix%206&LH_Sold=1&LH_Complete=1","22 eBay sales in the last 90 days",""],
+ ["h440","j2","Garmin Fenix 7",300,410,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Garmin%20Fenix%207&LH_Sold=1&LH_Complete=1","16 eBay sales in the last 90 days",""],
+ ["h442","j2","Garmin Forerunner 245",90,136,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Garmin%20Forerunner%20245&LH_Sold=1&LH_Complete=1","26 eBay sales in the last 90 days",""],
+ ["h444","t4","Porter-Cable C2002",65,104,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Porter-Cable%20C2002&LH_Sold=1&LH_Complete=1","8 eBay sales in the last 90 days","c-2002 c2002"],
+ ["h446","t4","California Air Tools 8010",145,210,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=California%20Air%20Tools%208010&LH_Sold=1&LH_Complete=1","5 eBay sales in the last 90 days",""],
+ ["h448","h7","Penn Battle III",80,119,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Penn%20Battle%20III&LH_Sold=1&LH_Complete=1","7 eBay sales in the last 90 days",""],
+ ["h450","h7","Penn Slammer III",177,194,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Penn%20Slammer%20III&LH_Sold=1&LH_Complete=1","12 eBay sales in the last 90 days",""],
+ ["h452","h7","Shimano Stradic",118,190,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Shimano%20Stradic&LH_Sold=1&LH_Complete=1","16 eBay sales in the last 90 days",""],
+ ["h454","h7","Shimano Curado",123,190,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Shimano%20Curado&LH_Sold=1&LH_Complete=1","19 eBay sales in the last 90 days",""],
+ ["h456","h7","Shimano Sedona",36,65,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Shimano%20Sedona&LH_Sold=1&LH_Complete=1","19 eBay sales in the last 90 days",""],
+ ["h458","h7","Abu Garcia Ambassadeur 6500",50,85,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Abu%20Garcia%20Ambassadeur%206500&LH_Sold=1&LH_Complete=1","12 eBay sales in the last 90 days",""],
+ ["h460","h7","Abu Garcia Revo SX",55,103,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Abu%20Garcia%20Revo%20SX&LH_Sold=1&LH_Complete=1","22 eBay sales in the last 90 days",""],
+ ["h462","h7","Daiwa BG 3000",80,90,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Daiwa%20BG%203000&LH_Sold=1&LH_Complete=1","6 eBay sales in the last 90 days","bg-3000 bg3000"],
+ ["h464","h7","Daiwa Tatula",115,153,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Daiwa%20Tatula&LH_Sold=1&LH_Complete=1","11 eBay sales in the last 90 days",""],
+ ["h466","h7","Ugly Stik GX2 combo",30,55,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Ugly%20Stik%20GX2%20combo&LH_Sold=1&LH_Complete=1","8 eBay sales in the last 90 days",""],
+ ["h468","h7","Lew's Mach Crush",50,70,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Lew's%20Mach%20Crush&LH_Sold=1&LH_Complete=1","15 eBay sales in the last 90 days",""],
+ ["h470","a9","Brother CS7000X sewing machine",150,200,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Brother%20CS7000X%20sewing%20machine&LH_Sold=1&LH_Complete=1","10 eBay sales in the last 90 days","cs-7000x cs7000x"],
+ ["h472","a9","Singer Heavy Duty 4423",100,155,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Singer%20Heavy%20Duty%204423&LH_Sold=1&LH_Complete=1","18 eBay sales in the last 90 days","duty-4423 duty4423"],
+ ["h474","f5","Bowflex SelectTech 552",25,76,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Bowflex%20SelectTech%20552&LH_Sold=1&LH_Complete=1","15 eBay sales in the last 90 days",""],
+ ["h476","f5","Bowflex SelectTech 1090",25,64,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Bowflex%20SelectTech%201090&LH_Sold=1&LH_Complete=1","14 eBay sales in the last 90 days",""],
+ ["h478","f5","PowerBlock Elite",145,305,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=PowerBlock%20Elite&LH_Sold=1&LH_Complete=1","14 eBay sales in the last 90 days",""],
+ ["h480","a10","Dyson V8",40,128,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Dyson%20V8&LH_Sold=1&LH_Complete=1","10 eBay sales in the last 90 days",""],
+ ["h482","a10","Dyson V10",85,219,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Dyson%20V10&LH_Sold=1&LH_Complete=1","12 eBay sales in the last 90 days","v-10 v10"],
+ ["h484","a10","Dyson V11",124,290,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Dyson%20V11&LH_Sold=1&LH_Complete=1","13 eBay sales in the last 90 days","v-11 v11"],
+ ["h486","a10","Dyson V15",105,334,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Dyson%20V15&LH_Sold=1&LH_Complete=1","6 eBay sales in the last 90 days","v-15 v15"],
+ ["h488","t3","DeWalt DWE402",45,60,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=DeWalt%20DWE402&LH_Sold=1&LH_Complete=1","8 eBay sales in the last 90 days","dwe-402 dwe402"],
+ ["h490","t3","DeWalt DCG413",70,110,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=DeWalt%20DCG413&LH_Sold=1&LH_Complete=1","9 eBay sales in the last 90 days","dcg-413 dcg413"],
+ ["h492","t3","Makita 9557PB",55,65,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Makita%209557PB&LH_Sold=1&LH_Complete=1","9 eBay sales in the last 90 days",""],
+ ["h494","h4","Browning Strike Force",55,72,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Browning%20Strike%20Force&LH_Sold=1&LH_Complete=1","8 eBay sales in the last 90 days",""],
+ ["h496","h4","Browning Dark Ops",39,60,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Browning%20Dark%20Ops&LH_Sold=1&LH_Complete=1","10 eBay sales in the last 90 days",""],
+ ["h498","h4","Stealth Cam Fusion X",29,36,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Stealth%20Cam%20Fusion%20X&LH_Sold=1&LH_Complete=1","12 eBay sales in the last 90 days",""],
+ ["h500","h4","Spypoint Flex",39,70,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Spypoint%20Flex&LH_Sold=1&LH_Complete=1","6 eBay sales in the last 90 days",""],
+ ["h502","h4","Spypoint Link Micro",26,45,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Spypoint%20Link%20Micro&LH_Sold=1&LH_Complete=1","11 eBay sales in the last 90 days",""]
 ];
 /* =================================================================================== */
 
@@ -6396,7 +6522,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0924.1137";
+const APP_BUILD="0924.1201";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -7078,6 +7204,53 @@ let findBusy=false, findMsg="", findAgain=false;
  *
  * Refusing is not a smaller answer than a wrong one. The manual buttons
  * for the right source are already on the screen. */
+/* WHAT EBAY CANNOT PRICE, MEASURED ONE AISLE AT A TIME.
+   Every entry here is a harvest result, not a hunch. The rule is the
+   one the harvest prints at the end of a run: a model counts as clean
+   only if it is built on sold prices, lands inside the sanity band, and
+   its quartiles are within 3x - and an aisle that cannot clear a
+   quarter of its models is an aisle where the search is returning
+   accessories. Under that rule these came back:
+
+     outboard 9.9-25hp   0/12      chest freezer     0/3
+     air compressor 60g  0/5       window AC         0/3
+     refrigerator        0/5       weight bench      0/5
+     home gym / rack     0/8       MIG welder      1/10
+     dryer               0/4       pressure washer  1/7
+     rolling tool box    0/6       elliptical       1/6
+     designer jewelry    0/5       washer           1/5
+     television         0/16       treadmill       2/10
+
+   The pattern is physical, not technical: none of these ship for less
+   than they are worth, so eBay lists their parts. A NordicTrack search
+   returns belts that really did sell, eight of them, at $35 - genuine
+   sales of the wrong object. Designer jewellery fails for the opposite
+   reason: the searches came back with nothing usable at all.
+
+   A few of these still have a book row, from the one or two models that
+   DID return clean sold data. That is not a contradiction - a
+   researched figure is worth keeping; it is the live lookup that is a
+   bad bet, and the lookup is what this switches off. */
+const EBAY_CANNOT_ITEM={
+  e1:"A television does not ship, so eBay has almost no used ones sold \u2014 19 models were tried and one came back priceable. What is listed is remotes, stands and boards. Price it off Facebook Marketplace locally, your own sales and the shelf record.",
+  p4:"A mower does not ship, so eBay lists deck belts and spindles rather than machines. Price it off your own sales and the shelf record.",
+  p5:"A mower does not ship, so eBay lists deck belts and spindles rather than machines. Price it off your own sales and the shelf record.",
+  h9:"An outboard does not ship, so eBay lists props, carbs and cowlings \u2014 none of twelve motors came back priceable. Price it off local listings and your own sales.",
+  t5:"A 60-gallon compressor is freight, so eBay lists pumps, motors and pressure switches rather than machines. Price it locally.",
+  a2:"A fridge does not ship, so eBay lists shelves, handles and ice makers. Price it locally and off the shelf record.",
+  a3:"A washer does not ship, so eBay lists lids, pumps and control boards. Price it locally.",
+  a4:"A dryer does not ship, so eBay lists heating elements, belts and timers. Price it locally.",
+  a6:"A chest freezer does not ship, so eBay lists lids and thermostats. Price it locally.",
+  a7:"A window unit does not ship, so eBay lists filters, remotes and control boards. Price it locally.",
+  f1:"A treadmill does not ship, so eBay lists belts, motors and consoles \u2014 and they really do sell, which is why the number looks plausible and is wrong. Price it locally.",
+  f3:"An elliptical does not ship, so eBay lists pedals, consoles and resistance motors. Price it locally.",
+  f4:"A weight bench does not ship for less than it is worth, so eBay lists pads and pins. Price it locally.",
+  f6:"A rack does not ship, so eBay lists J-cups, pins and attachments. Price it locally.",
+  t6:"A welder is heavy, so eBay lists guns, tips, liners and regulators \u2014 one of ten machines came back priceable. Price it locally.",
+  t7:"A rolling tool box does not ship, so eBay lists drawer slides, latches and liners. Price it locally.",
+  p6:"A pressure washer mostly does not ship, so eBay lists wands, hoses, pumps and nozzles. Price it locally.",
+  j3:"Designer jewellery came back with nothing usable across five makers \u2014 the names are too broad and the pieces too varied for a search to mean anything. Price it by metal weight and stone, and check the maker's own resale pages."
+};
 const EBAY_CANNOT={
   guns:"eBay does not sell firearms, so a search for one comes back as parts — latches, barrels, stocks. Use the GunBroker and GunWatcher buttons above: completed auctions there are the real comp.",
   rolling:"Nobody ships a quad, a side-by-side or a golf cart, so eBay only ever lists their parts. Price it off your own sales and what the dealers near you are asking."
@@ -7085,25 +7258,8 @@ const EBAY_CANNOT={
 function ebayBlind(x){
   const cat=x&&x.cat?x.cat.id:st.catId;
   if(EBAY_CANNOT[cat])return EBAY_CANNOT[cat];
-  /* Riding mowers and zero-turns sit in outdoor power beside the things
-     eBay CAN price, so they are named by item rather than by category. */
   const id=x&&x.item?x.item.id:st.itemId;
-  if(id==="p4"||id==="p5")return "A mower does not ship, so eBay lists deck belts and spindles rather than machines. Price it off your own sales and the shelf record.";
-  /* A TELEVISION DOES NOT SHIP EITHER, AND IT HAS BEEN MEASURED TWICE.
-     Nineteen models were put through the sold-price source on 23 Sep and
-     again on 24 Sep after the parts vocabulary learned electronics words:
-     ONE of the nineteen came back with enough used sales to price on. The
-     vocabulary fix was real and it is what put eight laptops in the book
-     on the same run - it just does not help here, because the problem is
-     not that the search returns parts. It is that a 55-inch screen costs
-     more to ship than it is worth, so almost nobody sells one on eBay and
-     there is nothing to find.
-
-     What survives the filter is worse than nothing: a Vizio M55Q6 search
-     comes back at a $12 median, which is a remote control. So the desk
-     stops paying for the lookup and says why. */
-  if(id==="e1")return "A television does not ship, so eBay has almost no used ones sold \u2014 19 models were tried and one came back priceable. What is listed is remotes, stands and boards. Price it off Facebook Marketplace locally, your own sales and the shelf record.";
-  return "";
+  return EBAY_CANNOT_ITEM[id]||"";
 }
 async function priceFind(signal,all){
   if(findBusy||!CAP.sample)return;

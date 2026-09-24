@@ -151,6 +151,64 @@ console.log("\n  the firearms branch");
   await page.close();
 }
 
+/* THE AUTOMATIC LOOKUP ONLY EVER RAN AFTER A PHOTO.
+   autoPriceAfterPhoto was the only thing that started a search on its
+   own, so the camera path got live sold prices and the path everybody
+   uses - type it, pick it - got the book figure and a button to press.
+   It fires on a pick now, and the gate is the whole design: a make AND a
+   model, because "laptop" as a query comes back as screens and
+   batteries, and because one lookup per keystroke would eat a
+   2,000-a-month quota in an afternoon.
+
+   Counting the calls, not reading the conditions: the first version of
+   this check read the gate's inputs and called that a pass, which proves
+   the gate is reachable and nothing about whether it fires. */
+console.log("\n  the lookup starts itself when the desk knows exactly what it is");
+{
+  const page = await browser.newPage({viewport:{width:1280, height:900}});
+  await page.goto(BASE + "/index.html", {waitUntil:"networkidle"});
+  const r = await page.evaluate(async () => {
+    const out = {};
+    window.CAP = window.CAP || {};
+    CAP.sample = {json: async () => ({}), limits: async () => ({})};
+    /* The trigger defers through setTimeout(...,0). The first version of
+       this check installed a spy, picked, and pulled the spy back out in
+       the same synchronous breath - so the call landed after the spy had
+       gone and every count read 0, including the one that should fire.
+       The spy stays in place for the whole run and each pick is given a
+       turn of the event loop to land. */
+    let fired = 0;
+    window.priceFind = async () => { fired++; return null; };
+    const settle = () => new Promise(res => setTimeout(res, 60));
+    const run = async (q, kind) => {
+      const before = fired;
+      Object.assign(st, {picked:false, market:null, mpPin:null, brandTyped:"", model:"",
+                         bookName:"", condSet:false, omniDone:""});
+      const R = omniRows(q) || {};
+      const row = (R.rows || []).find(x => x.kind === kind) ||
+                  (R.rows || []).find(x => ["mp","book","item"].includes(x.kind));
+      if (row) omniPick(row);
+      await settle();
+      return {fired: fired - before, brand: st.brandTyped, model: st.model};
+    };
+    out.named = await run("dewalt dcd791", "mp");
+    out.bare  = await run("sony laptop", "item");
+    out.tv    = await run("samsung tv", "item");
+    /* the same model twice must not pay twice */
+    out.again = await run("dewalt dcd791", "mp");
+    return out;
+  });
+  ok(r.named.fired === 1,
+     `a named model starts one lookup — got ${r.named.fired} (${r.named.brand} ${r.named.model})`);
+  ok(r.bare.fired === 0,
+     `a bare category starts none, the query would be "laptop" — got ${r.bare.fired}`);
+  ok(r.tv.fired === 0,
+     `a television starts none, eBay is blind to it — got ${r.tv.fired}`);
+  ok(r.again.fired === 0,
+     `and the same model picked twice does not pay twice — got ${r.again.fired}`);
+  await page.close();
+}
+
 await browser.close();
 console.log(fails ? "\n  " + fails + " FAILED\n" : "\n  all passed\n");
 process.exit(fails ? 1 : 0);
