@@ -816,45 +816,10 @@
     *,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important}
   }
 
-  /* ══ THE RAIL ═════════════════════════════════════════════════════════
-     The desk's hero. One dial, the partner figure beside it, the working
-     underneath - the same hierarchy the phone got, at desk size. It used
-     to be .pinStrip in a narrow column: a flex ROW of six equals forced
-     into a hierarchy it was never built for, which is how a 40px buy
-     price and a 14px fee ended up sharing a flexbox. */
-  .rail0{padding:15px 16px 16px}
-  .rail0.thin{border-color:color-mix(in srgb,var(--bad) 45%,var(--line))}
-  .rHead{display:flex;align-items:center;justify-content:space-between;gap:10px}
-  .rHead .pinLab{margin:0}
-  .rDial{margin:2px 0 0}
-  /* The arc stops at 270 degrees; pull the next thing into the gap. */
-  .rDial .gwrap{max-width:min(236px,84%)}
-  .rDial svg{margin-bottom:-12%}
-  .rDial .gcenter b{font-size:clamp(40px,3.3vw,54px)}
-  .rDial .gdash{font-size:.5em;color:var(--ink-3);position:relative;top:-.12em}
-  .rDial.bad .gcenter b,.rDial.bad .gcenter .gl{color:var(--bad-ink)}
-  /* The second decision. Not a tile - tiles are the arithmetic, and this
-     is the other half of what gets said out loud, so it keeps its own
-     line and a rule under the dial. */
-  .rLend{display:flex;align-items:baseline;justify-content:space-between;gap:10px;
-    padding:11px 2px 12px;border-top:1px solid var(--line);
-    border-bottom:2px solid color-mix(in srgb,var(--accent) 45%,transparent)}
-  .rLend span{font-family:var(--mono);font-size:11px;letter-spacing:.11em;
-    text-transform:uppercase;color:var(--ink-2)}
-  .rLend b{font-family:var(--disp);font-size:34px;font-weight:800;letter-spacing:-.04em;
-    color:var(--ink);font-variant-numeric:tabular-nums;line-height:1}
-  .rail0.thin .rLend b{font-size:24px;color:var(--bad-ink)}
-  .rail0.thin .rLend{border-bottom-color:color-mix(in srgb,var(--bad) 50%,transparent)}
-  /* The working, in a well, in two columns, plainly subordinate. */
-  .rGrid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:11px}
-  .rTile{padding:8px 11px;border-radius:var(--r-xs);background:var(--well);
-    box-shadow:var(--well-sh);display:flex;flex-direction:column;gap:2px;min-width:0}
-  .rTile span{font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;
-    text-transform:uppercase;color:var(--ink-3);white-space:nowrap;overflow:hidden;
-    text-overflow:ellipsis}
-  .rTile b{font-family:var(--mono);font-size:15px;font-weight:600;color:var(--ink-2);
-    font-variant-numeric:tabular-nums}
-  .rail0 .pinNote{flex:none;min-width:0;margin-top:11px;font-size:12px;line-height:1.5}
+  /* The rail's old dial and its tiles lived here. Design A replaced
+     them with the hero card and icon rows, so the rules went with them
+     rather than sitting unreferenced - dead CSS is how the next person
+     spends an afternoon styling something nothing renders. */
 
   /* ══ THE DESK DOCK ════════════════════════════════════════════════════
      A column of places down the left, not a row of pills across the top.
@@ -920,3 +885,80 @@
     letter-spacing:-.02em;line-height:1.2}
   .kindTile span{font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;
     text-transform:uppercase;color:var(--ink-3)}
+
+  /* ══ THE WALLET ═══════════════════════════════════════════════════════
+     Design A, chosen from three live samples. The thing being priced is
+     a card: a vivid gradient panel carrying one enormous figure, a row
+     of circular actions directly beneath it, and everything else as an
+     icon-led row with the value right-aligned.
+
+     The gradient is darker than the sample's. White on #3B82F6 is 3.3:1
+     - fine for the 60px numeral, which is large text, and a fail for the
+     13px line under it. The fill ends at #1E40AF so every weight of text
+     on it clears 4.5:1, and check-contrast holds it there. */
+  :root{
+    --hero1:#2C63D6; --hero2:#1E3FA8;
+    --on-hero:#FFFFFF; --on-hero-2:rgba(255,255,255,.88);
+  }
+  .hero{position:relative;overflow:hidden;border-radius:var(--r);padding:20px 20px 17px;
+    background:linear-gradient(145deg,var(--hero1) 0%,var(--hero2) 78%);
+    box-shadow:0 18px 40px -20px rgba(30,63,168,.85),inset 0 1px 0 rgba(255,255,255,.28)}
+  .hero::after{content:"";position:absolute;right:-64px;top:-76px;width:224px;height:224px;
+    border-radius:50%;background:rgba(255,255,255,.09);pointer-events:none}
+  .hero>*{position:relative;z-index:1}
+  .heroWho{font:600 12.5px var(--sans);color:var(--on-hero-2)}
+  .heroWhat{font:800 20px var(--disp);color:var(--on-hero);letter-spacing:-.03em;
+    margin-top:2px;line-height:1.15}
+  .heroLab{font:500 11px var(--mono);letter-spacing:.16em;text-transform:uppercase;
+    color:var(--on-hero-2);margin-top:16px}
+  .heroBig{font:800 clamp(46px,15vw,62px) var(--disp);color:var(--on-hero);letter-spacing:-.05em;
+    line-height:.95;font-variant-numeric:tabular-nums;margin-top:2px}
+  .heroBig.bad{color:#FFD5DA}
+  .heroSub{font:500 13.5px var(--sans);color:var(--on-hero-2);margin-top:6px;line-height:1.45}
+  .heroBar{height:6px;border-radius:99px;background:rgba(0,0,0,.28);overflow:hidden;margin-top:12px}
+  .heroBar i{display:block;height:100%;border-radius:99px;background:#fff;min-width:4px;
+    transition:width .3s}
+  /* the circular actions */
+  .acts{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:9px;margin-top:17px}
+  .act{display:flex;flex-direction:column;align-items:center;gap:6px;border:none;background:none;
+    cursor:pointer;padding:0;color:var(--on-hero);transition:transform .12s}
+  .act:active{transform:scale(.93)}
+  .act i{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;font-style:normal;
+    background:rgba(255,255,255,.20);border:1px solid rgba(255,255,255,.30)}
+  .act i svg{width:20px;height:20px;fill:none;stroke:#fff;stroke-width:1.9;
+    stroke-linecap:round;stroke-linejoin:round}
+  .act span{font:600 11.5px var(--sans);color:var(--on-hero)}
+  .act:focus-visible{outline:2.5px solid #fff;outline-offset:3px;border-radius:12px}
+  .act[disabled]{opacity:.45;cursor:default}
+  /* icon-led rows: everything that is not the number */
+  .wSect{font:500 11px var(--mono);letter-spacing:.16em;text-transform:uppercase;
+    color:var(--ink-3);margin:18px 2px 9px}
+  .wRow{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--r-s);
+    background:var(--glass);border:1px solid var(--line);text-align:left;width:100%}
+  .wRow+.wRow{margin-top:7px}
+  button.wRow,a.wRow{cursor:pointer;color:inherit;text-decoration:none;transition:transform .12s}
+  button.wRow:hover,a.wRow:hover{transform:translateY(-1px)}
+  .wRow>i{width:40px;height:40px;flex:none;border-radius:13px;display:grid;place-items:center;
+    background:var(--g2);font-style:normal}
+  .wRow>i svg{width:19px;height:19px;fill:none;stroke:var(--accent-ink);stroke-width:1.8;
+    stroke-linecap:round;stroke-linejoin:round}
+  .wRow .t{flex:1;min-width:0}
+  .wRow .t b{display:block;font:700 14.5px var(--sans);color:var(--ink)}
+  .wRow .t span{display:block;font:400 12.5px var(--sans);color:var(--ink-3);margin-top:1px;
+    line-height:1.4}
+  .wRow .v{font:800 17px var(--disp);color:var(--ink);letter-spacing:-.02em;
+    font-variant-numeric:tabular-nums;text-align:right;flex:none}
+  .wRow .v small{display:block;font:500 10px var(--mono);letter-spacing:.1em;
+    text-transform:uppercase;color:var(--ink-3)}
+  .wBar{height:5px;border-radius:99px;background:var(--well);overflow:hidden;margin-top:7px}
+  .wBar i{display:block;height:100%;border-radius:99px;background:var(--accent)}
+  .wBar i.warn{background:var(--warn)} .wBar i.none{background:transparent}
+
+  /* The desk's hero: same card, wider, and the actions get room to
+     breathe because there are three of them rather than four. */
+  .deskHero{padding:18px 18px 16px}
+  .deskHero .heroBig{font-size:clamp(44px,3.4vw,58px)}
+  .deskHero .acts{grid-auto-columns:1fr;gap:8px;margin-top:15px}
+  .rail0{display:none}
+  .railNote{margin-top:11px;font-size:12px;line-height:1.5;color:var(--ink-3)}
+  #view.item.railed .rail .wRow{margin-top:8px}

@@ -53,6 +53,14 @@ const PAIRS = [
   ["figure in a rail tile",      "--ink-2",     ["--well","--glass"],   4.5],
   ["the anchor numeral",         "--ink",       ["--glass"],            3.0],
   ["hairline between rows",      "--line",      ["--glass"],            1.2],
+  /* The wallet hero is a saturated fill, not glass: white type sits
+     straight on it. The sample's gradient topped out at #3B82F6, where
+     white is 3.3:1 - fine for a 60px numeral and a fail for the 13px
+     line under it. Both ends of the gradient are checked. */
+  ["text on the hero card, light end", "--on-hero",   ["--hero1"],        4.5],
+  ["text on the hero card, dark end",  "--on-hero",   ["--hero2"],        4.5],
+  ["hero sub-line, light end",         "--on-hero-2", ["--hero1"],        4.5],
+  ["hero sub-line, dark end",          "--on-hero-2", ["--hero2"],        4.5],
 ];
 
 const browser = await chromium.launch({executablePath: EXE});

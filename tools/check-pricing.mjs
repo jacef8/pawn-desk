@@ -226,7 +226,11 @@ console.log("\n  the meter reaches every screen");
     st.mode="item"; st.catId=c.id; st.itemId="t1"; st.picked=true; st.condSet=true;
     st.market={kind:"found", key:mkKey(), n:12, med:110, lo:95, hi:130, sold:9, conf:"h", mid:110};
     render();
-    return document.querySelectorAll(".wCard").length;
+    /* The meter moved when the wallet design went in: on the phone it
+       is the bar inside the evidence row rather than its own card. It
+       is the same measurement, so this counts either shape - what must
+       never happen is neither. */
+    return document.querySelectorAll(".wCard, .wRow .wBar").length;
   });
   ok(n >= 1, "phone shows the meter, got " + n);
   await ph.close();
@@ -361,7 +365,14 @@ console.log("\n  a row too thin to buy is too thin to lend on");
   });
   ok(r.thin, "a wheelbarrow at $28 resale against a $25 floor is too thin");
   ok(r.lend <= r.buy, "  its loan does not exceed its buy price — buy $" + r.buy + ", lend $" + r.lend);
-  ok(/Walk away/.test(r.pin) && !/Lend him\s*\$/.test(r.pin),
+  /* Case-insensitive since the wallet design went in: the hero's label
+     is uppercased by CSS and the row labels are sentence case, so the
+     exact casing is a styling detail. The substance is unchanged and is
+     the half that matters - it must SAY walk away, and it must not
+     quote a loan figure. The thin rail reads "Lend him / 60-day pawn
+     loan / —", which is the right answer: the row stays so the layout
+     does not jump, and there is no number in it. */
+  ok(/Walk away/i.test(r.pin) && !/Lend him\s*\$/i.test(r.pin),
      "  the numbers strip says walk away rather than naming a loan");
   ok(/Walk away/.test(r.ticket), "  and so does the loan card");
   ok(!/on purpose/.test(r.pin),
@@ -501,7 +512,7 @@ console.log("\n  the loan card does not repeat the rail");
   };
   const wide = await look(1400), narrow = await look(900);
   ok(wide.rail === true && narrow.rail === false, "the rail shows wide and not narrow");
-  ok(/LEND HIM/.test(wide.pin) && /BUY IT FOR/.test(wide.pin),
+  ok(/LEND HIM/i.test(wide.pin) && /BUY IT FOR/i.test(wide.pin),
      "  wide, the rail carries the loan and the buy price");
   ok(!/LOW LOAN/.test(wide.txt) && !/SUGGESTED LOAN/.test(wide.txt) && !/TOP LOAN/.test(wide.txt),
      "  so the card drops the three range tiles");

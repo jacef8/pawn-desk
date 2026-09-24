@@ -1011,25 +1011,46 @@ function pinHTML(x){
    is how the old one ended up with a 40px buy price and a 14px fee
    sharing a flexbox. */
 function railHTML(x){
+  /* THE DESK GETS THE SAME HERO, OR IT IS NOT ONE APP.
+     The rail used to be a dial with the loan under it. Design A puts
+     the offer on a saturated card with the things you can do to it
+     underneath, and the desk has more room for that than the phone
+     does, not less. Same component, same order, same words. */
   const thin=x.buyTooThin;
-  const tile=(l,v)=>`<div class="rTile"><span>${l}</span><b>${v}</b></div>`;
-  return `<div class="card rail0${thin?" thin":""}">
-    <div class="rHead"><span class="pinLab">The numbers</span>
-      <button class="pinNew" id="pinNew" type="button" title="Clear this item and start the next one. Your rates, shelf record, listings and deal log are kept.">Start over</button></div>
-    <div class="rDial${thin?" bad":""}">${thin
-      ? gauge(1,"Walk away",'<span class="gdash">&mdash;</span>',"it will not clear "+money(x.buyFloor),"gpd")
-      : gauge(1,"Buy it for",money(x.buy),"","gpd")}</div>
-    <div class="rLend"><span>${thin?"Not worth lending":"Lend him"}</span><b>${thin?"Walk away":money(x.target)}</b></div>
-    <div class="rGrid">
-      ${tile(x.handSet?"Resale, yours":"Resale, "+esc(COND_WORDS[st.cond][0].toLowerCase()),money(x.resale))}
-      ${tile("Your cushion",money(x.margin))}
-      ${tile("Fee / 30 days",money(x.charge))}
-      ${tile("Loan \u00f7 resale",x.ltv+"%")}
+  const I={
+    look:'<circle cx="11" cy="11" r="7"/><path d="M16 16l5 5"/>',
+    log :'<path d="M5 4h11l3 3v13H5z"/><path d="M9 9h6M9 13h6"/>',
+    add :'<path d="M12 5v14M5 12h14"/>',
+    ev  :'<path d="M3 17l5-6 4 4 5-7 4 5"/>',
+    lend:'<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>',
+    math:'<path d="M4 18V9M10 18V5M16 18v-6M2 21h20"/>'
+  };
+  const canLook=!!(CAP.sample&&!ebayBlind(x));
+  const act=(id,label,icon,on)=>`<button class="act" data-dact="${id}"${on?"":" disabled"}>`
+    +`<i><svg viewBox="0 0 24 24" aria-hidden="true">${icon}</svg></i><span>${label}</span></button>`;
+  return `<div class="hero deskHero${thin?" bad":""}">
+      <div class="heroWho">On the counter</div>
+      <div class="heroWhat">${esc(displayName(x))}</div>
+      <div class="heroLab">${thin?"Walk away":"Buy it for"}</div>
+      <div class="heroBig${thin?" bad":""}">${thin?"&mdash;":money(x.buy)}</div>
+      <div class="heroSub">${thin
+        ? "It will not clear the "+money(x.buyFloor)+" you want out of it."
+        : "Lend him <b>"+money(x.target)+"</b> \u00b7 resells "+money(Math.round(x.resale))}</div>
+      <div class="acts">
+        ${act("look","Look up",I.look,canLook)}
+        ${act("log","Log it",I.log,true)}
+        ${act("new","Another",I.add,true)}
+      </div>
     </div>
-    <div class="pinNote">${x.checked?"":`<b style="color:var(--warn-ink)">Estimate \u2014 nothing looked up yet.</b> `}${thin
-      ? `It doesn\u2019t sell for enough to clear the ${money(x.buyFloor)} you want out of it \u2014 not as a buy, and not as a loan you end up owning.`
-      : `Range ${money(x.low)}&ndash;${money(x.high)}. Never above the top.`}${x.buy===x.target&&!x.lendCapped&&!thin?` Buy and lend match in ${esc(x.cat.label.toLowerCase())} on purpose \u2014 ${esc(BUY_WHY[x.cat.id]||"")}.`:""}</div>
-  </div>`;
+    <div class="wRow"><i><svg viewBox="0 0 24 24" aria-hidden="true">${I.lend}</svg></i>
+      <div class="t"><b>Lend him</b><span>60-day pawn loan</span></div>
+      <div class="v">${thin?"&mdash;":money(x.target)}</div></div>
+    <div class="wRow"><i><svg viewBox="0 0 24 24" aria-hidden="true">${I.math}</svg></i>
+      <div class="t"><b>Your cushion</b><span>fee ${money(x.charge)} \u00b7 loan \u00f7 resale ${x.ltv}%</span></div>
+      <div class="v">${money(x.margin)}</div></div>
+    <div class="pinNote railNote">${x.checked?"":`<b style="color:var(--warn-ink)">Estimate \u2014 nothing looked up yet.</b> `}${thin
+      ? `Not worth buying, and not worth lending on either.`
+      : `Range ${money(x.low)}&ndash;${money(x.high)}. Never above the top.`}</div>`;
 }
 /* HOW MUCH IS BEHIND THE NUMBER.
    The desk has always known this and said it in one line of small grey type:
@@ -1100,8 +1121,11 @@ function weightHTML(x){
        said "nothing" about work that is the entire reason the row has a
        number. It says which day the figure is from and leaves it there. */
     return card("Desk price list",c[2],bar(c[0],c[1]),
+      /* "<source> prices for X" reads as "Underpriced prices" when the
+         source is a site called Underpriced. The source is a clause,
+         not an adjective. */
       (m.mine?"Your own figure off the master sheet for <b>"+esc(m.name||"this model")+"</b>, "
-             :"<b>"+esc(srcName(m.src))+"</b> prices for <b>"+esc(m.name||"this model")+"</b>, ")
+             :"From <b>"+esc(srcName(m.src))+"</b>, for <b>"+esc(m.name||"this model")+"</b>, ")
       +"as of "+esc(fmtDay(m.date))+". Not re-checked since.");
   }
 
@@ -2230,6 +2254,13 @@ function wireItem(){
     const d=document.getElementById(id); if(d)d.ontoggle=()=>{ st[key]=d.open; };
   }
   /* A worked example is only worth showing if pressing it works. */
+  v.querySelectorAll("[data-dact]").forEach(b=>b.onclick=()=>{
+    const a=b.dataset.dact;
+    if(a==="look"){ try{ priceFind(null,true); }catch(e){} return; }
+    if(a==="log"){ st.mode="log"; render(); return; }
+    if(a==="new"){ const n=document.getElementById("pinNew"); if(n)n.click();
+                   else { st.picked=false; st.omniDone=""; st.market=null; render(); } return; }
+  });
   v.querySelectorAll("[data-try]").forEach(b=>b.onclick=()=>{
     const inp=document.getElementById("omniIn"); if(!inp)return;
     inp.value=b.dataset.try;
@@ -6522,7 +6553,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0924.1201";
+const APP_BUILD="0924.1245";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

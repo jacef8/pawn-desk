@@ -262,6 +262,24 @@ function phoneBoot(){
       _wire.apply(this,arguments);
       const more=document.getElementById("snapMore");
       if(more)more.onclick=()=>{ st.snapDetail=true; render(); };
+      /* The hero's four circular actions, and the evidence row, which is
+         the same "look it up" in a different shape. */
+      document.querySelectorAll("[data-whome]").forEach(btn=>btn.onclick=()=>{
+        const a=btn.dataset.whome;
+        if(a==="snap"){ const c=document.getElementById("photoCam"); if(c)c.click(); return; }
+        if(a==="gold"){ st.mode="metal"; render(); return; }
+        if(a==="log"){ st.mode="log"; render(); return; }
+        if(a==="type"){ const i2=document.getElementById("omniIn");
+                        if(i2){ i2.focus(); try{ i2.scrollIntoView({block:"center"}); }catch(e){} } return; }
+      });
+      document.querySelectorAll("[data-wact]").forEach(btn=>btn.onclick=()=>{
+        const a=btn.dataset.wact;
+        if(a==="look"){ try{ priceFind(null,true); }catch(e){} return; }
+        if(a==="more"){ st.snapDetail=true; render(); return; }
+        if(a==="new"){ const b2=document.getElementById("pinNew"); if(b2)b2.click();
+                       else { st.picked=false; st.omniDone=""; st.market=null; render(); } return; }
+        if(a==="log"){ st.mode="log"; render(); return; }
+      });
       /* Naming what is missing and leaving the counter to find it was the
          bug. The same tap that reads the sentence opens the screen the
          answers live on. */
@@ -380,12 +398,55 @@ function snapHTML(){
   /* Read, but not placed: say what was seen rather than showing an empty
      camera screen as though nothing had happened. */
   const un=st.photoRead&&st.photoRead.unplaced?st.photoRead:null;
-  if(!has) return `<div class="snapWrap">${cam}
-    ${un?snapHelpHTML(un):""}
-    ${snapShelfHTML()}
-    <div class="snapOr">or type what it is</div>${omniHTML()}
-    <div class="snapTip">Fill the frame \u2014 a model plate or a label beats the whole object in shot.</div>
-  </div>`;
+  /* THE FRONT PAGE IS A BALANCE SCREEN.
+     Same shape as the item screen, because that is what makes it one
+     app: a hero carrying today's one number, the four things you can
+     start, then a feed of what has actually been priced. It used to be
+     a camera button, a search box and a tip, with the bottom two thirds
+     of the screen empty - the complaint that started this redesign. */
+  if(!has){
+    const today=(typeof todayStr==="function")?todayStr():"";
+    const mine=(typeof DEALS!=="undefined"&&DEALS.length)
+      ? DEALS.filter(d=>!today||d.day===today).slice(0,4) : [];
+    const out=mine.reduce((a,d)=>a+(Number(d.loan)||0),0);
+    const gold=(typeof spotOf==="function")?spotOf("gold"):0;
+    const silver=(typeof spotOf==="function")?spotOf("silver"):0;
+    const I={
+      cam:'<rect x="3" y="7" width="18" height="13" rx="3"/><circle cx="12" cy="13.4" r="3.4"/><path d="M8 7l1.6-3h4.8L16 7"/>',
+      look:'<circle cx="11" cy="11" r="7"/><path d="M16 16l5 5"/>',
+      gold:'<circle cx="12" cy="12" r="8"/><path d="M12 7.6v8.8M9.8 10h4a1.9 1.9 0 010 3.8h-3.6a1.9 1.9 0 000 3.8h4"/>',
+      log :'<path d="M5 4h11l3 3v13H5z"/><path d="M9 9h6M9 13h6"/>',
+      tag :'<path d="M3 11.5V4.5A1.5 1.5 0 014.5 3h7L21 12.5 12.5 21 3 11.5Z"/><circle cx="7.6" cy="7.6" r="1.2"/>'
+    };
+    const A=(id,l,ic,on)=>`<button class="act" data-whome="${id}"${on?"":" disabled"}>`
+      +`<i><svg viewBox="0 0 24 24" aria-hidden="true">${ic}</svg></i><span>${l}</span></button>`;
+    return `<div class="snapWrap">
+      <div class="hero">
+        <div class="heroWho">${esc(fmtDay(today)||"Today")}</div>
+        <div class="heroWhat">Nothing on the counter</div>
+        <div class="heroLab">Gold, per troy ounce</div>
+        <div class="heroBig">${gold?money(Math.round(gold)):"\u2014"}</div>
+        <div class="heroSub">${silver?"Silver "+money(Math.round(silver*100)/100)+" \u00b7 ":""}${mine.length
+          ? mine.length+" logged today \u00b7 "+money(out)+" out"
+          : "nothing logged yet today"}</div>
+        <div class="acts">
+          ${A("snap","Snap it",I.cam,!!(CAP.sample&&CAP.images))}
+          ${A("type","Type it",I.look,true)}
+          ${A("gold","Gold",I.gold,true)}
+          ${A("log","Log",I.log,true)}
+        </div>
+      </div>
+      ${un?snapHelpHTML(un):""}
+      ${omniHTML()}
+      ${mine.length?`<div class="wSect">Priced today</div>`
+        +mine.map(d=>`<div class="wRow"><i><svg viewBox="0 0 24 24" aria-hidden="true">${I.tag}</svg></i>
+          <div class="t"><b>${esc([d.brand,d.model,d.itemName].filter(Boolean).join(" "))||"Item"}</b>
+            <span>${esc(d.catLabel||"")}${d.ticket?" \u00b7 #"+esc(d.ticket):""}</span></div>
+          <div class="v">${money(d.loan||0)}<small>${d.status==="sold"?"sold":"lent"}</small></div></div>`).join("")
+        :`<div class="snapTip">Fill the frame \u2014 a model plate or a label beats the whole object in shot.</div>`}
+      ${snapShelfHTML()}
+    </div>`;
+  }
 
   /* A gated sheet means no price until it is worked - the phone must hold the
      same line the desk does, or the counter just uses the phone. */
@@ -417,72 +478,121 @@ function snapHTML(){
      obviously the way to fill it. */
   const q=(typeof askQueue==="function")?askQueue(x):[];
   const done=q.filter(z=>z.answered||z.optional).length;
-  /* A DIAL WITH A DASH IN IT IS A PLACEHOLDER TAKING 200 PIXELS.
-     Unpriced, the ring showed the run's progress with an em-dash at the
-     middle and two lines of mono that were wider than the ring's own
-     inner circle, so the words ran over the arc. It also pushed the
-     actual question off the screen behind a button reading "Answer them
-     - open the detail", which is a tap you should never have to make:
-     if the desk needs something, the field for it belongs here.
 
-     So the hierarchy follows the state. With no price the question is
-     the hero and progress is a slim bar over it. With a price the dial
-     comes back at full size, because then the number IS the screen. */
-  const anchor = !ready
-      ? `<div class="askBar"><span>${q.length?done+" of "+q.length+" answered":"nothing answered yet"}</span>
-           <i><b style="width:${q.length?Math.round(done/q.length*100):0}%"></b></i></div>`
+  /* ══ THE WALLET ═══════════════════════════════════════════════════
+     Design A, picked from three live samples. The thing being priced
+     IS a card: a saturated panel carrying one enormous figure, the
+     four things you can do to it as circular actions directly
+     beneath, and everything else - the evidence, the loan, the
+     arithmetic - as icon-led rows with the value on the right.
+
+     The hierarchy still follows the state, because that rule outlives
+     any skin: with no price the hero carries the item and how far
+     through the run you are, and the QUESTION comes first underneath,
+     inline, never behind a button. With a price the number is the
+     screen. */
+  const ICON={
+    look:'<circle cx="11" cy="11" r="7"/><path d="M16 16l5 5"/>',
+    log :'<path d="M5 4h11l3 3v13H5z"/><path d="M9 9h6M9 13h6"/>',
+    add :'<path d="M12 5v14M5 12h14"/>',
+    more:'<path d="M4 7h16M4 12h16M4 17h10"/>',
+    ev  :'<path d="M3 17l5-6 4 4 5-7 4 5"/>',
+    lend:'<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>',
+    math:'<path d="M4 18V9M10 18V5M16 18v-6M2 21h20"/>',
+    warn:'<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17.2v.1"/>'
+  };
+  const act=(id,label,icon,on)=>`<button class="act" data-wact="${id}"${on?"":" disabled"}>`
+    +`<i><svg viewBox="0 0 24 24" aria-hidden="true">${icon}</svg></i><span>${label}</span></button>`;
+  const canLook=!!(CAP.sample&&!ebayBlind(x));
+  const actions=`<div class="acts">
+    ${act("look",busy?"Looking\u2026":"Look up",ICON.look,canLook&&!busy)}
+    ${act("log","Log it",ICON.log,ready)}
+    ${act("new","Another",ICON.add,true)}
+    ${act("more","Detail",ICON.more,true)}
+  </div>`;
+
+  const hero = busy&&ready
+    ? `<div class="hero"><div class="heroWho">Checking what it sells for\u2026</div>
+        <div class="heroWhat">${esc(name)}${bits?" \u00b7 "+esc(bits):""}</div>
+        <div class="heroLab">Pay up to</div><div class="heroBig">${money(x.buy)}</div>
+        <div class="heroSub">${esc(findMsg||"Searching the sold pages\u2026")} The built-in number stands until it lands.</div>
+        ${actions}</div>`
+    : !ready
+    ? `<div class="hero"><div class="heroWho">On the counter</div>
+        <div class="heroWhat">${esc(name)}${bits?" \u00b7 "+esc(bits):""}</div>
+        <div class="heroLab">${q.length?done+" of "+q.length+" answered":"nothing answered yet"}</div>
+        <div class="heroSub" style="margin-top:4px">No price until the run is finished.</div>
+        <div class="heroBar"><i style="width:${q.length?Math.round(done/q.length*100):0}%"></i></div>
+        ${actions}</div>`
     : x.buyTooThin
-      ? gauge(1,"Walk away",'<span class="gdash">&mdash;</span>',"resells for "+money(Math.round(x.resale)),"gp")
-    : gauge(1,"Pay up to",money(x.buy),"","gp");
-  /* The question itself, inline, not a button that goes and finds it.
-     askHTML is the same component the detailed screen uses - the same
-     options, the same typing fields, the same dots and Back - so there
-     is nothing on the other screen that is not already here. */
-  const under = !ready ? (typeof askHTML==="function"?askHTML(x):"")
-    : x.buyTooThin ? `<div class="snapSub">Clearing the ${money(x.buyFloor)} you want leaves ${money(x.buy)} to offer \u2014 not worth buying, and not worth lending on either.</div>`
-    /* The two figures behind the offer, as a pair of stats under the dial
-       rather than a caption inside it. They were set inside the ring, where
-       at 390px wide they wrapped onto two lines and ran straight over the
-       arc - a sentence competing with the number it explains. Side by side
-       underneath, each gets its own label and neither touches the dial. */
-    : `<div class="snapStats">
-        <div><span>Resells for</span><b>${money(Math.round(x.resale))}</b></div>
-        <div><span>You make</span><b>${money(x.buyMargin)}</b></div>
-       </div>`;
-  const big = `<div class="snapAnchor${ready?"":" bare"}${x.buyTooThin&&ready?" bad":""}">${anchor}</div>${under}`;
+    ? `<div class="hero"><div class="heroWho">On the counter</div>
+        <div class="heroWhat">${esc(name)}${bits?" \u00b7 "+esc(bits):""}</div>
+        <div class="heroLab">Walk away</div>
+        <div class="heroBig bad">&mdash;</div>
+        <div class="heroSub">Clearing the ${money(x.buyFloor)} you want leaves ${money(x.buy)} to offer. Not worth buying, and not worth lending on.</div>
+        ${actions}</div>`
+    : `<div class="hero"><div class="heroWho">On the counter</div>
+        <div class="heroWhat">${esc(name)}${bits?" \u00b7 "+esc(bits):""}</div>
+        <div class="heroLab">Pay up to</div>
+        <div class="heroBig">${money(x.buy)}</div>
+        <div class="heroSub">Resells ${money(Math.round(x.resale))} \u00b7 you make ${money(x.buyMargin)}</div>
+        ${actions}</div>`;
+
+  /* The evidence row carries the meter the desk grew: how much is behind
+     the number, at a glance, without reading a sentence. */
+  const m=x.market, mk=m&&m.kind;
+  const evid=(()=>{
+    if(!m||!x.checked)
+      return {b:"Not looked up",s:"the desk's own starting point",pct:0,tone:"none"};
+    if(mk==="found"||mk==="harvest"){
+      const n=m.n||0,sold=m.sold||0,share=n?sold/n:0;
+      return {b:(m.from?esc(srcName(m.from)):"eBay")+" sold prices",
+              s:sold+" of "+n+" were sales",pct:Math.round(share*100),tone:share>=0.5?"":"warn"};
+    }
+    /* The headline is a verdict, never a hostname - "Underpriced prices"
+       was the same slip as the bare "Swappa", wearing a noun. */
+    if(mk==="list")return {b:"Desk price list",
+                           s:esc(srcName(m.src))+", as of "+esc(fmtDay(m.date))+" \u00b7 not re-checked",
+                           pct:m.conf==="h"?100:m.conf==="l"?28:62,tone:m.conf==="h"?"":"warn"};
+    return {b:"Checked",s:esc(checkedNote(x)),pct:100,tone:""};
+  })();
+
+  /* THE EVIDENCE ROW IS NOT GATED ON "IS THE RUN FINISHED".
+     check-pricing caught this once already and caught it again when the
+     wallet went in: an item can carry twelve looked-up sales while the
+     run is still asking about the battery, and hiding the weight of real
+     evidence is the opposite of the point. It shows as soon as anything
+     has been looked up. The loan and the arithmetic still wait for a
+     price, because until then there is no loan and no arithmetic. */
+  const evRow = (ready||x.checked) ? `
+    ${ready?`<div class="wSect">Behind this number</div>`:""}
+    <button class="wRow${ready?"":" tight"}" data-wact="look">
+      <i><svg viewBox="0 0 24 24" aria-hidden="true">${ICON.ev}</svg></i>
+      <div class="t"><b>${evid.b}</b>${ready?`<span>${evid.s}</span>`:""}
+        <div class="wBar"><i class="${evid.tone}" style="width:${Math.max(3,evid.pct)}%"></i></div></div>
+    </button>` : "";
+  const rows = ready ? `
+    <div class="wRow"><i><svg viewBox="0 0 24 24" aria-hidden="true">${ICON.lend}</svg></i>
+      <div class="t"><b>Lend him</b><span>60-day pawn loan</span></div>
+      <div class="v">${x.buyTooThin?"&mdash;":money(x.target)}</div></div>
+    <div class="wRow"><i><svg viewBox="0 0 24 24" aria-hidden="true">${ICON.math}</svg></i>
+      <div class="t"><b>Your cushion</b><span>fee ${money(x.charge)} \u00b7 loan \u00f7 resale ${x.ltv}%</span></div>
+      <div class="v">${money(x.margin)}</div></div>` : "";
 
   return `<div class="snapWrap${ready?" ready":""}">${cam}
-    <div class="snapName">${esc(name)}${bits?`<span>${esc(bits)}</span>`:""}</div>
-    ${busy&&ready?`<div class="snapCard busy"><div class="snapLab">Checking what it sells for\u2026</div>
-        <div class="snapBig dim">${money(x.buy)}</div>
-        <div class="snapSub">${esc(findMsg||"Searching the sold pages\u2026")} This is the built-in number until it lands \u2014 up to a minute, then it gives up and keeps this one.</div></div>`
-      :`<div class="snapCard${ready&&x.buyTooThin?" bad":""}">${big}
-        <div class="snapSrc">${!ready?"":priced?esc(nsSrcShort(x.market))
-          :(st.photoRead&&st.photoRead.webPrice
-             ? "Used ones on the web"+(st.photoRead.webPrice.where?" \u2014 "+esc(st.photoRead.webPrice.where):"")
-             :esc(checkedNote(x)))}</div></div>`}
-    ${/* The condition strip is one of the questions in the run, so while
-          the run is on screen it is asked there - a second copy of the
-          same five buttons underneath the card asking for them is how a
-          screen ends up not fitting. Once there is a price it comes back,
-          because then it is the one thing you change again and again as
-          you look the thing over. */""}
-    ${ready?`<div class="snapCond">${CONDITIONS.map(c=>`<button class="${st.condSet&&c.id===st.cond?"on":""}" data-cond="${c.id}">${c.label.replace("New in box","New")}</button>`).join("")}</div>`:""}
-    ${/* How much is behind that number. The desk grew this card and the
-          phone never got it, which is backwards: the phone is the one
-          carried to a yard sale, where a thin number and a solid one look
-          identical and only one of them is worth acting on.
-
-          The gate here is not "is the run finished" - that was wrong and
-          check-pricing said so. An item can have twelve looked-up sales
-          behind it while the run is still asking about the battery, and
-          hiding the weight of real evidence is the opposite of the point.
-          What waits is the EMPTY meter: "Not checked, nothing looked up",
-          which is not news while you are still answering. So: show it
-          once there is a price, or as soon as anything has been looked
-          up, whichever comes first. */""}
-    ${(ready||x.checked)&&typeof weightHTML==="function"?weightHTML(x):""}
-    ${camOff}${snapFootHTML()}
+    ${hero}
+    ${/* No price yet: the question is the first thing under the hero,
+          inline. askHTML is the same component the detailed screen uses,
+          so there is nothing over there that is not already here. */""}
+    ${!ready?`<div class="card wAsk">${typeof askHTML==="function"?askHTML(x):""}</div>`:""}
+    ${/* Condition is one of the questions while the run is on, so it is
+          asked there. Once priced it comes back as its own strip: it is
+          the one thing you change again and again as you look the thing
+          over. */""}
+    ${ready?`<div class="wSect">Shape it is in</div>
+      <div class="snapCond">${CONDITIONS.map(c=>`<button class="${st.condSet&&c.id===st.cond?"on":""}" data-cond="${c.id}">${c.label.replace("New in box","New")}</button>`).join("")}</div>`:""}
+    ${evRow}${rows}
+    ${camOff}
   </div>`;
 }
 function snapFootHTML(){

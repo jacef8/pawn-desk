@@ -205,3 +205,46 @@
     body.phone .snapWrap:not(.ready) .wBar{margin-top:6px;height:6px}
     body.phone .snapWrap:not(.ready) .snapName{font-size:18px}
   }
+
+  /* ---- the wallet on a phone ----------------------------------------
+     The hero is the whole top of the screen; the ask card underneath it
+     drops its own housing because the hero is already the container. */
+  body.phone .hero{padding:18px 18px 15px}
+  body.phone .wAsk{padding:14px 15px}
+  body.phone .wAsk .askCard{background:none;border:none;box-shadow:none;padding:0;margin:0;
+    -webkit-backdrop-filter:none;backdrop-filter:none}
+  body.phone .wAsk .askWhere{display:none}
+  body.phone .wAsk .askQ{font-size:21px;margin-top:0}
+  body.phone .wAsk .askOpts{gap:7px;margin-top:11px}
+  body.phone .wAsk .askOpt{padding:12px 14px}
+  body.phone .wAsk .askNav{margin-top:12px}
+  @media (max-height:800px){
+    body.phone .hero{padding:15px 16px 13px}
+    body.phone .heroBig{font-size:clamp(40px,13vw,52px)}
+    body.phone .acts{margin-top:13px}
+    body.phone .act i{width:42px;height:42px}
+    body.phone .wAsk .askQ{font-size:19px}
+    body.phone .wAsk .askOpt{padding:10px 13px}
+    body.phone .wSect{margin:13px 2px 7px}
+    body.phone .wRow{padding:10px 12px}
+    body.phone .wRow>i{width:36px;height:36px;border-radius:11px}
+    body.phone .snapWrap{gap:9px}
+    body.phone .snapCond button{padding:9px 2px}
+    body.phone .act span{font-size:11px}
+    body.phone .heroSub{font-size:12.5px}
+    body.phone .wRow .t b{font-size:14px}
+    body.phone .snapOff{padding:7px 10px}
+  }
+  /* Mid-run the evidence is a glance, not a paragraph: which source and
+     how much is behind it, in one line with its bar. The sentence and
+     the section heading wait until there is a price to attach them to. */
+  body.phone .wRow.tight{padding:8px 12px}
+  body.phone .wRow.tight>i{width:32px;height:32px;border-radius:10px}
+  body.phone .wRow.tight .t b{font-size:13px}
+  body.phone .wRow.tight .wBar{margin-top:5px;height:4px}
+  /* Mid-run the hero is carrying progress AND the item, so it gives up
+     the actions: Look-up is the evidence row directly under it, Another
+     and Detail are in the run's own Back/Skip, and there is nothing to
+     log until there is a price. They come back the moment there is one. */
+  body.phone .snapWrap:not(.ready) .hero .acts{display:none}
+  body.phone .snapWrap:not(.ready) .hero{padding-bottom:16px}
