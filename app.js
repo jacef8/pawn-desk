@@ -7449,7 +7449,17 @@ const EBAY_CANNOT_ITEM={
   t6:"A welder is heavy, so eBay lists guns, tips, liners and regulators \u2014 one of ten machines came back priceable. Price it locally.",
   t7:"A rolling tool box does not ship, so eBay lists drawer slides, latches and liners. Price it locally.",
   p6:"A pressure washer mostly does not ship, so eBay lists wands, hoses, pumps and nozzles. Price it locally.",
-  j3:"Designer jewellery came back with nothing usable across five makers \u2014 the names are too broad and the pieces too varied for a search to mean anything. Price it by metal weight and stone, and check the maker's own resale pages."
+  j3:"Designer jewellery came back with nothing usable across five makers \u2014 the names are too broad and the pieces too varied for a search to mean anything. Price it by metal weight and stone, and check the maker's own resale pages.",
+  /* 24 Sep: the harvest priced 51 saws, trimmers and blowers and got ONE
+     clean row out of them. Not because the numbers looked mad \u2014 they looked
+     plausible \u2014 but because every single one came back with zero sold
+     listings. eBay reported one used sale across the whole aisle in 90
+     days, so the figures were asking prices on bars, chains, carburettors
+     and recoil starters. A Husqvarna 460 spanned $133 to $400 inside one
+     search: whole saws mixed with parts. */
+  p1:"A saw is cheap to buy new and expensive to ship, so eBay lists bars, chains, carburettors and recoil starters \u2014 32 models came back, not one of them on a real sale. Price it off the shelf record and what the dealers in town are asking.",
+  p2:"A trimmer does not ship, so eBay lists heads, spools, shafts and carburettors. One of seven models came back priceable. Price it locally.",
+  p3:"A backpack blower does not ship, so eBay lists tubes, elbows, straps and carburettors \u2014 twelve models, not one clean row. Price it locally."
 };
 const EBAY_CANNOT={
   guns:"eBay does not sell firearms, so a search for one comes back as parts — latches, barrels, stocks. Use the GunBroker and GunWatcher buttons above: completed auctions there are the real comp.",

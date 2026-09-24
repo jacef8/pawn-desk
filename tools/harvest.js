@@ -157,7 +157,31 @@ const mixedness = (lo, hi) => {
  * Same for anything nobody ships: quads, side-by-sides, golf carts,
  * mowers. Refused outright rather than filtered, because there is nothing
  * in the result worth filtering. */
-const EBAY_BLIND = new Set(["g1","g2","g3","g4","g5","g6","g7","g8","g9","g10","r1","r2","r3","p4","p5"]);
+/* ONE BLIND LIST, TWO READERS.
+   This used to be a hand-kept copy, and it drifted exactly the way the two
+   price books did. On 24 Sep the desk refused to price 21 refs and this set
+   knew about 2 of them: 185 seed targets in aisles the counter will not
+   quote anyway, up to 370 lookups a sweep, 18% of the month, spent to hand
+   nobody a number. So the desk's list is the list. app.js is read at
+   startup and the guns and rolling stock - which are a legal question, not
+   a shipping one, and live in EBAY_CANNOT rather than EBAY_CANNOT_ITEM -
+   are added to it. If app.js cannot be read, fall back to the guns alone
+   and say so: silently blinding nothing is better than silently blinding
+   everything, and the run still prints its aisle verdicts. */
+const ALWAYS_BLIND = ["g1","g2","g3","g4","g5","g6","g7","g8","g9","g10","r1","r2","r3"];
+const EBAY_BLIND = new Set(ALWAYS_BLIND);
+try {
+  const a = readFileSync(join(ROOT, "app.js"), "utf8");
+  const i = a.indexOf("const EBAY_CANNOT_ITEM={");
+  const j = a.indexOf("\n};", i);
+  if (i < 0 || j < 0) throw new Error("EBAY_CANNOT_ITEM not found in app.js");
+  const refs = [...a.slice(i, j).matchAll(/^\s*([a-z]\d+):"/gm)].map(m => m[1]);
+  if (!refs.length) throw new Error("EBAY_CANNOT_ITEM parsed empty");
+  refs.forEach(r => EBAY_BLIND.add(r));
+} catch (e) {
+  console.error("  (could not read the desk's blind list from app.js: " + e.message +
+                " - only firearms and rolling stock will be skipped)");
+}
 const BLIND_NAME = /\b(shotgun|rifle|pistol|revolver|muzzleloader|ar-?15|ak-?pattern|sks|atv|utv|side-?by-?side|golf cart|dirt bike|four wheeler|riding mower|zero-?turn|push mower)\b/i;
 const ebayBlind = (ref, name) =>
   EBAY_BLIND.has(String(ref)) || BLIND_NAME.test(String(name || "")) || BLIND_NAME.test(String(ref || ""));

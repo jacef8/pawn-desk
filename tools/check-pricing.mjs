@@ -896,8 +896,23 @@ console.log("\n  the desk does not search eBay where eBay is blind");
      on the same run: a console and a laptop. */
   ok(!!r.tv, "and not a television — 19 models measured, 1 came back priceable");
   ok(/marketplace/i.test(r.tv), "  and it names where a TV does sell");
-  ok(!r.saw && !r.drill && !r.console && !r.laptop,
-     "  while a saw, a drill, a console and a laptop still search, because they do sell there");
+  /* AND ON 24 SEP THE SAW WENT THE SAME WAY THE TELEVISION DID.
+     This line used to include a saw in the "still searches" half, on the
+     same unmeasured "because they do sell there" the TV had. Then 32
+     chainsaw models were priced in one run and produced ZERO clean sold
+     rows - not a wild median, not a thin one, zero. eBay reported a single
+     used sale across the whole aisle in 90 days, so every figure was an
+     asking price on a bar, a chain, a carburettor or a recoil starter. A
+     Husqvarna 460 spanned $133 to $400 inside one search: whole saws mixed
+     with parts, which is the exact shape of the TV's $12 remote.
+     A saw is cheap new and expensive to ship, so it sells in town, not on
+     eBay. Trimmers (1 of 7) and blowers (0 of 12) went with it.
+     The "still searches" half now names only things measured clean on that
+     run: a drill, a console and a laptop. */
+  ok(!!r.saw, "and not a chainsaw — 32 models measured, not one clean sold row");
+  ok(/local|town|dealer/i.test(r.saw), "  and it says where a saw does sell");
+  ok(!r.drill && !r.console && !r.laptop,
+     "  while a drill, a console and a laptop still search, because they were measured selling there");
 }
 
 /* THE BLIND LIST IS A MEASUREMENT, SO IT IS CHECKED AGAINST ONE.

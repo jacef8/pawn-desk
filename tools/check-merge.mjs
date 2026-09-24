@@ -404,6 +404,38 @@ console.log("\n  the money path refuses an unbounded run");
 }
 
 
+/* ONE BLIND LIST, NOT TWO.
+   The desk refuses to price 21 refs; the harvester kept its own hand-made
+   set and knew about 2 of them. 185 seed targets sat in aisles the counter
+   will not quote anyway - up to 370 lookups a sweep, 18% of the month,
+   spent to hand nobody a number. Same shape as the two price books drifting
+   171 rows apart, same answer: one list, read by both. */
+console.log("\n  the harvester reads the desk's blind list rather than keeping its own");
+{
+  const app  = readFileSync(join(ROOT, "app.js"), "utf8");
+  const harv = readFileSync(join(ROOT, "tools/harvest.js"), "utf8");
+
+  const i = app.indexOf("const EBAY_CANNOT_ITEM={");
+  const j = app.indexOf("\n};", i);
+  const deskRefs = [...app.slice(i, j).matchAll(/^\s*([a-z]\d+):"/gm)].map(m => m[1]);
+  ok(deskRefs.length > 15, `the desk blinds ${deskRefs.length} refs`);
+
+  ok(/EBAY_CANNOT_ITEM/.test(harv) && /readFileSync\(join\(ROOT, "app\.js"\)/.test(harv),
+     "  the harvester reads them out of app.js at startup");
+  ok(!/new Set\(\["g1"[^)]*"p4","p5"\]\)/.test(harv),
+     "  and no longer carries a second hand-kept copy of them");
+
+  /* The saws are the reason this was looked at, so name them. */
+  ["p1", "p2", "p3"].forEach((r) =>
+    ok(deskRefs.includes(r), `  ${r} is on the desk's list, so the harvest skips it too`));
+
+  /* Firearms are a legal question, not a shipping one, and live in the
+     other object - they must survive the change. */
+  ok(/ALWAYS_BLIND = \["g1"/.test(harv) && /"g10"/.test(harv),
+     "  and firearms stay blind whatever app.js says");
+}
+
+
 /* TWO COPIES OF THE PRICE BOOK, AND THEY HAD DRIFTED 171 ROWS APART.
    prices.json is fetched on every load; app.js carries the same rows as
    a fallback for a device that cannot reach it. The 23 Sep harvest wrote
