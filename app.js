@@ -2067,7 +2067,17 @@ function askHTML(x){
       :cur.hint?`<div class="cardHint" style="margin-top:0">${esc(cur.hint)}</div>`:""}
     ${body}
     <div class="askNav">
-      <button class="ghostBtn" data-askmove="-1"${at<=0?" disabled":""}>&larr; Back</button>
+      ${at<=0
+        /* THE SAME DEAD BUTTON, AT THE OTHER END OF THE RUN.
+           Back was disabled on question one because there is no earlier
+           question - true, and useless. What the counter wants there is
+           the way OUT: he has picked the wrong thing off the search box
+           and needs to pick again. A greyed control where the way back
+           should be reads as broken, exactly as the dead "Next" did on
+           the last card, and it was reported as broken for the same
+           reason. So question one goes back to the search. */
+        ? `<button class="ghostBtn" data-askout="1" title="Pick something else">&larr; Pick another</button>`
+        : `<button class="ghostBtn" data-askmove="-1">&larr; Back</button>`}
       <div class="askDots">${q.map((z,i)=>`<i class="${i===at?"on":""}${z.answered?" done":""}" title="${esc(z.title)}" data-askgo="${i}"></i>`).join("")}</div>
       ${at>=q.length-1
         /* A DEAD BUTTON IS NOT AN ENDING.
@@ -2516,6 +2526,13 @@ function wireItem(){
     if(Number(b.dataset.askmove)>0&&q[at]&&q[at].id==="model"&&!q[at].answered)st.mpNone=true;
     st.askAt=Math.max(0,Math.min(q.length-1,at+Number(b.dataset.askmove)));
     render();
+  });
+  v.querySelectorAll("[data-askout]").forEach(b=>b.onclick=()=>{
+    /* Back to the search box, the same way the rail's "Another" does it. */
+    const n=document.getElementById("pinNew");
+    if(n){ n.click(); return; }
+    st.picked=false; st.omniDone=""; st.market=null; render();
+    const inp=document.getElementById("omniIn"); if(inp)inp.focus();
   });
   v.querySelectorAll("[data-askdone]").forEach(b=>b.onclick=()=>{
     /* Wherever the run ends, the thing worth reading next is the first
@@ -6905,7 +6922,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0924.1848";
+const APP_BUILD="0924.1902";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

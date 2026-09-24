@@ -46,7 +46,11 @@ const read = () => page.evaluate(() => {
     opts: [...c.querySelectorAll(".askOpt .askT")].map(t => t.textContent.trim()),
     dots: c.querySelectorAll(".askDots i").length,
     done: c.querySelectorAll(".askDots i.done").length,
-    backOff: c.querySelector('[data-askmove="-1"]').disabled,
+    /* Question one carries no backward MOVE at all now - it carries a live
+       "Pick another" that leaves the run, because a dead Back there was
+       reported as broken and fairly so. */
+    backOff: !c.querySelector('[data-askmove="-1"]'),
+    outBtn: !!c.querySelector("[data-askout]"),
     /* The last card no longer carries a forward MOVE at all - it carries a
        live "See the detail" instead of a dead button labelled Next. */
     nextOff: !c.querySelector('[data-askmove="1"]'),
@@ -61,7 +65,8 @@ let r = await read();
 ok(!!r, "the run renders at all");
 ok(/^1 of 8/.test(r.where), "a cordless drill asks eight questions — " + r.where);
 ok(/make/i.test(r.q), "it opens on the make — " + r.q);
-ok(r.backOff, "  Back is dead on the first one");
+ok(r.backOff && r.outBtn,
+   "  question one offers a way out of the run, not a backward step");
 ok(r.dots === 8, "  a dot for every question, got " + r.dots);
 
 /* the whole point: answering moves on */
@@ -69,7 +74,7 @@ await page.click(".askOpt");
 r = await read();
 ok(/^2 of 8/.test(r.where), "answering moves to the next by itself — " + r.where);
 ok(r.done >= 1, "  and the one behind is marked done, got " + r.done);
-ok(!r.backOff, "  Back is alive now");
+ok(!r.backOff, "  a real Back appears once there is something behind you");
 
 /* the specifics ARE the questions, not fields under them */
 const seen = [];
@@ -507,6 +512,38 @@ console.log("\n  the run asks which one it is");
   ok(!!fin.done, "  it carries a live finish instead");
   ok(/detail/i.test(fin.label), "  that says where it goes — \"" + fin.label.trim() + "\"");
 
+  /* AND THE SAME DEAD BUTTON AT THE OTHER END.
+     Back was disabled on question one because there is no earlier
+     question. True, and useless: what the counter wants there is the way
+     OUT - he has picked the wrong thing off the search box and needs to
+     pick again. Reported as "the back button doesnt work on page 1", and
+     it did not, in the only sense that matters to somebody holding an
+     item. Same disease as the dead "Next" on the last card. */
+  const one = await page.evaluate(() => {
+    st.askAt = 0; render();
+    const nav = document.querySelector(".askNav");
+    const out = nav.querySelector("[data-askout]");
+    return {dead: !!nav.querySelector('[data-askmove="-1"][disabled]'),
+            out: !!out, label: out ? out.textContent.trim() : ""};
+  });
+  ok(!one.dead, "question one carries no dead Back button");
+  ok(one.out, "  it carries a live way out instead");
+  ok(/another|pick/i.test(one.label), "  that says what it does — \"" + one.label + "\"");
+
+  const left = await page.evaluate(async () => {
+    document.querySelector("[data-askout]").click();
+    await new Promise(z => setTimeout(z, 120));
+    return {picked: st.picked, omni: !!document.getElementById("omniIn"),
+            ask: !!document.getElementById("askCard")};
+  });
+  ok(left.picked === false && left.omni && !left.ask,
+     "  and it really goes back to the search box — " + JSON.stringify(left));
+  /* that click left the run entirely; put the page back where it was found */
+  await page.evaluate(() => {
+    st.mode = "item"; st.picked = true; render();
+    st.askAt = askQueue(calcItem()).findIndex(z => z.id === "model"); render();
+  });
+
   /* A QUESTION THAT CANNOT MOVE THE NUMBER IS NOT A QUESTION.
      calcItem takes a hand-typed resale AS IT STANDS: cond is forced to 1,
      and brandMult and spec.mult are not in that branch at all. The counter
@@ -597,8 +634,12 @@ console.log("\n  Back and Skip are the same shape");
 {
   const r = await page.evaluate(() => {
     st.askAt = 0; render();
-    const back = document.querySelector('.askNav [data-askmove="-1"]');
-    const next = document.querySelector('.askNav [data-askmove="1"]');
+    /* Whichever pair the card is carrying. On question one the left one is
+       the way OUT of the run rather than a backward step, and on the last
+       card the right one is the finish - they still have to match. */
+    const nav = document.querySelector(".askNav");
+    const back = nav.querySelector('[data-askmove="-1"], [data-askout]');
+    const next = nav.querySelector('[data-askmove="1"], [data-askdone]');
     const a = back.getBoundingClientRect(), b = next.getBoundingClientRect();
     return {back: Math.round(a.height), next: Math.round(b.height),
             aligned: Math.abs((a.top + a.height/2) - (b.top + b.height/2)) < 2};
