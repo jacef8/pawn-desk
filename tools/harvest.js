@@ -143,6 +143,25 @@ const mixedness = (lo, hi) => {
   const spread = Math.round((b / a) * 10) / 10;
   return { spread, mixed: spread > MIX_SPREAD };
 };
+/* WHAT EBAY CANNOT SELL, IT CANNOT PRICE - AND A HARVEST WOULD WRITE THE
+ * WRONG ANSWER DOWN PERMANENTLY.
+ *
+ * eBay bans firearm sales, so "Remington 870 Express" returns shell
+ * latches at $14.99, a trigger plate at $39 and a stock set at $115. The
+ * seventy-four gun rows in the book are good - $300-$400 for an 870
+ * Express, hand-checked against completed auctions on the firearm sites -
+ * and one `--ref g1 --go` would have replaced every one of them with the
+ * price of its parts. Fourteen real sales agreeing with each other looks
+ * exactly like a healthy row from here.
+ *
+ * Same for anything nobody ships: quads, side-by-sides, golf carts,
+ * mowers. Refused outright rather than filtered, because there is nothing
+ * in the result worth filtering. */
+const EBAY_BLIND = new Set(["g1","g2","g3","g4","g5","g6","g7","g8","g9","g10","r1","r2","r3","p4","p5"]);
+const BLIND_NAME = /\b(shotgun|rifle|pistol|revolver|muzzleloader|ar-?15|ak-?pattern|sks|atv|utv|side-?by-?side|golf cart|dirt bike|four wheeler|riding mower|zero-?turn|push mower)\b/i;
+const ebayBlind = (ref, name) =>
+  EBAY_BLIND.has(String(ref)) || BLIND_NAME.test(String(name || "")) || BLIND_NAME.test(String(ref || ""));
+
 const wildness = (ref, med) => {
   const b = BOOK[ref];
   if (!b || !med) return null;
@@ -552,6 +571,7 @@ const prompt = (q, p) =>
    turns --spend from a warning printed before the run into a thing that
    actually stops it, and it reports the REAL total at the end rather than
    the estimate - the estimate is what was wrong on 21 Sep. */
+let blind = 0;
 let spentUsd = 0;
 async function ask(text) {
   const r = await fetch(SERVER + "/json", { method: "POST",
@@ -658,6 +678,13 @@ for (let i = 0; i < todo.length; i++) {
     break;
   }
   const tag = `[${i + 1}/${todo.length}] ${t.name}`;
+  if (ebayBlind(t.ref, t.name)) {
+    found[key(t)] = { ref: t.ref, name: t.name, n: 0, date: today(), local: true,
+      note: "eBay is not allowed to sell this, or nobody ships one - a search returns its parts. Priced from the firearm sites, your own sales and the shelf record instead." };
+    blind++; save();
+    console.log(`  ${tag} - eBay cannot sell this; not searched`);
+    continue;
+  }
   let got;
   try { got = await gather(t); }
   catch (e) {
@@ -697,6 +724,8 @@ for (let i = 0; i < todo.length; i++) {
     console.log(`  ${tag} - nothing usable`);
     continue;
   }
+  /* IS EBAY ALLOWED TO SELL THIS THING AT ALL. Checked before the lookup
+     is paid for, not after. */
   /* IS EBAY EVEN SELLING THIS THING.
      Nobody ships a riding mower, so what gets listed under one is belts and
      spindles. Measured: 36 of 40 listings for a Milwaukee drill are the

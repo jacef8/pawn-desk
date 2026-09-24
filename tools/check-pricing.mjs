@@ -846,6 +846,34 @@ console.log("\n  a spread too wide for one product says so");
   ok(/far below/.test(r.low), "  and a figure far under the book still says that instead");
 }
 
+/* WHAT EBAY CANNOT SELL, IT CANNOT PRICE. Measured over seventy searches
+   for things the desk claims to know: 37% usable. The biggest bucket of
+   the rest was firearms, and the reason is not subtle - eBay bans the
+   sale of guns, so "Remington 870 Express" returns shell latches at
+   $14.99, a trigger plate at $39 and a stock set at $115. Not one
+   shotgun. The desk was pricing a $450 gun off a $15 latch and grading it
+   "good data", because fourteen real sales agreed with each other.
+   The comps card has said so in plain words all along; the automatic
+   lookup went and searched eBay anyway. */
+console.log("\n  the desk does not search eBay where eBay is blind");
+{
+  const r = await page.evaluate(() => {
+    const at = (cat, item) => { st.mode = "item"; st.catId = cat; st.itemId = item;
+      st.picked = true; st.brandTyped = ""; st.model = ""; st.bookName = "";
+      return ebayBlind(calcItem()); };
+    return {shotgun: at("guns","g1"), pistol: at("guns","g7"), atv: at("rolling","r2"),
+            push: at("power","p4"), riding: at("power","p5"),
+            saw: at("power","p1"), drill: at("tools","t1"), tv: at("elec","e1")};
+  });
+  ok(/firearms/i.test(r.shotgun) && /firearms/i.test(r.pistol),
+     "a gun is not searched for on eBay, and it says why");
+  ok(/GunBroker/i.test(r.shotgun), "  and it names the source that does work");
+  ok(!!r.atv && !!r.push && !!r.riding,
+     "nor a quad or a mower — nobody ships one, so eBay lists their parts");
+  ok(!r.saw && !r.drill && !r.tv,
+     "  while a saw, a drill and a television still search, because they sell there");
+}
+
 ok(!errs.length, "no page errors" + (errs.length ? ": " + errs[0] : ""));
 await browser.close();
 console.log(fails ? "\n  " + fails + " FAILED\n" : "\n  all passed\n");

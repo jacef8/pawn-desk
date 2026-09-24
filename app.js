@@ -5981,7 +5981,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0924.0722";
+const APP_BUILD="0924.0836";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -6645,10 +6645,46 @@ let findBusy=false, findMsg="", findAgain=false;
    full, and it asks what a new one costs in the same sweep - then keeps
    every answer side by side in st.evidence rather than quietly choosing one
    and throwing the rest away. */
+/* WHAT EBAY CANNOT SELL, IT CANNOT PRICE.
+ *
+ * Measured over seventy searches for things the desk claims to know: 37%
+ * came back usable. The single biggest bucket of the rest was firearms,
+ * and the reason is not subtle - eBay bans the sale of guns. A search for
+ * "Remington 870 Express" returns shell latches at $14.99, a trigger
+ * plate at $39, a bolt at $56 and a stock set at $115. Not one shotgun.
+ * The desk was pricing a $450 gun off a $15 shell latch, and grading it
+ * "good data" because fourteen real sales agreed with each other.
+ *
+ * The tool has always known this. The comps card says so in plain words -
+ * "eBay doesn't sell guns, GunBroker completed auctions is the only real
+ * firearm comp" - and then the automatic lookup went and searched eBay
+ * anyway. Same for anything nobody ships: quads, side-by-sides, golf
+ * carts, riding mowers. Those come back as parts too.
+ *
+ * Refusing is not a smaller answer than a wrong one. The manual buttons
+ * for the right source are already on the screen. */
+const EBAY_CANNOT={
+  guns:"eBay does not sell firearms, so a search for one comes back as parts — latches, barrels, stocks. Use the GunBroker and GunWatcher buttons above: completed auctions there are the real comp.",
+  rolling:"Nobody ships a quad, a side-by-side or a golf cart, so eBay only ever lists their parts. Price it off your own sales and what the dealers near you are asking."
+};
+function ebayBlind(x){
+  const cat=x&&x.cat?x.cat.id:st.catId;
+  if(EBAY_CANNOT[cat])return EBAY_CANNOT[cat];
+  /* Riding mowers and zero-turns sit in outdoor power beside the things
+     eBay CAN price, so they are named by item rather than by category. */
+  const id=x&&x.item?x.item.id:st.itemId;
+  if(id==="p4"||id==="p5")return "A mower does not ship, so eBay lists deck belts and spindles rather than machines. Price it off your own sales and the shelf record.";
+  return "";
+}
 async function priceFind(signal,all){
   if(findBusy||!CAP.sample)return;
   const x=calcItem(), q=compQuery(x);
   if(!q)return;
+  const blind=ebayBlind(x);
+  if(blind){ findMsg=blind;
+    const el=document.getElementById("pdFindMsg"); if(el)el.textContent=blind;
+    try{ render(); }catch(e){}
+    return; }
   const passes=findPasses(x);
   /* Every search costs money, so two things happen before one is fired.
 
