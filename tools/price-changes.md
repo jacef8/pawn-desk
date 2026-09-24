@@ -1,12 +1,29 @@
 # Price changes — 2026-09-24
 
-348 rows → **348**. 0 added, 169 rewritten, 9 held back as wild, 1 held back as mixed searches, 132 too thin, 18 held back as asking-only.
+348 rows → **350**. 2 added, 169 rewritten, 10 held back as wild, 1 held back as mixed searches, 129 too thin, 18 held back as asking-only.
 
-## Worth a look
+## Worth a look — moved 25% or more (1)
 
-Nothing moved 25% or more. Quiet week.
+| Item | Was | Now | Change | Listings |
+|---|---|---|---|---|
+| Acer Aspire 5 | $327–660 | $272–391 | **-33%** | 8 |
 
-## Held back as wild (9)
+A big move on few listings is the usual shape of a bad search — the
+wrong model, a parts counter, a lot of five. Check those first.
+
+## Ordinary drift (4)
+
+- HP Pavilion 15 — $65–200 → $99–230 (+24%, 8 listings)
+- Microsoft Surface Laptop 4 — $174–300 → $165–225 (-18%, 21 listings)
+- HP Envy x360 15 — $250–592 → $250–450 (-17%, 9 listings)
+- Acer Swift 3 — $325–600 → $258–522 (-16%, 8 listings)
+
+## New rows (2)
+
+- Lenovo ThinkPad T14 — $240–430 (9 listings, sold)
+- Microsoft Surface Laptop 5 — $180–249 (16 listings, sold)
+
+## Held back as wild (10)
 
 Too far from what the catalog says this kind of thing is worth. Not merged.
 
@@ -19,8 +36,9 @@ Too far from what the catalog says this kind of thing is worth. Not merged.
 - Amazon Fire HD 10 — $22–38 against a book value of $150 (0.2x, 10 listings)
 - Amazon Fire HD 8 — $20–24 against a book value of $150 (0.15x, 14 listings)
 - Amazon Fire HD 7 — $20–36 against a book value of $150 (0.19x, 11 listings)
+- HP Chromebook 14 — $38–100 against a book value of $311 (0.22x, 6 listings)
 
-## Too thin to price (46)
+## Too thin to price (44)
 
 Fewer than 4 usable listings. Not merged.
 
@@ -51,17 +69,17 @@ Fewer than 4 usable listings. Not merged.
 - Samsung Galaxy Z Flip 4 (2)
 - Pokemon Violet (2)
 - Mortal Kombat 1 (2)
+- iPad 9th generation (1)
+- iPad 10th generation (1)
+- iPad Air 4 (1)
+- iPad 7th generation (2)
+- MacBook Air M1 13in (1)
+- Lenovo X1 Carbon Gen 9 (2)
+- MacBook Air M3 13in (1)
+- Dell XPS 15 9520 (2)
 - Samsung The Frame 55in (1)
 - LG UQ7570 55in (1)
 - LG C2 55in OLED (2)
 - LG C3 65in OLED (2)
 - TCL 6-Series 65in (2)
-- Vizio M-Series 55in (1)
-- Vizio V-Series 65in (2)
-- Hisense U6H 55in (2)
-- Hisense U8K 65in (1)
-- MacBook Air M1 13in (1)
-- Lenovo ThinkPad T14 (2)
-- Lenovo X1 Carbon Gen 9 (2)
-- Microsoft Surface Pro 8 (2)
-- … and 6 more
+- … and 4 more

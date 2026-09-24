@@ -384,5 +384,37 @@ console.log("\n  the money path refuses an unbounded run");
      "the eBay path still needs no flags and costs nothing");
 }
 
+
+/* TWO COPIES OF THE PRICE BOOK, AND THEY HAD DRIFTED 171 ROWS APART.
+   prices.json is fetched on every load; app.js carries the same rows as
+   a fallback for a device that cannot reach it. The 23 Sep harvest wrote
+   146 new rows into prices.json and never touched app.js, so the copy a
+   disconnected tablet would fall back on was half a book behind - and
+   quoting an Acer Aspire 5 at $327-660 when the measured figure is
+   $272-391.
+
+   Nothing noticed, because the fallback only fires on a first load with
+   no network, which is the one case nobody tests by hand. So it gets
+   tested here instead: the two must be byte-identical. */
+{
+  const fs = await import("node:fs");
+  const src = fs.readFileSync(new URL("../app.js", import.meta.url), "utf8");
+  const i = src.indexOf("let MODEL_PRICES=[");
+  const j = src.indexOf("\n];", i);
+  let inApp = null, why = "";
+  try { inApp = eval(src.slice(i + "let MODEL_PRICES=".length, j + 2)); }
+  catch (e) { why = String(e.message || e); }
+  const pj = JSON.parse(fs.readFileSync(new URL("../prices.json", import.meta.url), "utf8")).rows;
+  ok(!!inApp, "the app.js fallback price list parses" + (inApp ? "" : " \u2014 " + why));
+  ok(inApp && inApp.length === pj.length,
+     `both books carry the same number of rows \u2014 app.js ${inApp ? inApp.length : "?"}, prices.json ${pj.length}`);
+  const diff = [];
+  if (inApp) for (let k = 0; k < Math.min(inApp.length, pj.length); k++)
+    if (JSON.stringify(inApp[k]) !== JSON.stringify(pj[k])) diff.push(`${pj[k][0]} ${pj[k][2]}`);
+  ok(!!inApp && !diff.length,
+     diff.length ? `${diff.length} rows differ: ${diff.slice(0,4).join(", ")}${diff.length>4?" \u2026":""}`
+                 : `and every row matches exactly, all ${pj.length} of them`);
+}
+
 console.log(`\n  ${pass} passed, ${fail} failed\n`);
 process.exit(fail ? 1 : 0);

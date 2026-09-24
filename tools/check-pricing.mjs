@@ -863,15 +863,30 @@ console.log("\n  the desk does not search eBay where eBay is blind");
       return ebayBlind(calcItem()); };
     return {shotgun: at("guns","g1"), pistol: at("guns","g7"), atv: at("rolling","r2"),
             push: at("power","p4"), riding: at("power","p5"),
-            saw: at("power","p1"), drill: at("tools","t1"), tv: at("elec","e1")};
+            saw: at("power","p1"), drill: at("tools","t1"), tv: at("elec","e1"),
+            console: at("elec","e5"), laptop: at("elec","e2")};
   });
   ok(/firearms/i.test(r.shotgun) && /firearms/i.test(r.pistol),
      "a gun is not searched for on eBay, and it says why");
   ok(/GunBroker/i.test(r.shotgun), "  and it names the source that does work");
   ok(!!r.atv && !!r.push && !!r.riding,
      "nor a quad or a mower — nobody ships one, so eBay lists their parts");
-  ok(!r.saw && !r.drill && !r.tv,
-     "  while a saw, a drill and a television still search, because they sell there");
+  /* THIS LINE USED TO SAY A TELEVISION STILL SEARCHES "because they sell
+     there". It was written when I believed the 23 Sep zero was a parts-
+     vocabulary bug. The vocabulary fix was real - it is what put eight
+     laptops into the book - and it did nothing for TVs: nineteen models
+     re-run on 24 Sep against the fixed code returned ONE priceable
+     result. A 55-inch screen costs more to ship than it is worth, so
+     almost none are sold on eBay and there is nothing to find. What
+     survives the filter is a $12 median, which is a remote control.
+
+     So a television joins the blind list, and the "these still search"
+     half of the assertion moved to two things that were measured 6 of 6
+     on the same run: a console and a laptop. */
+  ok(!!r.tv, "and not a television — 19 models measured, 1 came back priceable");
+  ok(/marketplace/i.test(r.tv), "  and it names where a TV does sell");
+  ok(!r.saw && !r.drill && !r.console && !r.laptop,
+     "  while a saw, a drill, a console and a laptop still search, because they do sell there");
 }
 
 /* WHAT A MAKE ACTUALLY SELLS. A brand carries a category, not a product
