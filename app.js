@@ -4398,6 +4398,47 @@ const BRAND_IDX=(function(){
   return Array.from(m.values()).map(e=>Object.assign(e,{re:new RegExp("(^|[^a-z0-9])"+omniEsc(e.name.toLowerCase())+"(?=$|[^a-z0-9])")}))
     .sort((a,b)=>b.name.length-a.name.length);
 })();
+/* WHAT A MAKE ACTUALLY SELLS.
+ *
+ * A brand carries a category, not a product list, so typing one alone
+ * offered every item in its category: Garmin proposed a compound bow and
+ * a crossbow, Leupold a trolling motor, Shimano a rifle scope, Bowtech a
+ * rod and reel. Forty-one of the fifty-five hunting makes had no list at
+ * all, which is most of the shelf.
+ *
+ * BRAND_FIRST below is an ordering hint and stays one - restricting on it
+ * would hide a Mossberg rifle behind its shotguns. This is the stricter
+ * statement: these makes sell THESE THINGS AND NOTHING ELSE, so anything
+ * else in the category is not offered. Only written where it is plainly
+ * true; a make that really does span its category simply is not listed
+ * here and behaves as before. */
+const OPTICS=["h1","h2","h3","Spotting scope","Red dot sight"];
+const RODS=["h7","Offshore rod & reel","Fly rod & reel"];
+const BRAND_ONLY={
+  /* glass */
+  "leupold":OPTICS,"vortex":OPTICS,"zeiss":OPTICS,"swarovski":OPTICS,"bushnell":OPTICS,
+  "nikon":OPTICS,"burris":OPTICS,"athlon":OPTICS,"primary arms":OPTICS,"tasco":OPTICS,
+  "simmons":OPTICS,"bsa":OPTICS,"cvlife":OPTICS,"pinty":OPTICS,"truglo":OPTICS,
+  "sig sauer optics":OPTICS,"trijicon":OPTICS,"aimpoint":["Red dot sight"],"eotech":["Red dot sight"],
+  "nightforce":["h1","Spotting scope"],
+  /* bows and crossbows */
+  "mathews":["h5"],"hoyt":["h5"],"bowtech":["h5"],"bear archery":["h5"],"pse":["h5"],"diamond":["h5"],
+  "ravin":["h6","Crossbow bolts & broadheads — lot"],"tenpoint":["h6","Crossbow bolts & broadheads — lot"],
+  "barnett":["h6","Crossbow bolts & broadheads — lot"],"excalibur":["h6","Crossbow bolts & broadheads — lot"],
+  "wicked ridge":["h6","Crossbow bolts & broadheads — lot"],"centerpoint":["h6","Crossbow bolts & broadheads — lot"],
+  /* rods, reels and what pushes the boat */
+  "shimano":RODS,"g loomis":RODS,"st. croix":RODS,"abu garcia":RODS,"penn":RODS,"lew's":RODS,
+  "13 fishing":RODS,"ugly stik":RODS,"daiwa":RODS,"zebco":RODS,"shakespeare":RODS,"south bend":RODS,
+  "minn kota":["h8"],"motorguide":["h8"],
+  /* sonar. Garmin also makes watches, which live in electronics and are
+     reached from there - this is the hunting half of what it sells. */
+  "humminbird":["Fish finder"],"lowrance":["Fish finder"],
+  "garmin":["Fish finder","h3","Smartwatch — Apple / Galaxy"],
+  /* cameras in the woods */
+  "wildgame innovations":["h4","Cellular game camera"],"stealth cam":["h4","Cellular game camera"],
+  "tactacam":["h4","Cellular game camera"],"moultrie":["h4","Cellular game camera"],
+  "spypoint":["h4","Cellular game camera"],"browning trail cameras":["h4","Cellular game camera"]
+};
 /* when a brand is typed alone, these items go to the top of its list */
 const BRAND_FIRST={"weed eater":["p2"],"glock":["g7"],"sig sauer":["g7"],"canik":["g7"],"kimber":["g7"],"staccato":["g7"],"hi-point":["g7","g5"],
  "sccy":["g7"],"charter arms":["g8"],"benelli":["g2","g1"],"mossberg":["g1","g2"],"henry":["g4","g6"],"marlin":["g4","g6"],"cva":["g9"],
@@ -4836,8 +4877,10 @@ function omniRows(q){
   } else if(P.brandCats.length&&!P.modelItem){
     (BRAND_FIRST[P.brand.toLowerCase()]||[]).forEach(ref=>add(findEntry(ref)));
     const order={hi:0,mid:1,lo:2};
+    const only=BRAND_ONLY[String(P.brand||"").toLowerCase()];
     P.brandCats.slice().sort((a,b)=>order[a.tier]-order[b.tier]).forEach(c=>{
       if(c.items)c.items.forEach(ref=>add(findEntry(ref)));
+      else if(only)only.forEach(ref=>add(findEntry(ref)));
       else OMNI_IDX.filter(e=>e.kind==="item"&&e.catId===c.cat).forEach(e=>add(e));
     });
   } else if(!P.modelItem&&P.detail.length){
@@ -5984,7 +6027,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0924.0918";
+const APP_BUILD="0924.1046";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

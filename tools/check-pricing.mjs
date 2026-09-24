@@ -874,6 +874,41 @@ console.log("\n  the desk does not search eBay where eBay is blind");
      "  while a saw, a drill and a television still search, because they sell there");
 }
 
+/* WHAT A MAKE ACTUALLY SELLS. A brand carries a category, not a product
+   list, so typing one alone offered every item in that category: Garmin
+   proposed a compound bow and a crossbow, Leupold a trolling motor,
+   Shimano a rifle scope, Bowtech a rod and reel. Forty-one of the
+   fifty-five hunting makes had no list at all, which is most of the
+   shelf. The carve-out matters as much as the fix: a make that really
+   does span its category must be left alone. */
+console.log("\n  a make offers what it sells, and not the rest of the aisle");
+{
+  const r = await page.evaluate(() => {
+    const L = (q) => { const R = omniRows(q) || {}, rows = R.rows || [];
+      return rows.filter(x => x.kind === "item" || x.kind === "book")
+                 .map(x => String(x.label || x.name)); };
+    return {garmin: L("garmin"), leupold: L("leupold"), shimano: L("shimano"),
+            bowtech: L("bowtech"), minnkota: L("minn kota"),
+            mossberg: L("mossberg"), stihl: L("stihl")};
+  });
+  const none = (list, re) => !list.some(n => re.test(n));
+  ok(none(r.garmin, /compound bow|crossbow|rod & reel|trolling motor/i),
+     "Garmin does not offer a compound bow — " + r.garmin.join(", "));
+  ok(none(r.leupold, /trolling motor|compound bow|rod & reel/i),
+     "  nor Leupold a trolling motor — " + r.leupold.slice(0, 4).join(", "));
+  ok(none(r.shimano, /rifle scope|compound bow/i) && r.shimano.some(n => /rod & reel/i.test(n)),
+     "  Shimano sells rods, not scopes — " + r.shimano.join(", "));
+  ok(r.bowtech.every(n => /compound bow/i.test(n)),
+     "  and Bowtech sells bows — " + r.bowtech.join(", "));
+  ok(r.minnkota.length === 1 && /trolling motor/i.test(r.minnkota[0]),
+     "  Minn Kota makes one thing and offers one thing");
+  /* the carve-out: restricting on the ordering hint would have hidden a
+     Mossberg rifle behind its shotguns */
+  ok(r.mossberg.some(n => /shotgun/i.test(n)) && r.mossberg.some(n => /rifle/i.test(n)),
+     "a make that really spans its category still does — Mossberg keeps both");
+  ok(r.stihl.length >= 4, "  and Stihl still offers its whole range — " + r.stihl.length + " rows");
+}
+
 ok(!errs.length, "no page errors" + (errs.length ? ": " + errs[0] : ""));
 await browser.close();
 console.log(fails ? "\n  " + fails + " FAILED\n" : "\n  all passed\n");
