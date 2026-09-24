@@ -45,6 +45,9 @@
    "rule": "a fake found after intake is set aside, never tagged for the floor under the brand name, and handled as the pawn rules require for that ticket."
   },
   {
+   "steps": [
+    "Weigh it in grams."
+   ],
    "id": "jewelry",
    "n": 2,
    "title": "Gold and silver jewelry",
@@ -68,7 +71,6 @@
     "earring"
    ],
    "checks": [
-    "Weigh it in grams.",
     "Loupe the stamp for a karat or 925 mark plus a maker's mark. US law requires both, so a missing one is a warning sign.",
     "Magnet: if the piece is pulled (not just the clasp spring), no gold price.",
     "File a notch and put acid in the notch. Plating passes a surface test."
@@ -103,7 +105,7 @@
     "coins"
    ],
    "checks": [
-    "Weigh it in grams and check the table. Fakes are often a little off. A 1 oz Gold Eagle or Krugerrand weighs about 33.93 g, not 31.1 g, because it is 22K alloy.",
+    "Does the weight match the table? Fakes are usually a little off. A 1 oz Gold Eagle or Krugerrand weighs about 33.93 g, not 31.1 g, because it is 22K alloy — so 31.1 g on an Eagle is a fake, not a bargain.",
     "Calipers: diameter against the table, thickness against a coin you know is real.",
     "Magnet: nothing should stick. On silver, do the slide test: tilt the piece about 45 degrees and set the magnet on it. On real silver it slides down slowly instead of sticking.",
     "Sigma verifier, if the store buys one (coins and bars only, from $999): set the metal and size, then test both sides. It reads through flips, slabs and assay cards. Without one, lean harder on weight, calipers and the slab lookup.",

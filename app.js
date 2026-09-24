@@ -1800,7 +1800,9 @@ function askQueue(x){
        is wrong often enough to matter - defaulting a bare drill to a
        two-battery kit doubles it - and the shape and the sold price can
        always be answered, so neither may be waved past. */
-    answered:!!(st.model||st.detail||st.mpNone)});
+    /* st.detail used to count here, back when its box was on this card.
+       It is its own question now, so a model is answered by a model. */
+    answered:!!(st.model||st.mpNone)});
   const sc=SPEC_CHOICES[st.itemId]||[];
   sc.forEach((g,gi)=>{
     const key=st.itemId+":"+gi, sel=st.specSel[key]??specBase(g);
@@ -1818,6 +1820,18 @@ function askQueue(x){
              on:st.complete===false, set:"comp", v:"0"}],
       answered:true});
   }
+  /* ANYTHING ELSE COMES LAST, NOT ON THE MODEL CARD.
+     It used to sit under the model box, which put a catch-all "anything
+     else" in front of the specific questions - on a TV the thing you
+     reach for after the make is the screen size, and the card was asking
+     for free text before it asked for that. Its own step, after every
+     question that has a real answer.
+     It stops here rather than after the price, because what is typed in it
+     goes into the sold-price search: past the "worth" step it would be
+     read too late to change anything the lookup does. */
+  q.push({id:"extra", title:"Anything else?", kind:"extra", optional:true,
+    hint:"Only what changes the price and was not already asked. Usually nothing.",
+    answered:true});
   q.push({id:"worth", title:"What does one sell for used?",
     hint:"", kind:"worth", answered:!!x.checked});
   q.push({id:"cond", title:"What shape is it in?",
@@ -1954,10 +1968,13 @@ function askHTML(x){
            <span class="label" style="margin-top:14px">Or type it</span>`
           :`<span class="label">Model</span>`}
          <input id="modelIn" type="text" autocomplete="off" placeholder="870 Wingmaster, MS 271, 10/22\u2026" value="${esc(st.model)}" class="numIn" style="font-family:var(--sans);font-size:15px">
-         <span class="label" style="margin-top:12px">Anything else (optional)</span>
-         <input id="detailIn" type="text" autocomplete="off" placeholder="${esc(cov?"":dh.ph)}" value="${esc(st.detail)}" class="numIn" style="font-family:var(--sans);font-size:15px">
          ${cov?`<div class="cardHint" style="margin-top:6px">${esc(cov)}</div>`:""}
          <div class="cardHint" id="specVerdict">${specVerdictHTML(x)}</div>
+       </div>`
+    : cur.kind==="extra"
+    ? `<div class="askWorth">
+         <input id="detailIn" type="text" autocomplete="off" placeholder="${esc(dh.ph)}" value="${esc(st.detail)}" class="numIn" style="font-family:var(--sans);font-size:15px">
+         <div class="cardHint" style="margin-top:8px">Most of the time the answer is nothing, and Skip is the right move. Extra words narrow a sold-price search, and a search that is too narrow finds a different product instead of fewer of the right one.</div>
        </div>`
     : `<div class="askOpts">${(cur.opts||[]).map(opt).join("")}</div>`;
   return `<div class="card askCard" id="askCard">
@@ -2713,10 +2730,18 @@ function renderMetal(){
     <div class="cardHint">Auto-filled by the morning feed. Buys price off today's spot (scrap ships fast — the spread is the profit). Loans are a 60-day bet, so they price off the LOWER of spot or this average — if today is a peak, the loan is sized as if the peak never happened.</div>
   </div></div>`;
   const rb=rateBounds();
-  const mid=`<div class="colC">${fakeCardHTML(null)}<div class="card"><span class="label">4 &middot; Weight in grams</span>
+  /* THE SCALE COMES FIRST.
+     This used to render the spotting-fakes card above the weight box. The
+     right-hand panel says "put it on the scale and enter the grams" and the
+     box it meant was four checklist rows further down, off the bottom of a
+     1080p screen - the one instruction the page gives you pointed at
+     something you could not see. The checks are what you do WHILE the piece
+     is on the scale, not before you weigh it. */
+  const mid=`<div class="colC"><div class="card"><span class="label">4 &middot; Weight in grams</span>
     <input id="gramsIn" type="number" inputmode="decimal" placeholder="0.0" value="${esc(st.grams)}" class="numIn big">
     <div class="cardHint">Pull stones, clasps, and anything that isn't the metal. On a diamond ring, the setting is the money — resale on the stone is 20&ndash;30% of retail.</div>
   </div>
+  ${fakeCardHTML(null)}
   <div class="card"><div class="rateRow"><span class="label">5 &middot; ${PAWN()?"What I lend against melt (%)":"What I pay against melt (%)"}</span><input id="payNum" class="numIn rateNum" type="number" inputmode="numeric" min="${rb.min}" max="${rb.max}" value="${curRate()}"></div>
     <input type="range" min="${rb.min}" max="${rb.max}" value="${curRate()}" id="paySlider">
     <div id="paySuggest">${suggestHTML()}</div>
@@ -6485,7 +6510,8 @@ async function refreshPrices(){
    advise: the checks show, the price does not wait on them. */
 let FAKES=null;
 function fakesOk(j){ return !!(j&&Array.isArray(j.sheets)&&j.sheets.length
-  &&j.sheets.every(x=>x&&typeof x.id==="string"&&Array.isArray(x.checks)&&Array.isArray(x.match))); }
+  &&j.sheets.every(x=>x&&typeof x.id==="string"&&Array.isArray(x.checks)&&Array.isArray(x.match)
+    &&(x.steps===undefined||Array.isArray(x.steps)))); }
 async function loadFakes(){
   try{ const r=await fetch("fakes.json",{cache:"no-store"}); if(!r.ok)return;
     const j=await r.json(); if(!fakesOk(j))return; FAKES=j; try{ render(); }catch(e){}
@@ -6715,6 +6741,7 @@ function fakeCardHTML(x){
     </div>`:""}
     <div class="cardHint" style="margin-top:0;font-size:13.5px;color:var(--ink-2)">${esc(sh.why||"")}</div>
     <div class="cardHint" style="font-size:13.5px">${head}</div>
+    ${(sh.steps||[]).map(t=>`<div class="fakeRow"><div class="fakeQ" style="color:var(--ink-2)">${esc(t)}</div></div>`).join("")}
     ${sh.checks.map((c,i)=>`<div class="fakeRow${a[i]?" done":""}">
       <div class="fakeQ">${esc(c)}</div>
       <div class="pills" style="border-radius:var(--r-s);margin-top:6px">${FAKE_BTN.map(([v,l])=>
@@ -6754,7 +6781,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0924.1514";
+const APP_BUILD="0924.1536";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

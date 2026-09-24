@@ -56,15 +56,15 @@ console.log("\none question at a time\n");
 await start("t1");
 let r = await read();
 ok(!!r, "the run renders at all");
-ok(/^1 of 7/.test(r.where), "a cordless drill asks seven questions — " + r.where);
+ok(/^1 of 8/.test(r.where), "a cordless drill asks eight questions — " + r.where);
 ok(/make/i.test(r.q), "it opens on the make — " + r.q);
 ok(r.backOff, "  Back is dead on the first one");
-ok(r.dots === 7, "  a dot for every question, got " + r.dots);
+ok(r.dots === 8, "  a dot for every question, got " + r.dots);
 
 /* the whole point: answering moves on */
 await page.click(".askOpt");
 r = await read();
-ok(/^2 of 7/.test(r.where), "answering moves to the next by itself — " + r.where);
+ok(/^2 of 8/.test(r.where), "answering moves to the next by itself — " + r.where);
 ok(r.done >= 1, "  and the one behind is marked done, got " + r.done);
 ok(!r.backOff, "  Back is alive now");
 
@@ -440,9 +440,48 @@ console.log("\n  the run asks which one it is");
   });
   ok(r.at >= 0, "the model is a question in the run — " + r.titles.join(" | "));
   ok(r.at === 1, "  and it comes straight after the make, got position " + (r.at + 1));
-  ok(r.hasBox && r.hasDet, "  with a box for the model and one for the details");
-  ok(r.answered === false, "  it counts as unanswered while both are empty");
+  /* THE DETAIL BOX IS NOT ON THIS CARD ANY MORE.
+     A catch-all "anything else" in front of the specific questions asks for
+     free text before it asks the thing you actually reach for - on a TV,
+     the screen size. It is its own step now, after every question that has
+     a real answer and before the price lookup that reads it. */
+  ok(r.hasBox, "  with a box for the model");
+  ok(!r.hasDet, "  and NOT the anything-else box, which is its own step now");
+  ok(r.answered === false, "  it counts as unanswered while the box is empty");
   ok(r.skips, "  and can be walked past — nothing is required");
+}
+
+/* WHERE "ANYTHING ELSE" SITS, AND WHY IT IS NOT LAST.
+   Two constraints pull opposite ways. It must come AFTER every question
+   with a real answer, because a catch-all in front of "what size screen"
+   asks for free text instead of the thing you reach for. And it must come
+   BEFORE the sold-price step, because what is typed there goes into the
+   search - past that point it is read too late to change what the lookup
+   does. So: after the last specific, immediately before the price. */
+{
+  const r = await page.evaluate(async () => {
+    const q = askQueue(calcItem());
+    const ids = q.map(z => z.id);
+    const iExtra = ids.indexOf("extra"), iWorth = ids.indexOf("worth");
+    const iModel = ids.indexOf("model");
+    const spec = ids.map((id, i) => id.startsWith("spec:") ? i : -1).filter(i => i >= 0);
+    st.askAt = iExtra; render();
+    return {ids, iExtra, iWorth, iModel, lastSpec: spec.length ? Math.max(...spec) : -1,
+            det: !!document.getElementById("detailIn"),
+            answered: q[iExtra] && q[iExtra].answered,
+            skips: !!document.querySelector('[data-askmove="1"]:not([disabled])')};
+  });
+  ok(r.iExtra > 0, "anything-else is its own question — " + r.ids.join(" > "));
+  ok(r.iExtra > r.iModel, "  after the model");
+  ok(r.lastSpec < 0 || r.iExtra > r.lastSpec, "  after every specific question");
+  ok(r.iWorth > r.iExtra, "  and BEFORE the price, which searches on what it holds");
+  ok(r.det, "  its card carries the box");
+  ok(r.answered === true && r.skips, "  and it never blocks — nothing is required");
+  /* this block walked the run to the extra step; the next one types into the
+     model box, so put it back where it found it. */
+  await page.evaluate(() => {
+    st.askAt = askQueue(calcItem()).findIndex(z => z.id === "model"); render();
+  });
 }
 {
   const r = await page.evaluate(async () => {
