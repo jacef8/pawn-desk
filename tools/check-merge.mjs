@@ -284,6 +284,9 @@ console.log("\n  the parts filter knows an electronics part when it sees one");
     'The Minn Kota Endura 30 lb thrust trolling motor Tested And Working',
     'GoPro HERO11 Black Action Camera and Max Lens Mod',
     'GoPro 8 black Hero Waterproof Camera & Accessories',
+    'MINN KOTA ENDURA C2 55 36\" TRANSOM MOUNT 1352255',
+    'Minn Kota 1352240 Trolling Motor Endura C2 40 lbs thrust',
+    'USED/CLEAN 5-SPEED MINN KOTA BOAT MOTOR/ENDURA C2 GREAT/12VOLT',
   ];
   const PARTS_T = [
     'LG OLED55C2AUA TV Stand Base W/Screws (UP 3)',
@@ -305,6 +308,9 @@ console.log("\n  the parts filter knows an electronics part when it sees one");
     'Used Minn Kota Endura C2 50lb Head Control Box',
     'Minn Kota Endura C2 30 Lb Thrust Trolling Motor - Blade Propeller',
     'Minn Kota Endura C2 40 36" Main Wire For Model 1352240',
+    'Genuine Used Stihl FS 91 FS 111 FS 131 Clutch Assembly',
+    'Minn Kota Endura 50lb Tiller Handle',
+    'Minn Kota Endura C2 30lb thrust - top and bottom Control cover',
   ];
   const keptItems = ITEMS.filter(t => !ELEC_PART.test(t));
   const caughtParts = PARTS_T.filter(t => ELEC_PART.test(t));
