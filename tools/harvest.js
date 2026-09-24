@@ -815,3 +815,58 @@ console.log(`\n  ${hit} priced, ${miss} with nothing usable` +
   (wilds ? `, ${wilds} outside the sanity band and held back` : "") + `. Findings in ${OUT}.`);
 console.log(`  ${soldRows} of them are built on sold prices; the rest are asking prices and read high.`);
 console.log(`  Review them, then: node tools/harvest.js --merge   (add --sold-only to take just the sold ones)\n`);
+
+/* ---- CAN EBAY PRICE THIS AISLE AT ALL? ----------------------------------
+ * The per-model check above already says "eBay can't price this" when a
+ * search comes back as a parts counter. Nothing rolled those up, so
+ * deciding whether a whole KIND of thing is worth searching was a person
+ * reading the log - and a person reading a log is how "12 priced" got
+ * mistaken for twelve good rows when eight of them were treadmill belts
+ * sold eight times each.
+ *
+ * A row only counts here if it is built on sold prices AND lands inside
+ * the sanity band AND its quartiles are within 3x. The share of a
+ * category's models that clear all three is the verdict, and a category
+ * that cannot clear a quarter of them belongs on the desk's blind list
+ * next to the televisions, the quads and the mowers.
+ */
+{
+  const byRef = new Map();
+  for (const f of Object.values(found)) {
+    if (!f || !f.ref) continue;
+    if (!byRef.has(f.ref)) byRef.set(f.ref, []);
+    byRef.get(f.ref).push(f);
+  }
+  const verdicts = [];
+  for (const [ref, list] of byRef) {
+    /* only judge an aisle this run actually touched */
+    if (!list.some(f => f.date === today())) continue;
+    let good = 0, usable = 0;
+    for (const f of list) {
+      /* `local` is set when the desk ALREADY knows eBay is blind here and
+         skipped the search. Counting those as failures made the verdict
+         circular - a quad scored 0/3 and was recommended for the blind
+         list it is already on, on the strength of three searches that
+         never happened. The first version of this matched the console
+         string rather than the record, which does not even contain it. */
+      if (f.local) continue;
+      usable++;
+      const spread = f.lo > 0 ? f.hi / f.lo : 99;
+      if (f.basis === "sold" && !f.wild && f.med && spread < 3) good++;
+    }
+    if (usable < 3) continue;
+    verdicts.push({ ref, n: usable, good, share: good / usable });
+  }
+  verdicts.sort((a, b) => a.share - b.share);
+  const blind = verdicts.filter(v => v.share < 0.25);
+  if (verdicts.length) {
+    console.log("  Can eBay price this kind of thing?");
+    for (const v of verdicts)
+      console.log(`    ${v.ref.padEnd(6)} ${String(v.good).padStart(3)}/${String(v.n).padEnd(3)} clean sold rows` +
+        `   ${v.share >= 0.5 ? "yes" : v.share >= 0.25 ? "thin" : "NO - it sells locally"}`);
+    if (blind.length)
+      console.log(`\n  Put on the desk's blind list (ebayBlind in app.js): ${blind.map(v => v.ref).join(", ")}` +
+        `\n  Each is under a quarter clean rows - the searches are finding parts and accessories,` +
+        `\n  so every lookup there spends the quota to hand the counter a number for a belt.\n`);
+  }
+}
