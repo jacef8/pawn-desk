@@ -82,13 +82,18 @@ for (const t of targets) {
     else if (ps.length < 4) { g = "NOTHING"; note = ps.length + " listings"; }
     else {
       const lo = pct(ps, .25), hi = pct(ps, .75), mid = pct(ps, .5);
-      const book = BOOK[t.ref];
+      /* A MODEL IS ITS OWN BEST REFERENCE - the same correction the merge
+         got. Checking a Martin D-28 against the "acoustic guitar" base
+         says 21x and means nothing: three brand tiers span two and a half
+         times and guitars span twenty. The row the desk already holds for
+         that exact model is what a fresh search should agree with. */
+      const book = (t.lo > 0 && t.hi > 0) ? Math.round((t.lo + t.hi) / 2) : BOOK[t.ref];
       const spreadX = lo > 0 ? hi / lo : 0;
       note = "$" + lo + "-$" + hi + " (n=" + ps.length + ")";
       if (d.basis !== "sold") { g = "ASKS"; }
       else if (spreadX >= 3) { g = "MIXED"; note += "  " + (Math.round(spreadX * 10) / 10) + "x wide"; }
       else if (book > 0 && (mid / book > 4 || mid / book < 0.25)) {
-        g = "WILD"; note += "  vs book $" + book; }
+        g = "WILD"; note += "  vs its own row $" + book; }
       else g = "OK";
     }
   } catch (e) { g = "ERROR"; note = e.message.slice(0, 40); }
