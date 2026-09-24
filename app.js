@@ -281,9 +281,48 @@ const BRANDBOOK={
  * four characters, so S&W, PSA, IWI, JBL, TCL, RCA, IWC, PRS and seventeen
  * others are only findable that way. Strongest reader first, and it only
  * falls through when that one found nothing. */
+/* NOBODY SAYS "SONY" WHEN THEY MEAN A PLAYSTATION.
+   The brand book holds MAKERS, and the counter types what is written on
+   the thing: PlayStation 4, iPhone 13, MacBook Air, Galaxy Watch 6, Switch
+   OLED. None of those carries its maker's name, so brandFromName returned
+   nothing for every one of them and the desk priced the most common items
+   in the shop at the neutral middle tier. Hi against mid is 40% - an
+   iPhone was being read as a no-name handset.
+   A product line resolves to its maker, and the maker is then looked up in
+   the book as usual, so the tier still comes from one place and the screen
+   still shows the make somebody would recognise. Longest match first, so
+   "apple watch" beats "watch" and "galaxy buds" beats "galaxy". */
+const BRAND_LINE={
+  elec:[["playstation","Sony"],["ps5","Sony"],["ps4","Sony"],["ps3","Sony"],
+        ["psvr","Sony"],["bravia","Sony"],["walkman","Sony"],
+        ["iphone","Apple"],["ipad","Apple"],["macbook","Apple"],["imac","Apple"],
+        ["airpods","Apple"],["apple watch","Apple"],["airtag","Apple"],["ipod","Apple"],
+        ["mac mini","Apple"],["mac studio","Apple"],
+        ["galaxy","Samsung"],["odyssey","Samsung"],["frame tv","Samsung"],
+        ["switch","Nintendo"],["wii","Nintendo"],["3ds","Nintendo"],["game boy","Nintendo"],
+        ["surface","Microsoft"],["thinkpad","Lenovo"],["ideapad","Lenovo"],
+        ["inspiron","Dell"],["latitude","Dell"],["optiplex","Dell"],["xps","Dell"],
+        ["chromecast","Google"],["nest","Google"],
+        ["soundlink","Bose"],["quietcomfort","Bose"],["soundtouch","Bose"],
+        ["beats","Beats"],["roku","Roku"]]
+};
+function aliasBrand(catId,txt){
+  const list=BRAND_LINE[catId]; if(!list)return null;
+  const t=" "+String(txt||"").toLowerCase().replace(/[^a-z0-9]+/g," ")+" ";
+  let best=null;
+  for(const [word,maker] of list){
+    if(t.indexOf(" "+word+" ")>=0||t.indexOf(" "+word)>=0){
+      if(!best||word.length>best[0].length)best=[word,maker];
+    }
+  }
+  return best?brandLookup(catId,best[1]):null;
+}
 function brandFromName(catId,txt){
   const whole=brandInText(catId,txt);
   if(whole)return whole;
+  /* Before giving up on the words, try what the thing is actually called. */
+  const al=aliasBrand(catId,txt);
+  if(al)return al;
   /* Two characters is safe HERE because this scan only accepts a word that
      equals a whole book entry - it is the containment matching that needs a
      floor, and there is none in this loop. */
@@ -6866,7 +6905,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0924.1725";
+const APP_BUILD="0924.1848";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

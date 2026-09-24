@@ -1109,6 +1109,62 @@ console.log("\n  a television is not a phone, and does not buy like one");
   await page.close();
 }
 
+/* NOBODY SAYS "SONY" WHEN THEY MEAN A PLAYSTATION.
+   The brand book holds MAKERS and the counter types what is written on the
+   thing. brandFromName returned nothing for PlayStation 4, iPhone 13,
+   MacBook Air, Galaxy Watch 6 and Switch OLED - the most common items in
+   the shop - so every one was priced at the neutral middle tier. Hi
+   against mid is 40%: an iPhone was being read as a no-name handset, and
+   the run asked "what make is it?" over something that says its maker on
+   the front. */
+console.log("\n  a product line resolves to the maker that built it");
+{
+  const page = await browser.newPage({viewport:{width:1280,height:900}});
+  const perr = [];
+  page.on("pageerror", e => perr.push(String(e)));
+  await page.goto(BASE + "/index.html", {waitUntil:"networkidle"});
+  const r = await page.evaluate(() => {
+    const o = {};
+    for (const t of ["PlayStation 4", "iPhone 13", "MacBook Air M1", "Galaxy Watch 6",
+                     "Switch OLED", "AirPods Pro 2", "Dell Inspiron 15", "Onn Roku TV",
+                     "Sony PlayStation", "Samsung TU7000"]) {
+      const h = brandFromName("elec", t);
+      o[t] = h ? {name:h.name, tier:h.tier} : null;
+    }
+    return o;
+  });
+  const want = {"PlayStation 4":["Sony","hi"], "iPhone 13":["Apple","hi"],
+                "MacBook Air M1":["Apple","hi"], "Galaxy Watch 6":["Samsung","hi"],
+                "Switch OLED":["Nintendo","hi"], "AirPods Pro 2":["Apple","hi"]};
+  for (const [txt, [name, tier]] of Object.entries(want))
+    ok(r[txt] && r[txt].name === name && r[txt].tier === tier,
+       `  "${txt}" reads as ${name} (${tier}) — got ` +
+       (r[txt] ? r[txt].name + " (" + r[txt].tier + ")" : "NOTHING"));
+
+  /* the ones that already worked must keep working */
+  ok(r["Sony PlayStation"] && r["Sony PlayStation"].name === "Sony",
+     "  and a name that already carried its maker is unchanged");
+  ok(r["Onn Roku TV"] && r["Onn Roku TV"].tier === "lo",
+     "  a house brand still reads low, not Roku — got " + (r["Onn Roku TV"]||{}).tier);
+  ok(r["Dell Inspiron 15"] && r["Dell Inspiron 15"].name === "Dell",
+     "  and Inspiron reaches Dell");
+
+  /* and the run stops asking a question the name already answered */
+  const flow = await page.evaluate(() => {
+    st.mode = "item"; st.catId = "elec"; st.itemId = "e5"; st.picked = true;
+    st.brandTyped = ""; st.brandSet = false; st.model = "PlayStation 4";
+    st.market = null; render();
+    const q = askQueue(calcItem());
+    return {brandAnswered: (q.find(z => z.id === "brand") || {}).answered,
+            tier: calcItem().brandTier};
+  });
+  ok(flow.brandAnswered === true,
+     "  so the run no longer asks the make of a PlayStation 4");
+  ok(flow.tier === "hi", "  and prices it at the top tier, not the middle — got " + flow.tier);
+  ok(!perr.length, "  no page errors" + (perr.length ? ": " + perr[0] : ""));
+  await page.close();
+}
+
 ok(!errs.length, "no page errors" + (errs.length ? ": " + errs[0] : ""));
 await browser.close();
 console.log(fails ? "\n  " + fails + " FAILED\n" : "\n  all passed\n");
