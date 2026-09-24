@@ -65,7 +65,8 @@ const CATALOG = [
    {id:"h2",name:"Binoculars",value:70,liq:"normal"},
    {id:"h3",name:"Rangefinder",value:110,liq:"normal"},
    {id:"h4",name:"Trail camera",value:45,liq:"fast"},
-   {id:"h5",name:"Compound bow",value:200,liq:"slow"},
+   /* Measured 24 Sep: "compound bow", 22 real sales, median $341, quartiles $125-$599. 341/0.8 is 426. The old $200 was less than half what a plain bow sells for, which is why a Mathews read as wild against it */
+   {id:"h5",name:"Compound bow",value:426,liq:"slow"},
    {id:"h6",name:"Crossbow",value:250,liq:"normal"},
    {id:"h7",name:"Rod & reel combo",value:70,liq:"fast"},
    {id:"h8",name:"Trolling motor",value:250,liq:"normal"},
@@ -124,9 +125,11 @@ const CATALOG = [
   brand:{on:true,hi:"Fender / Gibson / Martin",mid:"Squier / Epiphone / Yamaha",lo:"No name"},
   complete:{on:true,label:"Case, cable, strap"},
   items:[
-   {id:"m1",name:"Acoustic guitar",value:110,liq:"slow"},
+   /* Measured 24 Sep: a generic "acoustic guitar" search returns 17 real sales, median $99, quartiles $43-$248. 99/0.8 is 124. The old $110 was close and is now exact */
+   {id:"m1",name:"Acoustic guitar",value:124,liq:"slow"},
    {id:"m2",name:"Electric guitar",value:150,liq:"slow"},
-   {id:"m3",name:"Amplifier",value:100,liq:"slow"}]},
+   /* Measured 24 Sep: "guitar amplifier", 18 real sales, median $135, quartiles $75-$275. 135/0.8 is 169. The old $100 priced every amp at $80 resale */
+   {id:"m3",name:"Amplifier",value:169,liq:"slow"}]},
  /* Jewellery and watches where the NAME carries the value. Plain gold with
     no name on it belongs on the Gold & silver tab, priced by weight - this is
     for the pieces the scale badly under-values. Four of these five sheets
@@ -5981,7 +5984,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0924.0836";
+const APP_BUILD="0924.0918";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

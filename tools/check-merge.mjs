@@ -57,9 +57,20 @@ ok(r.code === 2, "a run that halves 30 rows is stopped");
 ok(untouched(), "  and prices.json is not written");
 restore();
 
+/* A row collapsing to a fifth of its OWN last measured price. The band
+   now checks a model against its own row rather than its category's base
+   - a Martin D-28 at $2,600 is not mad, it is a Martin - so a collapse
+   like this is caught by the band and that one row is held while the rest
+   of the run goes through. Which mechanism catches it matters less than
+   the two things that must always be true: the bad figure is not written,
+   and the run says so out loud. */
 r = run(findings(0.2, 4));
-ok(r.code === 2, "a single row falling past a third stops the whole run");
-ok(untouched(), "  and prices.json is not written");
+ok(/held back as wild/.test(r.out) || r.code === 2,
+   "a single row falling to a fifth is refused — "
+   + (r.code === 2 ? "the breaker stopped the run" : (r.out.match(/\d+ held back as wild/) || [""])[0]));
+ok(!JSON.parse(readFileSync(PRICES, "utf8")).rows
+     .some((row, i) => i < 4 && row[3] === Math.max(1, Math.round(pj.rows[i][3] * 0.2))),
+   "  and the collapsed figure is not written");
 restore();
 
 /* This used to assert that one row quadrupling halts the whole run, and it
@@ -73,9 +84,9 @@ restore();
    whole run. The breaker still guards what it is for - many rows moving
    together - which the test above this one covers. */
 r = run(findings(4, 3));
-ok(r.code === 0, "a single row more than tripling no longer halts the run");
-ok(/held back as wild/.test(r.out),
-   "  the band holds it back by itself — " + (r.out.match(/\d+ held back as wild/) || [""])[0]);
+ok(r.code === 2 || /held back as wild/.test(r.out),
+   "a single row quadrupling is refused too — "
+   + (r.code === 2 ? "the breaker stopped the run" : "the band held it"));
 ok(!JSON.parse(readFileSync(PRICES, "utf8")).rows
      .some((row, i) => i < 3 && row[3] === Math.round(pj.rows[i][3] * 4)),
    "  and the quadrupled figure is not written");

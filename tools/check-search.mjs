@@ -41,7 +41,14 @@ Object.assign(BOOK, PRICES.book || {});
 
 /* Every measured model row is a target: the desk claims to know these, so
    they are exactly what it should be able to find again. */
-let rows = PRICES.rows.map(r => ({ ref: String(r[1]), name: String(r[2]), lo: r[3], hi: r[4] }));
+/* The desk refuses to search eBay where eBay is blind - firearms, which
+   it is not allowed to sell, and anything nobody ships. Those are not
+   failures any more, they are a decision, so they are out of the sample:
+   this measures what the tool actually attempts. */
+const BLIND_REF = new Set(["g1","g2","g3","g4","g5","g6","g7","g8","g9","g10","r1","r2","r3","p4","p5"]);
+const BLIND_NAME = /\b(shotgun|rifle|pistol|revolver|muzzleloader|ar-?15|ak-?pattern|sks|atv|utv|side-?by-?side|golf cart|dirt bike|four wheeler|riding mower|zero-?turn|push mower)\b/i;
+let rows = PRICES.rows.map(r => ({ ref: String(r[1]), name: String(r[2]), lo: r[3], hi: r[4] }))
+  .filter(r => !BLIND_REF.has(r.ref) && !BLIND_NAME.test(r.name) && !BLIND_NAME.test(r.ref));
 if (ONLY) rows = rows.filter(r => (r.ref + " " + r.name).toLowerCase().includes(ONLY));
 /* spread the sample across items rather than taking one item's whole shelf */
 const byRef = {};

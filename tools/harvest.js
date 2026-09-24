@@ -244,7 +244,23 @@ if (has("merge")) {
        finding that had ever been wrong about its row was frozen that way.
        The band is the merge's to decide, on both lanes, every time. */
     const mid0 = Math.round((f.lo + f.hi) / 2);
-    const w0 = wildness(f.ref, mid0) || wildness(f.name, mid0);
+    /* A MODEL IS ITS OWN BEST REFERENCE.
+       The band compared every finding against the CATEGORY's base, which
+       works where brand moves the price a little and fails completely
+       where brand IS the price. A Martin D-28 measured at $2,600 against
+       a $110 "acoustic guitar" row reads as 23x and was refused - a
+       correct answer, thrown away, because the desk's three brand tiers
+       span two and a half times and guitars span twenty. Where the model
+       already has a row of its own, that row is what the new figure
+       should be checked against; the category base is for models the desk
+       has never seen. Kept tight at the same 4x: a real price can move
+       over a year, but not fourfold. */
+    const prev = rows[byName.get(f.ref + "|" + String(f.name).toLowerCase())];
+    const prevMid = prev ? Math.round((prev[3] + prev[4]) / 2) : 0;
+    const w0 = prevMid > 0
+      ? { book: prevMid, ratio: Math.round(mid0 / prevMid * 100) / 100,
+          wild: mid0 / prevMid > WILD_HI || mid0 / prevMid < WILD_LO }
+      : (wildness(f.ref, mid0) || wildness(f.name, mid0));
     if (w0 && w0.wild && !has("wild")) { wild++;
       heldWild.push({ name: f.name, lo: Math.round(f.lo), hi: Math.round(f.hi),
                       n: f.n, book: w0.book, ratio: w0.ratio }); continue; }

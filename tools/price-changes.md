@@ -1,18 +1,10 @@
-# Price changes — 2026-09-23
+# Price changes — 2026-09-24
 
-343 rows → **348**. 5 added, 164 rewritten, 9 held back as wild, 1 held back as mixed searches, 128 too thin, 17 held back as asking-only.
+348 rows → **348**. 0 added, 169 rewritten, 9 held back as wild, 1 held back as mixed searches, 132 too thin, 18 held back as asking-only.
 
 ## Worth a look
 
 Nothing moved 25% or more. Quiet week.
-
-## New rows (5)
-
-- Alienware m15 R7 — $675–1134 (7 listings, sold)
-- Grand Theft Auto V — $4–9 (10 listings, sold)
-- HP Omen 16 — $450–1450 (10 listings, sold)
-- Madden NFL 25 — $2–7 (9 listings, sold)
-- MSI Katana 15 — $680–900 (10 listings, sold)
 
 ## Held back as wild (9)
 
