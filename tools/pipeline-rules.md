@@ -8,24 +8,45 @@ changes here, in git, where the change is visible and reversible.
 
     node tools/harvest.js --go        # price every outstanding target
     node tools/harvest.js --merge     # fold the findings into prices.json
+    node tools/sync-book.mjs          # copy the rows into app.js's fallback
 
 Then the suites, then commit, then push to `main`.
+
+The ten suites, all of which must pass before the push. They need
+`python3 -m http.server 8099` running:
+
+    check-merge  check-pricing  check-screens  check-lookup  check-wizard
+    check-ask    check-ebay     check-soldcomps  check-contrast  check-search
 
 `PAWN_TOKEN` must be set. `PAWN_SERVER` has a default and rarely needs one.
 
 ## What to commit, and what never to touch
 
-Commit **`prices.json` and `tools/price-changes.md`**. Nothing else.
+Commit **`prices.json`, `app.js` and `tools/price-changes.md`**. Nothing else.
+
+`app.js` is on that list now, and only because of `MODEL_PRICES`. The book
+lives in two places: `prices.json`, fetched on every load, and a copy in
+`app.js` for a device that cannot reach the file at all. They drifted 171
+rows apart once — a harvest wrote one and nothing wrote the other — so a
+disconnected tablet fell back on half a book. `check-merge` now refuses to
+pass unless the two are byte-identical.
+
+**`node tools/sync-book.mjs` is how you make them match.** Never by hand:
+the first attempt at it used a blanket `", "` → `","` replace that reached
+inside the strings and turned "AR-15, entry-level" into
+"AR-15,entry-level". `--check` reports drift without writing, and exits
+non-zero, so it can gate the commit.
 
 **Do not bump `APP_BUILD` in app.js or the cache key `C` in sw.js on a
-price-only run.** The service worker is network-first: it calls `fetch()`
-and only falls back to the cache when the device is offline. A new
-prices.json is picked up on the very next page load with no cache bump at
-all. Bumping it forces every phone and the desk PC to re-download the whole
-app for nothing.
+price-only run — including one that rewrote the `MODEL_PRICES` block.** The
+service worker is network-first: it calls `fetch()` for everything and only
+falls back to the cache when the device is offline. Both the new
+prices.json AND the new app.js are picked up on the very next page load
+with no cache bump at all. Bumping forces every phone and the desk PC to
+re-download the whole app for nothing.
 
-Bump the build only when a run genuinely changes app.js, app.css, phone.js
-or sw.js — which a harvest should not.
+Bump the build only when a run changes what the app DOES — app.css,
+phone.js, sw.js, or app.js beyond its price rows. A harvest should not.
 
 Never open a pull request. Never touch app.js to "fix" a price; prices live
 in prices.json.
@@ -65,10 +86,16 @@ report rather than summarising away.
 
 | | |
 |---|---|
-| Targets in the seed list | 610 |
+| Targets in the seed list | **971** |
 | Lookups per target | up to 2 (a second only when the first is thin) |
-| A full sweep | up to **1,220 requests** |
+| A full sweep | up to **1,942 requests** |
 | The $9 Starter plan | **2,000 requests a month** |
+
+That table used to say 610, and the margin it implied no longer exists. At
+971 targets a single full sweep is 97% of the month. **A wasted sweep is
+the month.** Check what is actually outstanding before running — the dry
+run prints it — and cap with `--limit` when the number is large. Targets
+come up oldest first, so a capped run refreshes what needed it most.
 
 A finding is repriced once it is **28 days old** (120 days for rows eBay
 cannot price at all - mowers and trimmers nobody ships, where the answer is
@@ -82,10 +109,26 @@ That fits 2,000 with room, but it means a WASTED sweep is most of a month's
 allowance. Never re-run one that completed. The harvest already skips what
 is still fresh; let it.
 
-If the seed list grows much past 610, either raise the plan or widen
-`--stale`. `--limit N` caps a single run when the allowance is tight -
-targets come up oldest first, so a capped run refreshes what needed it
-most.
+The seed list has already grown past what the plan comfortably covers.
+Either raise the plan or widen `--stale`; do not quietly let a sweep eat
+the allowance.
+
+## What the run says about whole aisles
+
+The harvest prints a verdict per catalogue ref at the end: how many of that
+kind's models produced a **clean** row — sold basis, inside the sanity
+band, quartiles within 3x. It names any aisle under a quarter.
+
+That is not a curiosity, it is the most valuable thing a run produces.
+Sixteen aisles have been retired on it: nobody ships a fridge, a treadmill,
+a 60-gallon compressor or a 55-inch television, so eBay lists their parts
+and the search returns belts and boards that genuinely sold. A NordicTrack
+came back on **eight real sales at a $35 median** against a $300 row.
+
+When the run names an aisle, do not merge it and do not silently drop it:
+report it, with the count, so it can be added to `EBAY_CANNOT_ITEM` in
+app.js. That is a code change and belongs in its own commit, not the price
+commit.
 
 ## The report
 
