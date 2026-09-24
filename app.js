@@ -1923,10 +1923,15 @@ function renderItem(){
     /* On the phone this column is hidden and the camera card is drawn in the
        visible run instead - drawing it here too would put two of every id on
        the page, and the handlers would wire to the invisible copy. */
-    /* In the rail layout these two are reference, not questions - the camera
-       switch and the shelf-tag record - so they go to the foot of the
-       questionnaire rather than above the first thing being asked. */
-    </div></details>${deskRail()?"":(window.PHONE?"":photoCardHTML())+seenCardHTML()}</div>`;
+    /* The shelf-tag record used to hang here on any screen without a rail -
+       the second of two paths it was reaching the pricing page by, and the
+       one the first cut missed. It is a record of what OTHER shops ask,
+       and it lives on the deal log with the rest of the shop's own
+       records. It has no business beside the thing in your hand.
+       The camera stays, but only until something is picked: it is how you
+       find out WHAT this is, not something to re-open halfway down a run
+       about one already named. */
+    </div></details>${(deskRail()||window.PHONE||st.picked)?"":photoCardHTML()}</div>`;
   /* The market check is a tool, not a question - it interrupted the run
      between the browse bar and step 3 with 292px of buttons. It goes with
      the other reference cards at the foot, where it is still a click away
@@ -6078,7 +6083,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0924.1312";
+const APP_BUILD="0924.1348";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

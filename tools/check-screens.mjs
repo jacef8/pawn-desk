@@ -185,6 +185,42 @@ console.log("");
   await p.close();
 }
 
+{
+  const WIDTHS = [[2000, 1200], [1600, 1000], [1100, 900], [900, 1200]];
+  let leaks = [];
+  for (const [w, h] of WIDTHS) {
+    const pg = await browser.newPage({viewport: {width: w, height: h}});
+    await pg.goto(BASE + "/index.html", {waitUntil: "networkidle"});
+    const hit = await pg.evaluate(() => {
+      const out = [];
+      for (const flow of ["ask", "pages", "all"]) {
+        st.flow = flow; st.market = null; st.mpPin = null; st.mpNone = false;
+        st.condSet = false; st.specSel = {}; st.brandTyped = ""; st.brandQ = "";
+        st.model = ""; st.bookName = ""; st.picked = false; st.askAt = 0;
+        const R = omniRows("dewalt dcd791 drill") || {}, rows = R.rows || [];
+        const f = rows.find(x => ["mp", "book", "item"].includes(x.kind));
+        if (f) omniPick(f);
+        render();
+        const t = (document.getElementById("view") || {innerText: ""}).innerText;
+        if (/Shelf prices/i.test(t)) out.push(flow);
+      }
+      return out;
+    });
+    hit.forEach(f => leaks.push(w + "px/" + f));
+    await pg.close();
+  }
+  if (leaks.length) { bad++;
+    console.log("FAIL shelf-tag record is on the pricing page at " + leaks.join(", ")); }
+  else console.log("ok   the shelf-tag record stays off the pricing page, every width and flow");
+}
+
 await browser.close();
 console.log(bad ? `FAILED (${bad})` : "all screens draw themselves, every id once");
 process.exit(bad ? 1 : 0);
+/* THE SHELF-TAG RECORD IS NOT PART OF PRICING AN ITEM.
+   It is a record of what OTHER shops ask, kept for later, and it was
+   reaching the pricing page by TWO paths - once at the foot of the
+   question column, once at the foot of the browse box on any screen
+   without a rail. The first cut closed one of them and I reported it
+   done. Every width and every flow is checked here, because "I removed
+   it" was true and wrong at the same time. */
