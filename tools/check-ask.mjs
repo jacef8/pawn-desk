@@ -503,14 +503,75 @@ console.log("\n  the run asks which one it is");
     const q = askQueue(calcItem());
     st.askAt = q.length - 1; render();
     const c = document.getElementById("askCard");
+    /* the finish is a live button whichever of its three shapes it takes:
+       log the deal, jump to the gap, or point at the options above */
+    const b = c.querySelector(".askNav button[data-askdone], .askNav button[data-askgo]");
     return {move: !!c.querySelector('[data-askmove="1"]'),
-            done: c.querySelector('[data-askdone]'),
-            label: (c.querySelector('[data-askdone]') || {}).textContent || "",
+            done: !!b,
+            label: b ? b.textContent : "",
             dead: !!c.querySelector('[data-askmove="1"][disabled]')};
   });
   ok(!fin.dead, "the last card carries no dead Next button");
   ok(!!fin.done, "  it carries a live finish instead");
-  ok(/detail/i.test(fin.label), "  that says where it goes — \"" + fin.label.trim() + "\"");
+  ok(fin.label.length > 0, "  that says something — \"" + fin.label.trim() + "\"");
+
+  /* AND IT HAS TO SAY THE RIGHT SOMETHING.
+     "See the detail" was my guess at what follows the last question and it
+     was wrong twice: nobody knows which detail, and on the desk the card it
+     scrolled to is already on screen, so the click had no visible effect.
+     A button with no visible effect is a broken button whatever it does
+     inside. What follows the last question is not a place, it is the next
+     ACTION - the run has a gap in it, or it is done and wants logging. */
+  const lbl = await page.evaluate(() => {
+    const read = () => {
+      const q = askQueue(calcItem());
+      st.askAt = q.length - 1; render();
+      const b = document.querySelector(".askNav button[data-askdone],.askNav button[data-askgo]");
+      return b ? {t:b.textContent.trim(), k:b.dataset.askdone || "go"} : null;
+    };
+    const out = {};
+    st.mode = "item"; st.catId = "tools"; st.itemId = "t1"; st.picked = true;
+    st.brandSet = true; st.model = "DCD791";
+
+    /* a gap earlier in the run */
+    st.market = {kind:"found", key:mkKey(), mid:30, lo:13, hi:35, n:21, sold:21, basis:"sold", comps:[]};
+    st.condSet = false; render();
+    out.gap = read();
+
+    /* nothing left at all */
+    st.market = {kind:"hand", key:mkKey(), mid:100}; st.condSet = true; render();
+    out.done = read();
+    return out;
+  });
+  ok(lbl.gap && /still to answer/i.test(lbl.gap.t) && lbl.gap.k === "go",
+     "a gap earlier in the run is named and jumped to — \"" + (lbl.gap||{}).t + "\"");
+  ok(lbl.done && /log this deal/i.test(lbl.done.t) && lbl.done.k === "log",
+     "  and a finished run offers the thing you actually do next — \"" + (lbl.done||{}).t + "\"");
+  ok(!/see the detail/i.test(JSON.stringify(lbl)),
+     "  and neither of them says \"see the detail\"");
+
+  /* NOTHING LIT UNTIL SOMEBODY SAYS SO.
+     st.cond defaults to "good" because the arithmetic needs something, so
+     Good came up already highlighted and read as a choice that had been
+     made - "it looks like good is selected, but it actually is not until I
+     click it". Condition runs +30% to -55%, the widest lever on the page,
+     and the screen was showing an answer nobody gave. The make above
+     already followed this rule; condition did not. */
+  const condLit = await page.evaluate(() => {
+    st.market = {kind:"found", key:mkKey(), mid:30, lo:13, hi:35, n:21, sold:21, basis:"sold", comps:[]};
+    st.condSet = false; st.cond = "good"; render();
+    const q = askQueue(calcItem());
+    st.askAt = q.findIndex(z => z.id === "cond"); render();
+    const before = [...document.querySelectorAll("#askCard .askOpt.on")].length;
+    const opt = document.querySelector("#askCard .askOpt");
+    opt.click();
+    const after = [...document.querySelectorAll("#askCard .askOpt.on")].length;
+    return {before, after, condSet: !!st.condSet};
+  });
+  ok(condLit.before === 0,
+     "no condition is lit before one is chosen — got " + condLit.before + " lit");
+  ok(condLit.condSet === true && condLit.after >= 0,
+     "  and choosing one records it");
 
   /* AND THE SAME DEAD BUTTON AT THE OTHER END.
      Back was disabled on question one because there is no earlier

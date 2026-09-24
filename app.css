@@ -156,7 +156,19 @@
     #view.item.railed{grid-template-columns:minmax(0,1fr) minmax(0,356px);
       grid-template-rows:auto auto minmax(0,1fr);
       grid-template-areas:"omni rail" "next rail" "quest rail"}
+    /* THE RAIL RAN OFF THE BOTTOM TOO.
+       Same fault as .colQ, one column over, and my scroll test missed it
+       because that test measured the last CARD - and the cards it looked
+       at are all in the question column. The rail is sticky and
+       start-aligned with no height limit, so "what that number is made
+       of" - twenty-one thumbnails - simply grew past the window and
+       .dash{overflow:hidden} took the rest. The evidence for the price
+       was the part you could not reach.
+       Bounded to what is left of the window under the sticky offset, and
+       it scrolls itself from there. */
     #view.item.railed .rail{grid-area:rail;position:sticky;top:92px;align-self:start;
+      max-height:calc(100dvh - 92px - clamp(11px,1.3vw,18px));
+      overflow:auto;scrollbar-width:thin;overscroll-behavior:contain;
       display:flex;flex-direction:column;gap:clamp(8px,.8vw,12px)}
     #view.item.railed #pin{position:static;grid-area:auto}
     /* ALIGN-ITEMS:START WAS EATING THE SCROLLBAR.

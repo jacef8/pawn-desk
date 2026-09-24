@@ -1910,7 +1910,17 @@ function askQueue(x){
   if(!handSet)q.push({id:"cond", title:"What shape is it in?",
     hint:"Next to a typical used one.",
     opts:CONDITIONS.map(c=>{const w=COND_WORDS[c.id]||[c.label,""];
-      return {t:w[0], sub:w[1]||"", on:st.cond===c.id, set:"cond", v:c.id};}),
+      /* NOTHING LIT UNTIL SOMEBODY SAYS SO - the same rule the make above
+         already follows, and for the same reason. st.cond defaults to
+         "good" because the arithmetic needs something, so Good came up
+         already highlighted and read as a choice that had been made. The
+         counter sees his answer sitting there, moves on, and the desk
+         prices a rough drill as a good one. Condition swings the number
+         from +30% to -55%: it is the widest lever on the page and it was
+         showing an answer nobody gave.
+         The price still uses good as its neutral. The screen just stops
+         claiming that was a decision. */
+      return {t:w[0], sub:w[1]||"", on:!!st.condSet&&st.cond===c.id, set:"cond", v:c.id};}),
     answered:!!st.condSet});
   return q;
 }
@@ -2087,7 +2097,20 @@ function askHTML(x){
            stops responding. There is more page below it and nothing says
            so. So the last step gets a live button that says what it does
            and takes you to the detail. */
-        ? `<button class="brassBtn" data-askdone="1">See the detail &darr;</button>`
+        ? (()=>{ /* "SEE THE DETAIL" SAID NOTHING AND DID NOTHING.
+               It was my guess at what comes after the last question, and
+               it was wrong twice: nobody knows which detail, and on a desk
+               the card it scrolled to is already on screen, so the click
+               had no visible effect at all. A button that does nothing
+               visible is a broken button, whatever it does internally.
+               What comes next is not a place, it is the next ACTION -
+               either the run has a gap in it, or it is finished and the
+               deal wants logging. Say which. */
+             const open=q.findIndex(z=>!z.answered);
+             if(open<0)return `<button class="brassBtn" data-askdone="log">Log this deal &darr;</button>`;
+             if(open!==at)return `<button class="brassBtn" data-askgo="${open}">Still to answer: ${esc(q[open].title)}</button>`;
+             return `<button class="brassBtn" data-askdone="here">Pick one above &uarr;</button>`;
+           })()
         : `<button class="brassBtn" data-askmove="1">${cur.answered?"Next":"Skip"} &rarr;</button>`}
     </div>
   </div>`;
@@ -2535,14 +2558,18 @@ function wireItem(){
     const inp=document.getElementById("omniIn"); if(inp)inp.focus();
   });
   v.querySelectorAll("[data-askdone]").forEach(b=>b.onclick=()=>{
-    /* Wherever the run ends, the thing worth reading next is the first
-       card after it. On the desk that is the loan detail; on a phone it is
-       whatever the column holds. Fall back to the Next step card. */
-    const card=document.getElementById("askCard");
-    let t=card&&card.nextElementSibling;
-    while(t&&!t.classList.contains("card"))t=t.nextElementSibling;
-    t=t||document.getElementById("nextStep");
-    if(t&&t.scrollIntoView)t.scrollIntoView({behavior:"smooth",block:"start"});
+    if(b.dataset.askdone==="here"){
+      /* the answer is on this card - put the options where the eye is */
+      const o=document.querySelector("#askCard .askOpts,#askCard .askWorth");
+      if(o&&o.scrollIntoView)o.scrollIntoView({behavior:"smooth",block:"center"});
+      return;
+    }
+    /* The run is done, so the next thing the counter does is write it
+       down. Straight to the ticket box, focused. */
+    const log=document.getElementById("logCard")||document.getElementById("nextStep");
+    if(log&&log.scrollIntoView)log.scrollIntoView({behavior:"smooth",block:"start"});
+    const t=document.getElementById("ticketIn")||(log&&log.querySelector("input"));
+    if(t&&t.focus)setTimeout(()=>{try{t.focus({preventScroll:true});}catch(e){}},260);
   });
   v.querySelectorAll("[data-askgo]").forEach(b=>b.onclick=()=>{ st.askAt=Number(b.dataset.askgo); render(); });
   v.querySelectorAll("[data-liq]").forEach(b=>b.onclick=()=>{st.liq=b.dataset.liq;render();});
@@ -6922,7 +6949,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0924.1902";
+const APP_BUILD="0924.1925";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

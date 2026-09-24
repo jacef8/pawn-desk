@@ -452,6 +452,51 @@ console.log("");
   else console.log("ok   every desk screen scrolls to its last card, real wheel, two window heights");
 }
 
+/* AND THE RAIL, WHICH THE CHECK ABOVE CANNOT SEE.
+   That one measures the last .card, and every card it finds lives in the
+   question column - so the rail ran off the bottom of the window and the
+   test said all screens were fine. "What that number is made of" is
+   twenty-one thumbnails of the sales the price was built from: the
+   evidence for the number was the part you could not reach.
+   The rail is sticky and start-aligned, so without a height bound it just
+   grows and .dash{overflow:hidden} eats the remainder. A probe that
+   cannot shrink is the only honest way to test it - a plain tall child
+   gets squashed by the flex column and the check passes for the wrong
+   reason, which is how the first version of this fooled me. */
+{
+  const bust = [];
+  for (const h of [900, 800]) {
+    const pg = await browser.newPage({viewport:{width:1920, height:h}});
+    await pg.goto(BASE + "/index.html", {waitUntil:"networkidle"});
+    await pg.evaluate(() => {
+      st.mode = "item"; st.catId = "tools"; st.itemId = "t1"; st.picked = true;
+      st.market = {kind:"hand", key:mkKey(), mid:100}; render();
+      const rail = document.querySelector(".rail");
+      const d = document.createElement("div");
+      d.style.cssText = "height:900px;flex:0 0 auto";
+      d.className = "card"; d.id = "tallProbe";
+      rail.appendChild(d);
+    });
+    await pg.mouse.move(1700, Math.round(h * 0.6));
+    await pg.mouse.wheel(0, 1200);
+    await pg.waitForTimeout(250);
+    const r = await pg.evaluate(() => {
+      const rail = document.querySelector(".rail");
+      const b = rail.getBoundingClientRect();
+      return {clipped: Math.round(b.bottom) > innerHeight + 2,
+              scrolled: Math.round(rail.scrollTop),
+              canScroll: rail.scrollHeight > rail.clientHeight + 2,
+              bottom: Math.round(b.bottom), vh: innerHeight};
+    });
+    if (r.clipped) bust.push(`1920x${h}: rail ends at ${r.bottom}, window is ${r.vh}`);
+    else if (!r.canScroll) bust.push(`1920x${h}: rail fits but cannot scroll its overflow`);
+    else if (r.scrolled < 5) bust.push(`1920x${h}: rail ignores the wheel (scrollTop ${r.scrolled})`);
+    await pg.close();
+  }
+  if (bust.length) { bad++; console.log("FAIL the rail runs off the window: " + bust.join(" | ")); }
+  else console.log("ok   the rail stays in the window and scrolls its own overflow");
+}
+
 await browser.close();
 console.log(bad ? `FAILED (${bad})` : "all screens draw themselves, every id once");
 process.exit(bad ? 1 : 0);
