@@ -100,9 +100,24 @@ report rather than summarising away.
 
 That table used to say 610, and the margin it implied no longer exists. At
 971 targets a single full sweep is 97% of the month. **A wasted sweep is
-the month.** Check what is actually outstanding before running — the dry
-run prints it — and cap with `--limit` when the number is large. Targets
-come up oldest first, so a capped run refreshes what needed it most.
+the month.**
+
+So the cap is a number, not a judgement. Run the dry run first
+(`node tools/harvest.js`, no flags) and read the "This run" line:
+
+- **150 or fewer outstanding** — run it uncapped.
+- **More than 150** — run `--go --limit 150` and nothing larger. Not 200
+  because it looks like a light week, not 400 because the backlog is big.
+  150 targets is up to 300 lookups, 15% of the month, and leaves room for
+  three more weeks plus the desk's own live lookups, which come out of the
+  same 2,000.
+
+A backlog is meant to take several weeks to clear. That is the design, not
+a problem to be solved by spending more in one run. Report how many are
+still outstanding when the run finishes.
+
+Targets come up oldest first, so a capped run always refreshes what needed
+it most.
 
 A finding is repriced once it is **28 days old** (120 days for rows eBay
 cannot price at all - mowers and trimmers nobody ships, where the answer is

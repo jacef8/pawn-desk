@@ -534,6 +534,38 @@ let todo = targets.filter(needsPricing);
 todo.sort((a, b) => ageOf((found[key(b)] || {}).date) - ageOf((found[key(a)] || {}).date));
 if (limit > 0) todo = todo.slice(0, limit);
 
+/* THE SAME REASONING, APPLIED TO THE FREE PATH.
+   The --via claude guard below exists because an unbounded run spent $43.77
+   by accident. eBay's API is free, so this path had no guard at all - but
+   the lookups are not free: every one goes through SoldComps, which is
+   2,000 requests a month on the $9 plan, and the desk's own live lookups
+   come out of the same 2,000. A 418-target backlog is 836 requests, 42% of
+   the month, reachable by forgetting a flag.
+   So a big run has to be asked for. --limit says the number out loud;
+   --all is the deliberate way to say "yes, the whole backlog". */
+const BIG_RUN = 150;
+/* eBay path only: --via claude has its own, stricter guard below, and
+   reaching this one first would answer a money question with a quota
+   answer. */
+if (VIA === "ebay" && GO && !(limit > 0) && todo.length > BIG_RUN && !has("all")) {
+  console.error("");
+  console.error("  " + todo.length + " targets are outstanding - up to " +
+                (todo.length * 2) + " SoldComps requests, " +
+                Math.round((todo.length * 2 / 2000) * 100) + "% of the 2,000 a month.");
+  console.error("");
+  console.error("  A run this size has to say its own size:");
+  console.error("");
+  console.error("    --limit " + BIG_RUN + "   the standing weekly cap (up to " +
+                (BIG_RUN * 2) + " requests)");
+  console.error("    --all         yes, price the whole backlog in one run");
+  console.error("");
+  console.error("  Targets come up oldest first, so a capped run refreshes");
+  console.error("  what needed it most. A backlog is meant to take several");
+  console.error("  weeks - see tools/pipeline-rules.md.");
+  console.error("");
+  process.exit(2);
+}
+
 /* ---------- where a target's comps come from ---------- */
 
 /* eBay, through the service. Free, and the only one of the two that can hand

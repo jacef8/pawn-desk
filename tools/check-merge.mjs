@@ -382,6 +382,25 @@ console.log("\n  the money path refuses an unbounded run");
   const free = run(["--limit", "3"]);
   ok(free.code === 0 && /nothing - eBay's API is free/.test(free.out),
      "the eBay path still needs no flags and costs nothing");
+
+  /* AND THE FREE PATH IS NOT ACTUALLY FREE.
+     eBay's API costs nothing, but every lookup goes through SoldComps -
+     2,000 requests a month on the $9 plan, shared with the desk's own live
+     lookups. On 24 Sep the backlog was 418 targets: 836 requests, 42% of
+     the month, reachable by typing --go and nothing else. The weekly
+     Routine runs unattended and pushes to main, so "the model will read
+     the manual and cap it" is not a control. This is. */
+  const big = run(["--go"]);
+  ok(big.code === 2 && /targets are outstanding/.test(big.out),
+     "a big unbounded --go on the free path is refused too");
+  ok(/--limit 150/.test(big.out) && /--all/.test(big.out),
+     "  and it names both ways to say the size out loud");
+  ok(/% of the 2,000 a month/.test(big.out),
+     "  and says what the run would cost as a share of the month");
+  /* The two guards must not answer each other's question: --via claude is
+     a money question and has to get the money answer. */
+  ok(/--spend/.test(bare.out) && !/% of the 2,000 a month/.test(bare.out),
+     "  the money path still gets the money refusal, not the quota one");
 }
 
 
