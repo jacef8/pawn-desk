@@ -4604,11 +4604,45 @@ const SPEC_AUTO=[
  {g:"Stage",re:/\btwo\s*-?\s*stage\b/,o:"Two-stage"},{g:"Mount",re:/\bbow\s*mount\b/,o:"Bow mount"},
  {g:"Pressure",re:/\b(3,?[2-9]\d{2}|[4-9],?\d{3})\s*psi\b/,o:"3,200 PSI +"},{g:"Pressure",re:/\b(1,?\d{3}|2,?[0-4]\d{2}|\d{3})\s*psi\b/,o:"Under 2,500 PSI"},
  {g:"Screen size",re:/\b(6[6-9]|[7-9]\d|100)\s*(in|inch|")/,o:"66 in +"},{g:"Screen size",re:/\b(5\d|6[0-5])\s*(in|inch|")/,o:"50–65 in"},
- {g:"Screen size",re:/\b(4[3-9])\s*(in|inch|")/,o:"43–49 in"},{g:"Screen size",re:/\b([12]\d|3\d|4[0-2])\s*(in|inch|")/,o:"Under 43 in"}];
+ {g:"Screen size",re:/\b(4[3-9])\s*(in|inch|")/,o:"43–49 in"},{g:"Screen size",re:/\b([12]\d|3\d|4[0-2])\s*(in|inch|")/,o:"Under 43 in"},
+ /* WHAT THE COUNTER ALREADY TYPED. Picking a suggestion fills in the make
+    and the model and then asked for things the same sentence had already
+    said: "remington 870 express 12 gauge 28 inch" answered the gauge and
+    still asked the barrel back; "stihl ms 271 20 inch bar" asked the bar
+    length. Every group below existed with no rule pointing at it.
+    Safe by construction: a rule only fires on a group that actually
+    carries the option it names, so a shotgun's inches cannot answer a
+    revolver's barrel question or a television's screen size. */
+ {g:"Barrel",re:/\b(3\d|[4-9]\d)\s*(in|inch|")/,o:"Extra-long (30 in +)"},
+ {g:"Barrel",re:/\b(2[4-8])\s*(in|inch|")/,o:"Field length (24\u201328 in)"},
+ {g:"Barrel",re:/\b(1[89]|20)\s*(in|inch|")/,o:"Short / home-defense (18\u201320 in)"},
+ {g:"Barrel",re:/\bsnub\b|\b2\s*(in|inch|")/,o:"Snub 2 in"},
+ {g:"Barrel",re:/\b([7-9]|1\d)\s*(in|inch|")/,o:"7 in + hunter"},
+ {g:"Barrel",re:/\b[3-6]\s*(in|inch|")/,o:"3\u20136 in"},
+ {g:"Bar length",re:/\b(19|[2-9]\d)\s*(in|inch|")/,o:"19 in +"},
+ {g:"Bar length",re:/\b(1[678])\s*(in|inch|")/,o:"16\u201318 in"},
+ {g:"Bar length",re:/\b(\d|1[0-5])\s*(in|inch|")/,o:"Under 16 in"},
+ {g:"Class",re:/\b(gaming|workstation|rgb)\b/,o:"Gaming / workstation"},
+ {g:"Version",re:/\bdigital\b/,o:"Current gen, digital"},
+ {g:"Version",re:/\bdisc\b/,o:"Current gen, disc"},
+ /* A model year, turned into whichever age band this item happens to use.
+    The bands differ - a phone ages faster than a tablet - so the label is
+    read off the group rather than written down twice. */
+ {g:"Age",re:/\b(19|20)\d{2}\b/,o:function(t,g){
+   var m=String(t).match(/\b((?:19|20)\d{2})\b/); if(!m)return null;
+   var yr=Number(m[1]), age=(new Date()).getFullYear()-yr;
+   if(age<0||age>40)return null;
+   var has=function(x){ return g.options.some(function(z){return z.t===x;})?x:null; };
+   if(age<2)return has("Under 2 yr, flagship-class")||has("Under 3 yr");
+   if(age<3)return has("2\u20133 yr")||has("Under 3 yr");
+   if(age<5)return has("3\u20135 yr")||has("3\u20136 yr");
+   if(age<6)return has("3\u20136 yr")||has("5 yr +");
+   return has("5 yr +")||has("6 yr +");
+ }}];
 const DETAIL_RE=[/\b(10|12|16|20|28)\s*(ga|gauge|gage)\b/g,/(^|\s)\.410(\s*(ga|gauge|bore))?\b/g,/\b410\s*(ga|gauge|bore)\b/g,
  /\b\d{1,2}\s*mm\b/g,/\b(22\s*lr|22\s*mag|22\s*wmr|30\s*-?\s*06|45\s*-?\s*70|6\.5\s*(creedmoor|cm|prc)|300\s*(win\s*mag|blackout|blk|wsm|prc)|5\.56|7\.62\s*(x\s*39)?|9\s*x\s*19)\b/g,
  /(^|\s)\.(17|22|223|243|25|257|270|30|308|32|35|357|38|380|40|44|45|50)\b(\s*(lr|wmr|mag|magnum|special|spl|acp|auto|win|rem|colt))?/g,
- /\b\d{2}\s*v(olt)?s?\b/g,/\b\d+(\.\d+)?\s*kw\b/g,/\b\d{3,5}\s*(w|watts?)\b/g,/\b\d{2,3}\s*(in|inch)\b/g,/\b\d+(\.\d+)?\s*hp\b/g,
+ /\b\d{2}\s*v(olt)?s?\b/g,/\b\d+(\.\d+)?\s*kw\b/g,/\b\d{3,5}\s*(w|watts?)\b/g,/\b\d{1,3}\s*(in|inch)\b/g, /* one digit too: a revolver barrel is 2, 4 or 6 inches, and "4 inch" was being dropped before the spec matcher ever saw it *//\b\d+(\.\d+)?\s*hp\b/g,
  /\b\d{2,4}\s*cc\b/g,/\b\d{1,2},?\d{3}\s*psi\b/g,/\b\d{1,2}\s*-\s*\d{1,2}\s*x\s*\d{0,2}\b/g,/\b\d{2,4}\s*(gb|tb)\b/g,/\b\d+\s*(ft|foot)\b/g,/\b\d+\s*lbs?\b/g,
  /\b(19|20)\d{2}\b/g,/\b\d+\s*x\s*\d+\b/g,
  /\b(inverter|cellular|self\s*-?\s*propelled|tube|left\s*-?\s*handed|lefty|crank|bow\s*mount|no\s*title|two\s*-?\s*stage|[24]\s*-?\s*stroke)\b/g];
@@ -4891,7 +4925,13 @@ function applySpecPicks(spec,text){
   groups.forEach((g,gi)=>{
     let want=spec&&spec[g.label];
     if(want&&!g.options.some(o=>o.t===want))want=null;
-    if(!want)for(const r of SPEC_AUTO){ if(r.g===g.label&&r.re.test(t)&&g.options.some(o=>o.t===r.o)){want=r.o;break;} }
+    if(!want)for(const r of SPEC_AUTO){
+      if(r.g!==g.label||!r.re.test(t))continue;
+      /* A year is not a fixed answer - 2023 means a different band every
+         January - so an entry may compute its label from what was typed. */
+      const o=(typeof r.o==="function")?r.o(t,g):r.o;
+      if(o&&g.options.some(z=>z.t===o)){want=o;break;}
+    }
     if(!want)return;
     const oi=g.options.findIndex(o=>o.t===want); if(oi>=0)st.specSel[st.itemId+":"+gi]=oi;
   });
@@ -5923,7 +5963,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0924.0512";
+const APP_BUILD="0924.0618";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

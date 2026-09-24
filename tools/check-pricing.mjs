@@ -755,6 +755,49 @@ console.log("\n  the make step is never a dead end");
      "  a make already known seeds the list instead of sitting mute — " + r.seeded.join(", "));
 }
 
+/* WHAT THE COUNTER ALREADY TYPED. Picking a suggestion fills in the make
+   and the model, and then the run asked for things the same sentence had
+   already said: "remington 870 express 12 gauge 28 inch" answered the
+   gauge and asked the barrel straight back. Every group below existed
+   with no rule pointing at it. A revolver's "4 inch" was lost earlier
+   still - the detail scanner only kept two- and three-digit inches. */
+console.log("\n  a spec the search text already gave is not asked again");
+{
+  const r = await page.evaluate(() => {
+    const go = (q) => { const R = omniRows(q) || {}, rows = R.rows || [];
+      const first = rows.find(x => ["mp","book","item"].includes(x.kind));
+      if (!first) return null;
+      st.market = null; st.mpPin = null; st.mpNone = false; st.condSet = false; st.specSel = {};
+      st.brandTyped = ""; st.brandQ = ""; st.brandSet = false;
+      st.model = ""; st.detail = ""; st.bookName = "";
+      omniPick(first);
+      const groups = SPEC_CHOICES[st.itemId] || [];
+      const out = {};
+      groups.forEach((g, gi) => { const i = st.specSel[st.itemId + ":" + gi];
+        out[g.label] = i == null ? null : g.options[i].t; });
+      return out;
+    };
+    return {shotgun: go("remington 870 28 inch 12 gauge"),
+            revolver: go("smith wesson 686 4 inch"),
+            saw: go("stihl ms 271 20 inch bar"),
+            tv: go("samsung 55 inch tv"),
+            console: go("ps5 digital"),
+            phone: go("iphone 13 2021")};
+  });
+  ok(r.shotgun.Gauge === "12 ga" && /24/.test(r.shotgun.Barrel || ""),
+     "a shotgun's gauge AND barrel come off the text — " + r.shotgun.Gauge + ", " + r.shotgun.Barrel);
+  ok(/3/.test(r.revolver.Barrel || ""),
+     "  a revolver's single-digit barrel is not dropped — " + r.revolver.Barrel);
+  ok(/19/.test(r.saw["Bar length"] || ""), "  a saw's bar length — " + r.saw["Bar length"]);
+  ok(/digital/i.test(r.console.Version || ""), "  a console's edition — " + r.console.Version);
+  ok(!!r.phone.Age, "  and a model year becomes an age band — " + r.phone.Age);
+  /* the rules must not reach across kinds: inches mean different things */
+  ok(/50/.test(r.tv["Screen size"] || "") && !r.tv.Barrel,
+     "a television's inches are its screen, never a barrel — " + r.tv["Screen size"]);
+  ok(!r.revolver["Screen size"],
+     "  and a revolver's inches are never a screen size");
+}
+
 ok(!errs.length, "no page errors" + (errs.length ? ": " + errs[0] : ""));
 await browser.close();
 console.log(fails ? "\n  " + fails + " FAILED\n" : "\n  all passed\n");
