@@ -287,6 +287,14 @@ console.log("\n  the parts filter knows an electronics part when it sees one");
     'MINN KOTA ENDURA C2 55 36\" TRANSOM MOUNT 1352255',
     'Minn Kota 1352240 Trolling Motor Endura C2 40 lbs thrust',
     'USED/CLEAN 5-SPEED MINN KOTA BOAT MOTOR/ENDURA C2 GREAT/12VOLT',
+    /* The traps. A generator with a "Good Battery" is a generator; a
+       camera sold "w/ Battery/Multi Battery Charger/Case" is a camera;
+       "Camera, Battery, SD Card" is a camera. Only a loose OEM battery
+       is a battery. */
+    'Honda EU2200i Gas Powered Generator/ Inverter',
+    'Honda EU3000iS 3000W Inverter Gasoline Generator Good Battery Free',
+    'GoPro HERO11 Black w/ Battery/Multi Battery Charger/Case - Excellent',
+    'GoPro Mission 1 PRO (Camera, Battery, SD Card)',
   ];
   const PARTS_T = [
     'LG OLED55C2AUA TV Stand Base W/Screws (UP 3)',
@@ -311,6 +319,16 @@ console.log("\n  the parts filter knows an electronics part when it sees one");
     'Genuine Used Stihl FS 91 FS 111 FS 131 Clutch Assembly',
     'Minn Kota Endura 50lb Tiller Handle',
     'Minn Kota Endura C2 30lb thrust - top and bottom Control cover',
+    /* Generators and cameras: the pollution is a parallel cable kit, a
+       fuel valve, a cooling fan, a wheel kit, an ECU, a control panel,
+       a loose camera battery. */
+    'Honda Parallel Cable Kit 08E93-Z37-001AH EU2200i EU2000i Generator',
+    '2025 Honda EU2200I Fuel Valve Switch',
+    'Honda EU2200I 2,200w Portable Inverter Generator FAN',
+    'All-Terrain Wheel Kit for Honda Generator EU3000is Solid Never Flat',
+    'Honda EU3000IS Generator Cdi Ecu Ecm Computer',
+    'Honda EU3000IS 3000IS Generator OEM Control Panel - Nice! - Ready',
+    'GoPro SPJB1B OEM Battery HERO8 HERO7 HERO6 HERO5 Black 1220mAh Tested',
   ];
   const keptItems = ITEMS.filter(t => !ELEC_PART.test(t));
   const caughtParts = PARTS_T.filter(t => ELEC_PART.test(t));
