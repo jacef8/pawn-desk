@@ -214,6 +214,45 @@ console.log("");
   else console.log("ok   the shelf-tag record stays off the pricing page, every width and flow");
 }
 
+/* THE PAGE ITSELF MUST NOT SCROLL ON A DESK SCREEN.
+   The directive's section 7 has always said so, and the shell that did it
+   was taken out once already, with the reason written into app.css: too
+   much content to fit. The content that would not fit - the market card,
+   the camera, the shelf-tag recorder, the deal log - is gone from the run
+   now, so the shell is back. Nothing but a measurement stops it drifting
+   out again a card at a time. */
+{
+  const over = [];
+  for (const [w, h] of [[1440,900],[1600,1000],[2000,1200],[1100,800]]) {
+    const pg = await browser.newPage({viewport: {width: w, height: h}});
+    await pg.goto(BASE + "/index.html", {waitUntil: "networkidle"});
+    const hit = await pg.evaluate(() => {
+      const out = [];
+      for (const state of ["start", "picked", "priced"]) {
+        st.flow = "ask"; st.market = null; st.mpPin = null; st.mpNone = false;
+        st.condSet = false; st.specSel = {}; st.brandTyped = ""; st.brandQ = "";
+        st.model = ""; st.bookName = ""; st.picked = false; st.askAt = 0; st.cond = "";
+        if (state !== "start") {
+          const R = omniRows("dewalt dcd791 drill") || {}, rows = R.rows || [];
+          const f = rows.find(x => ["mp", "book", "item"].includes(x.kind));
+          if (f) omniPick(f);
+        }
+        if (state === "priced") { st.cond = "good"; st.condSet = true; }
+        render();
+        const d = document.documentElement;
+        const down = d.scrollHeight - window.innerHeight;
+        const across = d.scrollWidth - window.innerWidth;
+        if (down > 4 || across > 4) out.push(state + " +" + down + "px down +" + across + "px across");
+      }
+      return out;
+    });
+    hit.forEach(s => over.push(w + "x" + h + " " + s));
+    await pg.close();
+  }
+  if (over.length) { bad++; console.log("FAIL the page scrolls: " + over.join(" | ")); }
+  else console.log("ok   the page itself never scrolls, four desk sizes x three states");
+}
+
 await browser.close();
 console.log(bad ? `FAILED (${bad})` : "all screens draw themselves, every id once");
 process.exit(bad ? 1 : 0);

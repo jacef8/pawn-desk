@@ -31,15 +31,28 @@
      own height now; the slack stays at the bottom where it belongs. */
   .dash{position:relative;z-index:1;min-height:100dvh;padding:clamp(11px,1.3vw,18px);display:grid;
     align-content:start;gap:clamp(10px,1.1vw,15px);grid-template-columns:minmax(0,1fr)}
-  /* Three columns on a wide screen, but the PAGE scrolls. This used to be a
-     fixed 100dvh shell with each column scrolling inside itself, which meant
-     the wheel did nothing unless the pointer was in a column, and the columns
-     were only ever as tall as what the search box and Next step left over. It
-     never fit: on a 1400px-tall screen the centre column still had to hide
-     1,100px of itself. The counter does not need it all on one screen, it
-     needs to be able to get to it. */
+  .dash>*{min-height:0}
+  /* ONE SCREEN, AND THE DIRECTIVE ALWAYS SAID SO.
+     Section 7 is titled "Fit the screen - no long single-column scroll", and
+     its checklist asks whether the page fits 1440x900 with no page
+     scrolling. This shell was abandoned for a reason written down right
+     here: on a 1400px-tall screen the centre column still had to hide
+     1,100px of itself, so letting the page scroll was the lesser evil.
+
+     That 1,100px was the market card, the camera, the shelf-tag recorder
+     and the deal log, stacked under every question whatever was being
+     asked. They are gone. Measured after: mid-run fits at 1440x900,
+     1600x1000, 2000x1200 and 1100x800 with nothing hidden. The premise
+     for breaking the rule expired, so the rule comes back.
+
+     The page no longer scrolls; the question column scrolls inside itself
+     when a priced item makes it long, which is the one thing the old note
+     was right to dislike and is now rare rather than constant. */
   @media (min-width:1080px){
     .bar{grid-column:1/-1;position:sticky;top:0;z-index:6}
+    .dash{height:100dvh;min-height:0;overflow:hidden;
+      grid-template-rows:auto minmax(0,1fr)}
+    #view{min-height:0}
     #view.item,#view.metal{display:grid;gap:clamp(10px,1.1vw,15px);align-items:start;
       grid-template-columns:minmax(0,300px) minmax(0,1fr) minmax(0,320px);
       grid-template-areas:"left center right"}
@@ -67,8 +80,11 @@
     #view.item.railed .rail{grid-area:rail;position:sticky;top:92px;align-self:start;
       display:flex;flex-direction:column;gap:clamp(8px,.8vw,12px)}
     #view.item.railed #pin{position:static;grid-area:auto}
-    #view.item.railed .colQ{grid-area:quest;min-width:0;display:flex;flex-direction:column;
-      gap:clamp(8px,.8vw,12px)}
+    /* The one column that can outgrow a screen scrolls itself, so the page
+       does not. The rail beside it never moves. */
+    #view.item.railed .colQ{grid-area:quest;min-width:0;min-height:0;display:flex;
+      flex-direction:column;gap:clamp(8px,.8vw,12px);overflow:auto;
+      scrollbar-width:thin;overscroll-behavior:contain}
     #view.item.railed .colL,#view.item.railed .colC{display:contents}
     /* stacked, the numbers get to be a column: the two decisions on top of
        one another at full size, the arithmetic in a tidy pair of columns
