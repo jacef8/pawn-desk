@@ -495,6 +495,36 @@ console.log("\n  the run asks which one it is");
   ok(r.model === "870 Wingmaster", "typing in it reaches the desk — " + r.model);
   ok(r.stillFocused, "  and does not throw the cursor out of the box on every letter");
   ok(r.answered === true, "  the question reads as answered once something is in it");
+
+  /* AND THE BUTTON HAS TO SAY SO.
+     Its label is decided when the card is drawn, and typing deliberately
+     does not redraw the card - that was fixed so the cursor stops being
+     thrown out of the box mid-word. The label froze with it: a typed-in
+     model still offered "Skip", which reads as "this did not register".
+     The click was always correct; only the word was wrong. */
+  const nav = await page.evaluate(() => {
+    const b = document.querySelector('[data-askmove="1"]');
+    const at = Number(st.askAt) || 0;
+    const dot = document.querySelectorAll(".askDots i")[at];
+    return {label: (b ? b.textContent : "").trim(),
+            dotDone: !!(dot && dot.classList.contains("done")),
+            cursorHeld: document.activeElement === document.getElementById("modelIn")};
+  });
+  ok(/^Next/.test(nav.label), "  and the way forward says Next, not Skip — got \"" + nav.label + "\"");
+  ok(nav.dotDone, "  and its dot is filled in");
+  ok(nav.cursorHeld, "  without the repaint stealing the cursor back out of the box");
+
+  /* clearing it puts the word back */
+  const back = await page.evaluate(async () => {
+    const box = document.getElementById("modelIn");
+    box.focus(); box.value = "";
+    box.dispatchEvent(new Event("input", {bubbles:true}));
+    await new Promise(z => setTimeout(z, 60));
+    const b = document.querySelector('[data-askmove="1"]');
+    return {label: (b ? b.textContent : "").trim(), model: st.model};
+  });
+  ok(back.model === "" && /^Skip/.test(back.label),
+     "  emptying the box puts Skip back — got \"" + back.label + "\"");
 }
 
 /* Back and Skip sit side by side. brassBtn carries no vertical padding at

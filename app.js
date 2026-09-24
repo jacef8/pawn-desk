@@ -2430,8 +2430,30 @@ function wireItem(){
   v.querySelectorAll("[data-spec]").forEach(b=>b.onclick=()=>{
     const [gi,oi]=b.dataset.spec.split(":").map(Number);
     st.specSel[st.itemId+":"+gi]=oi;render();});
+  /* THE BUTTON WAS TELLING THE TRUTH ABOUT THE WRONG MOMENT.
+     Its label is decided when the card is drawn, and typing in the model
+     box deliberately does NOT redraw the card - redrawing on every
+     keystroke threw the cursor out of the box mid-word. So the label froze
+     at whatever it was when the card appeared: type a model, and the way
+     forward still read "Skip".
+     The click itself was always right - it re-reads the queue and does not
+     set "there is no model" when one has been typed - so nothing was lost.
+     But a button that says Skip over a filled-in box makes the counter
+     doubt that the typing registered, which is worse than a wasted tap.
+     So: repaint the label and the dot on input, and nothing else. A full
+     render would take the cursor with it. */
+  function askNavRefresh(){
+    const nav=document.querySelector('[data-askmove="1"]'); if(!nav)return;
+    const q=askQueue(calcItem());
+    const at=Math.max(0,Math.min(q.length-1,Number(st.askAt)||0));
+    const cur=q[at]; if(!cur)return;
+    if(at<q.length-1)nav.innerHTML=(cur.answered?"Next":"Skip")+" \u2192";
+    const dot=document.querySelectorAll(".askDots i")[at];
+    if(dot)dot.classList.toggle("done",!!cur.answered);
+  }
   function specRefresh(){
     const xx=calcItem();
+    askNavRefresh();
     const sv=document.getElementById("specVerdict");if(sv){sv.innerHTML=specVerdictHTML(xx);wireUseSpec();}
     const vn=document.getElementById("valNum");if(vn)vn.textContent=money(xx.baseValue*xx.brandMult*xx.specMult);
     const vs=document.getElementById("valSub");if(vs)vs.textContent=valSubText(xx).replace(/<[^>]*>/g,"");
@@ -6781,7 +6803,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0924.1536";
+const APP_BUILD="0924.1602";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
