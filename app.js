@@ -1690,6 +1690,13 @@ function askQueue(x){
    works, because looking it up is not the only way to answer "what does it
    sell for" - typing the number, or the new price, answers it too. What is
    gone is the desk answering a question nobody finished asking. */
+/* The first question with nothing in it. Everything before it has either
+   been answered or does not apply to this thing. */
+function firstOpenAsk(x){
+  const q=askQueue(x);
+  const i=q.findIndex(z=>!z.answered&&!z.optional);
+  return i<0?0:i;
+}
 function priceReady(x){ return !!st.picked && askQueue(x).every(q=>q.answered||q.optional); }
 const NEED_WORD={brand:"the make", model:"the model", worth:"what it sells for",
                  cond:"the condition", complete:"what's with it"};
@@ -5094,6 +5101,16 @@ function omniPick(r){
      just shown. Clicking it selects the lot, so typing still replaces. */
   st.omniQ=[r.brand||"",r.model||"",r.name||""].map(t=>String(t).trim()).filter(Boolean).join(" ").slice(0,80);
   st.omniDone=[r.brand,r.model,r.name].filter(Boolean).join(" ");
+  /* LAND ON THE FIRST THING IT DOES NOT KNOW.
+     Picking "dewalt dcd791 drill" out of the box opened on "1 of 7 - What
+     make is it?" with DeWalt already read off the name, and a wheelbarrow
+     opened on a make question it does not even ask for. The strip beside
+     it said what was actually outstanding while the run marched from the
+     top through everything it had already worked out.
+     The answered ones are still there - the dots reach them, Back reaches
+     them, a make read off a name can still be overruled - they are just
+     not where the run starts. */
+  st.askAt=firstOpenAsk(calcItem());
   render();
   if(st.editing){ const vi=document.getElementById("valIn"); if(vi)vi.focus(); }
   else if(!matchMedia("(min-width:1080px)").matches){ const c=document.getElementById("nextStep")||document.querySelector(".colC"); if(c&&c.scrollIntoView)c.scrollIntoView({behavior:"smooth",block:"start"}); }
@@ -6061,7 +6078,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0924.1204";
+const APP_BUILD="0924.1312";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

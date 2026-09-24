@@ -944,6 +944,49 @@ console.log("\n  a step shows that step, and not the rest of the shop");
      "  and the loan card does not repeat the numbers strip while the rail carries it");
 }
 
+/* LAND ON THE FIRST THING IT DOES NOT KNOW. Picking "dewalt dcd791 drill"
+   out of the box opened on "1 of 7 - What make is it?" with DeWalt
+   already read off the name; a wheelbarrow opened on a make question it
+   does not even ask for. The strip beside it said what was actually
+   outstanding while the run marched from the top through everything it
+   had already worked out. */
+console.log("\n  the run starts where the desk stops knowing");
+{
+  const r = await page.evaluate(() => {
+    const go = (q) => { st.flow = "ask"; st.market = null; st.mpPin = null;
+      st.mpNone = false; st.condSet = false; st.specSel = {}; st.brandTyped = "";
+      st.brandQ = ""; st.brandSet = false; st.model = ""; st.detail = "";
+      st.bookName = ""; st.picked = false; st.askAt = 0;
+      const R = omniRows(q) || {}, rows = R.rows || [];
+      const f = rows.find(x => ["mp","book","item"].includes(x.kind));
+      if (!f) return null;
+      omniPick(f);
+      const qq = askQueue(calcItem());
+      return {at: st.askAt, n: qq.length, id: qq[st.askAt] && qq[st.askAt].id,
+              skipped: qq.slice(0, st.askAt).map(z => z.id),
+              allSkippedKnown: qq.slice(0, st.askAt).every(z => z.answered || z.optional)};
+    };
+    const drill = go("dewalt dcd791 drill");
+    /* and everything before it is still reachable */
+    st.askAt = 0; render();
+    const canGoBack = !!document.querySelector("#askCard [data-askgo]");
+    const firstCard = (document.querySelector("#askCard .askQ") || {}).textContent || "";
+    return {drill, barrow: go("wheelbarrow"), tv: go("samsung 55 inch tv"),
+            canGoBack, firstCard};
+  });
+  ok(r.drill.at > 0 && r.drill.allSkippedKnown,
+     "a DeWalt drill skips the make it already read — lands on \"" + r.drill.id
+     + "\", " + (r.drill.at + 1) + " of " + r.drill.n);
+  ok(r.barrow.at > 0 && r.barrow.allSkippedKnown,
+     "  a wheelbarrow skips the make and model it does not have — lands on \""
+     + r.barrow.id + "\"");
+  ok(r.tv.at > 0 && r.tv.allSkippedKnown, "  and a television skips its make");
+  ok([r.drill, r.barrow, r.tv].every(z => z.allSkippedKnown),
+     "  nothing outstanding is ever skipped past");
+  ok(r.canGoBack && /make/i.test(r.firstCard),
+     "and the answered ones are still reachable — the dots still open the make");
+}
+
 ok(!errs.length, "no page errors" + (errs.length ? ": " + errs[0] : ""));
 await browser.close();
 console.log(fails ? "\n  " + fails + " FAILED\n" : "\n  all passed\n");
