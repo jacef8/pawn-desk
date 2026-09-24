@@ -57,7 +57,7 @@ one ratio, applied to the 280 rows already harvested.
 | Source | Why not |
 |---|---|
 | Reverb | asks only, price guide closed, inflates on vague queries (above) |
-| WorthPoint | terms forbid automated access and commercial use; robots.txt disallows /search and /worthopedia/*/price to every crawler; 403s non-browser requests |
+| WorthPoint | **for automation, still no** — terms forbid automated access and commercial use; robots.txt disallows /search and /worthopedia/*/price to every crawler; 403s non-browser requests. **Wired as a LINK OUT on 24 Sep** for jewelry, collectibles and instruments: a person clicking through to a site they subscribe to is ordinary use, a program fetching it is not, and the desk never reads a number back. $29.99/mo or $249.99/yr, 7-day trial; Jace has no subscription yet, so the button lands on their signup wall until he does. The search URL could not be verified from here for the same robots.txt reason — it is one constant, `WORTHPOINT_SEARCH` in app.js, to correct from the address bar after one real search. |
 | Google Shopping | no sold data at all - current merchant offers, skewed to new retail |
 
 ## Worth looking at

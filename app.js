@@ -3752,6 +3752,18 @@ function watchCountUrl(q){
   const kw=String(q).replace(/[\/\\]+/g," ").replace(/\s+/g," ").trim().toLowerCase()||"-";
   return "https://www.watchcount.com/sold/"+encodeURIComponent(kw)+"/-/all?site=EBAY_US";
 }
+/* THE ONE LINE TO CHANGE IF THE WORTHPOINT LINK EVER LANDS WRONG.
+   Their search path is blocked to crawlers, so this could not be verified
+   from outside the way the eBay and GunBroker links were - it is written
+   from the shape their site uses, not from a page anyone here loaded. If a
+   click lands somewhere useless, do ONE search on worthpoint.com, copy what
+   the address bar says up to and including the "=", and paste it here. The
+   comps card has a Copy button for the search words, so the fallback is a
+   paste into their own search box and nothing is ever a dead end. */
+const WORTHPOINT_SEARCH="https://www.worthpoint.com/worthopedia/search?query=";
+/* Where it earns its keep. Not a blanket button: everywhere else has a
+   model number and eBay is better at those. */
+const WORTHPOINT_CATS={jewel:1,coll:1,music:1};
 function compTargets(x){
   const q=compQuery(x), e=encodeURIComponent(q), t=[], guns=(st.catId==="guns");
   if(guns){
@@ -3774,6 +3786,26 @@ function compTargets(x){
     sub:"sign in as a seller &mdash; 365 days, not 90",
     url:"https://www.ebay.com/sh/research?marketplace=EBAY-US&keywords="+e
        +"&dayRange=365&categoryId=0&offset=0&limit=50&tabName=SOLD&sorting=-sold"});
+
+  /* WORTHPOINT, AND ONLY WHERE IT BEATS EBAY.
+     eBay reaches back 90 days and indexes by model number. That is the
+     wrong shape for an item whose identity is a hallmark, a pattern name
+     or a maker's mark and which sells a few times a decade - the run that
+     put designer jewellery on the blind list found nothing usable across
+     five makers. WorthPoint is a sold-price database for exactly those,
+     going back years.
+     It is a LINK OUT and nothing more. WorthPoint's terms forbid automated
+     access and their robots.txt blocks the search path, so the desk can
+     never read a number back off it: no auto-fill, no row in the book.
+     A person clicking through to a site they subscribe to is ordinary use;
+     a program fetching it is not, and this stays on the right side of that
+     line. See tools/source-findings.md.
+     Jewelry, collectibles and instruments only - a DeWalt drill has a model
+     number and eBay prices it fine. */
+  if(WORTHPOINT_CATS[st.catId])
+    t.push({id:"wp",name:"WorthPoint \u2014 marks &amp; makers",
+      sub:"paid sign-in &mdash; years of sold, not 90 days",
+      url:WORTHPOINT_SEARCH+encodeURIComponent(q)});
   return t;
 }
 function compsCardHTML(x){
@@ -6722,7 +6754,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0924.1253";
+const APP_BUILD="0924.1514";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

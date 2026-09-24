@@ -151,6 +151,55 @@ console.log("\n  the firearms branch");
   await page.close();
 }
 
+
+/* WORTHPOINT IS A LINK OUT, AND IT IS NOT ON EVERY ITEM.
+   It exists for things whose identity is a hallmark or a maker's mark
+   rather than a model number - the aisle where eBay's 90 days and its
+   model-number index both come up empty, and where the 24 Sep run found
+   nothing usable across five jewellery makers. A drill has a model number
+   and eBay prices it fine, so putting the button there is noise on a card
+   that is already eight buttons wide.
+   The half of this that matters is the ABSENCE. A button that shows up
+   everywhere teaches the counter to ignore it. */
+console.log("\n  the WorthPoint link-out, where it belongs and where it does not");
+{
+  const page = await browser.newPage({viewport:{width:1280,height:900}});
+  const errs = [];
+  page.on("pageerror", e => errs.push(String(e)));
+  await page.goto(BASE + "/index.html", {waitUntil:"networkidle"});
+
+  const at = async (catId) => page.evaluate((cid) => {
+    const cat = CATALOG.find(c => c.id === cid);
+    st.mode = "item"; st.catId = cat.id; st.itemId = cat.items[0].id;
+    st.picked = true; render();
+    return compTargets(calcItem()).map(t => ({id:t.id, name:t.name, url:t.url, sub:t.sub}));
+  }, catId);
+
+  const jewel = await at("jewel");
+  const wp = jewel.find(t => t.id === "wp");
+  ok(!!wp, "jewelry offers a WorthPoint button");
+  ok(wp && /worthpoint\.com/.test(wp.url), "  and it points at worthpoint.com");
+  ok(wp && wp.url.length > "https://www.worthpoint.com/worthopedia/search?query=".length,
+     "  with the search words on the end, not a bare landing page");
+  ok(wp && /sign-in/i.test(wp.sub),
+     "  and it warns the sign-in is paid before the counter clicks it");
+
+  for (const cid of ["coll", "music"])
+    ok((await at(cid)).some(t => t.id === "wp"), `  ${cid} offers it too`);
+
+  /* The absence, which is the whole point. */
+  for (const cid of ["tools", "power", "elec", "appl", "fit"])
+    ok(!(await at(cid)).some(t => t.id === "wp"),
+       `  ${cid} does NOT — it has model numbers and eBay prices it`);
+
+  /* And the other buttons must survive the change. */
+  ok(jewel.some(t => t.id === "wc") && jewel.some(t => t.id === "ebay"),
+     "  WatchCount and Seller Hub are still on the card");
+
+  ok(!errs.length, "no page errors" + (errs.length ? ": " + errs[0] : ""));
+  await page.close();
+}
+
 /* THE AUTOMATIC LOOKUP ONLY EVER RAN AFTER A PHOTO.
    autoPriceAfterPhoto was the only thing that started a search on its
    own, so the camera path got live sold prices and the path everybody
