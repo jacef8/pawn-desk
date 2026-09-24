@@ -908,7 +908,11 @@ function calcItem(){
   const resale=checked ? market.mid*cond*completeMult
                        : baseValue*CATALOG_AT_GOOD*cond*brandMult*completeMult*spec.mult;
   const ltv=Math.max(10,baseLtv+liquidity.adj);
-  const buyBase=(st.buys&&st.buys[st.catId]!=null)?st.buys[st.catId]:((typeof BUY_DEFAULT!=="undefined"&&BUY_DEFAULT[st.catId]!=null)?BUY_DEFAULT[st.catId]:Math.min(90,baseLtv+5));
+  /* set by hand for the category > this item's own rate > the category's */
+  const buySuggest=(typeof BUY_ITEM!=="undefined"&&BUY_ITEM[item.id]!=null)?BUY_ITEM[item.id]
+                  :((typeof BUY_DEFAULT!=="undefined"&&BUY_DEFAULT[st.catId]!=null)?BUY_DEFAULT[st.catId]:Math.min(90,baseLtv+5));
+  const buyWhy=(typeof BUY_ITEM_WHY!=="undefined"&&BUY_ITEM_WHY[item.id])||(typeof BUY_WHY!=="undefined"&&BUY_WHY[st.catId])||"";
+  const buyBase=(st.buys&&st.buys[st.catId]!=null)?st.buys[st.catId]:buySuggest;
   const buyPct=Math.max(10,Math.min(90,buyBase+liquidity.adj));
   /* Three things cap what you can pay, and the tightest one wins.
 
@@ -970,7 +974,7 @@ function calcItem(){
      number back on a deal that has none. */
   const buy=buyTooThin?Math.max(1,Math.round(cap.pay)):r5(cap.pay);
   const target=buyTooThin?Math.max(1,Math.round(targetRaw)):Math.min(buy,r5(targetRaw));
-  return {cat,item,baseValue,baseLtv,condition,liquidity,liqId,resale,ltv,target,market,checked,handSet,buyBase,buyPct,buy,lendWant,lendCapped,
+  return {cat,item,baseValue,baseLtv,condition,liquidity,liqId,resale,ltv,target,market,checked,handSet,buyBase,buySuggest,buyWhy,buyPct,buy,lendWant,lendCapped,
           brandTier,namedBrand:namedBrand&&namedBrand.name,
           brandMult,brandName:cat.brand.on?(((ITEM_OVERRIDES[st.itemId]||{}).tiers)||cat.brand)[brandTier]:null,spec,specMult:spec.mult,
           /* The range is held to the same ceiling as the suggested loan -
@@ -1058,7 +1062,7 @@ function pinHTML(x){
       : P?(x.buyTooThin
         ?`It doesn\u2019t sell for enough to clear the ${money(x.buyFloor)} you want out of a buy.`
         :`Capped by ${esc(buyCapWhy(x))}. Over ${money(x.buy)} and you\u2019re eating the ${money(x.buyMargin)}.`)
-      :`Range ${money(x.low)}&ndash;${money(x.high)}. Never above the top.`}${x.buy===x.target&&!x.lendCapped&&!x.buyTooThin?` Buy and lend match in ${esc(x.cat.label.toLowerCase())} on purpose \u2014 ${esc(BUY_WHY[x.cat.id]||"")}.`:""}</span>
+      :`Range ${money(x.low)}&ndash;${money(x.high)}. Never above the top.`}${x.buy===x.target&&!x.lendCapped&&!x.buyTooThin?` Buy and lend match in ${esc(x.cat.label.toLowerCase())} on purpose \u2014 ${esc(x.buyWhy||"")}.`:""}</span>
   </div>`;
 }
 /* The rail: one dial, one partner figure, then the working.
@@ -6862,7 +6866,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0924.1614";
+const APP_BUILD="0924.1635";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -8161,6 +8165,24 @@ function wireNext(){
    Starting rates Jace approved 9/19: about 5 points over the lending rate,
    same as the loan for seasonal outdoor power. */
 var BUY_DEFAULT={guns:55,hunt:45,jewel:45,power:45,tools:40,music:40,rolling:40,elec:30,appl:35,fit:28,coll:40};
+/* WHEN THE CATEGORY RATE WAS WRITTEN FOR A DIFFERENT THING.
+   elec is 30% because a phone "loses value fast and can come in locked" -
+   a real risk that earns a hard rate. Neither half is true of a
+   television: nothing locks it, and a two-year-old set does not fall off
+   the cliff a two-year-old handset does. Its actual problem is that it is
+   bulky and slow, and the liquidity band already docks 5 points for that -
+   so a TV was being charged twice for the same slowness and coming out at
+   25%, which is a $30 offer on a $125 set. Nobody hauls a working TV in
+   for that.
+   Published pawn rates run 25-60% of resale, and the trade's own stated
+   target of a 38-50% margin implies paying 50-62%. Those are national
+   chains with national resale, which we are not, so this sits at the
+   bottom of that range rather than the middle: 45 here, 40 after the
+   liquidity adjustment. Set on 24 Sep from Jace's call.
+   A rate the counter has set by hand for the whole category still wins -
+   that is a deliberate act, and this only fills the silence. */
+var BUY_ITEM={e1:45};
+var BUY_ITEM_WHY={e1:"a TV does not lock and does not crash in value like a handset \u2014 it is just bulky and slow, which the liquidity band already counts"};
 var BUY_WHY={guns:"guns sell fast here and hold their value",jewel:"a proven one holds its price, but it sits until the right buyer walks in",hunt:"steady seller in season",tools:"steady seller",
   music:"they sell, just slower",rolling:"big dollars, needs a clean title, sells slower",
   power:"seasonal and often needs a carb cleaned, but it sells and the shelves around here ask real money for it",elec:"loses value fast and can come in locked"};
@@ -8173,7 +8195,18 @@ function buyRateHTML(x){
     <div class="rateRow" style="margin-top:16px"><span class="label">Least you\u2019ll clear on any buy ($)</span><input id="buyFloorNum" class="numIn rateNum" type="number" inputmode="numeric" min="0" max="500" value="${x.buyFloor}"></div>
     <div class="rateRow" style="margin-top:8px"><span class="label">Times your money back (\u00d7)</span><input id="buyMultNum" class="numIn rateNum" type="number" inputmode="decimal" min="1" max="10" step="0.1" value="${x.buyMult}"></div>
     <div class="cardHint" style="font-size:13px">These two apply everywhere rather than per category, and the tightest of the three decides. The rate bites on expensive things; the ${money(x.buyFloor)} floor stops the cheap item you haul home for nothing; the ${x.buyMult}\u00d7 bites in the middle, where a percentage looks fine and the dollars are thin. <b style="color:var(--ink)">On this one: ${esc(buyCapWhy(x))}.</b></div>
-    <div class="cardHint" style="font-size:13.5px;color:var(--ink-2)">What you pay to buy it outright, as a share of the resale value. ${(()=>{ const d=BUY_DEFAULT[x.cat.id]; if(d==null)return ""; return set&&x.buyBase!==d?`Suggested: <b style="color:var(--ink)">${d}%</b> (${BUY_WHY[x.cat.id]||""}). <button id="buyReset" class="ghostBtn" style="padding:5px 12px;font-size:12px;margin-left:4px">Use ${d}%</button>`:`Suggested: <b style="color:var(--ink)">${d}%</b> &mdash; ${BUY_WHY[x.cat.id]||""}.`; })()} You carry the risk and hold it 30 days before you can sell.</div></div>`;
+    <div class="cardHint" style="font-size:13.5px;color:var(--ink-2)">What you pay to buy it outright, as a share of the resale value. ${(()=>{
+      /* The suggestion has to be THIS item's, not the shelf it stands on.
+         A television carries its own rate because the category's was
+         written for a phone, and quoting the phone's number under a TV
+         would be the tool arguing with itself. */
+      const d=x.buySuggest; if(d==null)return "";
+      const why=x.buyWhy||"";
+      const own=(typeof BUY_ITEM!=="undefined"&&BUY_ITEM[x.item.id]!=null);
+      const forWhat=own?esc(x.item.name.replace(/\s*\u2014.*$/,"").toLowerCase()):x.cat.label.toLowerCase();
+      return set&&x.buyBase!==d
+        ? `Suggested for ${forWhat}: <b style="color:var(--ink)">${d}%</b> (${why}). <button id="buyReset" class="ghostBtn" style="padding:5px 12px;font-size:12px;margin-left:4px">Use ${d}%</button>`
+        : `Suggested for ${forWhat}: <b style="color:var(--ink)">${d}%</b> &mdash; ${why}.`; })()} You carry the risk and hold it 30 days before you can sell.</div></div>`;
 }
 function buyRowHTML(x){
   return `<div class="buyRow"><div><div class="l">Or buy it outright</div><div class="s">${esc(buyCapWhy(x))} &mdash; the tightest of your three buying rules, against ${money(Math.round(x.resale))} resale. You own it, no loan to pay back.</div></div><div class="v">${money(x.buy)}</div></div>`;

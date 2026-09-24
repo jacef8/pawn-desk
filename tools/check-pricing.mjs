@@ -1061,6 +1061,54 @@ console.log("\n  the run starts where the desk stops knowing");
      "and the answered ones are still reachable — the dots still open the make");
 }
 
+/* A CATEGORY RATE WRITTEN FOR A PHONE, APPLIED TO A TELEVISION.
+   elec buys at 30% because a phone "loses value fast and can come in
+   locked". Neither is true of a TV: nothing locks it, and it does not
+   fall off the cliff a handset does. Its problem is bulk and slow sale,
+   and the liquidity band already docks 5 for that - so a TV was charged
+   twice for one fault and landed at 25%, a $30 offer on a $125 set.
+   Published pawn rates run 25-60% of resale and the trade's own 38-50%
+   margin target implies paying 50-62%; those are national chains with
+   national resale, so a TV sits at the bottom of that range, not the
+   middle. 45 base, 40 after liquidity. The phone keeps 30, because there
+   the reason is real. */
+console.log("\n  a television is not a phone, and does not buy like one");
+{
+  const page = await browser.newPage({viewport:{width:1280,height:900}});
+  const perr = [];
+  page.on("pageerror", e => perr.push(String(e)));
+  await page.goto(BASE + "/index.html", {waitUntil:"networkidle"});
+  const r = await page.evaluate(() => {
+    const out = {};
+    for (const id of ["e1", "e4", "e2"]) {
+      st.mode = "item"; st.catId = "elec"; st.itemId = id; st.picked = true;
+      st.buys = {}; st.market = {kind:"hand", key:mkKey(), mid:125};
+      render();
+      const x = calcItem();
+      out[id] = {name:x.item.name, base:x.buyBase, pct:x.buyPct,
+                 buy:x.buy, why:x.buyWhy || "", suggest:x.buySuggest};
+    }
+    /* and a hand-set category rate must still win over the item's */
+    st.itemId = "e1"; st.buys = {elec:55}; render();
+    out.override = calcItem().buyBase;
+    st.buys = {};
+    return out;
+  });
+  ok(r.e1.base === 45, "a TV carries its own 45% base, not the category's 30 — got " + r.e1.base);
+  ok(r.e1.pct === 40, "  which is 40% once the liquidity band takes its 5 — got " + r.e1.pct);
+  ok(r.e1.buy >= 45 && r.e1.buy <= 55,
+     "  so a $125 TV buys near $50, not $30 — got $" + r.e1.buy);
+  ok(!/locked/i.test(r.e1.why), "  and it no longer gives the phone's reason — \"" + r.e1.why + "\"");
+  ok(/bulky|slow/i.test(r.e1.why), "  it gives the TV's");
+  ok(r.e4.base === 30 && /locked/i.test(r.e4.why),
+     "  a phone keeps 30% and the locked-device reason, which is real there");
+  ok(r.e2.base === 30, "  and so does a laptop — got " + r.e2.base);
+  ok(r.override === 55,
+     "  a rate set by hand for the whole category still beats the item's — got " + r.override);
+  ok(!perr.length, "  no page errors" + (perr.length ? ": " + perr[0] : ""));
+  await page.close();
+}
+
 ok(!errs.length, "no page errors" + (errs.length ? ": " + errs[0] : ""));
 await browser.close();
 console.log(fails ? "\n  " + fails + " FAILED\n" : "\n  all passed\n");
