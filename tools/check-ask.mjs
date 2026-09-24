@@ -47,7 +47,10 @@ const read = () => page.evaluate(() => {
     dots: c.querySelectorAll(".askDots i").length,
     done: c.querySelectorAll(".askDots i.done").length,
     backOff: c.querySelector('[data-askmove="-1"]').disabled,
-    nextOff: c.querySelector('[data-askmove="1"]').disabled,
+    /* The last card no longer carries a forward MOVE at all - it carries a
+       live "See the detail" instead of a dead button labelled Next. */
+    nextOff: !c.querySelector('[data-askmove="1"]'),
+    doneBtn: (c.querySelector('[data-askdone]') || {}).textContent,
     cards: document.querySelectorAll("#view > .card, #view .colQ > .card").length };
 });
 
@@ -474,8 +477,68 @@ console.log("\n  the run asks which one it is");
   ok(r.iExtra > 0, "anything-else is its own question — " + r.ids.join(" > "));
   ok(r.iExtra > r.iModel, "  after the model");
   ok(r.lastSpec < 0 || r.iExtra > r.lastSpec, "  after every specific question");
-  ok(r.iWorth > r.iExtra, "  and BEFORE the price, which searches on what it holds");
+  /* It used to have to come before the price step, because what is typed
+     there fed the sold-price search. That constraint is gone: the price
+     step moved up to sit beside the model, and the automatic lookup fires
+     when the item is PICKED, earlier than either. What is typed here now
+     reaches the link-out buttons and the ticket, both of which re-read it.
+     The Osmo measurement makes that the better half of the trade anyway -
+     extra words narrow a search until it finds a different product. */
+  ok(r.iExtra > r.iWorth, "  and after the price step, which no longer depends on it");
   ok(r.det, "  its card carries the box");
+  ok(r.iWorth === r.iModel + 1,
+     "  and the price step sits right after the model, not at the far end");
+
+  /* THE END OF THE RUN IS NOT A DEAD BUTTON.
+     The last card used to carry a DISABLED button still labelled "Next":
+     answer the final question and the only thing shaped like a way forward
+     stops responding, with more page below it and nothing saying so. It
+     reads as broken rather than finished. */
+  const fin = await page.evaluate(() => {
+    const q = askQueue(calcItem());
+    st.askAt = q.length - 1; render();
+    const c = document.getElementById("askCard");
+    return {move: !!c.querySelector('[data-askmove="1"]'),
+            done: c.querySelector('[data-askdone]'),
+            label: (c.querySelector('[data-askdone]') || {}).textContent || "",
+            dead: !!c.querySelector('[data-askmove="1"][disabled]')};
+  });
+  ok(!fin.dead, "the last card carries no dead Next button");
+  ok(!!fin.done, "  it carries a live finish instead");
+  ok(/detail/i.test(fin.label), "  that says where it goes — \"" + fin.label.trim() + "\"");
+
+  /* A QUESTION THAT CANNOT MOVE THE NUMBER IS NOT A QUESTION.
+     calcItem takes a hand-typed resale AS IT STANDS: cond is forced to 1,
+     and brandMult and spec.mult are not in that branch at all. The counter
+     has the thing in his hands and priced THIS one, so the wear and the
+     screen size are already inside his figure - applying them again would
+     price them twice. That much is deliberate.
+     What was not deliberate: the run kept asking. Screen size, age, and
+     then "what shape is it in?" on the very last card, every answer thrown
+     away - and on exactly the items the desk had already failed to price,
+     so the counter had just done the research himself. */
+  const hand = await page.evaluate(() => {
+    const before = askQueue(calcItem()).map(z => z.id);
+    /* exactly what the Save button does */
+    st.editing = false;
+    st.market = {kind:"hand", key:mkKey(), mid:125};
+    render();
+    const after = askQueue(calcItem()).map(z => z.id);
+    const x = calcItem();
+    return {before, after, kind: x.market && x.market.kind, checked: x.checked};
+  }).catch(() => null);
+
+  if (hand && hand.kind === "hand") {
+    ok(!hand.after.some(id => id.startsWith("spec:")),
+       "once the price is typed by hand the spec questions go — " + hand.after.join(" > "));
+    ok(!hand.after.includes("cond"),
+       "  and so does the condition question, which calcItem forces to 1");
+    ok(hand.after.includes("complete") === hand.before.includes("complete"),
+       "  but completeness stays, because completeMult IS applied to a hand-set figure");
+    ok(hand.after.includes("worth"), "  and the price step itself is still there");
+  } else {
+    ok(false, "could not set a hand-typed price to test with — got " + (hand && hand.kind));
+  }
   ok(r.answered === true && r.skips, "  and it never blocks — nothing is required");
   /* this block walked the run to the extra step; the next one types into the
      model box, so put it back where it found it. */

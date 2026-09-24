@@ -1803,7 +1803,36 @@ function askQueue(x){
     /* st.detail used to count here, back when its box was on this card.
        It is its own question now, so a model is answered by a model. */
     answered:!!(st.model||st.mpNone)});
-  const sc=SPEC_CHOICES[st.itemId]||[];
+  /* THE RESEARCH STEP COMES WHILE THE ITEM IS STILL IN MIND.
+     This used to sit at 7 of 8, between "is it all there" and the
+     condition. On anything the desk cannot price itself - a television,
+     a saw, a model not in the book - that step is not a question, it is
+     an instruction to go and look something up, and arriving at it on the
+     second-to-last card reads as a form asking you for the answer you
+     came to get. Straight after the model, where the thing you would
+     search for is what you just typed.
+     Nothing is lost by the move: only 5 options in the whole catalogue
+     add a word to the search, and the automatic lookup fires when the
+     item is picked, well before either position. */
+  q.push({id:"worth", title:"What does one sell for used?",
+    hint:"", kind:"worth", answered:!!x.checked});
+  /* A QUESTION THAT CANNOT MOVE THE NUMBER IS NOT A QUESTION.
+     When the resale figure is typed by hand, calcItem takes it as it
+     stands: cond is forced to 1 and brandMult and spec.mult are not in
+     that branch at all. The counter has the thing in his hands and has
+     priced THIS one - the scratches and the screen size are already in
+     his figure, and applying them again would price the wear twice.
+     That much is deliberate and right. What was not right is that the run
+     went on asking anyway: screen size, age, and then "what shape is it
+     in?" on the last card, every one of them thrown away. Keystrokes at a
+     counter with a customer waiting, spent on answers the arithmetic never
+     reads, on the very items the desk had already failed to price.
+     So they come out of the run. Condition still rides on the ticket as a
+     record of what walked in; it is just not asked as though it were an
+     input. Completeness stays, because completeMult IS applied to a
+     hand-set figure. */
+  const handSet=!!(x.checked&&x.market&&x.market.kind==="hand");
+  const sc=handSet?[]:(SPEC_CHOICES[st.itemId]||[]);
   sc.forEach((g,gi)=>{
     const key=st.itemId+":"+gi, sel=st.specSel[key]??specBase(g);
     q.push({id:"spec:"+gi, title:g.label+"?",
@@ -1826,15 +1855,16 @@ function askQueue(x){
      reach for after the make is the screen size, and the card was asking
      for free text before it asked for that. Its own step, after every
      question that has a real answer.
-     It stops here rather than after the price, because what is typed in it
-     goes into the sold-price search: past the "worth" step it would be
-     read too late to change anything the lookup does. */
+     It sits after the price step now. That is safe: the automatic lookup
+     fires when the item is PICKED, long before either, and what is typed
+     here only ever reaches the link-out buttons and the ticket - which
+     re-read it. And the Osmo measurement says extra words narrow a search
+     until it finds a different product, so keeping them out of the
+     automatic one is the better half of the trade. */
   q.push({id:"extra", title:"Anything else?", kind:"extra", optional:true,
     hint:"Only what changes the price and was not already asked. Usually nothing.",
     answered:true});
-  q.push({id:"worth", title:"What does one sell for used?",
-    hint:"", kind:"worth", answered:!!x.checked});
-  q.push({id:"cond", title:"What shape is it in?",
+  if(!handSet)q.push({id:"cond", title:"What shape is it in?",
     hint:"Next to a typical used one.",
     opts:CONDITIONS.map(c=>{const w=COND_WORDS[c.id]||[c.label,""];
       return {t:w[0], sub:w[1]||"", on:st.cond===c.id, set:"cond", v:c.id};}),
@@ -1968,6 +1998,16 @@ function askHTML(x){
            <span class="label" style="margin-top:14px">Or type it</span>`
           :`<span class="label">Model</span>`}
          <input id="modelIn" type="text" autocomplete="off" placeholder="870 Wingmaster, MS 271, 10/22\u2026" value="${esc(st.model)}" class="numIn" style="font-family:var(--sans);font-size:15px">
+         ${(()=>{ /* SAY IT HERE, NOT AT THE PRICE STEP.
+              A television, a chainsaw, a fridge: the desk will not look
+              these up, on purpose, because the search comes back with
+              remotes and bars and door seals. Typing a model in good faith
+              and only finding that out two cards later - on a screen that
+              then asks you to go do the research yourself - is the tool
+              wasting your time and then blaming you for it. */
+            const b=(typeof ebayBlind==="function")?ebayBlind(x):"";
+            return b?`<div class="cardHint" style="margin-top:8px;border-left:2px solid var(--warn);padding-left:9px;color:var(--ink-2)"><b style="color:var(--warn-ink)">The desk will not look this one up.</b> ${esc(b)} Put the model in anyway &mdash; it sharpens the sold-price buttons, and you type the figure in at the next step.</div>`:"";
+          })()}
          ${cov?`<div class="cardHint" style="margin-top:6px">${esc(cov)}</div>`:""}
          <div class="cardHint" id="specVerdict">${specVerdictHTML(x)}</div>
        </div>`
@@ -1986,7 +2026,16 @@ function askHTML(x){
     <div class="askNav">
       <button class="ghostBtn" data-askmove="-1"${at<=0?" disabled":""}>&larr; Back</button>
       <div class="askDots">${q.map((z,i)=>`<i class="${i===at?"on":""}${z.answered?" done":""}" title="${esc(z.title)}" data-askgo="${i}"></i>`).join("")}</div>
-      <button class="${at>=q.length-1?"ghostBtn":"brassBtn"}" data-askmove="1"${at>=q.length-1?" disabled":""}>${cur.answered?"Next":"Skip"} &rarr;</button>
+      ${at>=q.length-1
+        /* A DEAD BUTTON IS NOT AN ENDING.
+           The last card used to carry a DISABLED button still labelled
+           "Next", which reads as broken, not finished - you answer the
+           last question and the only thing that looks like a way forward
+           stops responding. There is more page below it and nothing says
+           so. So the last step gets a live button that says what it does
+           and takes you to the detail. */
+        ? `<button class="brassBtn" data-askdone="1">See the detail &darr;</button>`
+        : `<button class="brassBtn" data-askmove="1">${cur.answered?"Next":"Skip"} &rarr;</button>`}
     </div>
   </div>`;
 }
@@ -2424,6 +2473,16 @@ function wireItem(){
     if(Number(b.dataset.askmove)>0&&q[at]&&q[at].id==="model"&&!q[at].answered)st.mpNone=true;
     st.askAt=Math.max(0,Math.min(q.length-1,at+Number(b.dataset.askmove)));
     render();
+  });
+  v.querySelectorAll("[data-askdone]").forEach(b=>b.onclick=()=>{
+    /* Wherever the run ends, the thing worth reading next is the first
+       card after it. On the desk that is the loan detail; on a phone it is
+       whatever the column holds. Fall back to the Next step card. */
+    const card=document.getElementById("askCard");
+    let t=card&&card.nextElementSibling;
+    while(t&&!t.classList.contains("card"))t=t.nextElementSibling;
+    t=t||document.getElementById("nextStep");
+    if(t&&t.scrollIntoView)t.scrollIntoView({behavior:"smooth",block:"start"});
   });
   v.querySelectorAll("[data-askgo]").forEach(b=>b.onclick=()=>{ st.askAt=Number(b.dataset.askgo); render(); });
   v.querySelectorAll("[data-liq]").forEach(b=>b.onclick=()=>{st.liq=b.dataset.liq;render();});
@@ -6803,7 +6862,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0924.1602";
+const APP_BUILD="0924.1614";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -7028,7 +7087,7 @@ function step4Inner(x,bare){
      step four of anything. */
   let h=bare?"":`<span class="label">4 &middot; Resale value &mdash; what it sells for used</span>`;
   if(st.editing){
-    h+=`<div class="row2"><input id="valIn" type="number" inputmode="numeric" placeholder="What one really sells for" value="${m&&m.kind==="hand"?m.mid:""}" class="numIn" style="flex:1;min-width:0"><button class="brassBtn" id="valSave" style="padding:11px 18px">Save</button><button class="ghostBtn" id="valCancel" style="padding:11px 14px">Cancel</button></div>
+    h+=`<div class="row2"><input id="valIn" type="number" inputmode="numeric" placeholder="What a used one sold for" value="${m&&m.kind==="hand"?m.mid:""}" class="numIn" style="flex:1;min-width:0"><button class="brassBtn" id="valSave" style="padding:11px 18px">Save</button><button class="ghostBtn" id="valCancel" style="padding:11px 14px">Cancel</button></div>
       <div class="cardHint" style="font-size:13.5px;color:var(--ink-2)">What one like this actually sells for used, in normal shape. The loan works from this number.</div>`;
   } else if(x.checked){
     h+=`<div class="mkRow"><div><div class="mkBig">${money(m.mid)}</div>${m.lo!=null&&m.hi!=null&&m.lo!==m.hi?`<div class="mkRange">usually ${money(m.lo)} to ${money(m.hi)}</div>`:""}</div><span class="mkOk">&#10003; Checked</span></div>
@@ -7038,9 +7097,19 @@ function step4Inner(x,bare){
       ${m.kind==="list"?`<div class="cardHint" style="font-size:13.5px;color:var(--ink-2)">Want today's exact number? Pull the sold prices above and read the screenshot.</div>`:""}
       <div class="row2" style="gap:8px;margin-top:10px;flex-wrap:wrap"><button class="ghostBtn" id="valEdit">Type my own number</button>${m.kind!=="list"?`<button class="ghostBtn" id="mkClear">Clear it</button>`:""}</div>`;
   } else {
-    h+=`<div class="mkNo"><b>Not checked yet.</b> ${m&&m.stale?`The price list for ${esc(m.name)} is ${m.age} days old.`:`There's no market price for ${esc(who?who+" ":"")}${esc(name.toLowerCase())} yet.`}</div>
-      <ol class="mkSteps"><li>${pdBridge?"Click a sold-price button above. The sold page reads itself and the price lands here.":isTouch()?"Tap a sold-price button above, screenshot the sold results, and read the screenshot here.":"Open a sold-price button above, look at what these <b>actually sold for</b>, and type the middle price in."}</li><li>${who?"":`Or type the brand and model where it asks for the make &mdash; about ${mpCount()} common models have prices built in. `}Or type what these really sell for.</li></ol>
-      <button class="brassBtn" id="valEdit" style="padding:11px 18px">Type the real price</button>
+    /* WHY IT IS ASKING, NOT JUST THAT IT IS.
+       "Not checked yet" over a Type-the-real-price button reads as the tool
+       asking the counter for the answer he came to get. It is asking for an
+       INGREDIENT: the resale figure everything else adjusts, and which the
+       desk normally supplies from its own book or a lookup. When it cannot,
+       it should say which of those failed rather than leave him to guess. */
+    const blindWhy=(typeof ebayBlind==="function")?ebayBlind(x):"";
+    h+=`<div class="mkNo"><b>Not checked yet.</b> ${m&&m.stale?`The price list for ${esc(m.name)} is ${m.age} days old.`:`The desk has no measured price for ${esc(who?who+" ":"")}${esc(name.toLowerCase())}.`}</div>
+      <div class="cardHint" style="font-size:13.5px;color:var(--ink-2);margin-top:6px">${blindWhy
+        ? esc(blindWhy)+" So this one is yours to look up."
+        : "This is the figure the loan is worked out FROM \u2014 what one resells for used. Everything you have answered adjusts it."}</div>
+      <ol class="mkSteps"><li>${pdBridge?"Click a sold-price button above. The sold page reads itself and the price lands here.":isTouch()?"Tap a sold-price button above, screenshot the sold results, and read the screenshot here.":"Open a sold-price button above, look at what these <b>actually sold for</b>, and type the middle price in."}</li><li>${who?"":`Or type the brand and model where it asks for the make &mdash; about ${mpCount()} common models have prices built in. `}Sold, not asking: what somebody paid, never what a seller wants.</li></ol>
+      <button class="brassBtn" id="valEdit" style="padding:11px 18px">Enter what one sold for</button>
 `;
   }
   return h+ownCompsHTML(x);
