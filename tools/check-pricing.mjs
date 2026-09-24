@@ -691,6 +691,70 @@ console.log("\n  a make that makes several things lands on the right one");
      "  and an item word still beats the make — " + r.gen + ", " + r.mower);
 }
 
+/* THE MAKE QUESTION READ A DIFFERENT BOOK FROM THE ROUTER. Seventeen makes
+   were registered for routing and nowhere else, so brandLookup and
+   brandHits - which read BRANDBOOK - had never heard of DJI, GoPro,
+   Lowrance, Humminbird, Howa, Thompson Center or Mossberg. At the counter
+   that is a dead end: the box already says DJI, nothing under it to tap,
+   nothing recognising what is written. The router knew all along. */
+console.log("\n  every make the router knows, the make question knows too");
+{
+  const r = await page.evaluate(() => {
+    /* Checked against the item each make belongs to, not just the category.
+       An item may carry its own brand list - a television's makes are not
+       DJI's - and that override REPLACES the category book by design, so
+       asking "is DJI in electronics" while a TV is on the counter is the
+       wrong question. */
+    const pairs = [["DJI","elec","Gimbal / pocket camera"],["GoPro","elec","GoPro / action camera"],
+                   ["Lowrance","hunt","Fish finder"],["Humminbird","hunt","Fish finder"],
+                   ["Howa","guns","g3"],["Thompson Center","guns","g3"],["Mossberg","guns","g1"]];
+    const at = (cat, item) => { st.catId = cat;
+      const e = PRICEBOOK.find(r => r[0] === item);
+      st.itemId = e ? custId(cat) : item; st.bookName = e ? item : ""; };
+    const missing = pairs.filter(([n,c,i]) => { at(c,i); return !brandLookup(c,n); }).map(([n]) => n);
+    const noHit = pairs.filter(([n,c,i]) => { at(c,i); return brandHits(c, n.slice(0,3)).length === 0; }).map(([n]) => n);
+    st.bookName = "";
+    /* and a category that never asks the make question needs no book */
+    const rolling = CATALOG.find(c => c.id === "rolling");
+    return {missing, noHit, rollingAsks: !!(rolling && rolling.brand && rolling.brand.on)};
+  });
+  ok(r.missing.length === 0,
+     "each one resolves in its own category" + (r.missing.length ? " — MISSING: " + r.missing.join(", ") : ""));
+  ok(r.noHit.length === 0,
+     "  and three letters finds each" + (r.noHit.length ? " — NO HITS: " + r.noHit.join(", ") : ""));
+  ok(r.rollingAsks === false,
+     "  powersports never asks the make, so it needs no book of its own");
+}
+
+/* THERE IS ALWAYS A WAY FORWARD. The tier buttons used to appear only once
+   something had been typed, so an empty box offered nothing at all - no
+   hits, no tiers, no next step - and a box pre-filled from the search read
+   as a dead end because the hit list was computed from an empty query. */
+console.log("\n  the make step is never a dead end");
+{
+  const r = await page.evaluate(() => {
+    const c = CATALOG.find(y => y.items.some(i => i.id === "e1"));
+    st.flow="ask"; st.mode="item"; st.catId=c.id; st.itemId="e1"; st.picked=true;
+    st.brandTyped=""; st.brandQ=""; st.brandSet=false; st.model=""; st.detail="";
+    st.mpNone=false; st.market=null; st.specSel={}; st.condSet=false;
+    const q0 = askQueue(calcItem());
+    st.askAt = q0.findIndex(z => z.id === "brand"); render();
+    /* the LAST hint in the card is the one under the make box; the first is
+       the question's own hint, which is a different sentence */
+    const hints = [...document.querySelectorAll("#askCard .cardHint")].map(e => e.textContent);
+    const empty = {tiers: document.querySelectorAll("#askCard [data-ask='brand']").length,
+                   hint: hints[hints.length - 1] || ""};
+    /* a make typed into the search box seeds the list rather than sitting mute */
+    st.brandTyped = "Sony"; render();
+    const seeded = [...document.querySelectorAll("[data-brandpick]")].map(b => b.dataset.brandpick);
+    return {empty, seeded};
+  });
+  ok(r.empty.tiers >= 3, "an empty box still offers the tiers — " + r.empty.tiers);
+  ok(/say where it sits/i.test(r.empty.hint), "  and says so — " + r.empty.hint.trim().slice(0, 60));
+  ok(r.seeded.some(n => /sony/i.test(n)),
+     "  a make already known seeds the list instead of sitting mute — " + r.seeded.join(", "));
+}
+
 ok(!errs.length, "no page errors" + (errs.length ? ": " + errs[0] : ""));
 await browser.close();
 console.log(fails ? "\n  " + fails + " FAILED\n" : "\n  all passed\n");

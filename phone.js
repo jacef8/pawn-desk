@@ -68,14 +68,23 @@ function phoneStepHTML(x){
       :`Search above and tap what it is &mdash; the resale value fills in from there.`;
     act="";
   } else if(cur===1&&wantBrand){
-    const hits=brandHits(st.catId,st.brandQ||"");
+    /* Seeded from what is already known. The box said "DJI" - read off the
+       search, or off a photo - while the hit list was computed from an
+       empty query, so there was nothing under it to tap and nothing that
+       recognised what was already written. A box with your own answer in
+       it and no way to confirm it is a dead end. */
+    const bq=st.brandQ||st.brandTyped||"";
+    const hits=brandHits(st.catId,bq);
     h=`Who makes it?`;
     sub=`Start typing and tap it &mdash; that sets the spelling and where it sits in one go.`;
-    act=`<div class="phIn"><input id="phBrand" type="text" placeholder="Make" value="${esc(st.brandQ||st.brandTyped||"")}"></div>`
+    /* The tier buttons are ALWAYS here. They used to appear only once
+       something had been typed, so an empty box offered nothing at all -
+       no hits, no tiers, no way forward. There is always a way forward. */
+    act=`<div class="phIn"><input id="phBrand" type="text" placeholder="Make" value="${esc(bq)}"></div>`
       +(hits.length?hits.map(b=>`<button class="nsBtn" data-phbrand="${esc(b.name)}" data-phtier="${esc(b.tier)}"><span>${esc(b.name)}</span><b>${esc(tierLabel(x,b.tier))}</b></button>`).join("")
-        :st.brandQ?`<div class="cardHint"><b>${esc(st.brandQ)}</b> is not on the list for ${esc(String(x.cat.label||"this").toLowerCase())} &mdash; say where it sits.</div>`
-          +BRANDS.map(br=>`<button class="nsBtn" data-phtieronly="${esc(br.id)}"><span>${esc(tierLabel(x,br.id))}</span></button>`).join("")
-        :"");
+        :`<div class="cardHint">${bq?`<b>${esc(bq)}</b> is not on the list for `+esc(String(x.cat.label||"this").toLowerCase())+` &mdash; say where it sits instead.`
+             :"Type a make above, or just say where it sits."}</div>`
+          +BRANDS.map(br=>`<button class="nsBtn" data-phtieronly="${esc(br.id)}"><span>${esc(tierLabel(x,br.id))}</span></button>`).join(""));
   } else if(cur===1&&wantModel){
     h=`Which ${esc(what)} is it?`;
     sub=`The model decides the price here, and I don’t have a list for this one. Read it off the back, the label or the box.`;
@@ -124,7 +133,12 @@ function phoneStepHTML(x){
   /* Once there is a price this card moves past step 2, and with it went the
      one button that does the searching. It belongs on every step after the
      item is known, the same as on the desk. */
-  if(CAP.sample&&started&&cur!==2)
+  /* Not on step one. "Look it up - everywhere" was being pushed in ABOVE
+     the answer field for the question actually being asked, so the biggest
+     green button on the screen belonged to a different step and the make
+     box sat under it looking like an afterthought. Nothing can be looked
+     up before the desk knows what it is anyway. */
+  if(CAP.sample&&started&&cur>2)
     act=`<button class="nsBtn${x.checked?" ghost":" on"}" id="pdFindGo"><span>${findBusy?"Looking it up&hellip;":x.checked?"Look it up again":"Look it up \u2014 everywhere"}</span></button>`
         +`<div class="cardHint" id="pdFindMsg">${esc(findMsg||"")}</div>`+evidenceHTML()+act;
   const src=x.checked?`<div class="phSrc">Resale value from ${m.kind==="list"?`<b>${esc(srcName(m.src))}</b>, checked ${esc(fmtDay(m.date))}. ${srcLink(m.src)}`:m.kind==="shot"?`${m.n} sold on ${esc(m.site||"the sold page")}. ${srcLink(m.url,"See those sales")}`:m.kind==="retail"?`${money(m.retail)} new retail, taken to ${(m.pct||retailPct())}% for used. Not a sold price.`:m.kind==="found"?`${m.n} listing${m.n===1?"":"s"} on file, middle one ${money(m.med)} (middle half ${money(m.lo)}&ndash;${money(m.hi)})${m.mostlyAsks?", mostly asks rather than sales":""}.${m.from?` From ${esc(m.from)}.`:""}`:m.kind==="seen"?`${m.n} shelf tag${m.n===1?"":"s"} you recorded, asking ${money(m.lo)}&ndash;${money(m.hi)} \u2014 what a used one goes for at a shop near you.`:"the price you typed."}</div>`:"";

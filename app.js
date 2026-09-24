@@ -1757,17 +1757,18 @@ function askHTML(x){
   const dh=detailHint(x);
   const cov=coveredLine();
   const mods=(cur.kind==="model")?mpCandidates():[];
-  const hits=(cur.id==="brand")?brandHits(st.catId,st.brandQ||""):[];
+  const bq=st.brandQ||st.brandTyped||"";
+  const hits=(cur.id==="brand")?brandHits(st.catId,bq):[];
   const body=cur.kind==="worth"
     ? `<div class="askWorth">${step4Inner(x,true)}</div>`
     : cur.id==="brand"
     ? `<div class="askWorth">
          <span class="label">Make</span>
-         <input id="askBrandIn" type="text" autocomplete="off" placeholder="Start typing \u2014 Stihl, DeWalt, Ryobi\u2026" value="${esc(st.brandQ||st.brandTyped||"")}" class="numIn" style="font-family:var(--sans);font-size:15px">
+         <input id="askBrandIn" type="text" autocomplete="off" placeholder="Start typing \u2014 Stihl, DeWalt, Ryobi\u2026" value="${esc(bq)}" class="numIn" style="font-family:var(--sans);font-size:15px">
          ${hits.length?`<div class="askOpts askHits">${hits.map(h=>
              `<button class="askOpt${(st.brandTyped||"").toLowerCase()===h.name.toLowerCase()?" on":""}" data-brandpick="${esc(h.name)}" data-brandtier="${esc(h.tier)}"><span class="askT">${esc(h.name)}</span><span class="askS">${esc(tierLabel(x,h.tier))}</span></button>`
            ).join("")}</div>`
-          :`<div class="cardHint">${st.brandQ?"<b>"+esc(st.brandQ)+"</b> is not on the list for "+esc(String(x.cat.label||"this").toLowerCase())+" \u2014 say where it sits below and the price follows.":"Nothing typed yet."}</div>`}
+          :`<div class="cardHint">${bq?"<b>"+esc(bq)+"</b> is not on the list for "+esc(String(x.cat.label||"this").toLowerCase())+" \u2014 say where it sits below and the price follows.":"Type a make above, or just say where it sits below."}</div>`}
          <span class="label" style="margin-top:14px">Or just say where it sits</span>
          <div class="askOpts">${(cur.opts||[]).map(opt).join("")}</div>
        </div>`
@@ -4362,7 +4363,21 @@ const BRAND_IDX=(function(){
   Object.keys(ITEM_OVERRIDES).forEach(id=>{const ov=ITEM_OVERRIDES[id]; if(!ov.brands)return;
     const cat=CATALOG.find(c=>c.items.some(i=>i.id===id)); if(!cat)return;
     ["hi","mid","lo"].forEach(t=>(ov.brands[t]||[]).forEach(b=>{ if(!m.has(b.toLowerCase())||!m.get(b.toLowerCase()).cats.some(c=>c.cat===cat.id&&!c.items)) add(b,cat.id,t,[id]); }));});
-  EXTRA_BRANDS.forEach(([n,cat,items])=>add(n,cat,"mid",items));
+  /* THE MAKE QUESTION READS A DIFFERENT BOOK FROM THE ROUTER.
+     These seventeen were registered here, for routing, and nowhere else -
+     so brandLookup and brandHits, which read BRANDBOOK, had never heard of
+     DJI, GoPro, Polaris, Honda-in-powersports, Lowrance or any of them.
+     At the counter that is a dead end: the make question asks who makes
+     it, the box already says DJI, and there is nothing to tap and nothing
+     that recognises what is typed. The router knew all along.
+     They go into the book too, at the tier they were declared with, so
+     one list answers both. */
+  EXTRA_BRANDS.forEach(([n,cat,items])=>{
+    add(n,cat,"mid",items);
+    const bk=BRANDBOOK[cat];
+    if(bk&&bk.mid&&!["hi","mid","lo"].some(t=>(bk[t]||[]).some(x=>x.toLowerCase()===n.toLowerCase())))
+      bk.mid.push(n);
+  });
   return Array.from(m.values()).map(e=>Object.assign(e,{re:new RegExp("(^|[^a-z0-9])"+omniEsc(e.name.toLowerCase())+"(?=$|[^a-z0-9])")}))
     .sort((a,b)=>b.name.length-a.name.length);
 })();
@@ -5908,7 +5923,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.4302";
+const APP_BUILD="0924.0512";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
