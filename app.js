@@ -749,11 +749,30 @@ function gauge(pct,label,big,small,id){
 /* ---------------- tabs ---------------- */
 const PRICE_TABS=[["item","Price an item"],["metal","Gold & silver"]];
 const REF_TABS=[["log","Deal log"],["device","Phones & devices"],["flags","Walk away"],["setup","Setup"]];
+/* A dock label is one or two words under a drawing, because a column 96px
+   wide is what is left once the working area has what it needs. Line art
+   at one weight: a tag, a coin, a ledger, a phone, a hand, a dial. */
+const TAB_SHORT={item:"Price",metal:"Gold",log:"Deal log",device:"Devices",flags:"Walk away",setup:"Setup"};
+const TAB_ICON={
+  item:'<path d="M3 11.5V4.5A1.5 1.5 0 0 1 4.5 3h7L21 12.5 12.5 21 3 11.5Z"/><circle cx="7.6" cy="7.6" r="1.3"/>',
+  metal:'<circle cx="12" cy="12" r="8.2"/><path d="M12 7.4v9.2M9.6 9.6h4a1.9 1.9 0 0 1 0 3.8h-3.6a1.9 1.9 0 0 0 0 3.8h4"/>',
+  log:'<path d="M5 3.8h11a2 2 0 0 1 2 2v14.4H7a2 2 0 0 1-2-2V3.8Z"/><path d="M8.6 8.2h6M8.6 12h6M8.6 15.8h3.4"/>',
+  device:'<rect x="6.4" y="2.6" width="11.2" height="18.8" rx="2.4"/><path d="M10.6 18.4h2.8"/>',
+  flags:'<path d="M5.6 20.4V4.2M5.6 5.2h10.8l-1.9 3.6 1.9 3.6H5.6"/>',
+  setup:'<circle cx="12" cy="12" r="3.1"/><path d="M12 2.6v3M12 18.4v3M21.4 12h-3M5.6 12h-3M18.6 5.4l-2.1 2.1M7.5 16.5l-2.1 2.1M18.6 18.6l-2.1-2.1M7.5 7.5 5.4 5.4"/>'};
 function renderTabs(){
-  const btn=([id,l])=>`<button class="${st.mode===id?"on":""}" data-tab="${id}">${l}</button>`;
-  document.getElementById("tabs").innerHTML =
-    `<div class="pills">${PRICE_TABS.map(btn).join("")}</div>`+
-    `<div class="pills ref">${REF_TABS.filter(t=>t[0]!=="log"||CAP.db).map(btn).join("")}</div>`;
+  /* Six destinations were a row of pills along the top bar - laid out on
+     the one edge the eye leaves last, over the top of the thing being
+     worked on, and taking the width the title needed. Down the left they
+     read as places. Same buttons, same data-tab, same handler; the
+     current one is LIT rather than filled, because a solid pill sitting
+     in a navigation column all day reads as a button mid-press. */
+  const tabs=PRICE_TABS.concat(REF_TABS.filter(t=>t[0]!=="log"||CAP.db));
+  document.getElementById("tabs").innerHTML = tabs.map(([id,full])=>
+    `<button class="${st.mode===id?"on":""}" data-tab="${id}" aria-label="${full}"`+
+    `${st.mode===id?' aria-current="page"':""} title="${full}">`+
+    `<svg viewBox="0 0 24 24" aria-hidden="true">${TAB_ICON[id]||""}</svg>`+
+    `<i>${TAB_SHORT[id]||full}</i></button>`).join("");
 }
 document.getElementById("view").addEventListener("click",e=>{
   if(e.target.closest("#whyBtn")){ st.whyOpen=!st.whyOpen; render(); }
@@ -951,7 +970,16 @@ function pinHTML(x){
 
      The strip was called "Where it stands", which describes the state of
      the app rather than the money. It is the numbers. */
-  return `<div class="pinStrip pinDecide${deskRail()?" pinRail":""}${P&&x.buyTooThin?" thin":""}">
+  /* THE DESK GETS THE DIAL TOO.
+     The phone's whole screen was rebuilt around the anchor and the desk
+     was left with what it always had: a stack of six labelled figures in
+     small type, with the one number anybody says out loud the same size
+     as "Loan / resale 35%". The rail is the desk's equivalent of the
+     phone's hero card, so it holds the same thing - one enormous number
+     in a dial, the second decision beside it, and the arithmetic
+     underneath in a quiet grid where arithmetic belongs. */
+  if(deskRail()) return railHTML(x);
+  return `<div class="pinStrip pinDecide${P&&x.buyTooThin?" thin":""}">
     <span class="pinLab">${P?"What it's worth to you":"The numbers"}</span>
     <button class="pinNew" id="pinNew" type="button" title="Clear this item and start the next one. Your rates, shelf record, listings and deal log are kept.">Start over</button>
     ${x.buyTooThin
@@ -969,6 +997,32 @@ function pinHTML(x){
         ?`It doesn\u2019t sell for enough to clear the ${money(x.buyFloor)} you want out of a buy.`
         :`Capped by ${esc(buyCapWhy(x))}. Over ${money(x.buy)} and you\u2019re eating the ${money(x.buyMargin)}.`)
       :`Range ${money(x.low)}&ndash;${money(x.high)}. Never above the top.`}${x.buy===x.target&&!x.lendCapped&&!x.buyTooThin?` Buy and lend match in ${esc(x.cat.label.toLowerCase())} on purpose \u2014 ${esc(BUY_WHY[x.cat.id]||"")}.`:""}</span>
+  </div>`;
+}
+/* The rail: one dial, one partner figure, then the working.
+   Built as its own function rather than a variant of the strip, because
+   the strip is a ROW of equals and this is a hierarchy - trying to be both
+   is how the old one ended up with a 40px buy price and a 14px fee
+   sharing a flexbox. */
+function railHTML(x){
+  const thin=x.buyTooThin;
+  const tile=(l,v)=>`<div class="rTile"><span>${l}</span><b>${v}</b></div>`;
+  return `<div class="card rail0${thin?" thin":""}">
+    <div class="rHead"><span class="pinLab">The numbers</span>
+      <button class="pinNew" id="pinNew" type="button" title="Clear this item and start the next one. Your rates, shelf record, listings and deal log are kept.">Start over</button></div>
+    <div class="rDial${thin?" bad":""}">${thin
+      ? gauge(1,"Walk away",'<span class="gdash">&mdash;</span>',"it will not clear "+money(x.buyFloor),"gpd")
+      : gauge(1,"Buy it for",money(x.buy),"","gpd")}</div>
+    <div class="rLend"><span>${thin?"Not worth lending":"Lend him"}</span><b>${thin?"Walk away":money(x.target)}</b></div>
+    <div class="rGrid">
+      ${tile(x.handSet?"Resale, yours":"Resale, "+esc(COND_WORDS[st.cond][0].toLowerCase()),money(x.resale))}
+      ${tile("Your cushion",money(x.margin))}
+      ${tile("Fee / 30 days",money(x.charge))}
+      ${tile("Loan \u00f7 resale",x.ltv+"%")}
+    </div>
+    <div class="pinNote">${x.checked?"":`<b style="color:var(--warn-ink)">Estimate \u2014 nothing looked up yet.</b> `}${thin
+      ? `It doesn\u2019t sell for enough to clear the ${money(x.buyFloor)} you want out of it \u2014 not as a buy, and not as a loan you end up owning.`
+      : `Range ${money(x.low)}&ndash;${money(x.high)}. Never above the top.`}${x.buy===x.target&&!x.lendCapped&&!thin?` Buy and lend match in ${esc(x.cat.label.toLowerCase())} on purpose \u2014 ${esc(BUY_WHY[x.cat.id]||"")}.`:""}</div>
   </div>`;
 }
 /* HOW MUCH IS BEHIND THE NUMBER.
@@ -1021,9 +1075,23 @@ function weightHTML(x){
 
   if(m.kind==="list"){
     const c=CONF[m.conf]||CONF.m;
-    return card(esc(srcName(m.src)),c[2],bar(c[0],c[1]),
-      "From the desk's price list for <b>"+esc(m.name||"this model")+"</b>, checked "+esc(fmtDay(m.date))+"."
-      +(m.mine?" This one is your own figure off the master sheet.":""));
+    /* THE HEADLINE SLOT HOLDS A VERDICT, NOT A HOSTNAME.
+       This branch used to put srcName(m.src) there, so the card read
+       "Swappa" - one word on its own, in the same slot where every other
+       branch of this function puts a quantity or a judgement: "12
+       listings", "Not checked", "No sales found", "your 3 sales". Swappa
+       is right and the price behind it is right; the screen just never
+       said what the word was doing there. It went past me in three of my
+       own screenshots reading "Underpriced", which is also a price site
+       and not, as it looks, a verdict on the offer.
+
+       The source belongs in the sentence, where it has "researched from"
+       in front of it and is worth something. */
+    return card("Desk price list",c[2],bar(c[0],c[1]),
+      "Researched from <b>"+esc(srcName(m.src))+"</b> for <b>"+esc(m.name||"this model")
+      +"</b>, checked "+esc(fmtDay(m.date))+"."
+      +(m.mine?" This one is your own figure off the master sheet."
+              :" Nothing looked up live yet."));
   }
 
   if(m.kind==="shot")
@@ -6097,7 +6165,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0924.0234";
+const APP_BUILD="0924.0248";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

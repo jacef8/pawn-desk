@@ -50,6 +50,7 @@ const PAIRS = [
   ["good/verdict text",          "--good",      ["--glass"],            4.5],
   ["text in a recessed well",    "--ink",       ["--well","--glass"],   4.5],
   ["label in a recessed well",   "--ink-3",     ["--well","--glass"],   4.5],
+  ["figure in a rail tile",      "--ink-2",     ["--well","--glass"],   4.5],
   ["the anchor numeral",         "--ink",       ["--glass"],            3.0],
   ["hairline between rows",      "--line",      ["--glass"],            1.2],
 ];

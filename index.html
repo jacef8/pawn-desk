@@ -2,19 +2,24 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="apple-mobile-web-app-title" content="Pawn Desk">
 <link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="apple-touch-icon.png"><meta name="theme-color" content="#15171C">
 <script src="app-head.js"></script>
-<meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><style>:root{color-scheme:dark}body{margin:0;padding:0;font:15px system-ui,-apple-system,sans-serif;background:#15171C;color:#fff}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>The Pawn Desk</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="app.css">
 
 <div class="dash">
+  <!-- THE DOCK. These were a strip of pills across the top bar, which on a
+       1440px screen meant six destinations laid out along the one edge the
+       eye leaves last, over the top of the thing being worked on. Down the
+       left they are a place rather than a control - the same move the
+       phone made, at desk size. Same element, same id, same handler. -->
+  <nav class="deskDock" id="tabs"></nav>
   <div class="bar">
     <div class="brand">
       <div class="eyebrow">Lamar's</div>
       <h1>The Pawn Desk</h1>
     </div>
-    <div class="tabwrap" id="tabs"></div>
     <div class="sys"><span class="dot"></span><span id="sysline">SYS.OK</span></div>
   </div>
   <div id="view"></div>

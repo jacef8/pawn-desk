@@ -776,3 +776,84 @@
   @media (prefers-reduced-motion:reduce){
     *,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important}
   }
+
+  /* ══ THE RAIL ═════════════════════════════════════════════════════════
+     The desk's hero. One dial, the partner figure beside it, the working
+     underneath - the same hierarchy the phone got, at desk size. It used
+     to be .pinStrip in a narrow column: a flex ROW of six equals forced
+     into a hierarchy it was never built for, which is how a 40px buy
+     price and a 14px fee ended up sharing a flexbox. */
+  .rail0{padding:15px 16px 16px}
+  .rail0.thin{border-color:color-mix(in srgb,var(--bad) 45%,var(--line))}
+  .rHead{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .rHead .pinLab{margin:0}
+  .rDial{margin:2px 0 0}
+  /* The arc stops at 270 degrees; pull the next thing into the gap. */
+  .rDial .gwrap{max-width:min(236px,84%)}
+  .rDial svg{margin-bottom:-12%}
+  .rDial .gcenter b{font-size:clamp(40px,3.3vw,54px)}
+  .rDial .gdash{font-size:.5em;color:var(--ink-3);position:relative;top:-.12em}
+  .rDial.bad .gcenter b,.rDial.bad .gcenter .gl{color:var(--bad-ink)}
+  /* The second decision. Not a tile - tiles are the arithmetic, and this
+     is the other half of what gets said out loud, so it keeps its own
+     line and a rule under the dial. */
+  .rLend{display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+    padding:11px 2px 12px;border-top:1px solid var(--line);
+    border-bottom:2px solid color-mix(in srgb,var(--accent) 45%,transparent)}
+  .rLend span{font-family:var(--mono);font-size:11px;letter-spacing:.11em;
+    text-transform:uppercase;color:var(--ink-2)}
+  .rLend b{font-family:var(--disp);font-size:34px;font-weight:800;letter-spacing:-.04em;
+    color:var(--ink);font-variant-numeric:tabular-nums;line-height:1}
+  .rail0.thin .rLend b{font-size:24px;color:var(--bad-ink)}
+  .rail0.thin .rLend{border-bottom-color:color-mix(in srgb,var(--bad) 50%,transparent)}
+  /* The working, in a well, in two columns, plainly subordinate. */
+  .rGrid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:11px}
+  .rTile{padding:8px 11px;border-radius:var(--r-xs);background:var(--well);
+    box-shadow:var(--well-sh);display:flex;flex-direction:column;gap:2px;min-width:0}
+  .rTile span{font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;
+    text-transform:uppercase;color:var(--ink-3);white-space:nowrap;overflow:hidden;
+    text-overflow:ellipsis}
+  .rTile b{font-family:var(--mono);font-size:15px;font-weight:600;color:var(--ink-2);
+    font-variant-numeric:tabular-nums}
+  .rail0 .pinNote{flex:none;min-width:0;margin-top:11px;font-size:12px;line-height:1.5}
+
+  /* ══ THE DESK DOCK ════════════════════════════════════════════════════
+     A column of places down the left, not a row of pills across the top.
+     Glass, like everything else, and fixed as a grid track so the working
+     area keeps its own scroll. */
+  .deskDock{display:flex;gap:4px;align-items:stretch;
+    background:linear-gradient(155deg,var(--glass-hi),var(--glass) 72%);
+    -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
+    border:1px solid var(--line);box-shadow:var(--raise);border-radius:var(--r);
+    padding:6px;overflow:auto;scrollbar-width:none}
+  .deskDock::-webkit-scrollbar{display:none}
+  .deskDock button{display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:5px;flex:0 0 auto;min-width:74px;padding:9px 6px;border:none;background:transparent;
+    cursor:pointer;border-radius:var(--r-s);color:var(--ink-3);text-align:center;
+    transition:color .16s,background .16s,transform .12s}
+  .deskDock button:hover{color:var(--ink-2);background:var(--g2)}
+  .deskDock button:active{transform:scale(.96)}
+  .deskDock button svg{width:22px;height:22px;fill:none;stroke:currentColor;
+    stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  .deskDock button i{font-style:normal;font-size:11px;font-weight:600;line-height:1.15}
+  .deskDock button.on{color:var(--accent-ink);background:var(--g2-hi);box-shadow:var(--raise)}
+  .deskDock button.on svg{stroke-width:2.1}
+  /* Under 1080 there is no room beside the work, so it lies back down as a
+     scrolling strip - still a dock, still the same buttons. */
+  @media (max-width:1079px){
+    .deskDock{order:-1}
+    .deskDock button{min-width:66px;padding:7px 5px}
+    .deskDock button i{font-size:10.5px}
+  }
+  @media (min-width:1080px){
+    /* The shell gains a first column. The dock spans both rows so the
+       header sits beside it rather than over it, which is what keeps the
+       title and the navigation from competing for the same 1400px. */
+    .dash{grid-template-columns:minmax(0,96px) minmax(0,1fr)}
+    .deskDock{grid-row:1/-1;grid-column:1;flex-direction:column;align-items:stretch;
+      justify-content:flex-start;overflow-y:auto;overflow-x:hidden}
+    .deskDock button{min-width:0;width:100%;padding:11px 4px}
+    .bar{grid-column:2;grid-row:1}
+    #view{grid-column:2;grid-row:2}
+    .foot{grid-column:2}
+  }
