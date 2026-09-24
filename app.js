@@ -752,6 +752,62 @@ function gauge(pct,label,big,small,id){
   <div class="gcenter"><span class="gl">${label}</span><b>${big}</b><span class="gs">${small}</span></div></div>`;
 }
 
+/* ══ THE HOME CARD ════════════════════════════════════════════════════
+   One component, both machines. The phone had this first and the desk
+   was still showing a search box over an empty screen; writing it twice
+   is how the two drift into two apps, which is the thing design A was
+   picked to stop.
+
+   It is the item screen's own shape doing the day's job: a hero with
+   the one number that matters before anything is on the counter, the
+   ways to start as circular actions, and a feed of what has actually
+   been priced today. The feed reads the deal log - it is not decoration,
+   it is the thing you reach for when a customer comes back. */
+const HOME_ICON={
+  cam :'<rect x="3" y="7" width="18" height="13" rx="3"/><circle cx="12" cy="13.4" r="3.4"/><path d="M8 7l1.6-3h4.8L16 7"/>',
+  look:'<circle cx="11" cy="11" r="7"/><path d="M16 16l5 5"/>',
+  gold:'<circle cx="12" cy="12" r="8"/><path d="M12 7.6v8.8M9.8 10h4a1.9 1.9 0 010 3.8h-3.6a1.9 1.9 0 000 3.8h4"/>',
+  log :'<path d="M5 4h11l3 3v13H5z"/><path d="M9 9h6M9 13h6"/>',
+  tag :'<path d="M3 11.5V4.5A1.5 1.5 0 014.5 3h7L21 12.5 12.5 21 3 11.5Z"/><circle cx="7.6" cy="7.6" r="1.2"/>'
+};
+function homeToday(){
+  const day=(typeof todayStr==="function")?todayStr():"";
+  const rows=(typeof DEALS!=="undefined"&&DEALS.length)
+    ? DEALS.filter(d=>!day||d.day===day) : [];
+  return {day,rows,out:rows.reduce((a,d)=>a+(Number(d.loan)||0),0)};
+}
+function homeHeroHTML(opts){
+  const o=opts||{}, t=homeToday();
+  const gold=(typeof spotOf==="function")?spotOf("gold"):0;
+  const silver=(typeof spotOf==="function")?spotOf("silver"):0;
+  const act=(id,l,ic,on)=>`<button class="act" data-whome="${id}"${on?"":" disabled"}>`
+    +`<i><svg viewBox="0 0 24 24" aria-hidden="true">${ic}</svg></i><span>${l}</span></button>`;
+  const camOn=!!(CAP.sample&&CAP.images);
+  return `<div class="hero homeHero">
+    <div class="heroWho">${esc(fmtDay(t.day)||"Today")}</div>
+    <div class="heroWhat">Nothing on the counter</div>
+    <div class="heroLab">Gold, per troy ounce</div>
+    <div class="heroBig">${gold?money(Math.round(gold)):"\u2014"}</div>
+    <div class="heroSub">${silver?"Silver "+money(Math.round(silver*100)/100)+" \u00b7 ":""}${t.rows.length
+      ? t.rows.length+" logged today \u00b7 "+money(t.out)+" out"
+      : "nothing logged yet today"}</div>
+    <div class="acts">
+      ${act("snap",o.snapLabel||"Snap it",HOME_ICON.cam,camOn)}
+      ${act("type","Type it",HOME_ICON.look,true)}
+      ${act("gold","Gold",HOME_ICON.gold,true)}
+      ${act("log","Log",HOME_ICON.log,true)}
+    </div></div>`;
+}
+function homeFeedHTML(limit){
+  const t=homeToday(), rows=t.rows.slice(0,limit||4);
+  if(!rows.length)return "";
+  return `<div class="wSect">Priced today</div>`+rows.map(d=>
+    `<div class="wRow"><i><svg viewBox="0 0 24 24" aria-hidden="true">${HOME_ICON.tag}</svg></i>
+      <div class="t"><b>${esc([d.brand,d.model,d.itemName].filter(Boolean).join(" "))||"Item"}</b>
+        <span>${esc(d.catLabel||"")}${d.ticket?" \u00b7 #"+esc(d.ticket):""}</span></div>
+      <div class="v">${money(d.loan||0)}<small>${d.status==="sold"?"sold":"lent"}</small></div></div>`).join("");
+}
+
 /* ---------------- tabs ---------------- */
 const PRICE_TABS=[["item","Price an item"],["metal","Gold & silver"]];
 const REF_TABS=[["log","Deal log"],["device","Phones & devices"],["flags","Walk away"],["setup","Setup"]];
@@ -2167,24 +2223,34 @@ function renderItem(){
      and the twelve kinds the desk carries are laid out rather than
      folded away. Same information, no more cards, and the screen is
      doing something. */
-  if(!st.picked&&!window.PHONE)return omniHTML()+`<div class="startPane">
-    <div class="startWays">
-      <span class="label" style="margin:0">Or start from one of these</span>
-      <div class="startChips">${START_TRY.map(t=>
-        `<button class="tryChip" type="button" data-try="${esc(t)}">${esc(t)}</button>`).join("")}</div>
+  /* THE DESK GETS THE HOME CARD TOO.
+     It had the search box, the worked examples and the eleven kinds -
+     all useful, all a way IN - and nothing about the day it is already
+     halfway through. The hero and the feed come from the same two
+     functions the phone calls, so the two cannot drift. The ways in
+     keep the main column; the day sits in the rail, where the money
+     sits once something is on the counter. */
+  if(!st.picked&&!window.PHONE)return `<div class="startHome">
+    <div class="startMain">
+      ${omniHTML()}
+      <div class="startWays">
+        <span class="label" style="margin:0">Or start from one of these</span>
+        <div class="startChips">${START_TRY.map(t=>
+          `<button class="tryChip" type="button" data-try="${esc(t)}">${esc(t)}</button>`).join("")}</div>
+      </div>
+      <div class="startWays">
+        <span class="label" style="margin:0">Or pick the kind of thing it is &mdash; ${CATALOG.reduce((a,c)=>a+c.items.length,0)} of them, and ${mpCount()} models by name</span>
+        <div class="startGrid">${CATALOG.map(c=>
+          `<button class="kindTile" type="button" data-cat="${c.id}"><b>${esc(c.label)}</b>`
+          +`<span>${c.items.length} kind${c.items.length===1?"":"s"}</span></button>`).join("")}</div>
+      </div>
     </div>
-    <div class="startWays">
-      <span class="label" style="margin:0">Or pick the kind of thing it is &mdash; ${CATALOG.reduce((a,c)=>a+c.items.length,0)} of them, and ${mpCount()} models by name</span>
-      <div class="startGrid">${CATALOG.map(c=>
-        `<button class="kindTile" type="button" data-cat="${c.id}"><b>${esc(c.label)}</b>`
-        +`<span>${c.items.length} kind${c.items.length===1?"":"s"}</span></button>`).join("")}</div>
+    <div class="startRail">
+      ${homeHeroHTML({snapLabel:"Photo"})}
+      ${homeFeedHTML(5)}
+      ${left.replace('<div class="colL">','<div class="startCol">')
+            .replace(/<details class="browse"[\s\S]*?<\/details>/,"")}
     </div>
-    ${/* "Browse the lists - 11 groups, 72 items" is a fold over exactly
-          the twelve tiles above it. Two ways to the same place, one of
-          them hidden, is the kind of thing that makes a page feel busy
-          and bare at the same time. */""}
-    <div class="startTwo">${left.replace('<div class="colL">','<div class="startCol">')
-      .replace(/<details class="browse"[\s\S]*?<\/details>/,"")}</div>
   </div>`;
   /* The phone hides the three columns outright, and the camera card lived in
      one of them - so the phone has had a photo reader built, wired and
@@ -2254,6 +2320,16 @@ function wireItem(){
     const d=document.getElementById(id); if(d)d.ontoggle=()=>{ st[key]=d.open; };
   }
   /* A worked example is only worth showing if pressing it works. */
+  /* The home card's four actions, on whichever machine drew it. */
+  v.querySelectorAll("[data-whome]").forEach(b=>b.onclick=()=>{
+    const a=b.dataset.whome;
+    if(a==="snap"){ const c=document.getElementById("photoCam")||document.getElementById("photoIn");
+                    if(c)c.click(); return; }
+    if(a==="gold"){ st.mode="metal"; render(); return; }
+    if(a==="log"){ st.mode="log"; render(); return; }
+    if(a==="type"){ const i2=document.getElementById("omniIn");
+                    if(i2){ i2.focus(); try{ i2.scrollIntoView({block:"nearest"}); }catch(e){} } return; }
+  });
   v.querySelectorAll("[data-dact]").forEach(b=>b.onclick=()=>{
     const a=b.dataset.dact;
     if(a==="look"){ try{ priceFind(null,true); }catch(e){} return; }
@@ -6553,7 +6629,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0924.1245";
+const APP_BUILD="0924.1253";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

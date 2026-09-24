@@ -405,44 +405,14 @@ function snapHTML(){
      a camera button, a search box and a tip, with the bottom two thirds
      of the screen empty - the complaint that started this redesign. */
   if(!has){
-    const today=(typeof todayStr==="function")?todayStr():"";
-    const mine=(typeof DEALS!=="undefined"&&DEALS.length)
-      ? DEALS.filter(d=>!today||d.day===today).slice(0,4) : [];
-    const out=mine.reduce((a,d)=>a+(Number(d.loan)||0),0);
-    const gold=(typeof spotOf==="function")?spotOf("gold"):0;
-    const silver=(typeof spotOf==="function")?spotOf("silver"):0;
-    const I={
-      cam:'<rect x="3" y="7" width="18" height="13" rx="3"/><circle cx="12" cy="13.4" r="3.4"/><path d="M8 7l1.6-3h4.8L16 7"/>',
-      look:'<circle cx="11" cy="11" r="7"/><path d="M16 16l5 5"/>',
-      gold:'<circle cx="12" cy="12" r="8"/><path d="M12 7.6v8.8M9.8 10h4a1.9 1.9 0 010 3.8h-3.6a1.9 1.9 0 000 3.8h4"/>',
-      log :'<path d="M5 4h11l3 3v13H5z"/><path d="M9 9h6M9 13h6"/>',
-      tag :'<path d="M3 11.5V4.5A1.5 1.5 0 014.5 3h7L21 12.5 12.5 21 3 11.5Z"/><circle cx="7.6" cy="7.6" r="1.2"/>'
-    };
-    const A=(id,l,ic,on)=>`<button class="act" data-whome="${id}"${on?"":" disabled"}>`
-      +`<i><svg viewBox="0 0 24 24" aria-hidden="true">${ic}</svg></i><span>${l}</span></button>`;
+    /* Same two functions the desk calls. This used to be its own copy of
+       the hero and the feed, which is how two screens become two apps. */
+    const t=(typeof homeToday==="function")?homeToday():{rows:[]};
     return `<div class="snapWrap">
-      <div class="hero">
-        <div class="heroWho">${esc(fmtDay(today)||"Today")}</div>
-        <div class="heroWhat">Nothing on the counter</div>
-        <div class="heroLab">Gold, per troy ounce</div>
-        <div class="heroBig">${gold?money(Math.round(gold)):"\u2014"}</div>
-        <div class="heroSub">${silver?"Silver "+money(Math.round(silver*100)/100)+" \u00b7 ":""}${mine.length
-          ? mine.length+" logged today \u00b7 "+money(out)+" out"
-          : "nothing logged yet today"}</div>
-        <div class="acts">
-          ${A("snap","Snap it",I.cam,!!(CAP.sample&&CAP.images))}
-          ${A("type","Type it",I.look,true)}
-          ${A("gold","Gold",I.gold,true)}
-          ${A("log","Log",I.log,true)}
-        </div>
-      </div>
+      ${homeHeroHTML({})}
       ${un?snapHelpHTML(un):""}
       ${omniHTML()}
-      ${mine.length?`<div class="wSect">Priced today</div>`
-        +mine.map(d=>`<div class="wRow"><i><svg viewBox="0 0 24 24" aria-hidden="true">${I.tag}</svg></i>
-          <div class="t"><b>${esc([d.brand,d.model,d.itemName].filter(Boolean).join(" "))||"Item"}</b>
-            <span>${esc(d.catLabel||"")}${d.ticket?" \u00b7 #"+esc(d.ticket):""}</span></div>
-          <div class="v">${money(d.loan||0)}<small>${d.status==="sold"?"sold":"lent"}</small></div></div>`).join("")
+      ${t.rows.length?homeFeedHTML(4)
         :`<div class="snapTip">Fill the frame \u2014 a model plate or a label beats the whole object in shot.</div>`}
       ${snapShelfHTML()}
     </div>`;
