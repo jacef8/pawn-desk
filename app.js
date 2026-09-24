@@ -726,7 +726,7 @@ const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
 function paintSlider(el){
   if(!el)return;
   const p=(el.value-el.min)/(el.max-el.min)*100;
-  el.style.background=`linear-gradient(90deg,#4DFFC4 0%,var(--accent) ${p}%,var(--recess) ${p}%)`;
+  el.style.background=`linear-gradient(90deg,var(--accent-2) 0%,var(--accent) ${p}%,var(--well) ${p}%)`;
 }
 
 /* the anchor gauge: 270° sweep, recessed track, emissive gradient arc.
@@ -736,7 +736,7 @@ function gauge(pct,label,big,small,id){
   return `<div class="gwrap"><svg viewBox="0 0 340 340" role="img" aria-label="${label} ${big}">
    <defs>
     <linearGradient id="${id}" x1="0" y1="1" x2="1" y2="0">
-      <stop offset="0%" stop-color="#00D9FF"/><stop offset="100%" stop-color="#00E8A0"/>
+      <stop offset="0%" stop-color="var(--accent-2)"/><stop offset="100%" stop-color="var(--accent)"/>
     </linearGradient>
    </defs>
    <circle cx="170" cy="170" r="163" fill="none" stroke="rgba(255,255,255,.14)" stroke-width="1" stroke-dasharray="1.5 13"/>
@@ -963,7 +963,7 @@ function pinHTML(x){
     ${cell("cushion","Your cushion",money(x.margin))}
     ${cell("fee","Fee / 30 days",money(x.charge))}
     ${cell("ltv","Loan \u00f7 resale",x.ltv+"%")}
-    <span class="pinNote">${x.checked?"":`<b style="color:var(--warn,#E8B93A)">Estimate \u2014 nothing looked up yet.</b> `}${x.buyTooThin
+    <span class="pinNote">${x.checked?"":`<b style="color:var(--warn-ink)">Estimate \u2014 nothing looked up yet.</b> `}${x.buyTooThin
       ? `It doesn\u2019t sell for enough to clear the ${money(x.buyFloor)} you want out of it \u2014 not as a buy, and not as a loan you end up owning.`
       : P?(x.buyTooThin
         ?`It doesn\u2019t sell for enough to clear the ${money(x.buyFloor)} you want out of a buy.`
@@ -1070,7 +1070,7 @@ function ticketHTML(x){
      says rather than quoting a figure nobody should write. */
   if(x.buyTooThin)return `<div class="card unchecked">
     <span class="label">7 &middot; Pawn loan &mdash; the cash you lend him</span>
-    <div class="tagWarn" style="border-left-color:var(--bad);background:rgba(255,66,87,.12);color:#FFAAB4">
+    <div class="tagWarn" style="border-left-color:var(--bad);background:var(--bad-wash);color:var(--bad-ink)">
       <b>Walk away.</b> It resells for about ${money(x.resale)}, and clearing the
       ${money(x.buyFloor)} you want out of a deal leaves ${money(x.buy)} to offer.
       There is nothing here to lend against either \u2014 an unredeemed loan
@@ -1089,7 +1089,7 @@ function ticketHTML(x){
   if(deskRail())return `<div class="card${x.checked?"":" unchecked"}">
     <span class="label">7 &middot; Pawn loan &mdash; the detail</span>
     ${(st.model||st.detail)?`<div class="cardHint" style="margin-top:0">Pricing: <b style="color:var(--ink)">${[st.model,st.detail].filter(Boolean).map(esc).join(" \u00b7 ")}</b></div>`:""}
-    ${x.spec&&x.spec.stop?`<div class="tagWarn" style="border-left-color:var(--bad);background:rgba(255,66,87,.12);color:#FFAAB4"><b>NO TITLE &mdash; NO DEAL.</b> Don't negotiate around a missing title, at any price.</div>`:""}
+    ${x.spec&&x.spec.stop?`<div class="tagWarn" style="border-left-color:var(--bad);background:var(--bad-wash);color:var(--bad-ink)"><b>NO TITLE &mdash; NO DEAL.</b> Don't negotiate around a missing title, at any price.</div>`:""}
     <div class="cardHint" style="margin-top:0">Open at <b style="color:var(--ink)">${money(x.target)}</b>. Go low when cash is tight or the deal feels off; go toward <b style="color:var(--ink)">${money(x.high)}</b> for a regular you want back. Never above the top &mdash; that is your cushion.</div>
     ${ticketDetailHTML(x)}
   </div>${paybackHTML(x)}`;
@@ -1098,7 +1098,7 @@ function ticketHTML(x){
     ${x.checked?"":`<div class="mkNo" style="margin-bottom:6px"><b>Nothing looked up yet.</b> This is the desk's own figure for a typical one, not a sale anybody made. Check the sold prices and it will change.</div>`}
     ${gauge(x.ltv/100,"Lend him",money(x.target),x.checked?"pawn loan":"estimate","gi")}
     ${(st.model||st.detail)?`<div class="cardHint" style="text-align:center;margin-top:2px">Pricing: <b style="color:var(--ink)">${[st.model,st.detail].filter(Boolean).map(esc).join(" · ")}</b></div>`:""}
-    ${x.spec&&x.spec.stop?`<div class="tagWarn" style="border-left-color:var(--bad);background:rgba(255,66,87,.12);color:#FFAAB4"><b>NO TITLE — NO DEAL.</b> Don't negotiate around a missing title, at any price.</div>`:""}
+    ${x.spec&&x.spec.stop?`<div class="tagWarn" style="border-left-color:var(--bad);background:var(--bad-wash);color:var(--bad-ink)"><b>NO TITLE — NO DEAL.</b> Don't negotiate around a missing title, at any price.</div>`:""}
     <div class="tiles" style="grid-template-columns:1fr 1fr 1fr;margin-top:4px">
       <div class="widget"><div class="l">Low loan</div><div class="v">${money(x.low)}</div></div>
       <div class="widget" style="box-shadow:inset 0 1px 0 rgba(255,255,255,.13),inset 0 -1px 0 rgba(0,0,0,.5),0 4px 10px -6px rgba(0,0,0,.9),inset 0 0 0 1px rgba(0,232,160,.9)"><div class="l">Suggested loan</div><div class="v">${money(x.target)}</div></div>
@@ -2695,7 +2695,7 @@ function harvStats(){
    absence of warnings as a yes. Costs nothing: /sync spends no API money. */
 function harvShareHTML(){
   const when=st.syncSeen?fmtDay(new Date(st.syncSeen).toISOString().slice(0,10)):"";
-  if(st.syncShared==="no")return `<div class="tagWarn" style="background:rgba(255,66,87,.12);color:#FFAAB4">
+  if(st.syncShared==="no")return `<div class="tagWarn" style="background:var(--bad-wash);color:var(--bad-ink)">
     <b>Not shared \u2014 and not saved.</b> The service says: ${esc(st.syncWarn||"no disk attached to the service")}.
     Prices built here stay on this device, and the service forgets its copy every time it restarts.
     In Railway: open the service, <b>Variables and Settings</b>, add a <b>Volume</b> mounted at
@@ -2731,7 +2731,7 @@ function harvCardHTML(){
         <button class="ghostBtn" data-harv="100" style="padding:10px 16px">Price 100</button>
         <button class="ghostBtn" data-harv="0" style="padding:10px 16px">Price all ${left}</button>
        </div>`}
-    ${st.harvErr?`<div class="tagWarn" style="background:rgba(255,66,87,.12);color:#FFAAB4">${esc(st.harvErr)}</div>`:""}
+    ${st.harvErr?`<div class="tagWarn" style="background:var(--bad-wash);color:var(--bad-ink)">${esc(st.harvErr)}</div>`:""}
     ${harvShareHTML()}
     ${S.done?`<div class="tagNote" style="margin-top:10px">
       <b style="color:var(--ink)">${S.done} done</b> &middot; ${S.priced} priced${S.wild?` &middot; <span style="color:var(--warn)">${S.wild} looked wrong and were held back</span>`:""}${S.empty?` &middot; ${S.empty} found nothing`:""} &middot; ${left} left.
@@ -2871,7 +2871,7 @@ function sheetCardHTML(){
       <button class="ghostBtn" id="shPasteGo" style="padding:11px 16px">or paste the rows</button>
     </div>
     ${st.shPaste?`<textarea id="shPaste" placeholder="Select the rows in Excel or Sheets, copy, and paste them here — headings included."
-      style="width:100%;margin-top:9px;min-height:110px;background:#0E1117;color:var(--ink);border:1px solid var(--e2);border-radius:10px;padding:10px;font-family:var(--mono);font-size:12px"></textarea>
+      style="width:100%;margin-top:9px;min-height:110px;background:var(--well);color:var(--ink);border:1px solid var(--e2);border-radius:10px;padding:10px;font-family:var(--mono);font-size:12px"></textarea>
       <div class="row2" style="margin-top:8px"><button class="ghostBtn" id="shPasteRead">Read what I pasted</button></div>`:""}
     ${shMsg?`<div class="cardHint" style="color:var(--warn)">${esc(shMsg)}</div>`:""}
     ${shPend?sheetPreviewHTML():""}
@@ -3711,7 +3711,7 @@ function photoCardHTML(){
       ${r.note?`<br>${esc(r.note)}`:""}
       <br><span style="color:var(--ink-3)">It has not touched the price. Step 4 is still your number.</span></div>`;
     if(r.concerns&&r.concerns.length){
-      h+=`<div class="tagWarn" style="background:rgba(255,66,87,.12);color:#FFAAB4"><b>Look closer at:</b><br>${r.concerns.map(c=>"&bull; "+esc(c)).join("<br>")}</div>`;
+      h+=`<div class="tagWarn" style="background:var(--bad-wash);color:var(--bad-ink)"><b>Look closer at:</b><br>${r.concerns.map(c=>"&bull; "+esc(c)).join("<br>")}</div>`;
     }
   }
   return h+`</div>`;
@@ -3835,7 +3835,7 @@ async function runPhotoRead(){
 function photoErrHTML(){
   const e=st.photoErr; if(!e)return "";
   const i=st.photoInfo, mb=n=>(n/1e6).toFixed(2)+"MB";
-  return `<div class="tagWarn" style="border-left-color:var(--bad);background:rgba(255,66,87,.12);color:#FFAAB4;margin-top:9px">
+  return `<div class="tagWarn" style="border-left-color:var(--bad);background:var(--bad-wash);color:var(--bad-ink);margin-top:9px">
     <b>The photo didn\u2019t read.</b> ${esc(e.text)}
     <div style="font-family:var(--mono);font-size:11.5px;opacity:.75;margin-top:6px">reason code: ${esc(e.code)}${e.why?"<br>browser said: "+esc(e.why):""}
     ${i?`<br>photo: ${esc(i.type)} &middot; ${mb(i.was)} \u2192 ${mb(i.sent)} sent${i.shrunk?"":" (NOT shrunk)"}`:""}
@@ -4976,7 +4976,7 @@ function omniHintHTML(){
   if(st.omniDone)return `Follow <b>Next step</b> below. Type here again to price something else.`;
   return `Try <b>stihl 271</b>, <b>remington 870 12 gauge</b>, <b>kayak</b> or <b>14k ring</b>.${isTouch()?"":" On a computer you can just start typing."}`;
 }
-const SEARCH_SVG=`<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="#00E8A0" stroke-width="2.6"/><path d="M15.5 15.5L21 21" stroke="#00E8A0" stroke-width="2.6" stroke-linecap="round"/></svg>`;
+const SEARCH_SVG=`<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="var(--accent-ink)" stroke-width="2.6"/><path d="M15.5 15.5L21 21" stroke="var(--accent-ink)" stroke-width="2.6" stroke-linecap="round"/></svg>`;
 function omniHTML(){
   return `<div class="omni" id="omni"><div class="omniWrap">
     <div class="omniBox">${SEARCH_SVG}<input id="omniIn" type="text" inputmode="search" enterkeyhint="search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
@@ -5533,11 +5533,17 @@ function closeCam(){
 
 /* the tab icon, for when the page is opened on its own */
 (function(){ try{
-  const svg="<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='#0B0D13'/><circle cx='32' cy='32' r='19' fill='none' stroke='#2A3142' stroke-width='8'/><path d='M18.6 45.4A19 19 0 1 1 45.4 45.4' fill='none' stroke='#00E8A0' stroke-width='8' stroke-linecap='round'/></svg>";
+  /* The icon and the browser chrome follow the theme. They used to be a
+     mint arc on #0B0D13 pinned in the source, which on the new paper
+     canvas meant the tab and the phone's status bar stayed black while
+     the app under them went light. */
+  const dark=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const paper=dark?"#0F1014":"#EFEBE2", track=dark?"#26241F":"#DED7C8", brass=dark?"#F2A93B":"#E8971A";
+  const svg="<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='16' fill='"+paper+"'/><circle cx='32' cy='32' r='19' fill='none' stroke='"+track+"' stroke-width='8'/><path d='M18.6 45.4A19 19 0 1 1 45.4 45.4' fill='none' stroke='"+brass+"' stroke-width='8' stroke-linecap='round'/></svg>";
   const href="data:image/svg+xml,"+encodeURIComponent(svg), head=document.head||document.documentElement;
   const put=(rel,h,type)=>{ let l=document.querySelector('link[rel="'+rel+'"]'); if(!l){ l=document.createElement("link"); l.rel=rel; head.appendChild(l); } if(type)l.type=type; l.href=h; };
   put("icon",href,"image/svg+xml");
-  let tc=document.querySelector('meta[name="theme-color"]'); if(!tc){ tc=document.createElement("meta"); tc.name="theme-color"; head.appendChild(tc); } tc.content="#0B0D13";
+  let tc=document.querySelector('meta[name="theme-color"]'); if(!tc){ tc=document.createElement("meta"); tc.name="theme-color"; head.appendChild(tc); } tc.content=paper;
 }catch(e){} })();
 
 
@@ -6039,11 +6045,11 @@ const FAKE_BTN=[["pass","Pass"],["unsure","Not sure"],["fail","Fail"]];
 function fakeCardHTML(x){
   const sh=fakeSheet(x); if(!sh)return "";
   const F=fakeState(sh), a=fakeAns(sh.id);
-  const tone=F.verdict==="fail"?"var(--bad)":F.verdict==="clear"?"var(--accent)":F.verdict==="unsure"?"#FFC98F":"var(--ink-3)";
+  const tone=F.verdict==="fail"?"var(--bad)":F.verdict==="clear"?"var(--accent)":F.verdict==="unsure"?"var(--warn-ink)":"var(--ink-3)";
   const head=sh.gate
     ? (F.verdict==="open"?`<b>No price until this is checked.</b> ${F.done} of ${F.n} done.`
-      :F.verdict==="fail"?`<b style="color:#FFAAB4">A check failed.</b> Don't lend on the name.`
-      :F.verdict==="unsure"?`<b style="color:#FFC98F">Not proven.</b> Price only what you can verify.`
+      :F.verdict==="fail"?`<b style="color:var(--bad-ink)">A check failed.</b> Don't lend on the name.`
+      :F.verdict==="unsure"?`<b style="color:var(--warn-ink)">Not proven.</b> Price only what you can verify.`
       :`<b style="color:var(--accent)">All ${F.n} checks pass.</b>`)
     : `Worth a look &mdash; this one advises, it does not hold the price. ${F.done} of ${F.n} done.`;
   return `<div class="card" id="fakeCard" style="border-left:3px solid ${tone}">
@@ -6064,7 +6070,7 @@ function fakeCardHTML(x){
       ${sh.lookup.map(l=>`<div class="cardHint" style="font-size:13px;margin-top:4px">${l.what?`<b style="color:var(--ink)">${esc(l.what)}</b> &mdash; `:""}${esc(l.where)}</div>`).join("")}`:""}
     ${specCardHTML(sh)}
     ${sh.rule?`<div class="cardHint" style="font-size:13px;margin-top:9px"><b style="color:var(--ink)">Shop rule:</b> ${esc(sh.rule)}</div>`:""}
-    ${F.verdict==="fail"?`<div class="tagWarn" style="border-left-color:var(--bad);background:rgba(255,66,87,.12);color:#FFAAB4;margin-top:9px"><b>Set it aside.</b> ${esc(FAKES.law)}</div>`:""}
+    ${F.verdict==="fail"?`<div class="tagWarn" style="border-left-color:var(--bad);background:var(--bad-wash);color:var(--bad-ink);margin-top:9px"><b>Set it aside.</b> ${esc(FAKES.law)}</div>`:""}
     <div class="row2" style="margin-top:8px"><button class="ghostBtn" id="fakeClear" style="padding:9px 15px">Start the check over</button></div>
   </div>`;
 }
@@ -6093,7 +6099,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0924.0214";
+const APP_BUILD="0924.0227";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -6298,13 +6304,13 @@ function srcName(u){ try{ const h=new URL(u).hostname.replace(/^(www|used)\./,""
 function srcLink(u,txt){ return /^https:\/\//.test(u||"")?`<a class="srcLink" href="${esc(u)}" target="_blank" rel="noopener" referrerpolicy="no-referrer">${txt||"Check it yourself"} &#8599;</a>`:""; }
 function marketSrcHTML(m){
   if(m.kind==="list")return `Resale value from <b>${esc(srcName(m.src))}</b> for <b>${esc(m.name)}</b>, checked ${esc(fmtDay(m.date))}. ${srcLink(m.src)}${m.conf==="l"
-    ?` <span style="color:#FFC98F">Thin data on this one &mdash; it rests on forum posts or a single listing, so double-check it.</span>`
+    ?` <span style="color:var(--warn-ink)">Thin data on this one &mdash; it rests on forum posts or a single listing, so double-check it.</span>`
     :m.conf==="h"?` The data behind this one is good.`
     :` The data behind this one is fair &mdash; a starting point, not the last word.`}`;
   if(m.kind==="shot"&&m.via==="button")return `From ${m.n} ${m.n===1?"sale":"sales"} on ${esc(m.site||"the sold page")}, read by your Pawn price button today. ${srcLink(m.url,"See those sales")}`;
   if(m.kind==="shot")return `From ${m.n} ${m.n===1?"sale":"sales"} you read off ${esc(m.site||"the screenshot")} today.`;
   if(m.kind==="own")return `From your own ${m.n} ${m.n===1?"sale":"sales"} of this item.`;
-  if(m.kind==="found")return `From <b>${m.n}</b> listing${m.n===1?"":"s"} on file${m.sold?`, ${m.sold} of them sold`:""}: the middle one is <b>${money(m.med)}</b>, the middle half ${money(m.lo)}&ndash;${money(m.hi)}.${m.from?` From ${esc(m.from)}.`:""}${m.mostlyAsks?` Mostly asking prices rather than sales.`:""}${m.conf==="l"?` <span style="color:#FFC98F">Few listings behind this &mdash; look at the sold pages before you lean on it.</span>`:""} The middle one is used, not the average, so one bad listing cannot move it.`;
+  if(m.kind==="found")return `From <b>${m.n}</b> listing${m.n===1?"":"s"} on file${m.sold?`, ${m.sold} of them sold`:""}: the middle one is <b>${money(m.med)}</b>, the middle half ${money(m.lo)}&ndash;${money(m.hi)}.${m.from?` From ${esc(m.from)}.`:""}${m.mostlyAsks?` Mostly asking prices rather than sales.`:""}${m.conf==="l"?` <span style="color:var(--warn-ink)">Few listings behind this &mdash; look at the sold pages before you lean on it.</span>`:""} The middle one is used, not the average, so one bad listing cannot move it.`;
   if(m.kind==="seen")return `From <b>${m.n}</b> shelf tag${m.n===1?"":"s"} you recorded, asking ${money(m.lo)}&ndash;${money(m.hi)}, typically ${money(m.ask)} &mdash; what a used one goes for at a shop near you.`;
   if(m.kind==="harvest")return `From the price list this shop built: <b>${esc(m.name)}</b>, ${m.n} listing${m.n===1?"":"s"}${m.sold?`, ${m.sold} sold`:""} on ${esc(fmtDay(m.date))}. ${srcLink(m.src,"See those sales")} Nobody has checked this one by hand &mdash; it is a search, kept.`;
   if(m.kind==="retail")return `Estimated from <b>${money(m.retail)}</b> new retail, taken to ${(m.pct||retailPct())}% for a used one. This is not a sold price &mdash; check sold prices when you can.`;

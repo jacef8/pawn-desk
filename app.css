@@ -1,695 +1,767 @@
+  /* ══ THE PAWN DESK ═══════════════════════════════════════════════════════
+     Second design. Nothing of the first survives on purpose.
 
-  /* THE PAWN DESK — a premium hardware instrument for the counter.
-     Directive §13 quiet mode (operated all day): elevation ladder, bevels,
-     recessed wells and the anchor gauge stay; rotation, breathing, and
-     spread glow go. Dark-only by commitment — everything painted explicitly. */
+     WHAT IT WAS: a dark instrument panel. Near-black #0B0D13, mint-to-cyan
+     accent, Outfit over Inter Tight over Roboto Mono, opaque slabs with
+     hard bevels cut into them, a rail of numbers pinned beside a column of
+     questions. It was coherent and it was also the only thing this project
+     had ever looked like.
+
+     WHAT IT IS: liquid glass on warm paper. Every surface is translucent
+     and blurs what is behind it, so the ambient colour field shows through
+     and the depth is real refraction rather than a drawn bevel. Light
+     first, with a full dark palette underneath it. Brass, because this is
+     a pawn shop and brass is what a pawn shop is made of. Sora over
+     Instrument Sans over JetBrains Mono. Concentric radii: a 26px housing
+     holds an 18px widget holds a 12px readout.
+
+     Sources for the change, in the counter's own words: the Liquid Glass
+     takeover ("translucent materials and depth-rich aesthetics"), the New
+     Minimalism ("the brave act of getting out of the way"), and
+     micro-interactions as the defence against looking like everything
+     else. Accessible contrast is not a pass at the end - every ink token
+     is picked to clear 4.5:1 on the surface it lands on, which is why the
+     brass you READ is a darker brass than the brass you LOOK at.
+     ═══════════════════════════════════════════════════════════════════ */
   :root{
-    color-scheme:dark;
-    /* elevation ladder — lighter = closer */
-    --e0:#0B0D13; --e1:#14171F; --e1-hi:#1B1F2A;
-    --e2:#1E2330; --e2-hi:#282E40; --recess:#07090D;
-    --ink:#FFFFFF; --ink-2:rgba(255,255,255,.86); --ink-3:rgba(255,255,255,.7);
-    --accent:#00E8A0; --accent-2:#00D9FF; --warn:#FF8A1E; --bad:#FF4257;
-    --r:20px; --r-s:14px;
-    --raise:inset 0 1px 0 rgba(255,255,255,.10),inset 0 -1px 0 rgba(0,0,0,.5),
-      0 1px 2px rgba(0,0,0,.6),0 8px 16px -10px rgba(0,0,0,.9);
-    --well-sh:inset 0 3px 8px rgba(0,0,0,.9),inset 0 -1px 0 rgba(255,255,255,.05);
-    --mono:'Roboto Mono',ui-monospace,SFMono-Regular,'Courier New',monospace;
-    --disp:'Outfit','Inter Tight',system-ui,sans-serif;
-    --sans:'Inter Tight',system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    color-scheme:light;
+    /* ---- the field: what the glass has to refract --------------------- */
+    --paper:#E6DFD0;
+    --field-a:rgba(232,151,26,.42);
+    --field-b:rgba(46,107,230,.26);
+    --field-c:rgba(196,88,44,.24);
+
+    /* ---- the glass ladder: closer = more opaque, more lit ------------- */
+    --glass:rgba(255,255,255,.40);        /* passive housing               */
+    --glass-hi:rgba(255,255,255,.58);
+    --g2:rgba(255,255,255,.66);           /* interactive widget            */
+    --g2-hi:rgba(255,255,255,.84);
+    --well:rgba(45,34,14,.11);           /* cut into the surface          */
+    --edge:rgba(255,255,255,.90);         /* specular top lip              */
+    --line:rgba(45,34,14,.17);
+
+    /* ---- ink. Every one measured against the surface under it -------- */
+    --ink:#171410;
+    --ink-2:rgba(23,20,16,.76);
+    --ink-3:rgba(23,20,16,.70);
+    --on-accent:#2B1800;                  /* ink ON a brass fill           */
+
+    /* ---- brass. Two of them, and the difference is the whole point:
+            --accent is a FILL you look at, --accent-ink is TEXT you read,
+            and a fill that passes as a fill fails as 15px type. -------- */
+    --accent:#DE8A09;
+    --accent-2:#FFC145;
+    --accent-ink:#8A5300;
+    --info:#2E6BE6;
+    --info-ink:#1A4CC0;
+    --good:#0A6544;
+    --warn:#C2660A;
+    --warn-ink:#763A00;
+    --warn-wash:rgba(194,102,10,.13);
+    --bad:#C62B42;
+    --bad-ink:#9A1226;
+    --bad-wash:rgba(198,43,66,.12);
+
+    /* ---- shape: concentric, committed -------------------------------- */
+    --r:26px; --r-s:18px; --r-xs:12px;
+
+    /* ---- light. Short shadows, a lit top lip, never a haze ----------- */
+    --blur:blur(20px) saturate(165%);
+    --raise:
+      inset 0 1px 0 var(--edge),
+      inset 0 -1px 0 rgba(38,30,16,.05),
+      0 1px 2px rgba(45,34,14,.10),
+      0 12px 24px -14px rgba(45,34,14,.55);
+    --lift:
+      inset 0 1px 0 var(--edge),
+      0 2px 5px rgba(45,34,14,.13),
+      0 18px 34px -16px rgba(45,34,14,.62);
+    --well-sh:
+      inset 0 2px 6px rgba(45,34,14,.22),
+      inset 0 -1px 0 var(--edge);
+    --brass-sh:
+      0 1px 2px rgba(120,70,0,.25),
+      0 8px 18px -10px rgba(180,110,10,.60),
+      inset 0 1px 0 rgba(255,255,255,.55);
+
+    --disp:'Sora','Instrument Sans','Segoe UI Variable Display',system-ui,sans-serif;
+    --sans:'Instrument Sans',system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,'Courier New',monospace;
   }
+  /* Dark is a redefinition of the same tokens, never a second stylesheet.
+     The glass inverts: on paper it is white haze over colour, at night it
+     is a pale film over near-black, and everything built on the ladder
+     follows without knowing which it is in. */
+  @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --paper:#0F1014;
+    --field-a:rgba(240,160,32,.20);
+    --field-b:rgba(46,107,230,.18);
+    --field-c:rgba(210,120,60,.13);
+    --glass:rgba(255,255,255,.055);
+    --glass-hi:rgba(255,255,255,.085);
+    --g2:rgba(255,255,255,.11);
+    --g2-hi:rgba(255,255,255,.16);
+    --well:rgba(0,0,0,.34);
+    --edge:rgba(255,255,255,.14);
+    --line:rgba(255,255,255,.12);
+    --ink:#FFFFFF;
+    --ink-2:rgba(255,255,255,.80);
+    --ink-3:rgba(255,255,255,.62);
+    --accent:#F2A93B;
+    --accent-2:#FFD98A;
+    --accent-ink:#FFC66A;
+    --info:#6AA0FF;
+    --info-ink:#9DC2FF;
+    --good:#3FD69B;
+    --warn:#FFA53D;
+    --warn-ink:#FFC98F;
+    --warn-wash:rgba(255,165,61,.14);
+    --bad:#FF5A70;
+    --bad-ink:#FFAAB4;
+    --bad-wash:rgba(255,90,112,.14);
+    --raise:
+      inset 0 1px 0 var(--edge),
+      inset 0 -1px 0 rgba(0,0,0,.40),
+      0 1px 2px rgba(0,0,0,.50),
+      0 12px 26px -16px rgba(0,0,0,.90);
+    --lift:
+      inset 0 1px 0 var(--edge),
+      0 2px 5px rgba(0,0,0,.55),
+      0 16px 32px -18px rgba(0,0,0,.95);
+    --well-sh:
+      inset 0 2px 6px rgba(0,0,0,.60),
+      inset 0 -1px 0 rgba(255,255,255,.06);
+    --brass-sh:
+      0 1px 3px rgba(0,0,0,.50),
+      0 8px 18px -10px rgba(242,169,59,.45),
+      inset 0 1px 0 rgba(255,255,255,.35);
+  }}
+  :root[data-theme="dark"]{
+    color-scheme:dark;
+    --paper:#0F1014;
+    --field-a:rgba(240,160,32,.20); --field-b:rgba(46,107,230,.18); --field-c:rgba(210,120,60,.13);
+    --glass:rgba(255,255,255,.055); --glass-hi:rgba(255,255,255,.085);
+    --g2:rgba(255,255,255,.11); --g2-hi:rgba(255,255,255,.16);
+    --well:rgba(0,0,0,.34); --edge:rgba(255,255,255,.14); --line:rgba(255,255,255,.12);
+    --ink:#FFFFFF; --ink-2:rgba(255,255,255,.80); --ink-3:rgba(255,255,255,.62);
+    --accent:#F2A93B; --accent-2:#FFD98A; --accent-ink:#FFC66A;
+    --info:#6AA0FF; --info-ink:#9DC2FF; --good:#3FD69B;
+    --warn:#FFA53D; --warn-ink:#FFC98F; --warn-wash:rgba(255,165,61,.14);
+    --bad:#FF5A70; --bad-ink:#FFAAB4; --bad-wash:rgba(255,90,112,.14);
+    --raise:inset 0 1px 0 var(--edge),inset 0 -1px 0 rgba(0,0,0,.40),0 1px 2px rgba(0,0,0,.50),0 12px 26px -16px rgba(0,0,0,.90);
+    --lift:inset 0 1px 0 var(--edge),0 2px 5px rgba(0,0,0,.55),0 16px 32px -18px rgba(0,0,0,.95);
+    --well-sh:inset 0 2px 6px rgba(0,0,0,.60),inset 0 -1px 0 rgba(255,255,255,.06);
+    --brass-sh:0 1px 3px rgba(0,0,0,.50),0 8px 18px -10px rgba(242,169,59,.45),inset 0 1px 0 rgba(255,255,255,.35);
+  }
+
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{height:100%}
-  body{margin:0;background:var(--e0);color:var(--ink);font-family:var(--sans);position:relative}
-  /* flat, sharp surface — no ambient wash, no grain overlay */
-  button:focus-visible,input:focus-visible{outline:2px solid var(--accent-2);outline-offset:2px}
-  /* shell */
-  /* align-content:start matters more than it looks. The shell is a grid with
-     min-height:100dvh, and a grid's rows stretch to fill leftover height by
-     default - so on a short page the header was inflated from 57px to 195px
-     and the space inside it read as a hole beside the title. Rows keep their
-     own height now; the slack stays at the bottom where it belongs. */
-  .dash{position:relative;z-index:1;min-height:100dvh;padding:clamp(11px,1.3vw,18px);display:grid;
-    align-content:start;gap:clamp(10px,1.1vw,15px);grid-template-columns:minmax(0,1fr)}
+  /* The field itself. Three soft washes fixed behind everything, so a sheet
+     of glass has something to refract - on a flat colour, translucency is
+     indistinguishable from a slightly different flat colour, which is how
+     "glass" usually ends up meaning nothing. */
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);
+    position:relative;font-size:15px;line-height:1.5;
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  body::before{content:"";position:fixed;inset:-20vmax;z-index:0;pointer-events:none;
+    background:
+      radial-gradient(58vmax 52vmax at 6% -4%,var(--field-a),transparent 66%),
+      radial-gradient(62vmax 56vmax at 96% 14%,var(--field-b),transparent 68%),
+      radial-gradient(52vmax 48vmax at 46% 108%,var(--field-c),transparent 66%)}
+  button,input,textarea,select{font-family:inherit}
+  button:focus-visible,input:focus-visible,textarea:focus-visible,
+  a:focus-visible,summary:focus-visible{outline:2.5px solid var(--info);outline-offset:2px;border-radius:6px}
+
+  /* ══ SHELL ════════════════════════════════════════════════════════════
+     One screen, panels scroll inside themselves, the page does not. */
+  .dash{position:relative;z-index:1;min-height:100dvh;padding:clamp(11px,1.3vw,18px);
+    display:grid;align-content:start;gap:clamp(10px,1.1vw,15px);
+    grid-template-columns:minmax(0,1fr)}
   .dash>*{min-height:0}
-  /* ONE SCREEN, AND THE DIRECTIVE ALWAYS SAID SO.
-     Section 7 is titled "Fit the screen - no long single-column scroll", and
-     its checklist asks whether the page fits 1440x900 with no page
-     scrolling. This shell was abandoned for a reason written down right
-     here: on a 1400px-tall screen the centre column still had to hide
-     1,100px of itself, so letting the page scroll was the lesser evil.
-
-     That 1,100px was the market card, the camera, the shelf-tag recorder
-     and the deal log, stacked under every question whatever was being
-     asked. They are gone. Measured after: mid-run fits at 1440x900,
-     1600x1000, 2000x1200 and 1100x800 with nothing hidden. The premise
-     for breaking the rule expired, so the rule comes back.
-
-     The page no longer scrolls; the question column scrolls inside itself
-     when a priced item makes it long, which is the one thing the old note
-     was right to dislike and is now rare rather than constant. */
   @media (min-width:1080px){
     .bar{grid-column:1/-1;position:sticky;top:0;z-index:6}
-    .dash{height:100dvh;min-height:0;overflow:hidden;
-      grid-template-rows:auto minmax(0,1fr)}
+    .dash{height:100dvh;min-height:0;overflow:hidden;grid-template-rows:auto minmax(0,1fr)}
     #view{min-height:0}
     #view.item,#view.metal{display:grid;gap:clamp(10px,1.1vw,15px);align-items:start;
       grid-template-columns:minmax(0,300px) minmax(0,1fr) minmax(0,320px);
       grid-template-areas:"left center right"}
-    /* The numbers go first, above the search box. They are what the counter
-       is looking at while a customer waits; the search is how the item got
-       here and has done its job by then. They were third, under the title
-       bar and the search - which on an 860px window put them 226px down and
-       left the detail cards starting at the fold. */
     #view.item{grid-template-rows:auto auto auto auto;
       grid-template-areas:"pin pin pin" "omni omni omni" "next next next" "left center right"}
     #pin{grid-area:pin;position:sticky;top:92px;z-index:5}
-    /* THE TWO-COLUMN DESK. A questionnaire down the left, the money down the
-       right, and the money does not move. Three columns of cards put the
-       answer to a question in a different column from the question, and
-       whichever one you were reading, something you needed was off-screen.
-
-       The rail is sticky as a whole and holds only figures - the numbers
-       panel and the loan card's money half. Everything that is reading
-       rather than arithmetic went to the foot of the questionnaire. */
-    /* The rail spans all three rows, so when it was taller than the search
-       box the browser shared its extra height out between the rows above -
-       138px of row for a 99px search box, and 75px of empty row under it
-       where nothing was. The question card started 365px down a 900px
-       screen with a hole above it. Giving the question row the free space
-       instead pins every row above to its own content, so an empty Next
-       step row is 0px tall and the question follows the search box. */
-    #view.item.railed{grid-template-columns:minmax(0,1fr) minmax(0,352px);
+    /* THE BENTO. The question is the big tile and the money is the tall one
+       beside it; the rail is a column of readouts rather than a strip of
+       them. The rail spans every row, so the free height goes to the
+       question row or the rows above it inflate to share the rail's. */
+    #view.item.railed{grid-template-columns:minmax(0,1fr) minmax(0,356px);
       grid-template-rows:auto auto minmax(0,1fr);
       grid-template-areas:"omni rail" "next rail" "quest rail"}
-    /* Only the numbers panel lives here now, so it fits a screen with room
-       to spare and never needs a scrollbar of its own. */
     #view.item.railed .rail{grid-area:rail;position:sticky;top:92px;align-self:start;
       display:flex;flex-direction:column;gap:clamp(8px,.8vw,12px)}
     #view.item.railed #pin{position:static;grid-area:auto}
-    /* The one column that can outgrow a screen scrolls itself, so the page
-       does not. The rail beside it never moves. */
     #view.item.railed .colQ{grid-area:quest;min-width:0;min-height:0;display:flex;
       flex-direction:column;gap:clamp(8px,.8vw,12px);overflow:auto;
       scrollbar-width:thin;overscroll-behavior:contain}
     #view.item.railed .colL,#view.item.railed .colC{display:contents}
-    /* stacked, the numbers get to be a column: the two decisions on top of
-       one another at full size, the arithmetic in a tidy pair of columns
-       beneath rather than trailing off the end of a row */
-    .pinStrip.pinRail{display:grid;grid-template-columns:1fr 1fr;column-gap:12px;row-gap:9px;align-items:start}
-    .pinStrip.pinRail .pinLab{grid-column:1}
-    .pinStrip.pinRail .pinNew{grid-column:2;justify-self:end}
-    .pinStrip.pinRail .pinCell.big{grid-column:1/-1;padding:0;border-left:none!important;
-      display:flex;flex-direction:row;align-items:baseline;justify-content:space-between;gap:10px}
-    .pinStrip.pinRail .pinCell.big+.pinCell.big{padding-left:0;border-top:1px solid rgba(255,255,255,.10);padding-top:9px}
-    .pinStrip.pinRail .pinCell.big b{font-size:40px}
-    /* TWO DECISIONS, THEN THE ARITHMETIC BEHIND THEM.
-       Buy and lend are the only figures anybody says out loud; resale, the
-       cushion, the fee and the loan-to-resale share are the working that
-       produced them. Size alone was carrying the difference and 0.8 opacity
-       is not a difference - four white numbers under two green ones still
-       read as six numbers. The pair now sits in its own lit well with a
-       hard rule under it, and the working drops to a quiet mono grid. */
-    .pinStrip.pinRail .pinCell.big{position:relative;z-index:1}
-    .pinStrip.pinRail .pinCell.big:first-of-type{padding-top:10px}
-    .pinStrip.pinRail .pinCell.big+.pinCell.big{padding-bottom:13px;
-      border-bottom:2px solid rgba(0,232,160,.30);margin-bottom:3px}
-    .pinStrip.pinRail .pinCell.big span{font-size:11.5px;letter-spacing:.09em;
-      text-transform:uppercase;color:var(--ink-2)}
-    .pinStrip.pinRail .pinCell:not(.big){opacity:1}
-    .pinStrip.pinRail .pinCell:not(.big) span{font-size:9.5px;letter-spacing:.1em;
-      text-transform:uppercase;color:rgba(255,255,255,.42)}
-    .pinStrip.pinRail .pinCell:not(.big) b{font-size:14px;color:rgba(255,255,255,.62);font-weight:500}
-    .pinStrip.pinRail .pinNote{grid-column:1/-1;min-width:0}
     .omni{grid-area:omni}
     .colL{grid-area:left}.colC{grid-area:center}.colR{grid-area:right}
     .colL,.colC,.colR{min-width:0;padding:4px 2px 8px}
-    /* Pinning the loan card was tried here and removed: at 1406px it is
-       taller than the window, so a sticky element scrolls anyway. The length
-       is the problem, not where the card sits. */
     .foot{display:none}
   }
   @media (max-width:1079px){#view.item,#view.metal{display:block}.colL,.colC,.colR{margin-top:14px}}
-  /* top bar */
-  /* Title, tabs, status - one row. The tabs take the slack in the middle so
-     there is no hole beside the title, and the status sits hard right. */
-  .bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;
-    padding:11px 16px;border-radius:var(--r);
-    background:linear-gradient(158deg,var(--e1-hi),var(--e1) 70%);
-    border:1px solid rgba(255,255,255,.07);box-shadow:var(--raise)}
-  .tabwrap{flex:1 1 auto;display:flex;justify-content:center}
-  @media (max-width:1079px){ .tabwrap{justify-content:flex-start} .sys{margin-left:0} }
-  .brand .eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.19em;text-transform:uppercase;color:var(--ink-3)}
-  h1{font-family:var(--disp);font-size:22px;font-weight:800;letter-spacing:-.03em;margin:2px 0 0;line-height:1}
-  .sys{margin-left:auto;font-family:var(--mono);font-size:12.5px;color:var(--ink-2);letter-spacing:.1em;display:flex;align-items:center;gap:7px}
-  .sys .dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
-  /* tabs: pricing modes in the accent well; reference pages quieter beside them */
-  .tabwrap{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-  .pills.ref{background:transparent;box-shadow:none;padding:0;gap:6px}
-  .pills.ref button{background:transparent;color:var(--ink-3);font-weight:600;padding:7px 12px;
-    border:1px solid rgba(255,255,255,.09);border-radius:999px}
-  .pills.ref button.on{background:linear-gradient(160deg,var(--e2-hi),var(--e2));color:var(--ink);
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.13),0 3px 8px -5px rgba(0,0,0,.9)}
 
-  .pills{display:flex;padding:3px;border-radius:999px;background:var(--recess);box-shadow:var(--well-sh);flex-wrap:wrap}
-  .pills button{padding:7px 15px;border:none;border-radius:999px;background:transparent;
-    color:var(--ink-3);cursor:pointer;font-family:var(--sans);font-size:12.5px;font-weight:600;transition:.18s}
-  .pills button.on{color:#04150F;font-weight:700;
-    background:linear-gradient(150deg,#4DFFC4,var(--accent));
-    box-shadow:0 2px 4px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.45)}
-  /* cards + widgets */
-  .card{position:relative;padding:15px;border-radius:var(--r);
-    background:linear-gradient(158deg,var(--e1-hi),var(--e1) 70%);
-    border:1px solid rgba(255,255,255,.07);box-shadow:var(--raise)}
+  /* ══ GLASS ════════════════════════════════════════════════════════════
+     One material, three elevations, and every card must hold something at
+     a different one than itself. */
+  .card,.bar,.pinStrip,.omniList{
+    background:linear-gradient(155deg,var(--glass-hi),var(--glass) 72%);
+    -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
+    border:1px solid var(--line);box-shadow:var(--raise)}
+  .card{position:relative;padding:clamp(14px,1.3vw,18px);border-radius:var(--r)}
   .card+.card{margin-top:14px}
-  .widget{border-radius:var(--r-s);padding:10px 12px;
-    background:linear-gradient(160deg,var(--e2-hi),var(--e2));
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.13),inset 0 -1px 0 rgba(0,0,0,.5),0 4px 10px -6px rgba(0,0,0,.9)}
-  .label{font-family:var(--mono);font-size:11px;letter-spacing:.19em;text-transform:uppercase;color:var(--ink-3);display:block;margin-bottom:9px}
-  /* category list: raised rows */
-  .catBtn{display:block;width:100%;text-align:left;padding:10px 13px;margin-top:7px;
-    border:none;border-radius:var(--r-s);cursor:pointer;font-family:var(--sans);font-size:14px;font-weight:600;
-    background:linear-gradient(160deg,var(--e2-hi),var(--e2));color:var(--ink-2);
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 3px 8px -5px rgba(0,0,0,.9)}
-  .catBtn.on{color:#04150F;font-weight:700;background:linear-gradient(150deg,#4DFFC4,var(--accent));
-    box-shadow:0 2px 5px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.45)}
-  /* item rows: lit rows that lift on hover */
-  .itemBtn{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;
-    padding:9px 11px;margin-top:6px;border:none;border-radius:var(--r-s);cursor:pointer;text-align:left;
-    font-family:var(--sans);font-size:13.5px;font-weight:600;color:var(--ink-2);
-    background:linear-gradient(160deg,var(--e2-hi),var(--e2));
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.09),0 3px 7px -5px rgba(0,0,0,.9);transition:transform .15s}
-  .itemBtn:hover{transform:translateY(-1px)}
-  .itemBtn .idx{width:26px;height:26px;border-radius:50%;flex-shrink:0;display:grid;place-content:center;
-    font-family:var(--mono);font-size:9.5px;color:var(--ink-3);background:var(--recess);box-shadow:var(--well-sh)}
-  .itemBtn.on{color:#04150F;background:linear-gradient(150deg,#4DFFC4,var(--accent));
-    box-shadow:0 2px 5px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.45)}
-  .itemBtn.on .idx{color:#04150F;background:rgba(255,255,255,.35);box-shadow:none}
-  .itemBtn .price{font-family:var(--mono);font-size:12.5px;flex-shrink:0;color:var(--ink-3)}
-  .itemBtn.on .price{color:#04150F}
-  .itemBtn .price.mine{color:var(--accent-2)} .itemBtn.on .price.mine{color:#04150F}
-  .driver{margin:0 0 12px;padding:10px 12px;border-radius:var(--r-s);background:var(--recess);box-shadow:var(--well-sh);
-    font-size:13.5px;color:var(--ink-2);line-height:1.5}
-  .driver b.go{color:var(--accent)} .driver b.no{color:var(--bad)}
-  .driver p{margin:0}.driver p+p{margin-top:6px}
-  /* inputs: engraved wells */
-  .numIn{width:100%;background:var(--recess);border:none;border-radius:12px;color:var(--ink);
-    font-family:var(--mono);font-size:19px;padding:12px 13px;font-variant-numeric:tabular-nums;box-shadow:var(--well-sh)}
+  .widget{border-radius:var(--r-s);padding:11px 13px;
+    background:linear-gradient(160deg,var(--g2-hi),var(--g2));
+    border:1px solid var(--line);box-shadow:var(--raise)}
+
+  /* ══ TYPE ═════════════════════════════════════════════════════════════ */
+  h1{font-family:var(--disp);font-size:21px;font-weight:700;letter-spacing:-.03em;
+    margin:1px 0 0;line-height:1.05}
+  .label{font-family:var(--mono);font-size:11px;letter-spacing:.15em;text-transform:uppercase;
+    color:var(--ink-3);display:block;margin-bottom:9px;font-weight:500}
+  .cardHint{font-size:13.5px;color:var(--ink-3);margin-top:7px;line-height:1.55}
+  .cardHint b{color:var(--ink-2)}
+  .fine{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);margin-top:11px;line-height:1.55}
+  .eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+    color:var(--ink-3)}
+  .narrow{max-width:820px;margin:0 auto}
+  .mb12{margin-bottom:12px}.mb14{margin-bottom:14px}.mb16{margin-bottom:16px}
+  .row2{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+  /* ══ TOP BAR ══════════════════════════════════════════════════════════ */
+  .bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+    padding:10px 16px;border-radius:var(--r)}
+  .tabwrap{flex:1 1 auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+    justify-content:center}
+  @media (max-width:1079px){ .tabwrap{justify-content:flex-start} .sys{margin-left:0} }
+  .sys{margin-left:auto;font-family:var(--mono);font-size:11.5px;color:var(--ink-3);
+    letter-spacing:.06em;display:flex;align-items:center;gap:7px}
+  .sys .dot{width:7px;height:7px;border-radius:50%;background:var(--good);
+    box-shadow:0 0 6px color-mix(in srgb,var(--good) 60%,transparent)}
+  .stale{color:var(--bad-ink)}
+
+  /* ══ CONTROLS ═════════════════════════════════════════════════════════
+     Segmented controls are pills, and pills only ever live sunk into a
+     well. Everything else is a rounded rectangle. */
+  .pills{display:flex;padding:3px;border-radius:999px;background:var(--well);
+    box-shadow:var(--well-sh);flex-wrap:wrap}
+  .pills button{padding:7px 15px;border:none;border-radius:999px;background:transparent;
+    color:var(--ink-2);cursor:pointer;font-size:13px;font-weight:600;
+    transition:background .18s,color .18s,transform .12s}
+  .pills button:hover{color:var(--ink)}
+  .pills button.on{color:var(--on-accent);font-weight:700;
+    background:linear-gradient(150deg,var(--accent-2),var(--accent));
+    box-shadow:var(--brass-sh)}
+  .pills.ref{background:transparent;box-shadow:none;padding:0;gap:6px}
+  .pills.ref button{background:transparent;color:var(--ink-2);font-weight:600;padding:7px 13px;
+    border:1px solid var(--line);border-radius:999px}
+  .pills.ref button.on{background:var(--g2-hi);color:var(--ink);border-color:transparent;
+    box-shadow:var(--raise)}
+
+  .brassBtn{background:linear-gradient(150deg,var(--accent-2),var(--accent));
+    color:var(--on-accent);border:none;border-radius:999px;padding:0 20px;
+    font-weight:700;font-size:13.5px;cursor:pointer;box-shadow:var(--brass-sh);
+    transition:transform .12s,box-shadow .12s}
+  .brassBtn:hover{transform:translateY(-1px)}
+  .brassBtn:active{transform:translateY(1px);box-shadow:var(--raise)}
+  .ghostBtn{background:linear-gradient(160deg,var(--g2-hi),var(--g2));border:1px solid var(--line);
+    border-radius:999px;color:var(--accent-ink);padding:9px 17px;font-size:13px;font-weight:700;
+    cursor:pointer;flex-shrink:0;box-shadow:var(--raise);transition:transform .12s}
+  .ghostBtn:hover{transform:translateY(-1px)}
+  .ghostBtn:active{transform:translateY(1px)}
+
+  /* engraved inputs */
+  .numIn{width:100%;background:var(--well);border:1px solid var(--line);border-radius:var(--r-xs);
+    color:var(--ink);font-family:var(--mono);font-size:19px;padding:12px 13px;
+    font-variant-numeric:tabular-nums;box-shadow:var(--well-sh)}
   .numIn.big{font-size:25px}
-  /* Read-only output that happens to sit in an input. Styled flat and dimmed
-     so it does not read as somewhere to type - there are two real text boxes
-     on this screen already and a third look-alike only confuses the counter. */
-  /* Browse the lists: shut by default, because the search bar reaches
-     everything these buttons do and more. */
-  .browse>summary{list-style:none;cursor:pointer;display:flex;flex-direction:column;gap:3px;
-    padding:13px 15px;border-radius:var(--r);background:linear-gradient(160deg,var(--e2-hi),var(--e2));
-    box-shadow:var(--sh)}
-  .browse>summary::-webkit-details-marker{display:none}
-  .browse>summary::after{content:"\203A";position:absolute;right:18px;transition:transform .15s;color:var(--ink-3)}
+  .roOut{width:100%;background:transparent;border:1px dashed var(--line);border-radius:var(--r-xs);
+    color:var(--ink-3);font-family:var(--mono);padding:10px 12px;box-shadow:none;cursor:default}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:7px;
+    border-radius:999px;background:var(--well);box-shadow:var(--well-sh);outline-offset:4px}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:19px;height:19px;
+    border-radius:50%;background:radial-gradient(circle at 34% 30%,#fff,#E4D9C6);
+    box-shadow:0 2px 6px rgba(38,30,16,.45),inset 0 -2px 3px rgba(38,30,16,.18);cursor:pointer}
+  input[type=range]::-moz-range-thumb{width:19px;height:19px;border:none;border-radius:50%;
+    background:radial-gradient(circle at 34% 30%,#fff,#E4D9C6);
+    box-shadow:0 2px 6px rgba(38,30,16,.45),inset 0 -2px 3px rgba(38,30,16,.18);cursor:pointer}
+  .sliderScale{display:flex;justify-content:space-between;font-family:var(--mono);
+    font-size:11px;color:var(--ink-3);margin-top:6px}
+  .rateRow{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:9px}
+  .rateRow .label{margin:0}
+  .rateNum{width:86px;text-align:center;font-size:15px;padding:8px 6px}
+  .saveNote{color:var(--good);margin-left:8px;font-family:var(--mono);font-size:12px}
+
+  /* ══ LIST ROWS ════════════════════════════════════════════════════════ */
+  .catBtn{display:block;width:100%;text-align:left;padding:11px 14px;margin-top:7px;
+    border:1px solid var(--line);border-radius:var(--r-s);cursor:pointer;font-size:14px;
+    font-weight:600;background:linear-gradient(160deg,var(--g2-hi),var(--g2));color:var(--ink-2);
+    box-shadow:var(--raise);transition:transform .12s}
+  .catBtn:hover{transform:translateY(-1px);color:var(--ink)}
+  .catBtn.on{color:var(--on-accent);font-weight:700;border-color:transparent;
+    background:linear-gradient(150deg,var(--accent-2),var(--accent));box-shadow:var(--brass-sh)}
+  .itemBtn{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;
+    padding:10px 12px;margin-top:6px;border:1px solid var(--line);border-radius:var(--r-s);
+    cursor:pointer;text-align:left;font-size:13.5px;font-weight:600;color:var(--ink-2);
+    background:linear-gradient(160deg,var(--g2-hi),var(--g2));box-shadow:var(--raise);
+    transition:transform .14s}
+  .itemBtn:hover{transform:translateY(-1px)}
+  .itemBtn .idx{width:26px;height:26px;border-radius:50%;flex-shrink:0;display:grid;
+    place-content:center;font-family:var(--mono);font-size:10px;color:var(--ink-3);
+    background:var(--well);box-shadow:var(--well-sh)}
+  .itemBtn.on{color:var(--on-accent);border-color:transparent;
+    background:linear-gradient(150deg,var(--accent-2),var(--accent));box-shadow:var(--brass-sh)}
+  .itemBtn.on .idx{color:var(--on-accent);background:rgba(255,255,255,.42);box-shadow:none}
+  .itemBtn .price{font-family:var(--mono);font-size:12.5px;flex-shrink:0;color:var(--ink-3)}
+  .itemBtn.on .price{color:var(--on-accent)}
+  .itemBtn .price.mine{color:var(--info-ink)} .itemBtn.on .price.mine{color:var(--on-accent)}
+  .driver{margin:0 0 12px;padding:11px 13px;border-radius:var(--r-s);background:var(--well);
+    box-shadow:var(--well-sh);font-size:13.5px;color:var(--ink-2);line-height:1.55}
+  .driver b.go{color:var(--good)} .driver b.no{color:var(--bad-ink)}
+  .driver p{margin:0}.driver p+p{margin-top:6px}
+
+  /* ══ FOLDS ════════════════════════════════════════════════════════════ */
   .browse{position:relative}
+  .browse>summary{list-style:none;cursor:pointer;display:flex;flex-direction:column;gap:3px;
+    padding:14px 16px;border-radius:var(--r);border:1px solid var(--line);
+    background:linear-gradient(160deg,var(--g2-hi),var(--g2));box-shadow:var(--raise)}
+  .browse>summary::-webkit-details-marker{display:none}
+  .browse>summary::after{content:"\203A";position:absolute;right:20px;top:16px;
+    transition:transform .18s;color:var(--ink-3);font-size:18px;line-height:1}
   .browse[open]>summary::after{transform:rotate(90deg)}
-  .browse>summary:hover{background:var(--e2-hi)}
-  .browseSub{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);letter-spacing:.04em}
-  /* The panel that does not move - the running total, tax-software style.
-     Short on purpose: a sticky element taller than the window scrolls away,
-     which is exactly how the 1406px loan card failed at this job. */
-  /* Not a card that floats over other cards - a strip in the chrome, under
-     the top bar, the way a frozen header row reads. It spans the page, so
-     nothing of the page is hidden behind it. */
+  .browseSub{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);letter-spacing:.03em}
+  .fold>summary,.foldCard>summary{list-style:none;cursor:pointer}
+  .fold>summary::-webkit-details-marker,.foldCard>summary::-webkit-details-marker{display:none}
+  .foldLine{margin-top:10px;font-size:13px;color:var(--info-ink);font-weight:700}
+  .foldLine::after{content:" \203A"}
+  .fold[open]>.foldLine::after{content:" \02C5"}
+  .foldCard>summary{display:flex;flex-direction:column;gap:3px}
+  .foldSub{font-family:var(--mono);font-size:11px;color:var(--ink-3);letter-spacing:.03em}
+  .stepCard>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:12px}
+  .stepCard>summary::-webkit-details-marker{display:none}
+  .stepSum .stepN{font-family:var(--mono);font-size:12px;color:var(--ink-3);width:25px;height:25px;
+    flex:none;display:grid;place-items:center;border-radius:50%;background:var(--well);
+    box-shadow:var(--well-sh)}
+  .stepSum .stepT{font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--ink-3)}
+  .stepSum .stepA{margin-left:auto;font-size:14.5px;font-weight:700;color:var(--ink);text-align:right}
+  .stepSum.live .stepN{background:linear-gradient(150deg,var(--accent-2),var(--accent));
+    color:var(--on-accent);box-shadow:var(--brass-sh)}
+  .stepSum.live .stepT{color:var(--ink-2)}
+  .stepCard[open]>summary{margin-bottom:11px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+  .stepCard[open] .stepA{color:var(--ink-3);font-weight:600}
+
+  /* ══ THE RUNNING TOTAL ════════════════════════════════════════════════ */
   .pinStrip{display:flex;align-items:center;gap:clamp(10px,1.6vw,26px);flex-wrap:wrap;
-    padding:10px clamp(12px,1.3vw,18px);border-radius:var(--r);
-    background:linear-gradient(160deg,var(--e2-hi),var(--e2));
-    border:1px solid rgba(0,232,160,.30);box-shadow:var(--sh)}
+    padding:11px clamp(12px,1.3vw,18px);border-radius:var(--r);
+    border:1px solid color-mix(in srgb,var(--accent) 34%,var(--line))}
   .pinNew{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
-    color:var(--ink-3);background:var(--recess);border:none;border-radius:999px;padding:5px 11px;
+    color:var(--ink-3);background:var(--well);border:none;border-radius:999px;padding:6px 12px;
     cursor:pointer;box-shadow:var(--well-sh)}
   .pinNew:hover{color:var(--ink)}
-  .pinLab{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--ink-3);text-transform:uppercase}
+  .pinLab{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--ink-3);
+    text-transform:uppercase}
   .pinCell{display:flex;flex-direction:column;gap:1px;line-height:1.15}
   .pinCell span{font-size:10.5px;color:var(--ink-3);letter-spacing:.02em;white-space:nowrap}
-  .pinCell b{font-family:var(--mono);font-size:16px;color:var(--ink-2)}
-  .pinCell.big b{font-size:23px;color:var(--accent)}
-  .pinNote{font-size:12px;color:var(--ink-3);flex:1;min-width:190px}
-  /* the weight behind the resale figure - count, sold share, sources */
-  .wCard{padding:10px clamp(11px,1.1vw,15px)}
-  .wHead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-top:5px}
-  .wHead b{font-family:var(--mono);font-size:15.5px;color:var(--ink);font-weight:700}
-  .wHead span{font-size:11px;color:var(--ink-3);text-align:right;white-space:nowrap}
-  .wBar{height:6px;border-radius:99px;background:var(--recess);overflow:hidden;margin-top:8px;box-shadow:var(--well-sh)}
-  .wBar i{display:block;height:100%;border-radius:99px;background:var(--accent)}
-  .wBar i.warn{background:#FFC98F}
-  /* Nothing looked up: the track shows through. A filled bar - even a grey
-     one - reads as confidence at arm's length. */
-  .wBar i.none{background:transparent}
-  .wFoot{font-size:11px;line-height:1.45;color:var(--ink-3);margin-top:7px}
-  .wFoot b{color:var(--ink-2)}
-  /* The desk bar, ranked. Buy and lend are the decision and share the
-     billing; resale, cushion, fee and loan-to-resale are the working behind
-     it and should not compete with them for the eye. Before this they were
-     all one size in one row, and the number the counter most needs was the
-     second of six. Phones keep their own grid below - these rules are
-     inside the desk breakpoint so they cannot reach it. */
+  .pinCell b{font-family:var(--mono);font-size:16px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+  .pinCell.big b{font-family:var(--disp);font-size:24px;font-weight:700;color:var(--ink);
+    letter-spacing:-.02em}
+  .pinNote{font-size:12px;color:var(--ink-3);flex:1;min-width:190px;line-height:1.5}
   @media (min-width:1080px){
     .pinDecide{gap:clamp(9px,1.1vw,18px)}
     .pinDecide .pinCell.big{padding:0 clamp(10px,1vw,16px) 0 0}
-    .pinDecide .pinCell.big+.pinCell.big{border-left:1px solid rgba(255,255,255,.10);
+    .pinDecide .pinCell.big+.pinCell.big{border-left:1px solid var(--line);
       padding-left:clamp(10px,1vw,16px)}
-    .pinDecide .pinCell.big span{font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;
+    .pinDecide .pinCell.big span{font-size:11px;letter-spacing:.09em;text-transform:uppercase;
       color:var(--ink-2)}
-    .pinDecide .pinCell.big b{font-size:38px;line-height:1.02;letter-spacing:-.01em}
-    /* the arithmetic, plainly secondary */
-    .pinDecide .pinCell:not(.big){opacity:.78}
+    .pinDecide .pinCell.big b{font-size:38px;line-height:1.02;letter-spacing:-.03em}
+    .pinDecide .pinCell:not(.big){opacity:.8}
     .pinDecide .pinCell:not(.big) b{font-size:14px}
     .pinDecide .pinCell:not(.big) span{font-size:10px}
-    .pinDecide .pinNote{min-width:150px;font-size:11.5px;opacity:.85}
+    .pinDecide .pinNote{min-width:150px;font-size:11.5px;opacity:.9}
+    /* Stacked in the rail the numbers become a column: the two decisions at
+       full size over a rule, the arithmetic in a quiet mono pair beneath. */
+    .pinStrip.pinRail{display:grid;grid-template-columns:1fr 1fr;column-gap:12px;row-gap:9px;
+      align-items:start}
+    .pinStrip.pinRail .pinLab{grid-column:1}
+    .pinStrip.pinRail .pinNew{grid-column:2;justify-self:end}
+    .pinStrip.pinRail .pinCell.big{grid-column:1/-1;padding:0;border-left:none!important;
+      display:flex;flex-direction:row;align-items:baseline;justify-content:space-between;gap:10px;
+      position:relative;z-index:1}
+    .pinStrip.pinRail .pinCell.big:first-of-type{padding-top:10px}
+    .pinStrip.pinRail .pinCell.big+.pinCell.big{padding-left:0;border-top:1px solid var(--line);
+      padding-top:9px;padding-bottom:13px;
+      border-bottom:2px solid color-mix(in srgb,var(--accent) 45%,transparent);margin-bottom:3px}
+    .pinStrip.pinRail .pinCell.big b{font-size:40px}
+    .pinStrip.pinRail .pinCell.big span{font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+      color:var(--ink-2)}
+    .pinStrip.pinRail .pinCell:not(.big){opacity:1}
+    .pinStrip.pinRail .pinCell:not(.big) span{font-size:9.5px;letter-spacing:.11em;
+      text-transform:uppercase;color:var(--ink-3)}
+    .pinStrip.pinRail .pinCell:not(.big) b{font-size:14px;color:var(--ink-2);font-weight:500}
+    .pinStrip.pinRail .pinNote{grid-column:1/-1;min-width:0}
   }
-  /* On a phone the strip was a flex row wrapping into whatever fitted: the
-     buy price landed at the start of a line and read as the headline, the
-     loan sat small in a corner, Start over cut between the label and the
-     numbers, and no two figures lined up. Narrow screens get a grid instead,
-     ranked the way the counter reads it - the loan first and large, the buy
-     price under it and plainly second, the four supporting figures in two
-     tidy columns. */
   @media (max-width:560px){
     .pinStrip{display:grid;grid-template-columns:1fr 1fr;column-gap:14px;row-gap:10px;
-      align-items:end;padding:13px 15px;
-      grid-template-areas:"lab  new"
-                          "buy  buy"
-                          "res  gain"
-                          "lend lend"
-                          "note note"}
+      align-items:end;padding:14px 16px;
+      grid-template-areas:"lab new" "buy buy" "res gain" "lend lend" "note note"}
     .pinLab{grid-area:lab;align-self:center}
     .pinNew{grid-area:new;justify-self:end;align-self:center}
     .pinCell[data-k="lend"]{grid-area:lend}
     .pinCell[data-k="buy"]{grid-area:buy}
     .pinCell[data-k="resale"]{grid-area:res}
     .pinCell[data-k="gain"]{grid-area:gain}
-    /* loan mechanics: nothing to do with buying at a yard sale */
     .pinCell[data-k="cushion"],.pinCell[data-k="fee"],.pinCell[data-k="ltv"]{display:none}
-    .pinNote{grid-area:note;min-width:0;font-size:12.5px;opacity:.85}
-    /* out shopping, this is the whole question: what can I pay for it */
-    .pinCell[data-k="buy"] span{font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+    .pinNote{grid-area:note;min-width:0;font-size:12.5px;opacity:.9}
+    .pinCell[data-k="buy"] span{font-size:12px;letter-spacing:.07em;text-transform:uppercase}
     .pinCell[data-k="buy"] b{font-size:46px;line-height:1}
-    /* "Walk away" is a sentence, not a figure, and it is bad news */
-    .pinStrip.thin .pinCell[data-k="buy"] b{font-size:34px;color:var(--bad)}
-    .pinStrip.thin{grid-template-areas:"lab  new"
-                                       "buy  buy"
-                                       "res  res"
-                                       "lend lend"
-                                       "note note"}
+    .pinStrip.thin .pinCell[data-k="buy"] b{font-size:34px;color:var(--bad-ink)}
+    .pinStrip.thin{grid-template-areas:"lab new" "buy buy" "res res" "lend lend" "note note"}
     .pinCell[data-k="resale"] b,.pinCell[data-k="gain"] b{font-size:19px}
-    /* there is no loan to make over a folding table - keep it, quietly */
     .pinCell[data-k="lend"]{flex-direction:row;align-items:baseline;gap:8px;
-      border-top:1px solid var(--ink-3);padding-top:9px;opacity:.7}
+      border-top:1px solid var(--line);padding-top:9px;opacity:.75}
     .pinCell[data-k="lend"] b{font-size:17px;color:var(--ink-2)}
     .pinCell span{font-size:11px}
-    /* a bare strip has no cells to place, so let it stay one line */
     .pinStrip:not(:has(.pinCell)){display:flex;flex-wrap:wrap}
   }
-  /* one step at a time: a step that is not live folds to a line with its
-     answer on it, and any line opens on a click */
-  .stepCard>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:12px}
-  .stepCard>summary::-webkit-details-marker{display:none}
-  .stepSum .stepN{font-family:var(--mono);font-size:12px;color:var(--ink-3);
-    width:24px;height:24px;flex:none;display:grid;place-items:center;border-radius:50%;
-    background:var(--recess);box-shadow:var(--well-sh)}
-  .stepSum .stepT{font-family:var(--mono);font-size:12px;letter-spacing:.1em;
-    text-transform:uppercase;color:var(--ink-3)}
-  .stepSum .stepA{margin-left:auto;font-size:14.5px;font-weight:700;color:var(--ink);text-align:right}
-  .stepSum.live .stepN{background:var(--accent);color:#04120C;box-shadow:none}
-  .stepSum.live .stepT{color:var(--ink-2)}
-  .stepCard[open]>summary{margin-bottom:11px;padding-bottom:10px;
-    border-bottom:1px solid rgba(255,255,255,.08)}
-  .stepCard[open] .stepA{color:var(--ink-3);font-weight:600}
-  /* folds: the long tail of a card, shut until wanted */
-  .fold>summary,.foldCard>summary{list-style:none;cursor:pointer}
-  .fold>summary::-webkit-details-marker,.foldCard>summary::-webkit-details-marker{display:none}
-  .foldLine{margin-top:10px;font-size:12.5px;color:var(--accent-2);font-weight:600}
-  .foldLine::after{content:" \203A"}
-  .fold[open]>.foldLine::after{content:" \02C5"}
-  .foldCard>summary{display:flex;flex-direction:column;gap:3px}
-  .foldSub{font-family:var(--mono);font-size:11px;color:var(--ink-3);letter-spacing:.03em}
-  /* Before anything is chosen: the search box and the ways in, nothing else.
-     Drawing the three columns empty is what filled the first screen with
-     blank boxes waiting on an answer nobody had given yet. */
-  /* The headline across the top, the three ways in side by side under it.
-     One centred column was tidy and wasted 1,400px of width to buy a scroll;
-     the first two-up attempt was ragged because the cards were different
-     heights. Stretching them fixes that and the width does the work. */
-  #view.item.start{display:block!important}
-  /* No max-width: the search box above runs the full desk, and inseting the
-     cards to 1180 left a 260px margin either side that read as a mistake. */
-  .startPane{display:grid;gap:clamp(14px,1.5vw,20px);margin-top:clamp(14px,1.6vw,22px)}
-  /* The search hint sits right under the box. A second line of small print
-     tucked under that one read as crowding, so this stands clear of it. */
-  .startLede{margin:0 4px;font-family:var(--sans);font-size:13.5px;line-height:1.5;color:var(--ink-3)}
-  .startLede b{color:var(--ink-2);font-weight:600}
-  .startTwo,.startCol{display:grid;gap:clamp(10px,1.1vw,15px);align-content:start}
-  @media (min-width:1080px){
-    /* start, not stretch: a closed browse bar is 58 characters and was being
-       held open to the height of the camera card beside it. */
-    .startCol{grid-template-columns:repeat(3,minmax(0,1fr));align-items:start}
-    .startCol>.card,.startCol>details{margin-top:0;align-self:start}
-  }
-  .startCol>.card{margin-top:0}
-  /* spotting-fakes checklist */
-  .fakeRow{margin-top:11px;padding-top:10px;border-top:1px solid rgba(255,255,255,.07)}
-  .fakeRow:first-of-type{border-top:none}
-  .fakeQ{font-size:13.5px;line-height:1.45;color:var(--ink-2)}
-  .fakeRow.done .fakeQ{color:var(--ink-3)}
-  .fakeRow .pills button.on.pass{background:var(--accent);color:#04120C}
-  .fakeRow .pills button.on.unsure{background:#FFC98F;color:#2A1B06}
-  .fakeRow .pills button.on.fail{background:var(--bad);color:#fff}
-  /* the comps the number was built from */
-  .thumbStrip{display:grid;grid-template-columns:repeat(auto-fill,minmax(86px,1fr));
-    gap:8px;margin-top:8px}
-  .thumb{display:flex;flex-direction:column;gap:3px;text-decoration:none;
-    background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.08);
-    border-radius:10px;padding:6px;overflow:hidden;transition:border-color .12s}
-  a.thumb:hover{border-color:var(--accent)}
-  /* A sale is better evidence than an ask, so it is marked rather than
-     merely ordered - the strip is read at a glance and order is not. */
-  .thumb.sold{border-color:rgba(74,222,160,.34)}
-  .thumb img{width:100%;aspect-ratio:1;object-fit:contain;border-radius:6px;
-    background:#fff;display:block}
-  .thumb .tPrice{font-family:var(--mono);font-size:12px;color:var(--ink);font-weight:600}
-  .thumb.sold .tPrice{color:var(--accent)}
-  /* Two lines of title, then stop. Twelve full titles would be a wall of
-     text over the pictures that are the point of this. */
-  .thumb .tWhat{font-size:10.5px;line-height:1.3;color:var(--ink-3);
-    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-  .roOut{width:100%;background:transparent;border:1px dashed var(--e2-hi);border-radius:12px;
-    color:var(--ink-3);font-family:var(--mono);padding:10px 12px;box-shadow:none;cursor:default}
-  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:999px;
-    background:var(--recess);box-shadow:var(--well-sh);outline-offset:4px}
-  .rateRow{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:9px}
-  .rateRow .label{margin:0}
-  .rateNum{width:82px;text-align:center;font-size:15px;padding:8px 6px}
-  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:17px;height:17px;border-radius:50%;
-    background:radial-gradient(circle at 34% 30%,#fff,#C9CEDA);
-    box-shadow:0 3px 8px rgba(0,0,0,.85),inset 0 -2px 3px rgba(0,0,0,.28);cursor:pointer}
-  input[type=range]::-moz-range-thumb{width:17px;height:17px;border:none;border-radius:50%;
-    background:radial-gradient(circle at 34% 30%,#fff,#C9CEDA);
-    box-shadow:0 3px 8px rgba(0,0,0,.85),inset 0 -2px 3px rgba(0,0,0,.28);cursor:pointer}
-  .sliderScale{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-top:6px}
-  /* anchor gauge */
+
+  /* ══ WEIGHT BEHIND A NUMBER ═══════════════════════════════════════════ */
+  .wCard{padding:11px clamp(11px,1.1vw,15px)}
+  .wHead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-top:5px}
+  .wHead b{font-family:var(--disp);font-size:16px;color:var(--ink);font-weight:700}
+  .wHead span{font-size:11px;color:var(--ink-3);text-align:right;white-space:nowrap}
+  .wBar{height:7px;border-radius:99px;background:var(--well);overflow:hidden;margin-top:9px;
+    box-shadow:var(--well-sh)}
+  .wBar i{display:block;height:100%;border-radius:99px;
+    background:linear-gradient(90deg,var(--accent),var(--accent-2))}
+  .wBar i.warn{background:linear-gradient(90deg,var(--warn),#F2B26B)}
+  .wBar i.none{background:transparent}
+  .wFoot{font-size:11.5px;line-height:1.5;color:var(--ink-3);margin-top:8px}
+  .wFoot b{color:var(--ink-2)}
+
+  /* ══ THE ANCHOR ═══════════════════════════════════════════════════════ */
   .gwrap{position:relative;max-width:330px;margin:0 auto}
   .gwrap svg{display:block;width:100%;height:auto}
-  .gcenter{position:absolute;inset:0;display:grid;place-content:center;text-align:center;pointer-events:none}
-  .gcenter .gl{font-family:var(--mono);font-size:11px;letter-spacing:.19em;text-transform:uppercase;color:var(--ink-3)}
-  .gcenter b{font-family:var(--disp);font-weight:800;font-size:clamp(44px,4.6vw,68px);line-height:.95;
-    letter-spacing:-.045em;font-variant-numeric:tabular-nums;color:var(--ink)}
+  .gcenter{position:absolute;inset:0;display:grid;place-content:center;text-align:center;
+    pointer-events:none}
+  .gcenter .gl{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--ink-3)}
+  .gcenter b{font-family:var(--disp);font-weight:800;font-size:clamp(44px,4.6vw,68px);
+    line-height:.95;letter-spacing:-.05em;font-variant-numeric:tabular-nums;color:var(--ink)}
   .gcenter .gs{font-family:var(--mono);font-size:12px;color:var(--ink-2);margin-top:4px}
-  /* readout tiles inside the anchor card (recursion: raised over the housing) */
+  .card.unchecked .gwrap{opacity:.45}
   .tiles{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}
-  .tiles .widget .l{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
-  .tiles .widget .v{font-family:var(--mono);font-size:16px;font-weight:600;margin-top:3px;font-variant-numeric:tabular-nums;color:var(--ink)}
+  .tiles .widget .l{font-family:var(--mono);font-size:10.5px;letter-spacing:.13em;
+    text-transform:uppercase;color:var(--ink-3)}
+  .tiles .widget .v{font-family:var(--mono);font-size:16px;font-weight:600;margin-top:3px;
+    font-variant-numeric:tabular-nums;color:var(--ink)}
   .ladder{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;margin-top:9px}
   .rung .k{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--ink-3)}
-  .rung .d{font-family:var(--mono);font-size:15px;font-weight:600;margin-top:2px;font-variant-numeric:tabular-nums}
-  .tagNote{border-radius:var(--r-s);background:rgba(0,217,255,.09);box-shadow:inset 0 1px 0 rgba(255,255,255,.07);
-    padding:9px 11px;margin-top:11px;font-size:13.5px;line-height:1.45;color:var(--ink-2)}
-  .tagWarn{border-radius:var(--r-s);background:rgba(255,138,30,.10);box-shadow:inset 0 1px 0 rgba(255,255,255,.07);
-    padding:9px 11px;margin-top:11px;font-size:13.5px;line-height:1.45;color:#FFC98F}
-  .fine{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-top:11px;line-height:1.5}
-  .cardHint{font-size:13px;color:var(--ink-3);margin-top:7px;line-height:1.5}
+  .rung .d{font-family:var(--mono);font-size:15px;font-weight:600;margin-top:2px;
+    font-variant-numeric:tabular-nums}
+
+  /* ══ NOTES ════════════════════════════════════════════════════════════ */
+  .tagNote{border-radius:var(--r-s);background:color-mix(in srgb,var(--info) 10%,transparent);
+    border-left:3px solid var(--info);padding:10px 12px;margin-top:11px;font-size:13.5px;
+    line-height:1.5;color:var(--ink-2)}
+  .tagWarn{border-radius:var(--r-s);background:var(--warn-wash);border-left:3px solid var(--warn);
+    padding:10px 12px;margin-top:11px;font-size:13.5px;line-height:1.5;color:var(--warn-ink)}
+  .tagWarn b{color:var(--warn-ink)}
   .feedTag{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);margin-top:7px;line-height:1.5}
-  .feedTag b{color:var(--accent);font-weight:600}
-  .stale{color:var(--bad)}
+  .feedTag b{color:var(--accent-ink);font-weight:600}
   .valRow{display:flex;align-items:center;justify-content:space-between;gap:10px}
   .valRow .num{font-family:var(--mono);font-size:21px;font-variant-numeric:tabular-nums}
   .valRow .sub2{font-size:11.5px;color:var(--ink-3);margin-top:3px}
-  .ghostBtn{background:linear-gradient(160deg,var(--e2-hi),var(--e2));border:none;border-radius:999px;color:var(--accent);
-    padding:9px 16px;font-size:12.5px;font-weight:700;cursor:pointer;flex-shrink:0;font-family:var(--sans);
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.13),0 3px 8px -5px rgba(0,0,0,.9)}
-  .brassBtn{background:linear-gradient(150deg,#4DFFC4,var(--accent));color:#04150F;border:none;border-radius:999px;
-    padding:0 18px;font-weight:800;font-size:13px;cursor:pointer;font-family:var(--sans);
-    box-shadow:0 2px 4px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.45)}
-  /* steps + flags */
-  .narrow{max-width:780px;margin:0 auto}
-  .step .n{width:28px;height:28px;border-radius:50%;flex-shrink:0;display:grid;place-content:center;
-    font-family:var(--mono);font-size:10px;color:#04150F;font-weight:600;
-    background:linear-gradient(150deg,#4DFFC4,var(--accent));box-shadow:0 2px 4px rgba(0,0,0,.5)}
-  .step .t{font-family:var(--disp);font-size:15px;font-weight:700;line-height:1.3}
-  .step .d{font-size:13px;color:var(--ink-2);line-height:1.5;margin-top:4px}
-  .flag .x{width:28px;height:28px;border-radius:50%;flex-shrink:0;display:grid;place-content:center;
-    font-family:var(--mono);font-size:12px;color:#fff;background:rgba(255,66,87,.25);box-shadow:inset 0 1px 0 rgba(255,255,255,.1)}
-  .flag{font-size:13.5px;line-height:1.5;color:var(--ink-2);font-weight:500}
-  .rules{font-size:13.5px;line-height:1.6;color:var(--ink-2)}
-  .rules b{color:var(--ink)} .rules .hd{color:var(--accent)}
-  .rules .sect{border-top:1px solid rgba(255,255,255,.08);margin-top:10px;padding-top:10px;font-size:13px}
   .foot{font-size:12.5px;color:var(--ink-3);line-height:1.6;padding:4px 6px}
-  .saveNote{color:var(--accent);margin-left:8px;font-family:var(--mono)}
-  .mb12{margin-bottom:12px}.mb14{margin-bottom:14px}.mb16{margin-bottom:16px}
-  .row2{display:flex;gap:8px;align-items:center}
-  /* photo read + comp searches */
-  .photoWrap{margin-top:11px;border-radius:var(--r-s);overflow:hidden;background:var(--recess);box-shadow:var(--well-sh)}
-  .photoWrap img{display:block;width:100%;max-height:230px;object-fit:contain}
+  .rules{font-size:13.5px;line-height:1.65;color:var(--ink-2)}
+  .rules b{color:var(--ink)} .rules .hd{color:var(--accent-ink);font-weight:700}
+  .rules .sect{border-top:1px solid var(--line);margin-top:10px;padding-top:10px;font-size:13px}
+  .step .n{width:28px;height:28px;border-radius:50%;flex-shrink:0;display:grid;place-content:center;
+    font-family:var(--mono);font-size:11px;color:var(--on-accent);font-weight:700;
+    background:linear-gradient(150deg,var(--accent-2),var(--accent));box-shadow:var(--brass-sh)}
+  .step .t{font-family:var(--disp);font-size:15px;font-weight:700;line-height:1.3}
+  .step .d{font-size:13px;color:var(--ink-2);line-height:1.55;margin-top:4px}
+  .flag{font-size:13.5px;line-height:1.55;color:var(--ink-2);font-weight:500}
+  .flag .x{width:28px;height:28px;border-radius:50%;flex-shrink:0;display:grid;place-content:center;
+    font-family:var(--mono);font-size:12px;color:var(--bad-ink);background:var(--bad-wash);
+    box-shadow:inset 0 1px 0 var(--edge)}
+  .srcLink{color:var(--accent-ink);font-weight:700;text-decoration:underline;text-underline-offset:3px}
+
+  /* ══ FAKES CHECKLIST ══════════════════════════════════════════════════ */
+  .fakeRow{margin-top:11px;padding-top:10px;border-top:1px solid var(--line)}
+  .fakeRow:first-of-type{border-top:none}
+  .fakeQ{font-size:13.5px;line-height:1.5;color:var(--ink-2)}
+  .fakeRow.done .fakeQ{color:var(--ink-3)}
+  .fakeRow .pills button.on.pass{background:var(--good);color:#fff;box-shadow:var(--raise)}
+  .fakeRow .pills button.on.unsure{background:var(--warn);color:#fff;box-shadow:var(--raise)}
+  .fakeRow .pills button.on.fail{background:var(--bad);color:#fff;box-shadow:var(--raise)}
+
+  /* ══ COMPS ════════════════════════════════════════════════════════════ */
+  .thumbStrip{display:grid;grid-template-columns:repeat(auto-fill,minmax(86px,1fr));gap:8px;margin-top:8px}
+  .thumb{display:flex;flex-direction:column;gap:3px;text-decoration:none;background:var(--g2);
+    border:1px solid var(--line);border-radius:var(--r-xs);padding:6px;overflow:hidden;
+    transition:border-color .12s,transform .12s}
+  a.thumb:hover{border-color:var(--accent);transform:translateY(-1px)}
+  .thumb.sold{border-color:color-mix(in srgb,var(--good) 50%,transparent)}
+  .thumb img{width:100%;aspect-ratio:1;object-fit:contain;border-radius:8px;background:#fff;display:block}
+  .thumb .tPrice{font-family:var(--mono);font-size:12px;color:var(--ink);font-weight:600}
+  .thumb.sold .tPrice{color:var(--good)}
+  .thumb .tWhat{font-size:10.5px;line-height:1.3;color:var(--ink-3);display:-webkit-box;
+    -webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
   .compGrid{display:grid;gap:8px}
-  .compBtn{display:flex;justify-content:space-between;align-items:center;gap:10px;text-decoration:none;
-    padding:10px 13px;border-radius:var(--r-s);color:var(--ink-2);font-size:13.5px;font-weight:600;
-    background:linear-gradient(160deg,var(--e2-hi),var(--e2));
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.09),0 3px 7px -5px rgba(0,0,0,.9)}
-  .compBtn .cs{font-family:var(--mono);font-size:11px;color:var(--ink-3);text-align:right;flex-shrink:0;max-width:52%}
-  .compBtn{transition:transform .12s,box-shadow .12s;cursor:pointer;-webkit-user-select:none;user-select:none}
-  .compBtn:active{transform:translateY(2px) scale(.995);box-shadow:inset 0 2px 6px rgba(0,0,0,.7)}
-  .compBtn.pending{background:linear-gradient(150deg,#4DFFC4,var(--accent));color:#04150F;
-    box-shadow:0 2px 5px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.45)}
-  .compBtn.pending .cs{color:#04150F}
-  /* the search bar — type anything, pick a line, steps 1-3 fill themselves.
-     Sharp on purpose: solid fills, no glow, 13px+ text. */
+  .compBtn{display:flex;justify-content:space-between;align-items:center;gap:10px;
+    text-decoration:none;padding:11px 14px;border-radius:var(--r-s);color:var(--ink-2);
+    font-size:13.5px;font-weight:600;border:1px solid var(--line);
+    background:linear-gradient(160deg,var(--g2-hi),var(--g2));box-shadow:var(--raise);
+    transition:transform .12s,box-shadow .12s;cursor:pointer;-webkit-user-select:none;user-select:none}
+  .compBtn:hover{transform:translateY(-1px)}
+  .compBtn:active{transform:translateY(2px) scale(.995);box-shadow:var(--well-sh)}
+  .compBtn .cs{font-family:var(--mono);font-size:11px;color:var(--ink-3);text-align:right;
+    flex-shrink:0;max-width:52%}
+  .compBtn.pending{background:linear-gradient(150deg,var(--accent-2),var(--accent));
+    color:var(--on-accent);border-color:transparent;box-shadow:var(--brass-sh)}
+  .compBtn.pending .cs{color:var(--on-accent)}
+
+  /* ══ THE SEARCH BAR ═══════════════════════════════════════════════════ */
   .omni{position:relative;z-index:20}
   .omniWrap{position:relative}
   .omniBox{display:flex;align-items:center;gap:12px;padding:4px 6px 4px 18px;border-radius:var(--r);
-    background:var(--recess);box-shadow:var(--well-sh);border:2px solid rgba(255,255,255,.16)}
+    background:var(--well);box-shadow:var(--well-sh);border:2px solid var(--line);
+    transition:border-color .16s}
   .omniBox:focus-within{border-color:var(--accent)}
   .omniBox svg{flex-shrink:0;width:22px;height:22px}
   #omniIn{flex:1;min-width:0;background:transparent;border:none;outline:none;color:var(--ink);
-    font-family:var(--sans);font-size:clamp(17px,1.5vw,20px);font-weight:600;padding:13px 0}
-  #omniIn::placeholder{color:rgba(255,255,255,.62);font-weight:500}
+    font-size:clamp(17px,1.5vw,20px);font-weight:600;padding:13px 0}
+  #omniIn::placeholder{color:var(--ink-3);font-weight:500}
   #omniIn:focus-visible{outline:none}
-  .omniClr{border:none;background:transparent;color:var(--ink-2);font-size:26px;line-height:1;width:42px;height:42px;
-    border-radius:50%;cursor:pointer;flex-shrink:0}
+  .omniClr{border:none;background:transparent;color:var(--ink-2);font-size:26px;line-height:1;
+    width:42px;height:42px;border-radius:50%;cursor:pointer;flex-shrink:0}
   #omniIn:placeholder-shown ~ .omniClr{visibility:hidden}
-  /* 8px put this line hard against the bottom edge of the search box - it
-     read as part of the box rather than a note under it. */
-  .omniHint{font-size:13.5px;color:var(--ink-2);margin:clamp(13px,1.2vw,17px) 4px 0;line-height:1.45}
+  .omniHint{font-size:13.5px;color:var(--ink-2);margin:clamp(13px,1.2vw,17px) 4px 0;line-height:1.5}
   .omniHint b{color:var(--ink);font-weight:600}
-  .omniList{position:absolute;left:0;right:0;top:calc(100% + 6px);display:grid;gap:6px;padding:8px;
-    max-height:min(64vh,560px);overflow-y:auto;border-radius:var(--r);background:#161A23;
-    border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 40px -12px rgba(0,0,0,.95)}
+  .omniList{position:absolute;left:0;right:0;top:calc(100% + 8px);display:grid;gap:6px;padding:8px;
+    max-height:min(64vh,560px);overflow-y:auto;border-radius:var(--r);box-shadow:var(--lift);z-index:30}
   .omniRow{display:flex;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;
-    padding:11px 14px;border:none;border-radius:var(--r-s);font-family:var(--sans);color:var(--ink);text-decoration:none;
-    background:linear-gradient(160deg,var(--e2-hi),var(--e2));box-shadow:inset 0 1px 0 rgba(255,255,255,.1)}
+    padding:11px 14px;border:1px solid var(--line);border-radius:var(--r-s);color:var(--ink);
+    text-decoration:none;background:linear-gradient(160deg,var(--g2-hi),var(--g2));
+    box-shadow:var(--raise);transition:transform .1s}
+  .omniRow:hover{transform:translateY(-1px)}
   .omniRow .ot{flex:1;min-width:0;display:block}
   .omniRow .on1{display:block;font-size:16px;font-weight:700;line-height:1.25}
   .omniRow .on2{display:block;font-size:13.5px;color:var(--ink-2);margin-top:2px;line-height:1.35}
-  .omniRow .ov{font-family:var(--mono);font-size:15px;font-weight:600;flex-shrink:0;color:var(--accent-2)}
-  .omniRow.sold{background:transparent;box-shadow:inset 0 0 0 1px rgba(255,255,255,.28)}
-  .omniRow.hl{background:linear-gradient(150deg,#4DFFC4,var(--accent));color:#04150F;box-shadow:none}
-  .omniRow.hl .on2,.omniRow.hl .ov{color:#04150F}
-  .omniEmpty{font-size:14px;color:var(--ink-2);padding:6px 6px 2px;line-height:1.45}
+  .omniRow .ov{font-family:var(--mono);font-size:15px;font-weight:600;flex-shrink:0;color:var(--info-ink)}
+  .omniRow .ov small{display:block;font:600 11px var(--sans);color:var(--ink-2);text-align:right}
+  .omniRow.sold{background:transparent;border-color:var(--ink-3);box-shadow:none}
+  .omniRow.hl{background:linear-gradient(150deg,var(--accent-2),var(--accent));
+    color:var(--on-accent);border-color:transparent;box-shadow:var(--brass-sh)}
+  .omniRow.hl .on2,.omniRow.hl .ov{color:var(--on-accent)}
+  .omniEmpty{font-size:14px;color:var(--ink-2);padding:6px 6px 2px;line-height:1.5}
   .omniEmpty b{color:var(--ink)}
-  /* sold-price screenshot reader */
-  .shotZone{margin-top:14px;padding:13px;border-radius:var(--r-s);background:var(--recess);box-shadow:var(--well-sh);
-    border:2px dashed rgba(255,255,255,.2)}
+
+  /* ══ SCREENSHOT READER + CAMERA ═══════════════════════════════════════ */
+  .shotZone{margin-top:14px;padding:14px;border-radius:var(--r-s);background:var(--well);
+    box-shadow:var(--well-sh);border:2px dashed var(--line)}
   .shotZone.drag{border-color:var(--accent)}
   .shotZone .cardHint{font-size:13.5px;color:var(--ink-2)}
   .shotThumbs{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-  .shotT{position:relative;width:78px;height:78px;border-radius:10px;overflow:hidden;background:#000}
+  .shotT{position:relative;width:78px;height:78px;border-radius:var(--r-xs);overflow:hidden;background:#000}
   .shotT img{width:100%;height:100%;object-fit:cover;object-position:top;display:block}
-  .shotX{position:absolute;top:3px;right:3px;width:26px;height:26px;border-radius:50%;border:none;background:rgba(0,0,0,.8);
-    color:#fff;font-size:17px;line-height:26px;cursor:pointer;padding:0}
+  .shotX{position:absolute;top:3px;right:3px;width:26px;height:26px;border-radius:50%;border:none;
+    background:rgba(0,0,0,.78);color:#fff;font-size:17px;line-height:26px;cursor:pointer;padding:0}
   .shotList{margin-top:10px;font-size:13.5px;color:var(--ink-2)}
-  .shotList summary{cursor:pointer;color:var(--accent-2);font-weight:600;padding:5px 0}
-  .shotLi{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:7px 0;border-top:1px solid rgba(255,255,255,.08);line-height:1.35}
+  .shotList summary{cursor:pointer;color:var(--info-ink);font-weight:700;padding:5px 0}
+  .shotLi{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:8px 0;
+    border-top:1px solid var(--line);line-height:1.4}
   .shotLi span{min-width:0}
   .shotLi b{font-family:var(--mono);color:var(--ink);flex-shrink:0;font-weight:600}
-  .shotLi i{font-style:normal;color:#FFC98F}
-  .shotSub{margin-top:10px;font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2)}
-  /* live camera */
-  .camModal{position:fixed;inset:0;z-index:100;background:rgba(5,6,9,.95);display:grid;place-items:center;padding:16px}
+  .shotLi i{font-style:normal;color:var(--warn-ink)}
+  .shotSub{margin-top:10px;font-family:var(--mono);font-size:12px;letter-spacing:.11em;
+    text-transform:uppercase;color:var(--ink-2)}
+  .shotGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-top:10px}
+  .shotItem{background:var(--g2);border:1px solid var(--line);border-radius:var(--r-s);padding:8px}
+  .shotItem img{width:100%;height:96px;object-fit:cover;border-radius:10px;display:block}
+  .shotWhat{font-size:13px;color:var(--ink);margin-top:6px;line-height:1.35}
+  .shotWhen{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);margin-top:2px}
+  .camModal{position:fixed;inset:0;z-index:100;background:rgba(10,8,5,.94);display:grid;
+    place-items:center;padding:16px}
   .camBox{width:min(900px,100%)}
-  .camBox video{width:100%;max-height:70vh;border-radius:var(--r);background:#000;display:block;object-fit:contain}
-  .camMsg{text-align:center;font-size:15px;color:var(--ink);margin-top:12px}
-  /* market price (step 4) and the held-back loan */
+  .camBox video{width:100%;max-height:70vh;border-radius:var(--r);background:#000;display:block;
+    object-fit:contain}
+  .camMsg{text-align:center;font-size:15px;color:#fff;margin-top:12px}
+  .camBtn{cursor:pointer}
+  .camLead{border:1px solid color-mix(in srgb,var(--accent) 40%,var(--line))}
+  .camLead .label{font-size:12px;letter-spacing:.1em}
+  .camLead .row2{margin-top:10px}
+  .photoWrap{margin-top:11px;border-radius:var(--r-s);overflow:hidden;background:var(--well);
+    box-shadow:var(--well-sh)}
+  .photoWrap img{display:block;width:100%;max-height:230px;object-fit:contain}
+
+  /* ══ MARKET PRICE ═════════════════════════════════════════════════════ */
   .mkRow{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
-  .mkBig{font-family:var(--mono);font-size:32px;font-weight:600;line-height:1.05;font-variant-numeric:tabular-nums;color:var(--ink)}
+  .mkBig{font-family:var(--disp);font-size:34px;font-weight:800;line-height:1.02;
+    letter-spacing:-.035em;font-variant-numeric:tabular-nums;color:var(--ink)}
   .mkRange{font-family:var(--mono);font-size:14px;color:var(--ink-2);margin-top:5px}
-  .mkOk{flex-shrink:0;font-size:13px;font-weight:800;color:#04150F;background:var(--accent);border-radius:999px;padding:6px 12px}
-  .mkSrc{font-size:14px;color:var(--ink);margin-top:11px;line-height:1.45}
+  .mkOk{flex-shrink:0;font-size:13px;font-weight:800;color:var(--on-accent);
+    background:linear-gradient(150deg,var(--accent-2),var(--accent));border-radius:999px;
+    padding:6px 13px;box-shadow:var(--brass-sh)}
+  .mkSrc{font-size:14px;color:var(--ink);margin-top:11px;line-height:1.5}
   .mkSrc b{font-weight:700}
-  .mkNo{font-size:14.5px;line-height:1.5;color:#FFE2C2;background:rgba(255,138,30,.14);border-radius:var(--r-s);padding:11px 13px}
-  .mkNo b{color:#FFB872}
-  .mkSteps{margin:10px 0 12px;padding-left:22px;font-size:14px;line-height:1.5;color:var(--ink-2)}
+  .mkNo{font-size:14.5px;line-height:1.55;color:var(--warn-ink);background:var(--warn-wash);
+    border-left:3px solid var(--warn);border-radius:var(--r-s);padding:11px 13px}
+  .mkNo b{color:var(--warn-ink)}
+  .mkSteps{margin:10px 0 12px;padding-left:22px;font-size:14px;line-height:1.55;color:var(--ink-2)}
   .mkSteps li+li{margin-top:5px}
-  .card.unchecked .gwrap{opacity:.5}
+  .mkWhat{font-size:14px;line-height:1.5;color:var(--ink-2);margin-top:8px}
+  .mkWhat b{color:var(--ink)}
   #step4{transition:outline-color .6s}
   #step4.justIn{outline:3px solid var(--accent);outline-offset:-3px}
-  /* next step guide */
-  .nextStep{grid-area:next;padding:14px 16px}
-  .nextStep.bare{padding:12px 16px}
+
+  /* ══ NEXT STEP ════════════════════════════════════════════════════════ */
+  .nextStep{grid-area:next;padding:15px 17px}
+  .nextStep.bare{padding:13px 17px}
   .nextStep.bare .nsGrid{display:block}
   .nextStep.bare .nsH{font-size:clamp(16px,1.5vw,19px)}
   .nextStep .label{margin-bottom:10px}
   .nsGrid{display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
   @media (min-width:900px){.nsGrid{grid-template-columns:minmax(0,370px) minmax(0,1fr);align-items:start}}
-  .nsSteps{background:var(--recess);box-shadow:var(--well-sh);border-radius:var(--r-s);padding:6px}
-  .nsStep{display:grid;grid-template-columns:26px 104px minmax(0,1fr);align-items:center;gap:9px;padding:6px 8px;border-radius:10px;color:var(--ink-2)}
-  /* On a desk the checklist was running taller than the question beside it,
-     so the card carried eighty-odd pixels of nothing under the answers.
-     Tighter rows, and the two panes end up about the same height. */
+  .nsSteps{background:var(--well);box-shadow:var(--well-sh);border-radius:var(--r-s);padding:6px}
+  .nsStep{display:grid;grid-template-columns:26px 104px minmax(0,1fr);align-items:center;gap:9px;
+    padding:6px 8px;border-radius:var(--r-xs);color:var(--ink-2)}
+  .nsStep+.nsStep{margin-top:2px}
+  .nsStep.cur{background:linear-gradient(160deg,var(--g2-hi),var(--g2));box-shadow:var(--raise);
+    color:var(--ink)}
+  .nsDot{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;
+    font:700 12px var(--mono);border:2px solid var(--line);color:var(--ink-2)}
+  .nsStep.cur .nsDot{border-color:var(--accent);color:var(--accent-ink)}
+  .nsStep.done .nsDot{background:linear-gradient(150deg,var(--accent-2),var(--accent));
+    border-color:transparent;color:var(--on-accent);box-shadow:var(--brass-sh)}
+  .nsL{font:600 11.5px var(--mono);letter-spacing:.08em;text-transform:uppercase}
+  .nsV{font-size:15px;font-weight:700;color:var(--ink);line-height:1.25;min-width:0;
+    overflow-wrap:anywhere}
+  .nsV small{display:block;font-size:13px;font-weight:500;color:var(--ink-2)}
+  .nsH{font-family:var(--disp);font-size:23px;font-weight:700;line-height:1.2;color:var(--ink);
+    letter-spacing:-.025em}
+  .nsSub{font-size:15px;line-height:1.5;color:var(--ink-2);margin-top:5px}
+  .nsSub b{color:var(--ink)}
+  .nsAct{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+  .nsBtn{display:inline-flex;align-items:center;gap:12px;padding:11px 16px;border:1px solid var(--line);
+    border-radius:var(--r-s);cursor:pointer;text-decoration:none;font:700 15px var(--sans);
+    color:var(--ink);background:linear-gradient(160deg,var(--g2-hi),var(--g2));
+    box-shadow:var(--raise);transition:transform .12s,box-shadow .12s}
+  .nsBtn:hover{transform:translateY(-1px);box-shadow:var(--lift)}
+  .nsBtn:active{transform:translateY(1px)}
+  .nsBtn b{font-family:var(--mono);font-weight:700;color:var(--accent-ink)}
+  .nsBtn i{font-style:normal;font-size:12px;font-weight:600;color:var(--ink-2);margin-left:-6px}
+  .nsBtn.on{background:linear-gradient(150deg,var(--accent-2),var(--accent));
+    color:var(--on-accent);border-color:transparent;box-shadow:var(--brass-sh)}
+  .nsBtn.on b{color:var(--on-accent)}
+  .nsBtn.on i,.nsBtn.on span i{color:color-mix(in srgb,var(--on-accent) 76%,transparent)}
+  .nsBtn.ghost{background:transparent;box-shadow:none;border-color:var(--ink-3);color:var(--ink)}
+  .nsBtn.srcLink{text-decoration:none;color:var(--accent-ink)}
   @media (min-width:1080px){
     .nsGrid{gap:10px}
     .nsStep{padding:3px 8px;gap:8px}
-    .card.nextStep{padding-top:10px;padding-bottom:10px}
-    /* The answer buttons were their own natural width, so five condition
-       choices ended a third of the way short and left a bare rectangle down
-       the right of the card - the thing the counter circled. Let them share
-       the row instead. They fill the space, they line up, and they become
-       far bigger targets for somebody standing at a counter rather than
-       sitting at the screen. Anything that is not a plain answer - the
-       lookup, the folds, the hint lines - keeps its own size. */
+    .card.nextStep{padding-top:11px;padding-bottom:11px}
     .nsAct{align-items:stretch}
     .nsAct>.nsBtn[data-ncond]:not(.ghost),
     .nsAct>.nsBtn[data-cat]:not(.ghost),
-    .nsAct>.nsBtn[data-mp]:not(.ghost){
-      flex:1 1 130px;min-width:0;justify-content:center;text-align:center;padding:14px 12px}
+    .nsAct>.nsBtn[data-mp]:not(.ghost){flex:1 1 130px;min-width:0;justify-content:center;
+      text-align:center;padding:14px 12px}
     .nsAct>.nsBtn[data-ncond] span{white-space:nowrap}
   }
-  .nsStep+.nsStep{margin-top:2px}
-  .nsStep.cur{background:linear-gradient(160deg,var(--e2-hi),var(--e2));box-shadow:inset 0 1px 0 rgba(255,255,255,.13),0 4px 10px -6px rgba(0,0,0,.9);color:var(--ink)}
-  .nsDot{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font:700 13px var(--mono);border:2px solid rgba(255,255,255,.35);color:var(--ink)}
-  .nsStep.cur .nsDot{border-color:var(--accent);color:var(--accent)}
-  .nsStep.done .nsDot{background:var(--accent);border-color:var(--accent);color:#04150F}
-  .nsL{font:700 12px var(--mono);letter-spacing:.08em;text-transform:uppercase}
-  .nsV{font-size:15px;font-weight:700;color:var(--ink);line-height:1.25;min-width:0;overflow-wrap:anywhere}
-  .nsV small{display:block;font-size:13px;font-weight:500;color:var(--ink-2)}
-  .nsH{font-size:22px;font-weight:800;line-height:1.2;color:var(--ink);letter-spacing:-.01em}
-  .nsSub{font-size:15px;line-height:1.45;color:var(--ink-2);margin-top:5px}
-  .nsSub b{color:var(--ink)}
-  .nsAct{display:flex;flex-wrap:wrap;gap:8px;margin-top:11px}
-  .nsBtn{display:inline-flex;align-items:center;gap:12px;padding:10px 15px;border:none;border-radius:12px;cursor:pointer;text-decoration:none;
-    font:700 15px var(--sans);color:var(--ink);background:linear-gradient(160deg,var(--e2-hi),var(--e2));
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.13),inset 0 -1px 0 rgba(0,0,0,.5),0 4px 10px -6px rgba(0,0,0,.9)}
-  .nsBtn b{font-family:var(--mono);font-weight:700;color:var(--accent)}
-  .nsBtn:hover{background:linear-gradient(160deg,rgba(52,59,80,.96),var(--e2-hi))}
-  .nsBtn.on{background:linear-gradient(150deg,#4DFFC4,var(--accent));color:#04150F}
-  .nsBtn.on b{color:#04150F}
-  /* The sub-note and the "in use" tag are <i>, and .nsBtn i paints them
-     --ink-2 - a light grey that is invisible on the mint fill. The one
-     card carrying the sold prices was the one card you could not read. */
-  .nsBtn.on i{color:rgba(4,21,15,.78)}
-  .nsBtn.on span i{color:rgba(4,21,15,.72)}
-  .nsBtn.ghost{background:transparent;box-shadow:inset 0 0 0 1px rgba(255,255,255,.28);color:var(--ink)}
-  .nsBtn:focus-visible,.srcLink:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
-  .srcLink{color:var(--accent);font-weight:700;text-decoration:underline;text-underline-offset:3px}
-  .nsBtn.srcLink{text-decoration:none;color:var(--accent)}
-  .mkWhat{font-size:14px;line-height:1.45;color:var(--ink-2);margin-top:8px}
-  .mkWhat b{color:var(--ink)}
-  .nsBtn i{font-style:normal;font-size:12px;font-weight:600;color:var(--ink-2);margin-left:-6px}
-  .omniRow .ov small{display:block;font:600 11px var(--sans);color:var(--ink-2);text-align:right;letter-spacing:.02em}
-  .buyRow{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:12px;padding:12px 14px;border-radius:var(--r-s);
-    background:linear-gradient(160deg,var(--e2-hi),var(--e2));box-shadow:inset 0 1px 0 rgba(255,255,255,.13),inset 0 -1px 0 rgba(0,0,0,.5),0 4px 10px -6px rgba(0,0,0,.9)}
-  .buyRow .l{font:700 12px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink)}
-  .buyRow .s{font-size:13.5px;line-height:1.4;color:var(--ink-2);margin-top:4px}
-  .buyRow .v{font-family:var(--mono);font-size:26px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
-  @media (prefers-reduced-motion:no-preference){
-    .pop{animation:rise .45s cubic-bezier(.2,.8,.2,1) both}
-    @keyframes rise{from{opacity:0;transform:translateY(14px)}}
+  .buyRow{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:12px;
+    padding:13px 15px;border-radius:var(--r-s);border:1px solid var(--line);
+    background:linear-gradient(160deg,var(--g2-hi),var(--g2));box-shadow:var(--raise)}
+  .buyRow .l{font:600 11.5px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink)}
+  .buyRow .s{font-size:13.5px;line-height:1.45;color:var(--ink-2);margin-top:4px}
+  .buyRow .v{font-family:var(--disp);font-size:27px;font-weight:800;color:var(--ink);
+    letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+
+  /* ══ THE START SCREEN ═════════════════════════════════════════════════ */
+  #view.item.start{display:block!important}
+  .startPane{display:grid;gap:clamp(14px,1.5vw,20px);margin-top:clamp(14px,1.6vw,22px)}
+  .startLede{margin:0 4px;font-size:13.5px;line-height:1.55;color:var(--ink-3)}
+  .startLede b{color:var(--ink-2);font-weight:600}
+  .startTwo,.startCol{display:grid;gap:clamp(10px,1.1vw,15px);align-content:start}
+  @media (min-width:1080px){
+    .startCol{grid-template-columns:repeat(3,minmax(0,1fr));align-items:start}
+    .startCol>.card,.startCol>details{margin-top:0;align-self:start}
   }
+  .startCol>.card{margin-top:0}
 
-  /* The camera leading the phone's start screen: this is the move the app
-     exists for out shopping, so the button is thumb-sized and the card does
-     not look like one more row of settings. */
-  .camLead{border:1px solid rgba(0,232,160,.34);background:linear-gradient(160deg,var(--e2-hi),var(--e2))}
-  .camLead .label{font-size:12px;letter-spacing:.1em}
-  .camLead .row2{margin-top:10px}
-
-  /* ---- one page at a time ------------------------------------------------
-     Thirteen cards over three columns is a wall. Paged, the columns collapse
-     to one run and everything but the current job is hidden - hidden, not
-     removed, so inputs keep their values and their handlers. */
+  /* ══ ONE PAGE / ONE QUESTION AT A TIME ════════════════════════════════ */
   .pgOff{display:none!important}
   #view.item.paged{display:block!important}
-  /* Paging and the rail together: the pages decide WHAT is on the left, the
-     rail keeps the money beside it. The block rule above exists for the
-     phone, where there is one column and nothing to lay out - here it would
-     flatten the two columns back into one. */
   #view.item.railed.paged{display:grid!important}
   body #view.item.railed.paged .colL,body #view.item.railed.paged .colC{display:contents!important}
   #view.item.railed .pageNav{margin:0 0 2px}
   #view.item.railed .pageStep{margin-top:8px}
-  .pageSkip{opacity:.72}
+  .pageSkip{opacity:.75}
   .pageSkip:hover{opacity:1}
-  /* phone.css hides these columns with an !important rule carrying a body
-     element in it, so this has to out-specify that, not just repeat it. */
   body #view.item.paged .colL,body #view.item.paged .colC,body #view.item.paged .colR,
   body.phone #view.item.paged .colL,body.phone #view.item.paged .colC,body.phone #view.item.paged .colR{
     display:block!important;width:auto;max-width:none;overflow:visible;height:auto}
   .pageNav{margin:12px 0 4px}
-  /* one question at a time */
-  .askCard{padding:clamp(14px,1.6vw,20px)}
-  .askWhere{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--ink-3);
+  .askCard{padding:clamp(15px,1.6vw,22px)}
+  .askWhere{font-family:var(--mono);font-size:11px;letter-spacing:.11em;color:var(--ink-3);
     text-transform:uppercase}
-  .askQ{font-family:var(--sans);font-size:clamp(19px,2.2vw,25px);font-weight:800;
-    color:var(--ink);line-height:1.25;margin:6px 0 2px}
-  /* Big enough to hit without looking, and stacked rather than squeezed into
-     a row - three words in a pill 80px wide is a thing you have to read. */
-  .askOpts{display:grid;gap:8px;margin-top:13px}
+  .askQ{font-family:var(--disp);font-size:clamp(20px,2.2vw,27px);font-weight:700;color:var(--ink);
+    line-height:1.2;margin:6px 0 2px;letter-spacing:-.03em}
+  .askOpts{display:grid;gap:8px;margin-top:14px}
   @media (min-width:620px){ .askOpts{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))} }
   .askOpt{display:flex;flex-direction:column;gap:3px;align-items:flex-start;text-align:left;
-    padding:14px 16px;border:1px solid rgba(255,255,255,.1);border-radius:14px;cursor:pointer;
-    background:var(--recess);color:var(--ink);font-family:var(--sans);
-    transition:border-color .12s,background .12s}
-  .askOpt:hover{border-color:var(--accent)}
-  .askOpt.on{background:var(--accent);color:#04120C;border-color:var(--accent)}
+    padding:14px 16px;border:1px solid var(--line);border-radius:var(--r-s);cursor:pointer;
+    background:linear-gradient(160deg,var(--g2-hi),var(--g2));color:var(--ink);
+    box-shadow:var(--raise);transition:transform .12s,border-color .12s,box-shadow .12s}
+  .askOpt:hover{border-color:var(--accent);transform:translateY(-1px);box-shadow:var(--lift)}
+  .askOpt.on{background:linear-gradient(150deg,var(--accent-2),var(--accent));
+    color:var(--on-accent);border-color:transparent;box-shadow:var(--brass-sh)}
   .askT{font-size:15.5px;font-weight:700}
-  .askS{font-size:12px;color:var(--ink-3);line-height:1.35}
-  .askOpt.on .askS{color:rgba(4,18,12,.72)}
+  .askS{font-size:12px;color:var(--ink-3);line-height:1.4}
+  .askOpt.on .askS{color:color-mix(in srgb,var(--on-accent) 78%,transparent)}
   .askWorth{margin-top:12px}
   .askNav{display:flex;align-items:center;gap:12px;margin-top:16px}
-  /* Back and Skip sit side by side and have to match. brassBtn carries
-     "padding:0 18px" - no vertical padding at all - and everywhere else it
-     is used something gives it a height. Here nothing did, so Skip came out
-     squat beside Back and the pair looked broken. Both are pinned to the
-     same box. */
   .askNav .ghostBtn,.askNav .brassBtn{min-height:42px;padding:0 20px;font-size:13px;
     display:inline-flex;align-items:center;justify-content:center;line-height:1}
   .askDots{flex:1;display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
-  /* Every question at a glance, and a way back to any of them. */
-  .askDots i{width:9px;height:9px;border-radius:999px;background:rgba(255,255,255,.16);
-    cursor:pointer;display:block}
-  .askDots i.done{background:var(--accent-2)}
-  .askDots i.on{background:var(--accent);transform:scale(1.35)}
+  .askDots i{width:9px;height:9px;border-radius:999px;background:var(--line);cursor:pointer;
+    display:block;transition:transform .16s,background .16s}
+  .askDots i.done{background:var(--info)}
+  .askDots i.on{background:var(--accent);transform:scale(1.4)}
+  .askHits{margin-top:10px}
   .pageTabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
   .pageTabs::-webkit-scrollbar{display:none}
-  .pageTabs button{flex:0 0 auto;display:inline-flex;align-items:center;gap:7px;
-    padding:10px 15px;border:none;border-radius:999px;cursor:pointer;white-space:nowrap;
-    background:var(--recess);color:var(--ink-3);font-family:var(--sans);font-size:14px;font-weight:600;
-    box-shadow:var(--well-sh)}
-  .pageTabs button i{font-style:normal;font-family:var(--mono);font-size:11px;opacity:.7}
-  .pageTabs button.on{background:var(--accent);color:#04120C}
-  .pageTabs button.on i{opacity:.55}
-  /* Answered, but not the page you are standing on. The tick is the whole
-     point - it tells you the strip is showing POSITION, not progress. */
-  .pageTabs button.done:not(.on){color:var(--ink-2)}
-  .pageTabs button.done:not(.on) i{color:var(--accent);opacity:1;font-weight:700}
+  .pageTabs button{flex:0 0 auto;display:inline-flex;align-items:center;gap:7px;padding:10px 16px;
+    border:none;border-radius:999px;cursor:pointer;white-space:nowrap;background:var(--well);
+    color:var(--ink-2);font-size:14px;font-weight:600;box-shadow:var(--well-sh)}
+  .pageTabs button i{font-style:normal;font-family:var(--mono);font-size:11px;opacity:.75}
+  .pageTabs button.on{background:linear-gradient(150deg,var(--accent-2),var(--accent));
+    color:var(--on-accent);box-shadow:var(--brass-sh)}
+  .pageTabs button.on i{opacity:.6}
+  .pageTabs button.done:not(.on){color:var(--ink)}
+  .pageTabs button.done:not(.on) i{color:var(--good);opacity:1;font-weight:700}
   .pageTabs button.done.on i{opacity:.8;font-weight:700}
   .pageStep{display:flex;align-items:center;gap:10px;margin-top:10px}
-  .pageStep .ghostBtn,.pageStep .brassBtn{padding:11px 18px}
+  .pageStep .ghostBtn,.pageStep .brassBtn{padding:11px 19px}
   .pageStep button[disabled]{opacity:.35;cursor:default}
-  .pageWhere{flex:1;text-align:center;font-family:var(--mono);font-size:11.5px;
-    letter-spacing:.1em;color:var(--ink-3);text-transform:uppercase}
+  .pageWhere{flex:1;text-align:center;font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;
+    color:var(--ink-3);text-transform:uppercase}
 
-  /* ---- the phone's snap -> price screen ---------------------------------
-     One job: photograph a thing, read the most you should pay. Nothing on
-     this screen that is not that, or one tap from it. */
+  /* ══ THE PHONE'S SNAP SCREEN (shape only; phone.css does the rest) ════ */
   .snapWrap{display:flex;flex-direction:column;gap:14px}
   .snapCam{display:flex;flex-direction:column;gap:10px;align-items:stretch}
   .snapShoot{display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;
     margin:0;padding:24px;font-size:20px;border-radius:var(--r);text-align:center}
-  .snapAlt{text-align:center;cursor:pointer;font-size:13.5px;color:var(--accent-2);
+  .snapAlt{text-align:center;cursor:pointer;font-size:13.5px;color:var(--info-ink);
     text-decoration:underline;text-underline-offset:3px;padding:2px}
   .snapBusy{font-size:14px;color:var(--ink-2);display:flex;align-items:center;justify-content:center;gap:10px}
   .snapBusy .ghostBtn{padding:7px 13px;font-size:12px}
@@ -697,44 +769,60 @@
     text-transform:uppercase;color:var(--ink-3)}
   .snapTip{font-size:13px;color:var(--ink-3);line-height:1.5}
   .snapOff{font-size:13px;color:var(--ink-3);line-height:1.6;padding:11px 13px;
-    border:1px dashed var(--e2-hi);border-radius:12px}
+    border:1px dashed var(--line);border-radius:var(--r-s)}
   .snapOff .ghostBtn{padding:6px 13px;font-size:12.5px;margin-left:4px}
-  .snapName{font-size:20px;font-weight:700;color:var(--ink);line-height:1.25}
-  .snapName span{display:block;font-size:13.5px;font-weight:500;color:var(--ink-3);margin-top:3px}
-  .snapCard{padding:20px;border-radius:var(--r);border:1px solid rgba(0,232,160,.30);
-    background:linear-gradient(160deg,var(--e2-hi),var(--e2));box-shadow:var(--sh)}
-  .snapCard.bad{border-color:rgba(255,66,87,.4)}
-  .snapLab{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
-  .snapBig{font-family:var(--mono);font-size:58px;line-height:1;color:var(--accent);margin-top:4px}
+  .snapName{font-family:var(--disp);font-size:21px;font-weight:700;color:var(--ink);line-height:1.2;
+    letter-spacing:-.03em}
+  .snapName span{display:block;font-family:var(--sans);font-size:13.5px;font-weight:500;
+    color:var(--ink-3);margin-top:3px;letter-spacing:0}
+  .snapCard{padding:20px;border-radius:var(--r);
+    border:1px solid color-mix(in srgb,var(--accent) 38%,var(--line));
+    background:linear-gradient(155deg,var(--glass-hi),var(--glass) 72%);
+    -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);box-shadow:var(--raise)}
+  .snapCard.bad{border-color:color-mix(in srgb,var(--bad) 45%,transparent)}
+  .snapLab{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--ink-3)}
+  .snapBig{font-family:var(--disp);font-size:58px;font-weight:800;line-height:1;color:var(--ink);
+    letter-spacing:-.05em;margin-top:4px}
   .snapBig.dim{opacity:.45}
-  .snapNo{font-family:var(--mono);font-size:38px;line-height:1.05;color:var(--bad)}
-  .snapSub{font-size:15px;color:var(--ink-2);margin-top:10px}
+  .snapNo{font-family:var(--disp);font-size:38px;font-weight:800;line-height:1.05;color:var(--bad-ink);
+    letter-spacing:-.04em}
+  .snapSub{font-size:15px;color:var(--ink-2);margin-top:10px;line-height:1.5}
   .snapSub b{color:var(--ink)}
-  .snapSrc{font-size:12px;color:var(--ink-3);margin-top:10px;border-top:1px solid var(--ink-3);padding-top:9px}
+  .snapSrc{font-size:12px;color:var(--ink-3);margin-top:10px;border-top:1px solid var(--line);padding-top:9px}
+  .snapSrc:empty{display:none}
   .snapCond{display:flex;gap:6px;flex-wrap:wrap}
-  .snapCond button{flex:1;min-width:64px;padding:10px 6px;border:none;border-radius:999px;cursor:pointer;
-    background:var(--recess);color:var(--ink-3);font-family:var(--sans);font-size:12.5px;font-weight:600;
-    box-shadow:var(--well-sh)}
-  .snapCond button.on{background:var(--accent);color:#04120C}
+  .snapCond button{flex:1;min-width:64px;padding:10px 6px;border:none;border-radius:999px;
+    cursor:pointer;background:transparent;color:var(--ink-2);font-size:12.5px;font-weight:600}
+  .snapCond button.on{background:linear-gradient(150deg,var(--accent-2),var(--accent));
+    color:var(--on-accent)}
   .snapFoot{display:flex;gap:9px;flex-wrap:wrap}
   .snapFoot button{flex:1;min-width:140px;padding:13px 16px}
-
-  /* Pinned escape from the phone's detailed view. It has to stay on screen:
-     the tab-bar version scrolled away and left no way back. */
   .snapPin{position:sticky;top:6px;z-index:40;display:block;width:100%;margin:0 0 12px;
     padding:13px 16px;border:none;border-radius:999px;cursor:pointer;text-align:center;
-    background:var(--accent);color:#04120C;font-family:var(--sans);font-size:15px;font-weight:700;
-    box-shadow:0 6px 18px rgba(0,0,0,.45)}
-
-  /* the four questions, and the shelf of pictures kept for later */
+    background:linear-gradient(150deg,var(--accent-2),var(--accent));color:var(--on-accent);
+    font-size:15px;font-weight:700;box-shadow:var(--brass-sh)}
   .snapAsk{display:flex;flex-direction:column;gap:9px;margin-top:12px}
   .snapAsk label{display:flex;flex-direction:column;gap:4px}
   .snapAsk span{font-size:12.5px;color:var(--ink-3)}
-  .snapAsk input{width:100%;padding:11px 13px;border-radius:12px;border:1px solid var(--ink-3);
-    background:var(--recess);color:var(--ink);font-family:var(--sans);font-size:15px;box-shadow:var(--well-sh)}
+  .snapAsk input{width:100%;padding:11px 13px;border-radius:var(--r-xs);border:1px solid var(--line);
+    background:var(--well);color:var(--ink);font-size:15px;box-shadow:var(--well-sh)}
   .snapAsk input:focus{outline:none;border-color:var(--accent)}
-  .shotGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-top:10px}
-  .shotItem{background:var(--e2);border-radius:12px;padding:8px}
-  .shotItem img{width:100%;height:96px;object-fit:cover;border-radius:8px;display:block}
-  .shotWhat{font-size:13px;color:var(--ink);margin-top:6px;line-height:1.3}
-  .shotWhen{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);margin-top:2px}
+
+  /* ══ MICRO-INTERACTIONS ═══════════════════════════════════════════════
+     The defence against looking like everything else, and the only motion
+     in here: cards arrive from 14px below, and pressable things answer a
+     press. No rotation, no breathing, nothing that moves on its own while
+     somebody is trying to read a number off it. */
+  @media (prefers-reduced-motion:no-preference){
+    /* .pop only, never .card. This screen re-renders on every answer, so
+       an entrance animation on the card class means the whole page fades
+       itself back in each time somebody taps a button - which reads as the
+       app stalling, not as polish. Entrances belong on the thing that has
+       genuinely just arrived. */
+    .pop{animation:rise .45s cubic-bezier(.2,.8,.2,1) both}
+    @keyframes rise{from{opacity:0;transform:translateY(14px)}}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important}
+  }

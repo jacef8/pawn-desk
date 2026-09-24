@@ -1,158 +1,153 @@
+  /* ══ THE PHONE ════════════════════════════════════════════════════════
+     Everything the desk is, in one hand: liquid glass on the same warm
+     paper, the same brass, the same three faces. What differs is what is
+     ON it. Navigation is a dock under the thumb, the answer is a dial you
+     can read across a driveway, and anything that is neither is either one
+     tap away or gone.
 
-  /* Price Check (phone): only the search, the steps and the verdict */
-  body.phone #view.item .colL, body.phone #view.item .colC, body.phone #view.item .colR{display:none!important}
+     The new minimalism, which the trend piece calls "the brave act of
+     getting out of the way": the phone screen is the place that costs the
+     most to get wrong, so it carries the least.
+     ══════════════════════════════════════════════════════════════════ */
+
+  /* The desk's three columns have nothing to lay out here. */
+  body.phone #view.item .colL,body.phone #view.item .colC,body.phone #view.item .colR{display:none!important}
   body.phone .foot{display:none!important}
   body.phone #view.item{display:block!important}
   body.phone .nextStep{margin-top:10px}
   body.phone .nsGrid{grid-template-columns:minmax(0,1fr)!important}
-  body.phone .nsH{font-size:24px}
+  body.phone .nsH{font-size:25px}
   body.phone .nsSub{font-size:16px}
-  body.phone .nsBtn{font-size:16px;padding:12px 16px}
+  body.phone .nsBtn{font-size:16px;padding:13px 16px}
+
+  /* ---- the title line -------------------------------------------------
+     Not a card. With the navigation gone to the foot there is one line of
+     text left up here, and a panel around one line of text is furniture. */
+  body.phone .bar{background:none;border:none;box-shadow:none;border-radius:0;
+    padding:2px 2px 0;gap:10px;row-gap:6px;-webkit-backdrop-filter:none;backdrop-filter:none}
+  body.phone .brand .eyebrow{display:none}
+  body.phone .brand h1{font-size:15px;color:var(--ink-3);font-weight:700;letter-spacing:-.01em;
+    margin:0;white-space:nowrap}
+  body.phone .sys{font-size:11px;letter-spacing:.05em;margin-left:auto}
+  /* Spot gold earns a line while gold is on the scale, and nowhere else. */
+  body.phone .dash:has(#view.item) .sys{display:none}
+
+  /* ---- THE DOCK -------------------------------------------------------
+     Fixed along the bottom, in the band a hand holding the phone can
+     actually reach. Glass, so the page slides under it rather than
+     stopping dead at a bar. The current place is LIT, not filled: a solid
+     pill sitting under the thumb all day reads as a button waiting to be
+     pressed. */
+  body.phone{--dock:58px}
+  body.phone .dash{padding-bottom:calc(var(--dock) + env(safe-area-inset-bottom) + 14px)}
+  body.phone .dock{position:fixed;left:0;right:0;bottom:0;z-index:50;
+    display:grid;grid-auto-flow:column;grid-auto-columns:1fr;align-items:stretch;gap:0;
+    padding:6px 4px calc(6px + env(safe-area-inset-bottom));
+    background:linear-gradient(to top,var(--glass-hi),var(--glass));
+    -webkit-backdrop-filter:blur(22px) saturate(170%);backdrop-filter:blur(22px) saturate(170%);
+    border-top:1px solid var(--line)}
+  body.phone .dock button{display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:3px;min-width:0;padding:5px 2px;border:none;background:transparent;
+    cursor:pointer;border-radius:var(--r-s);color:var(--ink-3);
+    transition:color .16s,transform .12s}
+  body.phone .dock button:active{transform:scale(.94)}
+  body.phone .dock button svg{width:21px;height:21px;fill:none;stroke:currentColor;
+    stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  body.phone .dock button i{font-style:normal;font-size:10.5px;font-weight:600;line-height:1;
+    max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  body.phone .dock button.on{color:var(--accent-ink)}
+  body.phone .dock button.on svg{stroke-width:2.1}
+
+  /* ---- the anchor -----------------------------------------------------
+     Sized off the SHORT phone as well as the narrow one: 56vw is 201px on
+     a 360px screen, and on a 780px-tall one that is 39px too tall. The vh
+     term is what keeps it inside a small phone. */
+  body.phone .snapAnchor .gwrap{max-width:min(210px,56vw,23vh)}
+  /* The arc stops at 270 degrees, so the bottom eighth of its box is
+     empty. Pull the next thing up into the gap. */
+  body.phone .snapAnchor svg{margin-bottom:-13%}
+  body.phone .snapAnchor .gcenter b{font-size:clamp(34px,11vw,46px)}
+  body.phone .snapAnchor .gcenter .gs{font-size:11.5px;max-width:170px;margin:0 auto}
+  /* A dash set at the size of a price is a brick. It is a placeholder and
+     should look like one. */
+  body.phone .snapAnchor .gcenter b .gdash{font-size:.48em;color:var(--ink-3);
+    position:relative;top:-.12em}
+  body.phone .snapAnchor.bad .gcenter b,body.phone .snapAnchor.bad .gcenter .gl{color:var(--bad-ink)}
+  body.phone .snapCard{padding:16px}
+  /* Where the number came from is spelled out by the card underneath. */
+  body.phone .snapCard .snapSrc{display:none}
+
+  /* ---- the two figures behind the offer ------------------------------
+     Readouts cut into the housing, side by side. They were a caption
+     inside the ring, where at 390px they wrapped over the arc. */
+  body.phone .snapStats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:2px}
+  body.phone .snapStats>div{padding:10px 13px;border-radius:var(--r-s);background:var(--well);
+    box-shadow:var(--well-sh);display:flex;flex-direction:column;gap:3px;min-width:0}
+  body.phone .snapStats span{font-family:var(--mono);font-size:10.5px;letter-spacing:.11em;
+    text-transform:uppercase;color:var(--ink-3)}
+  body.phone .snapStats b{font-family:var(--disp);font-size:22px;font-weight:800;
+    letter-spacing:-.035em;color:var(--ink);font-variant-numeric:tabular-nums}
+
+  /* ---- condition: one control, five settings -------------------------
+     Loose on the page they read as five unrelated buttons. Sunk into a
+     single well they read as one choice, which is what they are. */
+  body.phone .snapCond{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:3px;
+    padding:4px;border-radius:999px;background:var(--well);box-shadow:var(--well-sh)}
+  body.phone .snapCond button{min-width:0;padding:10px 2px;font-size:12px}
+  body.phone .snapCond button.on{box-shadow:var(--brass-sh);font-weight:700}
+
+  /* ---- out of the detailed screen ------------------------------------
+     A chip. It was a full-width brass button - the loudest thing on the
+     screen - because it used to live in the tab strip and scroll away, so
+     it had to shout to be found. The dock does not scroll. */
+  body.phone .snapPin{display:inline-flex;align-items:center;gap:6px;width:auto;
+    padding:8px 15px;font-size:13.5px;font-weight:600;margin:0 0 12px;
+    background:linear-gradient(160deg,var(--g2-hi),var(--g2));color:var(--ink-2);
+    border:1px solid var(--line);box-shadow:var(--raise)}
+
+  /* ---- the unconnected footnote --------------------------------------
+     Only ever true until somebody types two lines into Setup. */
+  body.phone .snapOff{padding:9px 12px;font-size:12.5px;line-height:1.5}
+  body.phone .snapOff .ghostBtn{padding:5px 12px;font-size:12px}
+  body.phone .snapFoot button{padding:12px 15px;font-size:14px}
+
+  /* ---- the walk-away verdict -----------------------------------------
+     Three states, three washes, and the word carries the colour. */
   .phIn{display:flex;align-items:center;gap:8px;width:100%;margin-top:4px}
   .phIn span{font:700 22px var(--mono);color:var(--ink)}
-  .phIn input{flex:1;min-width:0;font:700 22px var(--mono);color:var(--ink);background:var(--recess);box-shadow:var(--well-sh);border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:12px 14px}
+  .phIn input{flex:1;min-width:0;font:700 22px var(--mono);color:var(--ink);background:var(--well);
+    box-shadow:var(--well-sh);border:1px solid var(--line);border-radius:var(--r-xs);padding:12px 14px}
   .phIn.big input{font-size:30px;padding:14px 16px}
   .phIn input:focus{outline:3px solid var(--accent);outline-offset:1px}
-  .phVerdict{margin-top:12px;border-radius:var(--r-s);padding:14px 16px;border:2px solid}
-  .phVerdict.good{border-color:var(--accent);background:rgba(0,232,160,.12)}
-  .phVerdict.thin{border-color:var(--warn);background:rgba(255,138,30,.13)}
-  .phVerdict.pass{border-color:var(--bad);background:rgba(255,66,87,.13)}
-  .phWord{font-size:30px;font-weight:800;letter-spacing:-.01em}
-  .phVerdict.good .phWord{color:var(--accent)} .phVerdict.thin .phWord{color:#FFB872} .phVerdict.pass .phWord{color:#FF8A96}
+  .phVerdict{margin-top:12px;border-radius:var(--r-s);padding:15px 17px;border:2px solid}
+  .phVerdict.good{border-color:var(--good);background:color-mix(in srgb,var(--good) 11%,transparent)}
+  .phVerdict.thin{border-color:var(--warn);background:var(--warn-wash)}
+  .phVerdict.pass{border-color:var(--bad);background:var(--bad-wash)}
+  .phWord{font-family:var(--disp);font-size:30px;font-weight:800;letter-spacing:-.035em}
+  .phVerdict.good .phWord{color:var(--good)}
+  .phVerdict.thin .phWord{color:var(--warn-ink)}
+  .phVerdict.pass .phWord{color:var(--bad-ink)}
   .phLine{font-size:17px;line-height:1.45;color:var(--ink);margin-top:4px}
-  .phMath{font-size:15px;line-height:1.45;color:var(--ink-2);margin-top:8px}
+  .phMath{font-size:15px;line-height:1.5;color:var(--ink-2);margin-top:8px}
   .phMath b,.phLine b{color:var(--ink)}
-  .phSrc{font-size:15px;line-height:1.45;color:var(--ink-2);margin-top:12px}
+  .phSrc{font-size:15px;line-height:1.5;color:var(--ink-2);margin-top:12px}
   .phSrc b{color:var(--ink)}
   .phKinds{margin-top:14px;font-size:15px;color:var(--ink-2)}
   .phKinds summary{cursor:pointer;font-weight:700;color:var(--ink)}
   .phKindRow{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
-  body.phone .bar{border-radius:var(--r)}
 
-/* THE HEADER WAS A QUARTER OF THE PHONE.
-   192px of a 780px screen went on a wordmark, three tabs that wrapped onto
-   two rows at 360px wide, and a line of spot metal prices - before the item
-   being priced got a pixel. Measured on a small Android that is the whole
-   reason the screen would not fit.
-
-   The wordmark keeps its name and loses the eyebrow and a row: it sits on
-   the same line as the tabs. The metals line only shows where metal is
-   being priced, and the build number where it is read - under Setup. */
-body.phone .bar{padding:8px 12px;gap:10px;row-gap:6px}
-body.phone .brand .eyebrow{display:none}
-body.phone .brand h1{font-size:16px;letter-spacing:-.02em;margin:0;white-space:nowrap}
-body.phone .sys{font-size:11.5px;letter-spacing:.06em;margin-left:auto}
-
-/* ---- THE DOCK -------------------------------------------------------
-   The tabs used to be a wrapping pill strip at the TOP of the phone: two
-   rows of them at 360px wide, in the one band of a phone screen that a
-   hand holding the phone cannot reach. They are a fixed dock now, with a
-   drawing over a one-word label, and the current one lit rather than
-   filled - a place you are in, not a button you are holding down.
-
-   It is fixed, so the page has to stop underneath it: .dash carries the
-   dock's height plus the home-indicator inset as bottom padding, and the
-   fit tests measure with it in place. */
-body.phone{--dock:58px}
-body.phone .dash{padding-bottom:calc(var(--dock) + env(safe-area-inset-bottom) + 14px)}
-body.phone .dock{position:fixed;left:0;right:0;bottom:0;z-index:50;
-  display:grid;grid-auto-flow:column;grid-auto-columns:1fr;align-items:stretch;
-  gap:0;padding:6px 4px calc(6px + env(safe-area-inset-bottom));
-  background:rgba(13,16,23,.86);backdrop-filter:blur(18px) saturate(150%);
-  -webkit-backdrop-filter:blur(18px) saturate(150%);
-  border-top:1px solid rgba(255,255,255,.08);
-  box-shadow:0 -8px 26px -18px rgba(0,0,0,.95)}
-body.phone .dock button{display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:3px;min-width:0;padding:5px 2px;border:none;background:transparent;cursor:pointer;
-  border-radius:14px;color:var(--ink-3);transition:color .16s}
-body.phone .dock button svg{width:21px;height:21px;fill:none;stroke:currentColor;
-  stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-body.phone .dock button i{font-family:var(--sans);font-style:normal;font-size:10.5px;
-  font-weight:600;letter-spacing:.01em;line-height:1;
-  max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-/* Lit, not filled: a solid pill under the thumb at all times reads as a
-   button waiting to be pressed. The accent and a short glow say where you
-   are without shouting it. */
-body.phone .dock button.on{color:var(--accent)}
-body.phone .dock button.on svg{filter:drop-shadow(0 0 5px rgba(0,232,160,.55))}
-body.phone .dock button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
-/* Spot gold is worth a line while gold is on the scale, and nowhere else. */
-body.phone .dash:has(#view.item) .sys{display:none}
-
-/* Five conditions, five columns. flex with a 64px minimum put "Rough" on a
-   row of its own at 360px wide - a full-width button that looks like the
-   answer and is only the last of five. */
-body.phone .snapCond{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
-body.phone .snapCond button{min-width:0;padding:10px 2px;font-size:12px}
-/* A rule with nothing under it. The source line is empty until there is a
-   source, and an empty element still drew its own top border. */
-.snapSrc:empty{display:none}
-
-/* The anchor dial. 300px would eat the screen on a 360px phone with a dock
-   at the foot of it, so it is sized off the viewport and capped. */
-/* Sized off the SHORT phone as well as the narrow one: 56vw is 201px on a
-   360px screen, and on a 780px-tall one that put the screen 39px over. The
-   vh term is what keeps it inside a small phone. */
-body.phone .snapAnchor .gwrap{max-width:min(210px,56vw,23vh)}
-/* The dial's box is square, but the arc stops at 270 degrees - the bottom
-   eighth of it is empty. Pull the next thing up into that gap rather than
-   leaving a hole under the number. */
-body.phone .snapAnchor svg{margin-bottom:-13%}
-body.phone .snapAnchor .gcenter b{font-size:clamp(34px,11vw,46px)}
-/* A dash set at the size of a price is a white brick. It is a placeholder;
-   it should look like one. */
-body.phone .snapAnchor .gcenter b .gdash{font-size:.48em;color:var(--ink-3);
-  position:relative;top:-.12em}
-body.phone .snapAnchor .gcenter .gs{font-size:11.5px;max-width:170px;margin-left:auto;margin-right:auto}
-body.phone .snapAnchor.bad .gcenter b,body.phone .snapAnchor.bad .gcenter .gl{color:var(--bad)}
-body.phone .snapCard{padding:16px}
-
-/* Two figures behind the offer, side by side under the dial. Recessed, so
-   they read as readouts rather than as two more things to press. */
-body.phone .snapStats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:2px}
-body.phone .snapStats>div{padding:9px 12px;border-radius:14px;background:var(--recess);
-  box-shadow:var(--well-sh);display:flex;flex-direction:column;gap:3px;min-width:0}
-body.phone .snapStats span{font-family:var(--mono);font-size:10.5px;letter-spacing:.11em;
-  text-transform:uppercase;color:var(--ink-3)}
-body.phone .snapStats b{font-family:var(--disp);font-size:21px;font-weight:800;
-  letter-spacing:-.02em;color:var(--ink);font-variant-numeric:tabular-nums}
-
-/* The wordmark was a card of its own - a panel, with a border and a shadow,
-   holding one line of text that never changes. With the dock carrying the
-   navigation there is nothing else in it, so it stops pretending to be a
-   control and becomes what it is: a title line over the screen. */
-body.phone .bar{background:none;border:none;box-shadow:none;border-radius:0;padding:2px 2px 0}
-body.phone .brand h1{font-size:15px;color:var(--ink-3);font-weight:700;letter-spacing:.02em}
-
-/* Five conditions as one segmented control cut into the surface, which is
-   the only shape the directive allows a row of pills. Loose on the page
-   they read as five separate buttons with no relationship. */
-body.phone .snapCond{padding:4px;border-radius:999px;background:var(--recess);
-  box-shadow:var(--well-sh);gap:3px}
-body.phone .snapCond button{box-shadow:none;background:transparent;padding:9px 2px}
-body.phone .snapCond button.on{background:linear-gradient(150deg,#4DFFC4,var(--accent));
-  color:#04150F;font-weight:700;
-  box-shadow:0 3px 9px rgba(0,232,160,.42),inset 0 1px 0 rgba(255,255,255,.5)}
-/* Where the number came from is spelled out in full by the card right
-   under this one. Saying it twice, in two different shapes, is how a
-   screen gets long. */
-body.phone .snapCard .snapSrc{display:none}
-
-/* The unconnected notice is a footnote, not a card: it is only ever true
-   until somebody types two lines in Setup, and on a short phone it was the
-   last 20px standing between the screen and fitting. */
-body.phone .snapOff{padding:8px 11px;font-size:12.5px;line-height:1.45}
-body.phone .snapOff .ghostBtn{padding:5px 11px;font-size:12px}
-body.phone .snapFoot button{padding:11px 14px;font-size:14px}
-
-/* Back was a full-width accent button across the top of the detailed
-   screen - the loudest thing on it, and the loudest thing on a screen
-   should be the answer, not the way out of it. It was that size because
-   it used to live in the tab strip and scroll away, so it had to shout to
-   be found. The dock does not scroll, and neither does this; it can be a
-   chip. */
-body.phone .snapPin{display:inline-flex;align-items:center;gap:6px;width:auto;
-  padding:8px 15px;font-size:13.5px;font-weight:600;margin:0 0 12px;
-  background:var(--e2);color:var(--ink-2);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.10),0 4px 12px -8px rgba(0,0,0,.9)}
-body.phone .snapPin:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  /* ---- the small phone ------------------------------------------------
+     360x780 is the size that decides everything: the dial, the card
+     padding and the gaps between cards each cost a few pixels there and
+     the sum of them is a screen that scrolls. Measured, not guessed -
+     check-screens walks four phone sizes and four states. */
+  @media (max-height:800px){
+    body.phone .snapWrap{gap:10px}
+    body.phone .snapCard{padding:13px}
+    body.phone .snapAnchor .gwrap{max-width:min(186px,51vw,20.5vh)}
+    body.phone .snapStats>div{padding:8px 11px}
+    body.phone .snapStats b{font-size:20px}
+    body.phone .card{padding:12px 14px}
+    body.phone .snapName{font-size:19px}
+    body.phone .wFoot{margin-top:6px}
+  }
