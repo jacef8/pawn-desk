@@ -417,16 +417,28 @@ function snapHTML(){
      obviously the way to fill it. */
   const q=(typeof askQueue==="function")?askQueue(x):[];
   const done=q.filter(z=>z.answered||z.optional).length;
+  /* A DIAL WITH A DASH IN IT IS A PLACEHOLDER TAKING 200 PIXELS.
+     Unpriced, the ring showed the run's progress with an em-dash at the
+     middle and two lines of mono that were wider than the ring's own
+     inner circle, so the words ran over the arc. It also pushed the
+     actual question off the screen behind a button reading "Answer them
+     - open the detail", which is a tap you should never have to make:
+     if the desk needs something, the field for it belongs here.
+
+     So the hierarchy follows the state. With no price the question is
+     the hero and progress is a slim bar over it. With a price the dial
+     comes back at full size, because then the number IS the screen. */
   const anchor = !ready
-      ? gauge(q.length?done/q.length:0,"No price yet",'<span class="gdash">&mdash;</span>',
-              q.length?done+" of "+q.length+" answered":"nothing answered yet","gp")
+      ? `<div class="askBar"><span>${q.length?done+" of "+q.length+" answered":"nothing answered yet"}</span>
+           <i><b style="width:${q.length?Math.round(done/q.length*100):0}%"></b></i></div>`
     : x.buyTooThin
       ? gauge(1,"Walk away",'<span class="gdash">&mdash;</span>',"resells for "+money(Math.round(x.resale)),"gp")
     : gauge(1,"Pay up to",money(x.buy),"","gp");
-  const under = !ready ? `<div class="snapSub">Still needs <b>${esc(needList(x))}</b>.
-        ${priceMissing(x).filter(n=>n!=="the condition").length
-          ? `<button class="nsBtn on" id="snapAnswer" style="margin-top:10px"><span>Answer them \u2014 open the detail</span></button>`
-          : "Tap the shape it is in, below."}</div>`
+  /* The question itself, inline, not a button that goes and finds it.
+     askHTML is the same component the detailed screen uses - the same
+     options, the same typing fields, the same dots and Back - so there
+     is nothing on the other screen that is not already here. */
+  const under = !ready ? (typeof askHTML==="function"?askHTML(x):"")
     : x.buyTooThin ? `<div class="snapSub">Clearing the ${money(x.buyFloor)} you want leaves ${money(x.buy)} to offer \u2014 not worth buying, and not worth lending on either.</div>`
     /* The two figures behind the offer, as a pair of stats under the dial
        rather than a caption inside it. They were set inside the ring, where
@@ -437,9 +449,9 @@ function snapHTML(){
         <div><span>Resells for</span><b>${money(Math.round(x.resale))}</b></div>
         <div><span>You make</span><b>${money(x.buyMargin)}</b></div>
        </div>`;
-  const big = `<div class="snapAnchor${x.buyTooThin&&ready?" bad":""}">${anchor}</div>${under}`;
+  const big = `<div class="snapAnchor${ready?"":" bare"}${x.buyTooThin&&ready?" bad":""}">${anchor}</div>${under}`;
 
-  return `<div class="snapWrap">${cam}
+  return `<div class="snapWrap${ready?" ready":""}">${cam}
     <div class="snapName">${esc(name)}${bits?`<span>${esc(bits)}</span>`:""}</div>
     ${busy&&ready?`<div class="snapCard busy"><div class="snapLab">Checking what it sells for\u2026</div>
         <div class="snapBig dim">${money(x.buy)}</div>
@@ -449,12 +461,27 @@ function snapHTML(){
           :(st.photoRead&&st.photoRead.webPrice
              ? "Used ones on the web"+(st.photoRead.webPrice.where?" \u2014 "+esc(st.photoRead.webPrice.where):"")
              :esc(checkedNote(x)))}</div></div>`}
-    <div class="snapCond">${CONDITIONS.map(c=>`<button class="${st.condSet&&c.id===st.cond?"on":""}" data-cond="${c.id}">${c.label.replace("New in box","New")}</button>`).join("")}</div>
+    ${/* The condition strip is one of the questions in the run, so while
+          the run is on screen it is asked there - a second copy of the
+          same five buttons underneath the card asking for them is how a
+          screen ends up not fitting. Once there is a price it comes back,
+          because then it is the one thing you change again and again as
+          you look the thing over. */""}
+    ${ready?`<div class="snapCond">${CONDITIONS.map(c=>`<button class="${st.condSet&&c.id===st.cond?"on":""}" data-cond="${c.id}">${c.label.replace("New in box","New")}</button>`).join("")}</div>`:""}
     ${/* How much is behind that number. The desk grew this card and the
           phone never got it, which is backwards: the phone is the one
           carried to a yard sale, where a thin number and a solid one look
-          identical and only one of them is worth acting on. */""}
-    ${typeof weightHTML==="function"?weightHTML(x):""}
+          identical and only one of them is worth acting on.
+
+          The gate here is not "is the run finished" - that was wrong and
+          check-pricing said so. An item can have twelve looked-up sales
+          behind it while the run is still asking about the battery, and
+          hiding the weight of real evidence is the opposite of the point.
+          What waits is the EMPTY meter: "Not checked, nothing looked up",
+          which is not news while you are still answering. So: show it
+          once there is a price, or as soon as anything has been looked
+          up, whichever comes first. */""}
+    ${(ready||x.checked)&&typeof weightHTML==="function"?weightHTML(x):""}
     ${camOff}${snapFootHTML()}
   </div>`;
 }

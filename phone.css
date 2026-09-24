@@ -67,7 +67,12 @@
      empty. Pull the next thing up into the gap. */
   body.phone .snapAnchor svg{margin-bottom:-13%}
   body.phone .snapAnchor .gcenter b{font-size:clamp(34px,11vw,46px)}
-  body.phone .snapAnchor .gcenter .gs{font-size:11.5px;max-width:170px;margin:0 auto}
+  /* A FIXED CAP IN A PROPORTIONAL RING IS A BUG WAITING FOR A SMALL
+     PHONE. This said max-width:170px, which beat the 64% the ring
+     actually allows - so on a 360px screen the clear circle is 111px and
+     this was still free to run to 170. The cap has to scale with the
+     dial or it is not a cap. */
+  body.phone .snapAnchor .gcenter .gs{font-size:11.5px;margin:0 auto}
   /* A dash set at the size of a price is a brick. It is a placeholder and
      should look like one. */
   body.phone .snapAnchor .gcenter b .gdash{font-size:.48em;color:var(--ink-3);
@@ -150,4 +155,53 @@
     body.phone .card{padding:12px 14px}
     body.phone .snapName{font-size:19px}
     body.phone .wFoot{margin-top:6px}
+  }
+
+  /* ---- unpriced: the question leads --------------------------------
+     A bar, not a dial. The dial is for a number; with no number it was
+     200px of ring around an em-dash, with the progress line running over
+     its own arc, pushing the question it was counting off the screen. */
+  body.phone .snapAnchor.bare{margin:0}
+  .askBar{display:flex;flex-direction:column;gap:7px}
+  .askBar span{font-family:var(--mono);font-size:11px;letter-spacing:.11em;
+    text-transform:uppercase;color:var(--ink-3)}
+  .askBar i{display:block;height:7px;border-radius:99px;background:var(--well);
+    box-shadow:var(--well-sh);overflow:hidden}
+  .askBar i b{display:block;height:100%;border-radius:99px;min-width:3px;
+    background:linear-gradient(90deg,var(--accent),var(--accent-2));transition:width .3s}
+  /* The ask card is already inside the anchor card here, so it drops its
+     own housing and becomes the body of it. */
+  body.phone .snapCard .askCard{background:none;border:none;box-shadow:none;padding:12px 0 0;
+    -webkit-backdrop-filter:none;backdrop-filter:none;margin:0}
+  body.phone .snapCard .askQ{font-size:21px;margin-top:4px}
+  body.phone .snapCard .askOpts{gap:7px;margin-top:11px}
+  body.phone .snapCard .askOpt{padding:12px 14px}
+  body.phone .snapCard .askNav{margin-top:13px}
+  /* The bar over the card already says "3 of 6 answered"; askHTML's own
+     "3 of 6" says which one you are standing on. Two counters a line
+     apart, agreeing by coincidence, read as one fact printed twice - and
+     the dots under the options carry position anyway. */
+  body.phone .snapCard .askCard .askWhere{display:none}
+  /* Mid-run the meter is evidence, not reading. The bar and the verdict
+     stay - that is the glance it exists for - and the sentence naming the
+     source and the date waits until there is a price to attach it to.
+     Without this the card's three lines of prose put a 360px phone 92px
+     over, which is how a screen that has to fit loses to a screen that
+     has to explain. */
+  body.phone .snapWrap:not(.ready) .wCard .wFoot{display:none}
+  body.phone .snapWrap:not(.ready) .wCard{padding:10px 12px}
+  /* 360x780 again: the run's card, the meter and the foot all have to
+     share 780px with a dock. The options carry the question, so they keep
+     their size; everything around them gives up a few pixels each. */
+  @media (max-height:800px){
+    body.phone .snapWrap:not(.ready) .snapCard .askQ{font-size:19px;margin:2px 0 0}
+    body.phone .snapWrap:not(.ready) .snapCard .askCard{padding-top:9px}
+    body.phone .snapWrap:not(.ready) .snapCard .askOpt{padding:10px 13px}
+    body.phone .snapWrap:not(.ready) .snapCard .askOpts{gap:6px;margin-top:9px}
+    body.phone .snapWrap:not(.ready) .snapCard .askNav{margin-top:10px}
+    body.phone .snapWrap:not(.ready) .wCard{padding:8px 11px}
+    body.phone .snapWrap:not(.ready) .wHead{margin-top:3px}
+    body.phone .snapWrap:not(.ready) .wHead b{font-size:14.5px}
+    body.phone .snapWrap:not(.ready) .wBar{margin-top:6px;height:6px}
+    body.phone .snapWrap:not(.ready) .snapName{font-size:18px}
   }

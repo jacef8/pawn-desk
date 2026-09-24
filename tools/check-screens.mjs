@@ -218,6 +218,74 @@ console.log("");
   else console.log("ok   the shelf-tag record stays off the pricing page, every width and flow");
 }
 
+/* NOTHING IN THE DIAL MAY TOUCH THE DIAL.
+   The arc is r=130 with a 24px stroke in a 340 box, so the clear circle
+   inside it is 236 wide - 69% of however big the dial is drawn. .gcenter
+   was the full box, so a label or a sub-line longer than that simply ran
+   across the stroke: "2 of 5 answered" laid over the arc on a phone,
+   unreadable, on the one screen whose whole job is a single number.
+
+   Measured against the real geometry at every size the dial appears at,
+   because "it looks fine on mine" is exactly how it shipped. */
+{
+  const over = [];
+  for (const [page, w, h, name] of [["phone.html",360,780,"small Android"],
+                                    ["phone.html",390,844,"iPhone"],
+                                    ["phone.html",412,915,"Pixel"],
+                                    ["index.html",1440,900,"desk"],
+                                    ["index.html",1100,800,"small desk"]]) {
+    const pg = await browser.newPage({viewport: {width: w, height: h}});
+    await pg.goto(BASE + "/" + page, {waitUntil: "networkidle"});
+    const hit = await pg.evaluate(() => {
+      const out = [];
+      const R = omniRows("dewalt dcd791 drill") || {};
+      const f = (R.rows || []).find(x => ["mp", "book", "item"].includes(x.kind));
+      if (f) omniPick(f);
+      st.cond = "good"; st.condSet = true;
+      for (let i = 0; i < 8; i++) {
+        const q = askQueue(calcItem());
+        const o = q.find(z => !z.answered && !z.optional);
+        if (!o || !o.opts || !o.opts.length) break;
+        const pick = o.opts[0], k = pick.set, v = String(pick.v);
+        if (k === "brand") { st.brand = v; st.brandTyped = ""; st.brandQ = ""; st.brandSet = true; }
+        else if (k === "comp") st.complete = v === "1";
+        else if (k === "cond") { st.cond = v; st.condSet = true; }
+        else if (k === "spec") { const [gi, oi] = v.split(":"); st.specSel[st.itemId + ":" + gi] = Number(oi); }
+        else break;
+      }
+      render();
+      /* The states this app happens to reach today all have short labels,
+         so walking them proved nothing - this check passed with the fix
+         REMOVED. What broke was a long string in the middle of a ring, so
+         that is what gets put there: the longest sub-line the app
+         actually ships ("2 of 5 answered", and the metal screen's
+         "14.2 g - 63% of melt"), plus one deliberately too long. If the
+         constraint is gone these overflow; with it they wrap. */
+      const probes = ["2 of 5 answered", "14.2 g \u00b7 63% of melt",
+                      "nothing answered yet", "it will not clear $120"];
+      document.querySelectorAll(".gwrap .gcenter .gs, .gwrap .gcenter .gl").forEach((el, i) => {
+        el.textContent = probes[i % probes.length];
+      });
+      document.querySelectorAll(".gwrap").forEach(g => {
+        const svg = g.querySelector("svg"); if (!svg) return;
+        const box = svg.getBoundingClientRect();
+        /* clear inner circle = (2*130 - 24) / 340 of the drawn width */
+        const inner = box.width * (236 / 340);
+        g.querySelectorAll(".gcenter > *").forEach(el => {
+          const t = (el.innerText || "").trim(); if (!t) return;
+          const w = el.getBoundingClientRect().width;
+          if (w > inner + 1) out.push(`"${t.slice(0,22)}" ${Math.round(w)}px in a ${Math.round(inner)}px circle`);
+        });
+      });
+      return out;
+    });
+    hit.forEach(t => over.push(name + ": " + t));
+    await pg.close();
+  }
+  if (over.length) { bad++; console.log("FAIL text runs over the dial — " + over.join(" | ")); }
+  else console.log("ok   nothing in the dial touches the dial, five sizes");
+}
+
 /* A WORKED EXAMPLE IS ONLY WORTH SHOWING IF PRESSING IT WORKS.
    The front page used to name four things you could type, as prose, under
    a search box - a list of instructions for retyping something by hand,

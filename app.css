@@ -401,8 +401,25 @@
   /* ══ THE ANCHOR ═══════════════════════════════════════════════════════ */
   .gwrap{position:relative;max-width:330px;margin:0 auto}
   .gwrap svg{display:block;width:100%;height:auto}
-  .gcenter{position:absolute;inset:0;display:grid;place-content:center;text-align:center;
-    pointer-events:none}
+  /* THE WORDS HAVE TO FIT INSIDE THE RING.
+     The arc is r=130 with a 24px stroke in a 340 box, so the clear circle
+     inside it is 236 across - 69.4% of however big the dial is drawn.
+     .gcenter was the whole square, so anything wider than that circle ran
+     over the stroke: "2 of 5 answered" laid across the arc on a phone,
+     unreadable, on the one screen whose job is a single number.
+
+     The box is inset to the circle rather than the children being capped
+     with percentages. Two goes at the child version failed and both are
+     worth remembering: overflow-wrap:anywhere also collapses an element's
+     min-content contribution to one character, so "$35" came out stacked
+     as $ / 3 / 5; and a percentage max-width on a grid item inside an
+     auto-sized track resolves against the track it is helping to size,
+     which is circular and gives a different answer depending on what else
+     is in the ring. Insetting the container has neither problem: the
+     children are ordinary blocks in a box the right size. */
+  .gcenter{position:absolute;inset:15.3%;display:grid;place-content:center;justify-items:center;
+    text-align:center;pointer-events:none}
+  .gcenter>*{max-width:100%;overflow-wrap:break-word}
   .gcenter .gl{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;
     color:var(--ink-3)}
   .gcenter b{font-family:var(--disp);font-weight:800;font-size:clamp(44px,4.6vw,68px);
