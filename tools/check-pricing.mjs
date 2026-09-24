@@ -798,6 +798,54 @@ console.log("\n  a spec the search text already gave is not asked again");
      "  and a revolver's inches are never a screen size");
 }
 
+/* THE ROW'S OWN NAME WAS WRECKING THE SEARCH. Once the make and model are
+   known the kind of thing is implied by them, and tacking the catalog
+   row's description on the end turns a good search into a different
+   product. Measured live: "DJI Osmo Action 4" returns seven real SOLD
+   listings with the Action 4 at $165 and $181; "DJI Osmo Action 4 Gimbal
+   / pocket camera" falls off sold prices altogether and comes back with
+   Osmo POCKETS at asking prices. Nobody searching by hand types the
+   category after the model. */
+console.log("\n  the search is what a person would type, not the row's name");
+{
+  const r = await page.evaluate(() => {
+    const go = (q) => { const R = omniRows(q) || {}, rows = R.rows || [];
+      const f = rows.find(x => ["mp","book","item"].includes(x.kind)); if (!f) return null;
+      st.market = null; st.mpPin = null; st.mpNone = false; st.condSet = false; st.specSel = {};
+      st.brandTyped = ""; st.brandQ = ""; st.brandSet = false;
+      st.model = ""; st.detail = ""; st.bookName = "";
+      omniPick(f); return compQuery(calcItem()); };
+    return {osmo: go("dji osmo action 4"), saw: go("stihl ms 271"),
+            bare: go("gimbal"), bareSaw: go("chainsaw")};
+  });
+  ok(!/gimbal|pocket camera/i.test(r.osmo),
+     "with a make and a model, the row name is left out — " + r.osmo);
+  ok(/action 4/i.test(r.osmo),
+     "  and the generation number survives, which is most of the model — " + r.osmo);
+  ok(!/chainsaw/i.test(r.saw), "  same for a saw — " + r.saw);
+  ok(/gimbal/i.test(r.bare) && /chainsaw/i.test(r.bareSaw),
+     "  but with no model it is the only description there is — " + r.bare + " / " + r.bareSaw);
+}
+
+/* THE MERGE'S SPREAD GUARD, ON THE LIVE LOOKUP. A DJI Osmo Action 4
+   search returns Action 3s at $70, Action 4s at $165-$181, Action 5 Pros
+   at $290 and Osmo Nanos at $281 - every one a real sale, every one a
+   different camera. The middle of that is nobody's price. */
+console.log("\n  a spread too wide for one product says so");
+{
+  const r = await page.evaluate(() => {
+    st.mode = "item"; st.catId = "elec"; st.itemId = "e1"; st.picked = true;
+    st.brandTyped = ""; st.model = ""; st.market = null;
+    const ev = (c, book) => { st.evidence = {key: mkKey(), comps: c, book}; return evidenceHTML(); };
+    return {mixed: ev({n:8,sold:8,mid:226,lo:70,hi:290,from:"eBay 8"}, 250),
+            tight: ev({n:6,sold:6,mid:175,lo:165,hi:185,from:"eBay 6"}, 250),
+            low:   ev({n:6,sold:6,mid:25,lo:23,hi:40,from:"eBay 6"}, 300)};
+  });
+  ok(/more than one model/.test(r.mixed), "eight sales from $70 to $290 are called out as mixed");
+  ok(!/more than one model/.test(r.tight), "  a tight band passes without a word");
+  ok(/far below/.test(r.low), "  and a figure far under the book still says that instead");
+}
+
 ok(!errs.length, "no page errors" + (errs.length ? ": " + errs[0] : ""));
 await browser.close();
 console.log(fails ? "\n  " + fails + " FAILED\n" : "\n  all passed\n");

@@ -3441,8 +3441,22 @@ function specQuery(){
   }).filter(Boolean).join(" ");
 }
 function compQuery(x){
-  const bits=[st.brandTyped||"", st.model||"", displayName(x).replace(/\s*—.*$/,""),
-              st.detail||"", specQuery()];
+  /* THE ROW'S OWN NAME WAS WRECKING THE SEARCH.
+     Once the make and the model are known, the kind of thing is already
+     implied by them, and tacking the catalog row's description on the end
+     turns a good search into a different product. Measured on the live
+     service: "DJI Osmo Action 4" returns seven real SOLD listings with
+     the Action 4 itself at $165 and $181; "DJI Osmo Action 4 Gimbal /
+     pocket camera" falls off sold prices altogether and comes back with
+     Osmo POCKETS, a different camera, at asking prices. Nobody searching
+     eBay by hand would type the category after the model.
+     With no model, the row name is the only description there is, so it
+     stays. */
+  const named=!!(String(st.brandTyped||"").trim()&&String(st.model||"").trim());
+  const bits=named
+    ? [st.brandTyped, st.model, st.detail||"", specQuery()]
+    : [st.brandTyped||"", st.model||"", displayName(x).replace(/\s*—.*$/,""),
+       st.detail||"", specQuery()];
   return bits.map(s=>String(s).trim()).filter(Boolean).join(" ").slice(0,120);
 }
 /* GunWatcher looks a gun up by model name. The category word the keyword
@@ -4432,8 +4446,12 @@ const MODELBOOK=[
     landed on a $300 drone row and then searched as a drone. Osmo, Ronin
     and RS are the gimbal and pocket-camera lines; Mavic, Mini, Air,
     Avata, Neo, Phantom and Inspire are the aircraft. */
- MB(/\b(dji\s*)?osmo\s*(pocket|action|mobile|nano)?\s*\d*\b/,"DJI","Gimbal / pocket camera",
-    {label:m=>("Osmo "+(m[2]||"")).replace(/\s+/g," ").trim()}),
+ /* The generation number has to be CAPTURED, not just matched past. It
+    was falling outside the groups, so "dji osmo action 4" came back
+    labelled "Osmo action" - and a search for that returns Action 3s, 4s
+    and 5s together. The number is most of the model. */
+ MB(/\b(dji\s*)?osmo\s*(pocket|action|mobile|nano)?\s*(\d+)?\s*(pro|plus|se)?\b/,"DJI","Gimbal / pocket camera",
+    {label:m=>("Osmo "+(m[2]?pretty(m[2]):"")+" "+(m[3]||"")+" "+(m[4]?pretty(m[4]):"")).replace(/\s+/g," ").trim()}),
  MB(/\b(dji\s*)?(ronin|rs)\s*-?\s*\d*\b/,"DJI","Gimbal / pocket camera"),
  MB(/\b(dji\s*)?(mavic|avata|phantom|inspire|neo)\b/,"DJI","Camera drone"),
  /* shotguns */
@@ -5963,7 +5981,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0924.0618";
+const APP_BUILD="0924.0722";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -6778,9 +6796,22 @@ function evidenceHTML(){
      it just no longer arrives unremarked. */
   const odd=(E.comps&&E.book>0&&E.comps.mid>0)
     ? (E.comps.mid/E.book>4 ? "high" : E.comps.mid/E.book<0.25 ? "low" : "") : "";
+  /* THE SAME GUARD THE MERGE USES, ON THE LIVE LOOKUP. lo and hi are the
+     middle half of what sold. For one product that band is tight -
+     condition and storage move it, a factor of two at the outside. When it
+     comes back three times wide the search found more than one thing. A
+     DJI Osmo Action 4 returns Action 3s at $70, Action 4s at $165-$181,
+     Action 5 Pros at $290 and Osmo Nanos at $281, all real sales, all
+     different cameras; the middle of that is nobody's price. */
+  const wide=(E.comps&&E.comps.lo>0&&E.comps.hi>0&&E.comps.hi/E.comps.lo>=3)
+    ? Math.round(E.comps.hi/E.comps.lo*10)/10 : 0;
   let h=`<div class="label" style="margin-top:14px">Everything it found</div>`;
   if(E.comps)h+=row("comps",`${E.comps.n} listing${E.comps.n===1?"":"s"}${E.comps.sold?`, ${E.comps.sold} sold`:""}`,
     E.comps.mid,`middle half ${money(E.comps.lo)}–${money(E.comps.hi)}${E.comps.from?" · "+esc(E.comps.from):""}`)
+    +(!odd&&wide?`<div class="mkNo" style="margin:-4px 0 8px"><b>Those ${E.comps.n} sales spread ${wide}&times; &mdash; ${money(E.comps.lo)} to ${money(E.comps.hi)}.</b>
+        One product does not sell over that kind of range, so the search has almost certainly
+        caught more than one model. Open the sold page and take the ones that match what you
+        are holding, or type that figure yourself.</div>`:"")
     +(odd?`<div class="mkNo" style="margin:-4px 0 8px"><b>That is ${odd==="low"?"far below":"far above"} the ${money(E.book)} this kind of thing books at.</b>
         ${odd==="low"?"A search that comes back this cheap has usually found the accessories \u2014 chargers, cases, mounts \u2014 rather than the thing itself. Open the sold page and look before you use it."
                      :"Check the listings are the same thing you have in front of you, and not a newer or larger one."}</div>`:"");
