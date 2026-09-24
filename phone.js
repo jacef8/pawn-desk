@@ -213,14 +213,33 @@ function phoneBoot(){
   document.title="The Pawn Desk";
   const e=document.querySelector(".brand .eyebrow"); if(e)e.textContent="Lamar's";
   try{
+    /* THE DOCK. These were a wrapping pill strip along the TOP of the
+       phone - two rows of them at 360px wide, in the one band of the
+       screen a hand holding the phone cannot reach, and 192px of a 780px
+       screen gone before the item got a pixel.
+
+       Same three places, same data-tab, same handler. A drawing over one
+       word, fixed along the bottom, the current one lit rather than
+       filled: a bottom bar reads as where you ARE, and a solid pill under
+       the thumb reads as a button waiting to be pressed.
+
+       "Simple view" is not here any more. It was a tab that appeared and
+       disappeared, which is the one thing a bottom bar must never do -
+       and .snapPin already rides the top of the detailed screen saying
+       the same thing in more words. */
+    const DOCK=[
+      ["item","Price","Check a price",
+       '<path d="M3 11.5V4.5A1.5 1.5 0 0 1 4.5 3h7L21 12.5 12.5 21 3 11.5Z"/><circle cx="7.6" cy="7.6" r="1.3"/>'],
+      ["metal","Gold","Gold & silver",
+       '<circle cx="12" cy="12" r="8.2"/><path d="M12 7.4v9.2M9.6 9.6h4a1.9 1.9 0 0 1 0 3.8h-3.6a1.9 1.9 0 0 0 0 3.8h4"/>'],
+      ["setup","Setup","Setup",
+       '<circle cx="12" cy="12" r="3.1"/><path d="M12 2.6v3M12 18.4v3M21.4 12h-3M5.6 12h-3M18.6 5.4l-2.1 2.1M7.5 16.5l-2.1 2.1M18.6 18.6l-2.1-2.1M7.5 7.5 5.4 5.4"/>'],
+    ];
     renderTabs=function(){
-      const btn=([id,l])=>`<button class="${st.mode===id?"on":""}" data-tab="${id}">${l}</button>`;
-      document.getElementById("tabs").innerHTML=`<div class="pills">${[["item","Check a price"],["metal","Gold & silver"]].map(btn).join("")}</div>`
-        +(st.snapDetail&&st.mode==="item"?`<div class="pills ref"><button id="snapBack">&lsaquo; Simple view</button></div>`:"")
-        /* The shelf tags are photographed on this thing. Without the Setup
-           tab here, Export/Import lives only on the desk - and a phone with
-           no service has no way to get its record across at all. */
-        +`<div class="pills ref">${[["setup","Setup"]].map(btn).join("")}</div>`;
+      document.getElementById("tabs").innerHTML=DOCK.map(([id,short,full,icon])=>
+        `<button class="${st.mode===id?"on":""}" data-tab="${id}" aria-label="${full}"`+
+        `${st.mode===id?' aria-current="page"':""}>`+
+        `<svg viewBox="0 0 24 24" aria-hidden="true">${icon}</svg><i>${short}</i></button>`).join("");
     };
   }catch(x){}
   if(st.mode!=="item"&&st.mode!=="metal"&&st.mode!=="setup")st.mode="item";
@@ -385,15 +404,40 @@ function snapHTML(){
      having never been asked which tablet it was. Walk-away is gated too: it
      is a verdict on a price, so it needs the same run behind it. */
   const ready=priceReady(x);
-  const big = !ready ? `<div class="snapLab">No price yet</div>
-        <div class="snapSub">Still needs <b>${esc(needList(x))}</b>.
+  /* THE NUMBER IS THE SCREEN.
+     It used to be a 12px mono label - "NO PRICE YET" - over a sentence,
+     with the offer, when there was one, as one more line of text among
+     six cards of them. The one thing somebody at a counter is holding
+     this phone to find out was the same size as everything else on it.
+
+     It is the anchor now: a 270-degree arc round an enormous numeral, the
+     same dial the desk has always drawn for the loan. Unpriced, the arc
+     is how far through the run you are and the numeral is a dash - so
+     "not yet" is a thing you can SEE the size of, and tapping on is
+     obviously the way to fill it. */
+  const q=(typeof askQueue==="function")?askQueue(x):[];
+  const done=q.filter(z=>z.answered||z.optional).length;
+  const anchor = !ready
+      ? gauge(q.length?done/q.length:0,"No price yet",'<span class="gdash">&mdash;</span>',
+              q.length?done+" of "+q.length+" answered":"nothing answered yet","gp")
+    : x.buyTooThin
+      ? gauge(1,"Walk away",'<span class="gdash">&mdash;</span>',"resells for "+money(Math.round(x.resale)),"gp")
+    : gauge(1,"Pay up to",money(x.buy),"","gp");
+  const under = !ready ? `<div class="snapSub">Still needs <b>${esc(needList(x))}</b>.
         ${priceMissing(x).filter(n=>n!=="the condition").length
           ? `<button class="nsBtn on" id="snapAnswer" style="margin-top:10px"><span>Answer them \u2014 open the detail</span></button>`
           : "Tap the shape it is in, below."}</div>`
-    : x.buyTooThin ? `<div class="snapNo">Walk away</div>
-        <div class="snapSub">It resells for about ${money(Math.round(x.resale))}, and clearing the ${money(x.buyFloor)} you want leaves ${money(x.buy)} to offer \u2014 not worth buying, and not worth lending on either.</div>`
-    : `<div class="snapLab">Pay up to</div><div class="snapBig">${money(x.buy)}</div>
-       <div class="snapSub">Resells for <b>${money(Math.round(x.resale))}</b> \u00b7 you\u2019d make <b>${money(x.buyMargin)}</b></div>`;
+    : x.buyTooThin ? `<div class="snapSub">Clearing the ${money(x.buyFloor)} you want leaves ${money(x.buy)} to offer \u2014 not worth buying, and not worth lending on either.</div>`
+    /* The two figures behind the offer, as a pair of stats under the dial
+       rather than a caption inside it. They were set inside the ring, where
+       at 390px wide they wrapped onto two lines and ran straight over the
+       arc - a sentence competing with the number it explains. Side by side
+       underneath, each gets its own label and neither touches the dial. */
+    : `<div class="snapStats">
+        <div><span>Resells for</span><b>${money(Math.round(x.resale))}</b></div>
+        <div><span>You make</span><b>${money(x.buyMargin)}</b></div>
+       </div>`;
+  const big = `<div class="snapAnchor${x.buyTooThin&&ready?" bad":""}">${anchor}</div>${under}`;
 
   return `<div class="snapWrap">${cam}
     <div class="snapName">${esc(name)}${bits?`<span>${esc(bits)}</span>`:""}</div>

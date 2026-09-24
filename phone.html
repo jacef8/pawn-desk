@@ -15,11 +15,16 @@
       <div class="eyebrow">Lamar's</div>
       <h1>The Pawn Desk</h1>
     </div>
-    <div class="tabwrap" id="tabs"></div>
     <div class="sys"><span class="dot"></span><span id="sysline">SYS.OK</span></div>
   </div>
   <div id="view"></div>
   <div class="foot" id="foot"></div>
+  <!-- THE TABS SIT UNDER THE THUMB, NOT UNDER THE CHIN.
+       They were a strip at the top of the phone, wrapping onto two rows at
+       360px wide, in the one part of a phone screen a hand holding it
+       cannot reach. Same element, same id, same handler - moved to where
+       it is pressed from. -->
+  <nav class="tabwrap dock" id="tabs"></nav>
 </div>
 
 <script src="app.js"></script>
