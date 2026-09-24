@@ -132,7 +132,17 @@
   @media (min-width:1080px){
     .bar{grid-column:1/-1;position:sticky;top:0;z-index:6}
     .dash{height:100dvh;min-height:0;overflow:hidden;grid-template-rows:auto minmax(0,1fr)}
-    #view{min-height:0}
+    /* EVERY MODE THAT IS NOT THE BENTO SCROLLS ITSELF.
+       .dash is height:100dvh;overflow:hidden, so anything taller than the
+       viewport is clipped unless something between it and .dash scrolls.
+       The item and metal pages do that inside .colQ. Every other mode -
+       setup, the deal log, devices, walk-away - was a plain block with
+       overflow:visible, so Setup's 1200px of cards in an 800px window
+       simply ended at the fold: no scrollbar, no wheel, no keyboard.
+       .item and .metal opt back out below, because their sticky rail and
+       sticky #pin need a visible overflow to stick against. */
+    #view{min-height:0;overflow:auto;scrollbar-width:thin;overscroll-behavior:contain}
+    #view.item,#view.metal{overflow:visible}
     #view.item,#view.metal{display:grid;gap:clamp(10px,1.1vw,15px);align-items:start;
       grid-template-columns:minmax(0,300px) minmax(0,1fr) minmax(0,320px);
       grid-template-areas:"left center right"}
@@ -149,7 +159,19 @@
     #view.item.railed .rail{grid-area:rail;position:sticky;top:92px;align-self:start;
       display:flex;flex-direction:column;gap:clamp(8px,.8vw,12px)}
     #view.item.railed #pin{position:static;grid-area:auto}
-    #view.item.railed .colQ{grid-area:quest;min-width:0;min-height:0;display:flex;
+    /* ALIGN-ITEMS:START WAS EATING THE SCROLLBAR.
+       #view.item sets align-items:start so the rail and the tiles sit at
+       the top of their rows instead of stretching. On .colQ that defeated
+       the whole point of its row being minmax(0,1fr): a start-aligned grid
+       item is sized to its CONTENT, so the column grew past the row rather
+       than being constrained by it, its own overflow:auto never had
+       anything to do, and .dash{overflow:hidden} clipped the rest with no
+       scrollbar, no wheel and no keyboard to reach it. Any card past the
+       fold - the loan detail, the deal log - was simply gone.
+       align-self:stretch puts the row back in charge, and the overflow
+       below does the scrolling it was always meant to do. */
+    #view.item.railed .colQ{grid-area:quest;min-width:0;min-height:0;
+      align-self:stretch;display:flex;
       flex-direction:column;gap:clamp(8px,.8vw,12px);overflow:auto;
       scrollbar-width:thin;overscroll-behavior:contain}
     #view.item.railed .colL,#view.item.railed .colC{display:contents}

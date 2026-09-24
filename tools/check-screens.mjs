@@ -398,6 +398,60 @@ console.log("");
   else console.log("ok   the phone fits its own screen, four phone sizes x four states");
 }
 
+/* CAN THE DESK REACH ITS OWN BOTTOM CARD?
+   .dash is height:100dvh with overflow:hidden, so anything taller than the
+   window is clipped unless something between it and .dash scrolls. Two
+   things had quietly stopped doing that:
+
+   .colQ carried overflow:auto and min-height:0 and STILL could not scroll,
+   because #view.item sets align-items:start - a start-aligned grid item is
+   sized to its content, so the column grew straight past its minmax(0,1fr)
+   row instead of being held to it. Its overflow never had anything to do.
+
+   And every mode that is not the bento - setup, the deal log, devices,
+   walk-away - was a plain block at overflow:visible. Setup put 1200px of
+   cards in an 800px window and the last two simply ended at the fold.
+
+   Neither had a scrollbar, a wheel or a keyboard route. This drives a REAL
+   wheel, because programmatic scrollTop succeeds on an overflow:hidden
+   element and would have called both of these passing. */
+{
+  const MODES = [
+    ["setup",      () => { st.mode = "setup"; render(); }],
+    ["deal log",   () => { st.mode = "log"; render(); }],
+    ["devices",    () => { st.mode = "devices"; render(); }],
+    ["walk away",  () => { st.mode = "walk"; render(); }],
+    ["gold",       () => { st.mode = "metal"; st.metalKind = "jewelry"; render(); }],
+    ["start",      () => { st.mode = "item"; st.picked = false; render(); }],
+    ["item priced",() => { st.mode = "item"; st.catId = "elec"; st.itemId = "e1";
+                           st.picked = true;
+                           st.market = {kind:"hand", key:mkKey(), mid:125}; render(); }],
+  ];
+  const stuck = [];
+  for (const h of [800, 720]) {
+    for (const [name, fn] of MODES) {
+      const pg = await browser.newPage({viewport:{width:1920, height:h}});
+      await pg.goto(BASE + "/index.html", {waitUntil:"networkidle"});
+      await pg.evaluate("(" + fn.toString() + ")()").catch(() => {});
+      await pg.mouse.move(700, Math.round(h * 0.6));
+      await pg.mouse.wheel(0, 2000);
+      await pg.waitForTimeout(250);
+      const r = await pg.evaluate(() => {
+        const c = [...document.querySelectorAll("#view .card, #view .stepCard")];
+        if (!c.length) return {n:0, lastBottom:0, vh:innerHeight};
+        return {n:c.length,
+                lastBottom: Math.round(c[c.length - 1].getBoundingClientRect().bottom),
+                vh: innerHeight};
+      });
+      if (r.n && r.lastBottom > r.vh + 2)
+        stuck.push(`${name} ${1920}x${h}: last card ends at ${r.lastBottom}, window is ${r.vh}`);
+      await pg.close();
+    }
+  }
+  if (stuck.length) { bad++; console.log("FAIL the desk cannot reach its own bottom card: " + stuck.join(" | ")); }
+  else console.log("ok   every desk screen scrolls to its last card, real wheel, two window heights");
+}
+
 await browser.close();
 console.log(bad ? `FAILED (${bad})` : "all screens draw themselves, every id once");
 process.exit(bad ? 1 : 0);
