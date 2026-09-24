@@ -497,6 +497,76 @@ console.log("");
   else console.log("ok   the rail stays in the window and scrolls its own overflow");
 }
 
+/* THE ANSWER SHOULD NOT BE THE FOURTH SCREEN.
+   On the desk the gold page is three columns and the offer sits beside the
+   scale. On a phone they stack, and reading the desk's columns top to
+   bottom put the offer at 2554px of a 3657px page - past the fold three
+   times - with the 908px spotting-fakes checklist wedged between the scale
+   and the number. "the offer for gold is so far down and the steps for
+   determining fakes sit right in the middle of the offer workflow."
+   The phone gets its own order: weigh it, see the number, then tune and
+   read. The spot price and the 90-day average are filled by the morning
+   feed - reference, not questions - so they drop below the answer.
+   The exception is a sheet that GATES: bullion holds the price until every
+   check is answered, so there its checklist belongs above the offer and
+   scrolling it IS the workflow. */
+{
+  const gold = [];
+  const pg = await browser.newPage({viewport:{width:390, height:844}, isMobile:true, hasTouch:true});
+  await pg.goto(BASE + "/index.html", {waitUntil:"networkidle"});
+  const order = async (kind) => pg.evaluate((k) => {
+    st.mode = "metal"; st.metalKind = k; st.grams = "12.4"; render();
+    return [...document.querySelectorAll("#view .card")].map(c => ({
+      label: String((c.querySelector(".label") || {}).textContent || c.id || "").trim(),
+      top: Math.round(c.getBoundingClientRect().top + scrollY)}));
+  }, kind);
+
+  const j = await order("jewelry");
+  const find = (rows, re) => rows.find(r => re.test(r.label));
+  /* WHICH METAL IS THE FIRST QUESTION.
+     Gold and silver are different jobs - different price, purity, fakes
+     and spec table - and the choice used to sit underneath "is he selling
+     it" as though it were a detail of that. */
+  if (!/Gold or silver/i.test((j[0] || {}).label || ""))
+    gold.push(`the first card is "${(j[0]||{}).label}", not the metal`);
+  const offer = find(j, /The offer|The loan/), fakes = find(j, /Spotting fakes/),
+        weight = find(j, /Weight in grams/);
+  if (!offer || !fakes || !weight) { bad++; console.log("FAIL gold phone: cards missing — " + j.map(r=>r.label).join(" | ")); }
+  else {
+    if (offer.top > 844) gold.push(`offer starts at ${offer.top}px, below the first screen`);
+    if (fakes.top < offer.top) gold.push(`the fakes checklist (${fakes.top}px) still sits above the offer (${offer.top}px) on an advising sheet`);
+    if (offer.top < weight.top) gold.push(`the offer comes before the scale`);
+    /* the numbers must still read 1,2,3 DOWN the page */
+    const nums = j.map(r => (r.label.match(/^(\d+)\s/) || [])[1]).filter(Boolean).map(Number);
+    for (let i = 1; i < nums.length; i++)
+      if (nums[i] < nums[i-1]) { gold.push(`step numbers run ${nums.join(",")} down the page`); break; }
+  }
+
+  /* AND THE SPEC TABLE IS ABOUT THAT METAL ONLY. */
+  const groups = await pg.evaluate(() => {
+    const out = {};
+    for (const mt of ["gold", "silver"]) {
+      st.mode = "metal"; st.metal = mt; st.metalKind = "bullion"; st.grams = "31.1"; render();
+      const sel = document.querySelector("#view select");
+      out[mt] = sel ? [...sel.querySelectorAll("optgroup")].map(g => g.label) : [];
+    }
+    return out;
+  });
+  if (groups.gold.some(g => /silver/i.test(g)))
+    gold.push(`a gold job still lists ${groups.gold.filter(g=>/silver/i.test(g)).join(" and ")} in the spec table`);
+  if (!groups.silver.some(g => /silver/i.test(g)))
+    gold.push(`a silver job lost its own spec groups — ${groups.silver.join(", ")}`);
+
+  const bl = await order("bullion");
+  const bOffer = find(bl, /The offer|The loan/), bFakes = find(bl, /Spotting fakes/);
+  if (bOffer && bFakes && bFakes.top > bOffer.top)
+    gold.push(`bullion GATES the price but its checklist (${bFakes.top}px) is below the offer (${bOffer.top}px)`);
+  await pg.close();
+
+  if (gold.length) { bad++; console.log("FAIL the gold page on a phone: " + gold.join(" | ")); }
+  else console.log("ok   gold on a phone: weigh it, then the offer, checklist out of the middle (and above it when it gates)");
+}
+
 await browser.close();
 console.log(bad ? `FAILED (${bad})` : "all screens draw themselves, every id once");
 process.exit(bad ? 1 : 0);

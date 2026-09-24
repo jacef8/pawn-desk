@@ -2828,7 +2828,10 @@ function metalExtraInner(){
   const m=calcMetal();
   return meltMathHTML(m)+metalLadderHTML(m);
 }
-function metalResultHTML(){
+function metalResultHTML(num){
+  /* The step numbers are the ORDER THEY ARE READ IN, and on a phone that
+     is not the order the desk stacks them. The caller hands them out. */
+  const n=(typeof num==="function")?num:(()=>{let i=5;return()=>++i;})();
   const m=calcMetal();
   if(!m)return `<div class="card" style="text-align:center;color:var(--ink-3);font-size:13px;padding:28px">Put it on the scale and enter the grams.</div>`;
   const pawn=st.deal==="pawn";
@@ -2836,7 +2839,7 @@ function metalResultHTML(){
   const shown=pawn?m.loan:m.buy;
   const pctMelt=m.melt>0?Math.round(shown/m.melt*100):st.payPct;
   return `<div class="card">
-    <span class="label">6 &middot; ${pawn?"The loan":"The offer"}</span>
+    <span class="label">${n()} &middot; ${pawn?"The loan":"The offer"}</span>
     ${gauge(pctMelt/100,pawn?"Lend him":"Buy it for",money(shown),wt+" &middot; "+pctMelt+"% of melt","gm")}
     <div class="tiles">
       <div class="widget"><div class="l">${pawn?"Or buy it outright":"Or lend against it instead"}</div><div class="v">${money(pawn?m.buy:m.loan)}</div></div>
@@ -2867,7 +2870,7 @@ function metalResultHTML(){
     ${whyHTML("metal")}
   </div>
   <div class="card">
-    <span class="label">7 &middot; After the money moves</span>
+    <span class="label">${n()} &middot; After the money moves</span>
     <div class="tagWarn" style="margin-top:0"><b>This does not ship for 30 days.</b> Everything we buy or take in has to sit unaltered, here in Liberty County, for 30 calendar days before it can be sold or disposed of — &sect; 539.001(9)(c). Date-tag it and put it in the hold bin. "Melt" is how we price it, not something we may do to it inside that window.</div>
   </div>`;
 }
@@ -2875,28 +2878,35 @@ function renderMetal(){
   syncPay();
   const spot=spotOf(st.metal), avg=avgOf(st.metal);
   /* the pipeline: 1 metal → 2 today's price → 3 the guard → 4 weight → 5 pay rate → 6 THE OFFER → 7 the rules */
-  const left=`<div class="colL"><div class="card">
-    <span class="label">1 &middot; Is he selling it, or pawning it?</span>
-    <div class="pills mb14" style="border-radius:var(--r-s)">
-      <button class="${st.deal==="buy"?"on":""}" style="flex:1" data-deal="buy">Buying it</button>
-      <button class="${st.deal==="pawn"?"on":""}" style="flex:1" data-deal="pawn">Pawn loan</button>
-    </div>
-    <span class="label">Metal</span>
-    <div class="pills mb14" style="border-radius:var(--r-s)">
+  /* WHICH METAL IS THE FIRST QUESTION, NOT THE SECOND HALF OF ONE.
+     Gold and silver are different jobs - different price, different
+     purity, different fakes, different spec table - and the choice sat
+     under "is he selling it" as though it were a detail of that. Put it
+     first and everything below it is about that metal only. */
+  const metalCard=()=>`<div class="card">
+    <span class="label">${n()} &middot; Gold or silver?</span>
+    <div class="pills${st.metal==="gold"?" mb14":""}" style="border-radius:var(--r-s)">
       <button class="${st.metal==="gold"?"on":""}" style="flex:1" data-metal="gold">Gold</button>
       <button class="${st.metal==="silver"?"on":""}" style="flex:1" data-metal="silver">Silver .925</button>
     </div>
-    ${st.metal==="gold"?`<span class="label">Karat — read the stamp</span>
+    ${st.metal==="gold"?`<span class="label">Karat &mdash; read the stamp</span>
       <div class="pills" style="border-radius:var(--r-s)">${PURITY.map(p=>`<button class="${st.karat===p.k?"on":""}" style="flex:1;padding:7px 4px" data-karat="${p.k}">${p.k}</button>`).join("")}</div>`:""}
-  </div>
-  <div class="card"><span class="label">2 &middot; Today's ${st.metal} price, per troy ounce</span>
+  </div>`;
+  const dealCard=()=>`<div class="card">
+    <span class="label">${n()} &middot; Is he selling it, or pawning it?</span>
+    <div class="pills" style="border-radius:var(--r-s)">
+      <button class="${st.deal==="buy"?"on":""}" style="flex:1" data-deal="buy">Buying it</button>
+      <button class="${st.deal==="pawn"?"on":""}" style="flex:1" data-deal="pawn">Pawn loan</button>
+    </div>
+  </div>`;
+  const spotCard=()=>`<div class="card"><span class="label">${n()} &middot; Today's ${st.metal} price, per troy ounce</span>
     <input id="spotIn" type="number" inputmode="decimal" value="${spot}" class="numIn">
     ${feedTagHTML()}
-  </div>
-  <div class="card"><span class="label">3 &middot; 90-day average — the peak guard</span>
+  </div>`;
+  const avgCard=()=>`<div class="card"><span class="label">${n()} &middot; 90-day average — the peak guard</span>
     <input id="avgIn" type="number" inputmode="decimal" value="${avg}" class="numIn">
     <div class="cardHint">Auto-filled by the morning feed. Buys price off today's spot (scrap ships fast — the spread is the profit). Loans are a 60-day bet, so they price off the LOWER of spot or this average — if today is a peak, the loan is sized as if the peak never happened.</div>
-  </div></div>`;
+  </div>`;
   const rb=rateBounds();
   /* THE SCALE COMES FIRST.
      This used to render the spotting-fakes card above the weight box. The
@@ -2905,12 +2915,11 @@ function renderMetal(){
      1080p screen - the one instruction the page gives you pointed at
      something you could not see. The checks are what you do WHILE the piece
      is on the scale, not before you weigh it. */
-  const mid=`<div class="colC"><div class="card"><span class="label">4 &middot; Weight in grams</span>
+  const weightCard=()=>`<div class="card"><span class="label">${n()} &middot; Weight in grams</span>
     <input id="gramsIn" type="number" inputmode="decimal" placeholder="0.0" value="${esc(st.grams)}" class="numIn big">
     <div class="cardHint">Pull stones, clasps, and anything that isn't the metal. On a diamond ring, the setting is the money — resale on the stone is 20&ndash;30% of retail.</div>
-  </div>
-  ${fakeCardHTML(null)}
-  <div class="card"><div class="rateRow"><span class="label">5 &middot; ${PAWN()?"What I lend against melt (%)":"What I pay against melt (%)"}</span><input id="payNum" class="numIn rateNum" type="number" inputmode="numeric" min="${rb.min}" max="${rb.max}" value="${curRate()}"></div>
+  </div>`;
+  const rateCard=()=>`<div class="card"><div class="rateRow"><span class="label">${n()} &middot; ${PAWN()?"What I lend against melt (%)":"What I pay against melt (%)"}</span><input id="payNum" class="numIn rateNum" type="number" inputmode="numeric" min="${rb.min}" max="${rb.max}" value="${curRate()}"></div>
     <input type="range" min="${rb.min}" max="${rb.max}" value="${curRate()}" id="paySlider">
     <div id="paySuggest">${suggestHTML()}</div>
     ${PAWN()?`<div class="cardHint" style="border-top:1px solid rgba(255,255,255,.08);margin-top:10px;padding-top:9px">
@@ -2918,8 +2927,43 @@ function renderMetal(){
       guard trims it, so the money out the door today is <b style="color:var(--accent)">${loanPctOfMelt()}% of melt</b>.
       </div>`:`<div class="cardHint" style="border-top:1px solid rgba(255,255,255,.08);margin-top:10px;padding-top:9px">
       Your buy rate. The lending rate is set separately &mdash; switch to <b style="color:var(--ink)">Pawn loan</b> above to change it.</div>`}
-  </div><div id="metalExtra">${metalExtraInner()}</div></div>`;
-  const right=`<div class="colR"><div id="metalResult">${metalResultHTML()}</div></div>`;
+  </div>`;
+  const extra=()=>`<div id="metalExtra">${metalExtraInner()}</div>`;
+
+  /* THE ANSWER SHOULD NOT BE THE FOURTH SCREEN.
+     On the desk these are three columns and the offer is already beside
+     the weight. On a phone they stack, and the order the desk reads
+     left-to-right became 3657px of scroll: the offer started at 2554px,
+     past the fold three times over, with the 908px spotting-fakes
+     checklist sitting between the scale and the number.
+     So the phone gets its own order. The counter's only real inputs are
+     whether he is buying and what it weighs - the spot price and the
+     90-day average are filled in by the morning feed and are reference,
+     not questions. Weigh it, see the number, then tune and read.
+     The numbers are handed out in reading order, so they still count 1,
+     2, 3 down the screen whichever order that is. */
+  /* deskRail() is item-mode only; the metal page needs the WIDTH question. */
+  const phone=!deskWide();
+  let N=0; const n=()=>++N;
+
+  if(phone){
+    /* A GATING SHEET GOES BEFORE THE NUMBER IT GATES.
+       Bullion holds the price until every check is answered, so its
+       checklist belongs above the offer. Jewelry only advises, so it
+       drops below, out of the middle of the workflow. */
+    const gates=(()=>{ const f=fakeState(fakeSheet(null)); return !!(f&&f.sh&&f.sh.gate); })();
+    const parts=[metalCard(), dealCard(), weightCard()];
+    if(gates)parts.push(fakeCardHTML(null));
+    /* the offer and the rules it carries take the next numbers */
+    const res=metalResultHTML(n);
+    parts.push(`<div id="metalResult">${res}</div>`, rateCard(), extra(), spotCard(), avgCard());
+    if(!gates)parts.push(fakeCardHTML(null));
+    return `<div class="colC">${parts.join("")}</div>`;
+  }
+
+  const left=`<div class="colL">${metalCard()}${dealCard()}${spotCard()}${avgCard()}</div>`;
+  const mid=`<div class="colC">${weightCard()}${fakeCardHTML(null)}${rateCard()}${extra()}</div>`;
+  const right=`<div class="colR"><div id="metalResult">${metalResultHTML(n)}</div></div>`;
   return left+mid+right;
 }
 function wireMetal(){
@@ -6821,7 +6865,16 @@ function specCardHTML(sh){
   const inp=st.specIn||{};
   const num=k=>Number(inp[k])||0;
   const grp=sh&&sh.id==="watch"?"watch":sh&&sh.id==="bullion"?null:null;
-  const opts=SPEC_GROUPS.map(([g,label])=>{
+  /* ONE METAL AT A TIME.
+     This listed every group on every job, so buying a gold Eagle you
+     scrolled a table of Silver bullion and US silver coins to reach the
+     one row you wanted - "if I'm buying gold, I don't need a big box with
+     the silver price in the middle of the workflow". The bullion card is
+     1379px on a phone and nine of its mentions were the other metal.
+     Watch cases stay on both: a watch case is a watch case. */
+  const MET_GRP={gold:["gold","watch"],silver:["silver","us","watch"]};
+  const keep=MET_GRP[st.metal]||null;
+  const opts=SPEC_GROUPS.filter(([g])=>!keep||keep.indexOf(g)>=0).map(([g,label])=>{
     const rows=SPECS.filter(z=>z.grp===g);
     return `<optgroup label="${esc(label)}">`+rows.map(z=>
       `<option value="${z.id}"${z.id===pick?" selected":""}>${esc(z.name)}</option>`).join("")+`</optgroup>`;
@@ -6949,7 +7002,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0924.1925";
+const APP_BUILD="0924.2146";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
