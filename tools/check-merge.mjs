@@ -279,6 +279,11 @@ console.log("\n  the parts filter knows an electronics part when it sees one");
     'Dell XPS 9320 Core i7-1260P 3.76GHz 32GB RAM NO HDD NO OS NO LCD',
     'Dell XPS 13 9310 Core i7-1165G7 2.8GHz 16GB RAM NO SSD 13.4" UHD+ Touch READ',
     'Dell XPS 9320 13.4" i7-1270p 16GB 1TB SCREEN ISSUE',
+    'Minn Kota Endura C2 Trolling Motor 34 lbs Thrust 12V Transom Mount',
+    'Minn Kota Endura C2 30 trolling motor with battery, charger, case',
+    'The Minn Kota Endura 30 lb thrust trolling motor Tested And Working',
+    'GoPro HERO11 Black Action Camera and Max Lens Mod',
+    'GoPro 8 black Hero Waterproof Camera & Accessories',
   ];
   const PARTS_T = [
     'LG OLED55C2AUA TV Stand Base W/Screws (UP 3)',
@@ -290,6 +295,16 @@ console.log("\n  the parts filter knows an electronics part when it sees one");
     'LG OLED 55/65C2 Base Front Stand MAM660004 Titanium Gray - No Screws',
     'LG OLED 55/65 C2  Stand Base (OEM)  - No Screws',
     'LG OLED65C2PUA LOUDSPEAKER Speakers Set Left and Right',
+    /* Outdoor power and the water: a trimmer's control handle, a
+       throttle rod, a trolling motor's control box, its propeller, its
+       main wire. These were filed as "asking prices, thin market" - a
+       $400 Stihl FS 131 reading $15-$36 - when they are simply not the
+       machine. */
+    'Stihl FS131 FS111 FS91 OEM Control Handle',
+    'Genuine Used Stihl FS 91 FS 111 FS 131  Throttle Rod And Linkage',
+    'Used Minn Kota Endura C2 50lb Head Control Box',
+    'Minn Kota Endura C2 30 Lb Thrust Trolling Motor - Blade Propeller',
+    'Minn Kota Endura C2 40 36" Main Wire For Model 1352240',
   ];
   const keptItems = ITEMS.filter(t => !ELEC_PART.test(t));
   const caughtParts = PARTS_T.filter(t => ELEC_PART.test(t));

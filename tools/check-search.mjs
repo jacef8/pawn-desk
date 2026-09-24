@@ -10,6 +10,7 @@
  * the shop actually sees, and grades what comes back:
  *
  *   NOTHING   no usable listings at all
+ *   PARTS     priced far under its own row - the wrong objects
  *   ASKS      fell off sold prices onto asking prices
  *   MIXED     middle half spans 3x or more - more than one product
  *   WILD      median is 4x the book or under a quarter of it
@@ -70,7 +71,7 @@ const ask = async (q) => {
 };
 const pct = (a, p) => a.length ? a[Math.min(a.length - 1, Math.floor(a.length * p))] : 0;
 
-const tally = { OK: 0, MIXED: 0, WILD: 0, ASKS: 0, NOTHING: 0, ERROR: 0 };
+const tally = { OK: 0, PARTS: 0, MIXED: 0, WILD: 0, ASKS: 0, NOTHING: 0, ERROR: 0 };
 const bad = [];
 console.log("\n  " + targets.length + " searches, the same ones the app builds\n");
 for (const t of targets) {
@@ -90,10 +91,18 @@ for (const t of targets) {
       const book = (t.lo > 0 && t.hi > 0) ? Math.round((t.lo + t.hi) / 2) : BOOK[t.ref];
       const spreadX = lo > 0 ? hi / lo : 0;
       note = "$" + lo + "-$" + hi + " (n=" + ps.length + ")";
-      if (d.basis !== "sold") { g = "ASKS"; }
+      /* ORDER MATTERS, AND IT WAS WRONG. "Fell off sold prices" was
+         checked before "is this price sane", so contamination hid inside
+         ASKS and read as a thin market. A Stihl FS 131 came back $15-$36
+         and was filed as asking prices; it is a $400 trimmer, and the two
+         listings were a control handle and a throttle rod. A price far
+         under the row's own is not a quiet market, it is the wrong
+         objects. It gets named now, and the basis is asked last. */
+      const rel = book > 0 ? mid / book : 1;
+      if (rel < 0.25) { g = "PARTS"; note += "  vs its own row $" + book + " — " + Math.round(rel * 100) + "%"; }
+      else if (rel > 4) { g = "WILD"; note += "  vs its own row $" + book; }
       else if (spreadX >= 3) { g = "MIXED"; note += "  " + (Math.round(spreadX * 10) / 10) + "x wide"; }
-      else if (book > 0 && (mid / book > 4 || mid / book < 0.25)) {
-        g = "WILD"; note += "  vs its own row $" + book; }
+      else if (d.basis !== "sold") { g = "ASKS"; }
       else g = "OK";
     }
   } catch (e) { g = "ERROR"; note = e.message.slice(0, 40); }
@@ -105,7 +114,7 @@ console.log("\n");
 const n = targets.length;
 const pc = (k) => Math.round(tally[k] / n * 100);
 console.log("  OK      " + String(tally.OK).padStart(3) + "  " + pc("OK") + "%   sold prices, tight band, near the book");
-["MIXED","WILD","ASKS","NOTHING","ERROR"].forEach(k =>
+["PARTS","MIXED","WILD","ASKS","NOTHING","ERROR"].forEach(k =>
   tally[k] && console.log("  " + k.padEnd(8) + String(tally[k]).padStart(3) + "  " + pc(k) + "%"));
 if (bad.length) {
   console.log("\n  what came back wrong:");
