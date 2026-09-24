@@ -1,0 +1,125 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0B0C0F"><title>B — Plain</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="frame.css">
+<style>
+/* ══ OPTION B — PLAIN ═════════════════════════════════════════════════
+   The New Minimalism read strictly: "the brave act of getting out of
+   the way". No cards at all. No panels, no glass, no borders round
+   anything. The canvas is the surface and TYPE does the whole job -
+   hairline rules separate zones instead of card edges, and the offer
+   is set at a size nothing else on the screen competes with.
+   Colour appears once: on the number, and on whatever you can press. */
+:root{
+  --paper:#0B0C0F; --ink:#fff; --ink2:rgba(255,255,255,.74); --ink3:rgba(255,255,255,.50);
+  --acc:#5B9DFF; --line:rgba(255,255,255,.13); --well:rgba(255,255,255,.07);
+  --good:#3FD69B; --warn:#FFA53D; --bad:#FF5A70;
+  --disp:'Sora',system-ui,sans-serif; --sans:'Instrument Sans',system-ui,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,monospace;
+}
+.scr{padding:16px 22px 12px}
+.eyeb{font:500 11px var(--mono);letter-spacing:.2em;text-transform:uppercase;color:var(--ink3)}
+.name{font:800 27px var(--disp);letter-spacing:-.04em;line-height:1.08;margin-top:6px}
+.name em{font-style:normal;color:var(--ink3);font-weight:600}
+.num{font:800 clamp(78px,26vw,104px) var(--disp);letter-spacing:-.065em;line-height:.84;
+  color:var(--acc);font-variant-numeric:tabular-nums;margin:26px 0 0}
+.numsub{font:500 15px var(--sans);color:var(--ink2);margin-top:12px;line-height:1.5}
+.numsub b{color:var(--ink);font-weight:700}
+.rule{height:1px;background:var(--line);margin:24px 0}
+.pair{display:flex;justify-content:space-between;align-items:baseline;gap:14px;padding:11px 0}
+.pair+.pair{border-top:1px solid var(--line)}
+.pair dt{font:500 13.5px var(--sans);color:var(--ink3)}
+.pair dd{margin:0;font:700 19px var(--mono);color:var(--ink);font-variant-numeric:tabular-nums}
+.pair dd.q{color:var(--ink2);font-size:15px;font-weight:500}
+.note{font:400 13px var(--sans);color:var(--ink3);line-height:1.6;margin-top:16px}
+.note b{color:var(--ink2);font-weight:600}
+.bar{height:3px;background:var(--well);margin-top:10px}
+.bar i{display:block;height:100%;background:var(--warn);width:58%}
+.acts{display:flex;gap:10px;margin-top:26px;flex-wrap:wrap}
+.btn{flex:1;min-width:120px;padding:15px 16px;border:1px solid var(--acc);background:transparent;
+  color:var(--acc);font:700 14.5px var(--sans);cursor:pointer;border-radius:0}
+.btn.fill{background:var(--acc);color:#04122E;border-color:var(--acc)}
+.q{font:800 25px var(--disp);letter-spacing:-.035em;line-height:1.18;margin:4px 0 0}
+.opts{margin-top:18px}
+.opt{display:flex;justify-content:space-between;align-items:baseline;gap:12px;width:100%;
+  padding:15px 0;border:none;border-top:1px solid var(--line);background:none;cursor:pointer;
+  text-align:left;color:var(--ink)}
+.opt:last-child{border-bottom:1px solid var(--line)}
+.opt b{font:700 17px var(--sans)}
+.opt span{font:500 13px var(--mono);color:var(--ink3);white-space:nowrap}
+.opt.on b{color:var(--acc)} .opt.on span{color:var(--acc)}
+.prog{display:flex;gap:5px;margin-top:22px}
+.prog i{flex:1;height:2px;background:var(--well)}
+.prog i.on{background:var(--acc)}
+.feed{margin-top:4px}
+.fr{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:14px 0;
+  border-top:1px solid var(--line)}
+.fr b{font:600 15.5px var(--sans)} .fr em{font-style:normal;color:var(--ink3);font-size:12.5px;display:block;margin-top:2px}
+.fr span{font:700 16px var(--mono);font-variant-numeric:tabular-nums}
+</style></head><body>
+<div class="phone">
+ <div class="scr">
+  <div class="top"><b>Lamar's</b><span>7:12</span></div>
+  <div class="eyeb">On the counter</div>
+  <div class="name">DeWalt DCD791 <em>· good</em></div>
+  <div class="num">$35</div>
+  <div class="numsub">Most you should pay. Resells for <b>$90</b>, you'd make <b>$55</b>.</div>
+  <div class="rule"></div>
+  <dl style="margin:0">
+    <div class="pair"><dt>Lend him</dt><dd>$30</dd></div>
+    <div class="pair"><dt>Your cushion</dt><dd>$60</dd></div>
+    <div class="pair"><dt>Fee / 30 days</dt><dd>$8</dd></div>
+    <div class="pair"><dt>Loan ÷ resale</dt><dd class="q">35%</dd></div>
+  </dl>
+  <div class="note"><b>eBay sold prices</b>, 9 sales, as of Sep 23. Not re-checked since.
+    <div class="bar"><i></i></div></div>
+  <div class="acts"><button class="btn fill">Look it up</button><button class="btn">Log this deal</button></div>
+ </div>
+ <nav class="dock"><b>Price</b><span>Gold</span><span>Setup</span></nav>
+</div>
+
+<div class="phone">
+ <div class="scr">
+  <div class="top"><b>Lamar's</b><span>7:12</span></div>
+  <div class="eyeb">4 of 7 · DeWalt DCD791</div>
+  <div class="q">What came with it?</div>
+  <div class="opts">
+    <button class="opt on"><b>Two batteries + charger</b><span>as is</span></button>
+    <button class="opt"><b>One battery + charger</b><span>−13%</span></button>
+    <button class="opt"><b>Tool only, no battery</b><span>−48%</span></button>
+    <button class="opt"><b>Combo, a second tool</b><span>+64%</span></button>
+  </div>
+  <div class="prog"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i></div>
+  <div class="note">Nothing is priced until the run is finished. Four answered, three to go.</div>
+  <div class="acts"><button class="btn">← Back</button><button class="btn fill">Skip →</button></div>
+ </div>
+ <nav class="dock"><b>Price</b><span>Gold</span><span>Setup</span></nav>
+</div>
+
+<div class="phone">
+ <div class="scr">
+  <div class="top"><b>Lamar's</b><span>7:12</span></div>
+  <div class="eyeb">Tuesday, 24 September</div>
+  <div class="name">What's on the counter?</div>
+  <div class="acts" style="margin-top:18px"><button class="btn fill">📷 Snap it</button><button class="btn">Type it</button></div>
+  <div class="rule"></div>
+  <div class="eyeb">Today</div>
+  <dl style="margin:0">
+    <div class="pair"><dt>Gold, per troy ounce</dt><dd>$4,296</dd></div>
+    <div class="pair"><dt>Silver</dt><dd>$64.34</dd></div>
+    <div class="pair"><dt>Deals logged</dt><dd>6</dd></div>
+    <div class="pair"><dt>Lent out today</dt><dd>$1,340</dd></div>
+  </dl>
+  <div class="rule"></div>
+  <div class="eyeb">Priced today</div>
+  <div class="feed">
+    <div class="fr"><div><b>Stihl MS 271</b><em>Chainsaw · good</em></div><span>$180</span></div>
+    <div class="fr"><div><b>14k chain, 12.4 g</b><em>Gold · by weight</em></div><span>$430</span></div>
+    <div class="fr"><div><b>iPhone 15 128GB</b><em>Smartphone · excellent</em></div><span>$310</span></div>
+  </div>
+ </div>
+ <nav class="dock"><b>Price</b><span>Gold</span><span>Setup</span></nav>
+</div>
+</body></html>

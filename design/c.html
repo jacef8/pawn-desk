@@ -1,0 +1,121 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101319"><title>C — Ticket</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="frame.css">
+<style>
+/* ══ OPTION C — TICKET ════════════════════════════════════════════════
+   Shaped like the thing the job produces. One tall ticket per item,
+   torn along a perforated edge, set in ledger monospace: what it is,
+   what the desk found, what it is worth, and the offer stamped across
+   the bottom. Everything reads top to bottom in the order you would
+   say it out loud to a customer.
+   It is the only one of the three that looks like a pawn shop rather
+   than a fintech app, and it is the only one where the screen and the
+   paperwork are the same shape. */
+:root{
+  --paper:#101319; --tick:#F3EFE4; --tickInk:#15161A;
+  --ink:#fff; --ink2:rgba(255,255,255,.76); --ink3:rgba(255,255,255,.52);
+  --acc:#7DB1FF; --line:rgba(255,255,255,.12);
+  --good:#0D7A52; --warn:#B4600A; --bad:#C62B42;
+  --disp:'Sora',system-ui,sans-serif; --sans:'Instrument Sans',system-ui,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,monospace;
+}
+.scr{padding:14px 14px 12px}
+.ticket{background:var(--tick);color:var(--tickInk);border-radius:6px;position:relative;
+  padding:20px 20px 0;box-shadow:0 22px 46px -22px rgba(0,0,0,.9)}
+/* the perforation */
+/* The scallops have to be cut UP from the bottom in the page colour, or
+   they render as a plain cream strip: notches drawn in "transparent"
+   against a light ticket on a dark page show nothing at all. */
+.ticket::after{content:"";display:block;height:15px;margin:0 -20px;
+  background:radial-gradient(circle at 8px 15px, var(--paper) 7px, var(--tick) 7.6px) 0 0/16px 15px repeat-x}
+.tHead{display:flex;justify-content:space-between;align-items:baseline;
+  border-bottom:2px solid var(--tickInk);padding-bottom:9px}
+.tHead b{font:800 15px var(--disp);letter-spacing:-.01em}
+.tHead span{font:500 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;opacity:.62}
+.tItem{font:800 24px var(--disp);letter-spacing:-.035em;margin-top:14px;line-height:1.12}
+.tCond{font:600 12.5px var(--mono);letter-spacing:.12em;text-transform:uppercase;opacity:.6;margin-top:4px}
+.led{margin-top:16px;border-top:1px dashed rgba(21,22,26,.34)}
+.ledRow{display:flex;justify-content:space-between;gap:12px;padding:9px 0;
+  border-bottom:1px dashed rgba(21,22,26,.22);font:500 13.5px var(--mono)}
+.ledRow span{opacity:.68} .ledRow b{font-weight:700;font-variant-numeric:tabular-nums}
+.ledRow.src{font-size:12px;opacity:.74;display:block;line-height:1.5;border-bottom:none;padding-top:11px}
+.stamp{margin:16px -20px 0;padding:16px 20px 18px;background:var(--tickInk);color:#fff;
+  display:flex;justify-content:space-between;align-items:center;gap:14px}
+.stamp .l{font:500 11px var(--mono);letter-spacing:.18em;text-transform:uppercase;opacity:.72}
+.stamp .n{font:800 46px var(--disp);letter-spacing:-.05em;line-height:.9;
+  font-variant-numeric:tabular-nums;color:#8FBDFF}
+.stamp .r{text-align:right;font:500 12.5px var(--mono);opacity:.78;line-height:1.5}
+.after{display:flex;gap:9px;margin-top:16px;flex-wrap:wrap}
+.tb{flex:1;min-width:120px;padding:14px;border-radius:12px;border:1px solid var(--line);
+  background:rgba(255,255,255,.07);color:var(--ink);font:700 14px var(--sans);cursor:pointer}
+.tb.go{background:var(--acc);color:#04122E;border-color:var(--acc)}
+.stub{margin-top:14px;font:500 11.5px var(--mono);letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink3);text-align:center}
+.blank{background:var(--tick);border-radius:6px;padding:22px 20px;color:var(--tickInk);
+  box-shadow:0 22px 46px -22px rgba(0,0,0,.9)}
+.blank .bl{font:500 11px var(--mono);letter-spacing:.18em;text-transform:uppercase;opacity:.6}
+.blank input{width:100%;margin-top:9px;padding:13px 14px;border:2px solid var(--tickInk);
+  border-radius:4px;background:#fff;font:700 17px var(--sans);color:var(--tickInk)}
+.blank .hint{font:500 12.5px var(--mono);opacity:.62;margin-top:10px;line-height:1.5}
+.tryr{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
+.tryc{padding:8px 13px;border:1px solid rgba(21,22,26,.3);border-radius:999px;
+  font:600 12.5px var(--sans);color:var(--tickInk);background:rgba(21,22,26,.05)}
+.done{margin-top:18px}
+.doneH{font:500 11px var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--ink3);margin-bottom:9px}
+.dr{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:11px 13px;
+  border-radius:10px;background:rgba(255,255,255,.055);border:1px solid var(--line)}
+.dr+.dr{margin-top:7px}
+.dr b{font:600 14.5px var(--sans)} .dr em{font-style:normal;font-size:12px;color:var(--ink3);display:block}
+.dr span{font:700 15px var(--mono);font-variant-numeric:tabular-nums;color:var(--acc)}
+</style></head><body>
+<div class="phone">
+ <div class="scr">
+  <div class="top"><b>Lamar's</b><span>7:12</span></div>
+  <div class="ticket">
+    <div class="tHead"><b>LAMAR'S PAWN</b><span>Sep 24 · 7:12</span></div>
+    <div class="tItem">DeWalt DCD791</div>
+    <div class="tCond">Cordless drill · good · 2 batteries</div>
+    <div class="led">
+      <div class="ledRow"><span>Resells for</span><b>$90.00</b></div>
+      <div class="ledRow"><span>Lend him</span><b>$30.00</b></div>
+      <div class="ledRow"><span>Your cushion</span><b>$60.00</b></div>
+      <div class="ledRow"><span>Fee / 30 days</span><b>$8.00</b></div>
+      <div class="ledRow"><span>Loan ÷ resale</span><b>35%</b></div>
+      <div class="ledRow src">eBay sold prices, 9 sales, as of Sep 23. Not re-checked since.</div>
+    </div>
+    <div class="stamp">
+      <div><div class="l">Pay up to</div><div class="n">$35</div></div>
+      <div class="r">you make<br><b>$55</b></div>
+    </div>
+  </div>
+  <div class="after"><button class="tb go">Look it up</button><button class="tb">Log this deal</button></div>
+  <div class="stub">tear here · ticket #____</div>
+ </div>
+ <nav class="dock"><b>Price</b><span>Gold</span><span>Setup</span></nav>
+</div>
+
+<div class="phone">
+ <div class="scr">
+  <div class="top"><b>Lamar's</b><span>7:12</span></div>
+  <div class="blank">
+    <div class="bl">What's on the counter?</div>
+    <input value="" placeholder="brand, model or item">
+    <div class="hint">430 models by name · 72 kinds of thing</div>
+    <div class="tryr"><span class="tryc">stihl 271</span><span class="tryc">remington 870</span>
+      <span class="tryc">dewalt dcd791</span><span class="tryc">14k ring</span><span class="tryc">iphone 15</span></div>
+  </div>
+  <div class="after"><button class="tb go">📷 Snap it instead</button></div>
+  <div class="done">
+    <div class="doneH">Today · 6 tickets · $1,340 out</div>
+    <div class="dr"><div><b>Stihl MS 271</b><em>Chainsaw · good · 11:04</em></div><span>$180</span></div>
+    <div class="dr"><div><b>14k chain, 12.4 g</b><em>Gold · by weight · 10:22</em></div><span>$430</span></div>
+    <div class="dr"><div><b>iPhone 15 128GB</b><em>Smartphone · excellent · 9:47</em></div><span>$310</span></div>
+    <div class="dr"><div><b>Ruger 10/22</b><em>Rifle · fair · 9:15</em></div><span>$160</span></div>
+  </div>
+ </div>
+ <nav class="dock"><b>Price</b><span>Gold</span><span>Setup</span></nav>
+</div>
+</body></html>

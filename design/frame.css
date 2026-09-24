@@ -1,0 +1,21 @@
+/* Shared chrome for the three design samples: a phone-shaped frame so
+   they can be judged at the size they will be used, side by side on a
+   desk and one-per-screen on a phone. Not part of the app. */
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:#07080B;color:#fff;font-family:'Instrument Sans',system-ui,sans-serif;
+  display:flex;flex-wrap:wrap;gap:26px;padding:26px;justify-content:center;align-items:flex-start}
+.phone{width:390px;max-width:100%;height:844px;max-height:92vh;border-radius:38px;overflow:hidden;
+  position:relative;display:flex;flex-direction:column;
+  background:var(--paper,#0E1016);border:1px solid rgba(255,255,255,.10);
+  box-shadow:0 30px 70px -28px rgba(0,0,0,.95)}
+.scr{flex:1;min-height:0;overflow:auto;padding:14px 16px 12px;scrollbar-width:none}
+.scr::-webkit-scrollbar{display:none}
+.top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px}
+.top b{font:700 15px 'Instrument Sans',system-ui,sans-serif;color:rgba(255,255,255,.66)}
+.top span{font:500 12px 'JetBrains Mono',monospace;color:rgba(255,255,255,.44)}
+.dock{flex:none;display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:0;padding:12px 6px 18px;
+  border-top:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);
+  -webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);text-align:center}
+.dock b{font:700 12.5px 'Instrument Sans',system-ui,sans-serif;color:var(--acc,#7DB1FF)}
+.dock span{font:600 12.5px 'Instrument Sans',system-ui,sans-serif;color:rgba(255,255,255,.48)}
+@media (max-width:860px){ body{padding:14px;gap:16px} .phone{height:auto;max-height:none} .scr{overflow:visible} }
