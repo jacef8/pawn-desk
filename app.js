@@ -1093,11 +1093,16 @@ function weightHTML(x){
 
        The source belongs in the sentence, where it has "researched from"
        in front of it and is worth something. */
+    /* "Researched from eBay, checked Sep 23. Nothing looked up live yet."
+       Both halves were true and together they read as a contradiction -
+       a great deal WAS looked up, on 23 Sep, by the weekly harvest; what
+       had not happened was this device re-checking it today. The sentence
+       said "nothing" about work that is the entire reason the row has a
+       number. It says which day the figure is from and leaves it there. */
     return card("Desk price list",c[2],bar(c[0],c[1]),
-      "Researched from <b>"+esc(srcName(m.src))+"</b> for <b>"+esc(m.name||"this model")
-      +"</b>, checked "+esc(fmtDay(m.date))+"."
-      +(m.mine?" This one is your own figure off the master sheet."
-              :" Nothing looked up live yet."));
+      (m.mine?"Your own figure off the master sheet for <b>"+esc(m.name||"this model")+"</b>, "
+             :"<b>"+esc(srcName(m.src))+"</b> prices for <b>"+esc(m.name||"this model")+"</b>, ")
+      +"as of "+esc(fmtDay(m.date))+". Not re-checked since.");
   }
 
   if(m.kind==="shot")
@@ -6220,7 +6225,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0924.1053";
+const APP_BUILD="0924.1115";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
