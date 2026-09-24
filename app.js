@@ -1054,7 +1054,11 @@ function ticketHTML(x){
   if(F&&F.blocks)return fakeHoldHTML(F);
   /* Same gate as the numbers strip: a loan figure is a price like any other,
      and quoting one off a half-finished run is the thing being stopped. */
-  if(!priceReady(x))return `<div class="card unchecked">
+  /* The numbers strip already says "No price yet - still needs the model,
+     what it sells for and the condition", three inches away. This card
+     said the same sentence again in different words, on every step of
+     every run. Where the strip is on screen, one of them is enough. */
+  if(!priceReady(x))return deskRail()?"":`<div class="card unchecked">
     <span class="label">7 &middot; Pawn loan &mdash; the cash you lend him</span>
     <div class="cardHint" style="margin-top:0">No loan figure yet. The run still needs
       <b style="color:var(--ink)">${esc(needList(x))}</b> &mdash; each one moves the number,
@@ -1920,7 +1924,31 @@ function renderItem(){
      between the browse bar and step 3 with 292px of buttons. It goes with
      the other reference cards at the foot, where it is still a click away
      when step 4 wants a real sold price. */
-  const leftRef=deskRail()?`<div class="colL">${compsCardHTML(x)}${photoCardHTML()}${seenCardHTML()}</div>`:"";
+  /* WHAT BELONGS ON A STEP IS THAT STEP.
+     The column under the question carried the market card, the camera,
+     the shelf-tag recorder and the deal log - all of them, at every step,
+     whatever was being asked. Seven cards in the run and thirteen in the
+     page flow, to answer one question.
+     None of those three belong to a step. The camera is how you find out
+     WHAT the thing is, so it goes before an item is picked and not after.
+     Shelf tags are a record of other shops' prices, kept for later, and
+     have nothing to do with the item in your hand - they moved to the
+     deal log, where the shop's own records live. And the log itself says
+     "check the market first, so the log only keeps real numbers", which
+     is an admission that it is useless until there is a price.
+     What is left is the market card, on the one step that asks about the
+     market. */
+  const onWorth=(stepFlow()==="ask")
+    ? (function(){ const q=askQueue(x), at=Math.max(0,Math.min(q.length-1,Number(st.askAt)||0));
+                   return q[at]&&q[at].id==="worth"; })()
+    : (st.page==="worth"||st.page==="what");
+  const leftRef=(deskRail()&&onWorth)?`<div class="colL">${compsCardHTML(x)}</div>`:"";
+  /* Before anything is picked, the camera IS the first step. After, it is
+     a way to re-identify something already named, which nobody needs
+     halfway down a run. */
+  const camRef=(!st.picked&&!window.PHONE)?`<div class="colL">${photoCardHTML()}</div>`:"";
+  /* The log appears when there is something worth logging. */
+  const logRef=x.checked?logCardHTML(x):"";
   const ST=stepFlow()==="steps"&&!window.PHONE, LIVE=ST?liveStep(x):0;
   /* A step opened by hand stays open through the re-render a click inside it
      causes - otherwise it shuts under the hand that opened it. It is let go
@@ -1993,7 +2021,7 @@ function renderItem(){
     <input type="range" min="15" max="100" value="${x.baseLtv}" id="ltvSlider">
     <div class="sliderScale"><span>15% — tight</span><span>100% — your whole cushion, gone</span></div>
     <div id="ltvSuggest">${ltvSuggestHTML(cat,x.baseLtv)}</div>${buyRateHTML(x)}</details></div>`;
-  const right=`<div class="colR"><div id="ticket">${ticketHTML(x)}</div>${logCardHTML(x)}</div>`;
+  const right=`<div class="colR"><div id="ticket">${ticketHTML(x)}</div>${logRef}</div>`;
   /* The pin sat at the top of the right column, and that column starts below
      the Next step panel - so the number the counter is working toward was
      off-screen until they scrolled to it, which is what it existed to avoid.
@@ -2051,13 +2079,13 @@ function renderItem(){
     return omniHTML()
       +(deskWide()
         ? `<div class="rail"><div id="pin">${pinHTML(x)}</div>${weightHTML(x)}</div>`
-          +`<div class="colQ">${askHTML(x)}<div id="ticket">${ticketHTML(x)}</div>${leftRef}${logCardHTML(x)}</div>`
+          +`<div class="colQ">${askHTML(x)}<div id="ticket">${ticketHTML(x)}</div>${leftRef}${camRef}${logRef}</div>`
         : `<div id="pin">${pinHTML(x)}</div>`+weightHTML(x)+askHTML(x)
-          +`<div id="ticket">${ticketHTML(x)}</div>`+logCardHTML(x));
+          +`<div id="ticket">${ticketHTML(x)}</div>`+logRef);
   if(deskRail())return omniHTML()+nextStepHTML(x)
     +`<div class="rail"><div id="pin">${pinHTML(x)}</div>${weightHTML(x)}</div>`
     +`<div class="colQ">${left}${mid}<div id="ticket">${ticketHTML(x)}</div>`
-      +`${leftRef}${logCardHTML(x)}</div>`;
+      +`${leftRef}${camRef}${logRef}</div>`;
   /* The meter went out with the rail, and the rail needs 1080px - so on a
      phone, and on a tablet held upright, the one card that says how much
      evidence is behind the number simply did not exist. It was asked for
@@ -4128,14 +4156,20 @@ function wireLogButton(){
 
 /* ---------------- deal log tab ---------------- */
 function renderLog(){
+  /* Shelf tags are a record of what other shops ask, kept for later. They
+     were sitting in the middle of pricing an item, where they have nothing
+     to do with the thing in your hand. This is where the shop's own
+     records live, so this is where they go. */
+  const shelf=seenCardHTML();
+  const wrap=(inner)=>`<div class="narrow">${inner}${shelf}</div>`;
   if(!CAP.db){
-    return `<div class="narrow"><div class="card"><p style="font-size:14px;line-height:1.6;margin:0;color:var(--ink-2)">The deal log isn't available on this device. Open the page from the Claude app on the counter tablet.</p></div></div>`;
+    return wrap(`<div class="card"><p style="font-size:14px;line-height:1.6;margin:0;color:var(--ink-2)">The deal log isn't available on this device. Open the page from the Claude app on the counter tablet.</p></div>`);
   }
   if(!dealsReady){
-    return `<div class="narrow"><div class="card" style="text-align:center;color:var(--ink-3);padding:26px">Loading the log…</div></div>`;
+    return wrap(`<div class="card" style="text-align:center;color:var(--ink-3);padding:26px">Loading the log…</div>`);
   }
   if(!DEALS.length){
-    return `<div class="narrow"><div class="card"><p style="font-size:14px;line-height:1.6;margin:0;color:var(--ink-2)">Nothing logged yet. Price something on the first tab and hit <b style="color:var(--ink)">Log this deal</b>. After a few months this list is worth more than any outside price guide &mdash; it is the only record of what things actually bring in Bristol.</p></div></div>`;
+    return wrap(`<div class="card"><p style="font-size:14px;line-height:1.6;margin:0;color:var(--ink-2)">Nothing logged yet. Price something on the first tab and hit <b style="color:var(--ink)">Log this deal</b>. After a few months this list is worth more than any outside price guide &mdash; it is the only record of what things actually bring in Bristol.</p></div>`);
   }
   const open=DEALS.filter(d=>d.status==="open"), done=DEALS.filter(d=>d.status!=="open");
   const row=d=>{
@@ -4156,13 +4190,13 @@ function renderLog(){
       </div>`:""}
     </div>`;
   };
-  return `<div class="narrow">
+  return wrap(`
     <div class="card"><p style="font-size:14px;line-height:1.6;margin:0;color:var(--ink-2)">Your own sold history. Item facts only &mdash; no names, no ID numbers, nothing off the state form. That record lives in the pawn system, not here.</p></div>
     ${open.length?`<div class="card" style="padding:12px 15px"><span class="label" style="margin:0">Not settled yet &mdash; ${open.length}</span>
       <div class="cardHint" style="margin-top:4px;font-size:12.5px">Logged, and nothing has happened since. On a pawn that means your money is still out; on a buy it means the item has not sold. Close it with <b style="color:var(--ink)">Sold</b> or <b style="color:var(--ink)">Redeemed</b> and it starts teaching the next appraisal.</div></div>${open.map(row).join("")}`:""}
     ${done.length?`<div class="card" style="padding:12px 15px"><span class="label" style="margin:0">Settled &mdash; ${done.length}</span>
       <div class="cardHint" style="margin-top:4px;font-size:12.5px">Sold, or redeemed by the customer. These are what the desk prices from next time.</div></div>${done.map(row).join("")}`:""}
-  </div>`;
+  `);
 }
 function wireLog(){
   const v=document.getElementById("view");
@@ -6027,7 +6061,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0924.1046";
+const APP_BUILD="0924.1204";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

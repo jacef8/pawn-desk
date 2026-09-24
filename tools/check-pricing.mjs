@@ -909,6 +909,41 @@ console.log("\n  a make offers what it sells, and not the rest of the aisle");
   ok(r.stihl.length >= 4, "  and Stihl still offers its whole range — " + r.stihl.length + " rows");
 }
 
+/* ONE QUESTION, ONE SCREEN. The column under the question carried the
+   market card, the camera, the shelf-tag recorder and the deal log - all
+   of them, at every step, whatever was being asked. Seven cards in the
+   run to answer one question, and the loan card repeated the numbers
+   strip word for word three inches away. */
+console.log("\n  a step shows that step, and not the rest of the shop");
+{
+  const r = await page.evaluate(() => {
+    const e = PRICEBOOK.find(x => x[0] === "Camera drone");
+    pickBookEntry(e); st.picked = true; st.flow = "ask"; st.market = null;
+    st.condSet = false; st.brandTyped = "DJI"; st.model = "Mavic 3";
+    st.mpNone = false; st.specSel = {};
+    const q = askQueue(calcItem()), out = {};
+    q.forEach((z, i) => { st.askAt = i; render();
+      out[z.id] = [...document.querySelectorAll("#view .card")].map(c => {
+        const l = c.querySelector(".label,.stepT");
+        return (l ? l.textContent : (c.id || "")).trim(); });
+    });
+    return out;
+  });
+  const all = Object.values(r).flat().join(" | ");
+  ok(!/Shelf prices/i.test(all), "the shelf-tag recorder is not in the run at all");
+  ok(!/Deal log/i.test(all), "  nor the deal log, before there is anything to log");
+  ok(!/Photograph it/i.test(all), "  nor the camera, after the thing is already named");
+  ok(/Check it against the market/i.test((r.worth || []).join(" ")),
+     "the market card is on the step that asks about the market");
+  ok(Object.entries(r).filter(([k]) => k !== "worth")
+       .every(([, c]) => !c.some(n => /Check it against the market/i.test(n))),
+     "  and on no other step");
+  const worst = Math.max(...Object.values(r).map(c => c.length));
+  ok(worst <= 3, "no step shows more than three cards — worst is " + worst);
+  ok(!/Pawn loan/i.test(all),
+     "  and the loan card does not repeat the numbers strip while the rail carries it");
+}
+
 ok(!errs.length, "no page errors" + (errs.length ? ": " + errs[0] : ""));
 await browser.close();
 console.log(fails ? "\n  " + fails + " FAILED\n" : "\n  all passed\n");
