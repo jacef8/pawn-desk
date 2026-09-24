@@ -72,8 +72,15 @@
        The rail is sticky as a whole and holds only figures - the numbers
        panel and the loan card's money half. Everything that is reading
        rather than arithmetic went to the foot of the questionnaire. */
+    /* The rail spans all three rows, so when it was taller than the search
+       box the browser shared its extra height out between the rows above -
+       138px of row for a 99px search box, and 75px of empty row under it
+       where nothing was. The question card started 365px down a 900px
+       screen with a hole above it. Giving the question row the free space
+       instead pins every row above to its own content, so an empty Next
+       step row is 0px tall and the question follows the search box. */
     #view.item.railed{grid-template-columns:minmax(0,1fr) minmax(0,352px);
-      grid-template-rows:auto auto auto;
+      grid-template-rows:auto auto minmax(0,1fr);
       grid-template-areas:"omni rail" "next rail" "quest rail"}
     /* Only the numbers panel lives here now, so it fits a screen with room
        to spare and never needs a scrollbar of its own. */

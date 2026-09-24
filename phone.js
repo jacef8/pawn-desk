@@ -354,7 +354,7 @@ function snapHTML(){
        </div>`
     : (has ? "" : pdConnectHTML());
   const camOff=(!camOn&&has)
-    ? `<div class="snapOff">This phone is not connected \u2014 no sold-price lookups.
+    ? `<div class="snapOff">Not connected \u2014 no sold-price lookups.
         <button class="ghostBtn" data-gotab="setup" type="button">Set it up</button></div>`
     : "";
 
@@ -365,7 +365,7 @@ function snapHTML(){
     ${un?snapHelpHTML(un):""}
     ${snapShelfHTML()}
     <div class="snapOr">or type what it is</div>${omniHTML()}
-    <div class="snapTip">Fill the frame. A model plate, a barrel stamp or a label is worth more than the whole object in shot.</div>
+    <div class="snapTip">Fill the frame \u2014 a model plate or a label beats the whole object in shot.</div>
   </div>`;
 
   /* A gated sheet means no price until it is worked - the phone must hold the
@@ -417,7 +417,7 @@ function snapHTML(){
 function snapFootHTML(){
   return `<div class="snapFoot">
     <button class="ghostBtn" id="pinNew">Price another</button>
-    <button class="ghostBtn" id="snapMore">Show all the detail &rsaquo;</button>
+    <button class="ghostBtn" id="snapMore">All the detail &rsaquo;</button>
   </div>`;
 }
 

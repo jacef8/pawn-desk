@@ -28,3 +28,31 @@
   .phKinds summary{cursor:pointer;font-weight:700;color:var(--ink)}
   .phKindRow{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
   body.phone .bar{border-radius:var(--r)}
+
+/* THE HEADER WAS A QUARTER OF THE PHONE.
+   192px of a 780px screen went on a wordmark, three tabs that wrapped onto
+   two rows at 360px wide, and a line of spot metal prices - before the item
+   being priced got a pixel. Measured on a small Android that is the whole
+   reason the screen would not fit.
+
+   The wordmark keeps its name and loses the eyebrow and a row: it sits on
+   the same line as the tabs. The metals line only shows where metal is
+   being priced, and the build number where it is read - under Setup. */
+body.phone .bar{padding:8px 12px;gap:10px;row-gap:6px}
+body.phone .brand .eyebrow{display:none}
+body.phone .brand h1{font-size:16px;letter-spacing:-.02em;margin:0;white-space:nowrap}
+body.phone .tabwrap{gap:6px;row-gap:6px;justify-content:flex-end}
+body.phone .tabwrap .pills button{padding:6px 11px;font-size:12px}
+body.phone .tabwrap .pills.ref button{padding:6px 10px;font-size:12px}
+body.phone .sys{font-size:11.5px;letter-spacing:.06em}
+/* Spot gold is worth a line while gold is on the scale, and nowhere else. */
+body.phone .dash:has(#view.item) .sys{display:none}
+
+/* Five conditions, five columns. flex with a 64px minimum put "Rough" on a
+   row of its own at 360px wide - a full-width button that looks like the
+   answer and is only the last of five. */
+body.phone .snapCond{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
+body.phone .snapCond button{min-width:0;padding:10px 2px;font-size:12px}
+/* A rule with nothing under it. The source line is empty until there is a
+   source, and an empty element still drew its own top border. */
+.snapSrc:empty{display:none}

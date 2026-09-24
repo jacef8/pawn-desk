@@ -3148,11 +3148,21 @@ function pdConnectHTML(){
      service is what looks up sold prices. Somebody who did not want to
      photograph anything read "Camera and photo lookups" as optional and
      left the price lookups switched off. */
-  return '<div class="card" id="pdConnCard" style="border:1px dashed var(--e2-hi)"><span class="label">This device is not connected to the shop&rsquo;s service</span>'+
+  /* The headline used to say "not connected" even when `on` was true - so a
+     device that WAS switched on and had merely lost the service for a moment
+     was told it had never been set up, under a button reading "Switch it on".
+     The headline follows the state now.
+
+     The prose under it was four paragraphs deep, 250px of it, and on a phone
+     that pushed the two fields and the search box off the bottom of the
+     screen. What someone setting this up needs is the consequence in a line
+     and then the boxes. */
+  return '<div class="card" id="pdConnCard" style="border:1px dashed var(--e2-hi)"><span class="label">'+(on
+      ? "Switched on, but the shop&rsquo;s service is not answering"
+      : "This device is not connected to the shop&rsquo;s service")+'</span>'+
     '<div class="cardHint">'+(on
-      ? "Connected, but the shop&rsquo;s service did not answer. Check that it is running."
-      : "Until it is, this device cannot <b style=\"color:var(--ink)\">look up what things sold for</b>. It works off the built-in price list alone, and you do the searching by hand.")+'</div>'+
-    '<div class="cardHint" style="font-size:12.5px">Connecting also lets this device photograph an item and price it, read another shop&rsquo;s price tag, and share the shelf record with your other devices. It means pasting two lines once. The API key lives on the service, never in this page.</div>'+
+      ? "Check that it is running, then test the connection below."
+      : "No <b style=\"color:var(--ink)\">sold-price lookups</b> until it is. Two lines, pasted once.")+'</div>'+
     /* These used to be two browser prompt() boxes. A prompt is torn down the
        moment the tab loses focus - and the token lives in another tab, so
        going to fetch it closed the box you were pasting into. Fields on the
@@ -3163,8 +3173,8 @@ function pdConnectHTML(){
     '<span class="label" style="margin-top:10px">Token</span>'+
     '<input id="pdTokIn" class="numIn" type="text" autocomplete="off" spellcheck="false" '+
       'style="font-family:var(--mono);font-size:14px" placeholder="the PAWN_TOKEN you set in Railway" value="'+esc(pdToken()||"")+'">'+
-    '<div class="cardHint" style="font-size:12.5px">Switch tabs to copy them if you need to &mdash; what you have typed stays put.'+
-      (window.PHONE?" <b style=\"color:var(--ink)\">Already switched on at the desk?</b> Both are printed on the desk computer under <b style=\"color:var(--ink)\">Setup</b> &mdash; this phone keeps its own copy, so it has to be told once too.":"")+'</div>'+
+    '<div class="cardHint" style="font-size:12.5px">Switch tabs to copy &mdash; what you typed stays put.'+
+      (window.PHONE?" Both are under <b style=\"color:var(--ink)\">Setup</b> on the desk computer.":"")+'</div>'+
     '<div class="row2" style="margin-top:8px"><button class="brassBtn" id="pdConnBtn" style="padding:10px 18px">'+
       (on?"Save and reconnect":"Switch it on")+'</button>'+
       '<button class="ghostBtn" id="pdConnTest">Test the connection</button>'+
@@ -6083,7 +6093,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0924.0156";
+const APP_BUILD="0924.0203";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

@@ -253,6 +253,43 @@ console.log("");
   else console.log("ok   the page itself never scrolls, four desk sizes x three states");
 }
 
+/* The phone gets the same measurement, at the size it is actually held.
+   Its start screen was 921px on an 844px phone - a 535px setup card first,
+   with the search box that still works underneath it, off the bottom. The
+   card says the same thing in a line now. Four phone sizes, because a
+   smaller one is the one that hurts. */
+{
+  const over = [];
+  for (const [w, h, name] of [[390,844,"iPhone"],[360,780,"small Android"],[430,932,"Max"],[412,915,"Pixel"]]) {
+    const pg = await browser.newPage({viewport: {width: w, height: h}});
+    await pg.goto(BASE + "/phone.html", {waitUntil: "networkidle"});
+    const hit = await pg.evaluate(() => {
+      const out = [];
+      for (const state of ["start", "simple", "detail", "priced"]) {
+        st.flow = "ask"; st.market = null; st.condSet = false; st.specSel = {};
+        st.brandTyped = ""; st.brandQ = ""; st.model = ""; st.bookName = "";
+        st.picked = false; st.askAt = 0; st.cond = "";
+        if (state !== "start") {
+          const R = omniRows(state === "simple" ? "hammer" : "dewalt dcd791 drill") || {};
+          const f = (R.rows || []).find(x => ["mp", "book", "item"].includes(x.kind));
+          if (f) omniPick(f);
+        }
+        if (state === "priced") { st.cond = "good"; st.condSet = true; }
+        render();
+        const d = document.documentElement;
+        const down = d.scrollHeight - window.innerHeight;
+        const across = d.scrollWidth - window.innerWidth;
+        if (down > 4 || across > 4) out.push(state + " +" + down + "px down +" + across + "px across");
+      }
+      return out;
+    });
+    hit.forEach(s => over.push(name + " " + w + "x" + h + " " + s));
+    await pg.close();
+  }
+  if (over.length) { bad++; console.log("FAIL the phone scrolls: " + over.join(" | ")); }
+  else console.log("ok   the phone fits its own screen, four phone sizes x four states");
+}
+
 await browser.close();
 console.log(bad ? `FAILED (${bad})` : "all screens draw themselves, every id once");
 process.exit(bad ? 1 : 0);
