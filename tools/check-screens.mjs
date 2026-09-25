@@ -16,6 +16,10 @@
    failure, so it can gate a push. */
 import {createRequire} from "node:module";
 import {execSync} from "node:child_process";
+import {readFileSync} from "node:fs";
+import {join, dirname} from "node:path";
+import {fileURLToPath} from "node:url";
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 /* Borrowed from wherever playwright happens to live: this repo has no build
    step and no package.json to depend on it from. PW_MODULE overrides. */
@@ -562,6 +566,46 @@ console.log("");
   if (bOffer && bFakes && bFakes.top > bOffer.top)
     gold.push(`bullion GATES the price but its checklist (${bFakes.top}px) is below the offer (${bOffer.top}px)`);
   await pg.close();
+
+  /* THE COUNTER HAD TO ASK WHAT HIS OWN CARD MEANT.
+     "What does loupe the stamp mean". It is the jeweller's word for a
+     magnifier and five checks used it as a VERB - loupe the dial, loupe
+     the band, loupe the date - which is the tool talking to a jeweller
+     rather than to the man holding the chain. Plain words, with the word
+     itself kept once in brackets so it is taught rather than required.
+
+     And the jewelry check had the law backwards in the way that costs
+     money. It said "US law requires both, so a missing one is a warning
+     sign", which reads as: unstamped means suspicious. Unstamped is
+     normal - old pieces, imports and repairs carry no marks at all and
+     the Act does not require any. What it requires is that a quality
+     mark be accompanied by the maker's registered trademark, so the
+     warning sign is a piece stamped 14K with NO maker's mark: that one is
+     misbranded under federal law. As written the card would have had him
+     suspicious of an ordinary estate ring and relaxed about the one
+     somebody stamped themselves. */
+  {
+    const fakes = JSON.parse(readFileSync(join(ROOT, "fakes.json"), "utf8"));
+    const all = fakes.sheets.flatMap(sh =>
+      [...(sh.steps || []), ...(sh.checks || [])].map(t => [sh.id, t]));
+
+    const verb = all.filter(([, t]) => /\b(loupe|loupes)\s+(the|it|a)\b/i.test(t));
+    if (verb.length)
+      gold.push(`"loupe" is still a verb in ${verb.length} check(s): ${verb.map(v=>v[0]).join(", ")}`);
+
+    const jw = all.find(([id, t]) => id === "jewelry" && /quality mark/i.test(t));
+    if (!jw) gold.push("the jewelry stamp check lost its quality-mark wording");
+    else {
+      if (/US law requires both/i.test(jw[1]))
+        gold.push("the jewelry check still says US law requires both marks");
+      if (!/no marks at all is a different thing|common on older pieces/i.test(jw[1]))
+        gold.push("the jewelry check no longer says an unstamped piece is normal");
+      if (!/misbranded/i.test(jw[1]))
+        gold.push("the jewelry check no longer names what is actually wrong (misbranded)");
+    }
+    if (/jeweller|colour/i.test(JSON.stringify(fakes)))
+      gold.push("British spelling crept into fakes.json");
+  }
 
   if (gold.length) { bad++; console.log("FAIL the gold page on a phone: " + gold.join(" | ")); }
   else console.log("ok   gold on a phone: weigh it, then the offer, checklist out of the middle (and above it when it gates)");
