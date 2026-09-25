@@ -57,6 +57,18 @@ const PAIRS = [
      straight on it. The sample's gradient topped out at #3B82F6, where
      white is 3.3:1 - fine for a 60px numeral and a fail for the 13px
      line under it. Both ends of the gradient are checked. */
+  /* THE REPAYMENT LADDER ON THE RAIL. New pairs, so new rows here - the
+     suite only checks what it is told about, and "the whole file passed"
+     means nothing about a combination nobody listed. The day-30 tile is
+     lit on --field-a, which is a translucent blue over whatever the
+     ambient gradient is doing behind it. */
+  ["day-30 amount, lit tile",          "--ink",       ["--field-a","--glass"], 4.5],
+  ["day-30 label, lit tile",           "--accent-ink",["--field-a","--glass"], 4.5],
+  ["repayment amount, plain tile",     "--ink",       ["--well","--glass"],    4.5],
+  ["repayment day label",              "--ink-3",     ["--well","--glass"],    4.5],
+  ["per-day rate beside the heading",  "--ink-3",     ["--glass"],             4.5],
+  ["the day-60 forfeit line",          "--ink-2",     ["--glass"],             4.5],
+  ["\"ours\" in the forfeit line",      "--warn-ink",  ["--glass"],             4.5],
   ["text on the hero card, light end", "--on-hero",   ["--hero1"],        4.5],
   ["text on the hero card, dark end",  "--on-hero",   ["--hero2"],        4.5],
   ["hero sub-line, light end",         "--on-hero-2", ["--hero1"],        4.5],

@@ -1109,6 +1109,15 @@ function pinHTML(x){
    the strip is a ROW of equals and this is a hierarchy - trying to be both
    is how the old one ended up with a 40px buy price and a 14px fee
    sharing a flexbox. */
+/* WHAT COMES BACK BELONGS BESIDE WHAT GOES OUT.
+   The money out the door was on the rail; the money coming back was folded
+   shut in step 8, three cards down the middle column. Those are the two
+   halves of one sentence, and the customer asks the second half out loud -
+   "so what do I owe you" - while you are still holding the first. It is
+   also the number he decides on.
+   Day 30 is the one that matters, so it is the one that is big. The other
+   two are what he asks next. The forfeit date is not a footnote either: it
+   is the whole deal, and it goes on the card rather than in a fold. */
 function railHTML(x){
   /* THE DESK GETS THE SAME HERO, OR IT IS NOT ONE APP.
      The rail used to be a dial with the loan under it. Design A puts
@@ -1144,6 +1153,13 @@ function railHTML(x){
     <div class="wRow"><i><svg viewBox="0 0 24 24" aria-hidden="true">${I.lend}</svg></i>
       <div class="t"><b>Lend him</b><span>60-day pawn loan</span></div>
       <div class="v">${thin?"&mdash;":money(x.target)}</div></div>
+    ${thin?"":`
+    <div class="railBack">
+      <div class="railBackHd"><b>He pays back</b><span>$${(x.charge/30).toFixed(2)}/day after day 60</span></div>
+      <div class="railLadder">${ladder(x.target,x.charge).map((r,i)=>
+        `<div class="rbCell${i===0?" now":""}"><div class="k">${r.k}</div><div class="d">${money(r.due)}</div></div>`).join("")}</div>
+      <div class="rbDay60">Day 60 it is <b>ours</b> &mdash; no notice, no letter.</div>
+    </div>`}
     <div class="wRow"><i><svg viewBox="0 0 24 24" aria-hidden="true">${I.math}</svg></i>
       <div class="t"><b>Your cushion</b><span>fee ${money(x.charge)} \u00b7 loan \u00f7 resale ${x.ltv}%</span></div>
       <div class="v">${money(x.margin)}</div></div>
@@ -7002,7 +7018,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0925.0219";
+const APP_BUILD="0925.2017";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

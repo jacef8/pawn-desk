@@ -565,9 +565,10 @@ console.log("");
   const bOffer = find(bl, /The offer|The loan/), bFakes = find(bl, /Spotting fakes/);
   if (bOffer && bFakes && bFakes.top > bOffer.top)
     gold.push(`bullion GATES the price but its checklist (${bFakes.top}px) is below the offer (${bOffer.top}px)`);
+
   await pg.close();
 
-  /* THE COUNTER HAD TO ASK WHAT HIS OWN CARD MEANT.
+/* THE COUNTER HAD TO ASK WHAT HIS OWN CARD MEANT.
      "What does loupe the stamp mean". It is the jeweller's word for a
      magnifier and five checks used it as a VERB - loupe the dial, loupe
      the band, loupe the date - which is the tool talking to a jeweller
@@ -609,6 +610,69 @@ console.log("");
 
   if (gold.length) { bad++; console.log("FAIL the gold page on a phone: " + gold.join(" | ")); }
   else console.log("ok   gold on a phone: weigh it, then the offer, checklist out of the middle (and above it when it gates)");
+}
+
+/* WHAT COMES BACK BELONGS BESIDE WHAT GOES OUT.
+   Its own page, at desk width: there is no rail on a phone, and the gold
+   block's page is 390 wide - which is how the first version of this threw
+   on a null rail rather than failing honestly. */
+console.log("\n  the rail says what he pays back, not just what he gets");
+{
+  const pay_bad = [];
+  const dk = await browser.newPage({viewport:{width:1920, height:1000}});
+  await dk.goto(BASE + "/index.html", {waitUntil:"networkidle"});
+    /* WHAT COMES BACK BELONGS BESIDE WHAT GOES OUT.
+     The money out the door was on the rail; the money coming back was
+     folded shut in step 8, three cards down the middle column. Those are
+     two halves of one sentence, and the customer asks the second half out
+     loud - "so what do I owe you" - while you are still holding the first.
+     Day 30 is the figure the deal turns on, so it is the one that is lit. */
+    const pay = await dk.evaluate(() => {
+      st.mode = "item"; st.catId = "tools"; st.itemId = "t1"; st.picked = true;
+      st.brandSet = true; st.brand = "hi"; st.model = "DCD791";
+      st.condSet = true; st.cond = "good"; st.complete = true;
+      st.market = {kind:"found", key:mkKey(), mid:120, lo:100, hi:150,
+                   n:21, sold:21, basis:"sold", comps:[]};
+      (SPEC_CHOICES[st.itemId] || []).forEach((g, gi) => {
+        st.specSel[st.itemId + ":" + gi] = specBase(g); });
+      render();
+      const rail = document.querySelector(".rail");
+      const back = rail && rail.querySelector(".railBack");
+      const cells = back ? [...back.querySelectorAll(".rbCell")] : [];
+      const lit = back ? back.querySelector(".rbCell.now") : null;
+      const x = calcItem();
+      return {inRail: !!back,
+              cells: cells.length,
+              amounts: cells.map(c => (c.querySelector(".d") || {}).textContent),
+              litIsFirst: !!(lit && cells[0] === lit),
+              litSize: lit ? parseFloat(getComputedStyle(lit.querySelector(".d")).fontSize) : 0,
+              plainSize: cells[1] ? parseFloat(getComputedStyle(cells[1].querySelector(".d")).fontSize) : 0,
+              heroSize: (() => { const h = rail.querySelector(".heroBig");
+                return h ? parseFloat(getComputedStyle(h).fontSize) : 0; })(),
+              forfeit: !!(back && /day 60 it is/i.test(back.textContent)),
+              target: x.target, charge: x.charge,
+              /* a stray comment rendering as text is a real failure mode here */
+              leaked: !!(back && /\/\*|\*\//.test(back.textContent))};
+    });
+    if (!pay.inRail) pay_bad.push("the rail carries no repayment block");
+    else {
+      if (pay.cells !== 3) pay_bad.push(`the repayment ladder has ${pay.cells} rungs, expected 3`);
+      if (!pay.litIsFirst) pay_bad.push("day 30 is not the lit rung");
+      if (!(pay.litSize > pay.plainSize)) pay_bad.push(
+        `day 30 (${pay.litSize}px) is not larger than the others (${pay.plainSize}px)`);
+      if (!(pay.heroSize > pay.litSize)) pay_bad.push(
+        `the repayment (${pay.litSize}px) competes with the hero (${pay.heroSize}px)`);
+      if (!pay.forfeit) pay_bad.push("the day-60 forfeit line is not on the card");
+      if (pay.leaked) pay_bad.push("a source comment is rendering as text inside the repayment block");
+      /* the arithmetic on the card must be the arithmetic in the book */
+      const want = ["$" + (pay.target + pay.charge), "$" + (pay.target + pay.charge * 2)];
+      const got = pay.amounts.slice(0, 2).map(a => String(a).replace(/[,\s]/g, ""));
+      if (got[0] !== want[0] || got[1] !== want[1])
+        pay_bad.push(`the ladder does not match ladder(): showed ${got.join(", ")}, expected ${want.join(", ")}`);
+    }
+  await dk.close();
+  if (pay_bad.length) { bad++; console.log("FAIL the repayment on the rail: " + pay_bad.join(" | ")); }
+  else console.log("ok   the rail carries the repayment ladder, day 30 lit, forfeit date on the card");
 }
 
 await browser.close();
