@@ -46,7 +46,9 @@ const WANT = {
   item:   /take a picture|photograph|camera|what it is|try stihl|start from one of these/i,
   metal:  /gold|silver/i,
   device: /money changes hands/i,
-  flags:  /answer is no/i,
+  /* "flags" is no longer a screen - the counter did not want a tab for it -
+     so the walk-away rules are checked where they now live, folded on
+     Setup, further down this file. */
   setup:  /this copy of the tool/i,
 };
 const FLAGS_LINE = /answer is no/i;
@@ -63,7 +65,9 @@ for (const [page, viewport] of [["index.html", {width:1280,height:900}],
     const txt = await p.evaluate(m => { st.mode = m; render();
                                         return document.getElementById("view").innerText; }, mode);
     const drew   = WANT[mode].test(txt);
-    const leaked = mode !== "flags" && FLAGS_LINE.test(txt);
+    /* Setup is where those rules live now, and they are folded shut, so
+       innerText should not carry them there either until somebody opens it. */
+    const leaked = FLAGS_LINE.test(txt);
     if (!drew || leaked) {
       bad++;
       console.log(`FAIL ${page} ${mode} — drew:${drew} walkAwayLeak:${leaked}`);
@@ -203,7 +207,7 @@ console.log("");
       const out = [];
       for (const flow of ["ask", "pages", "all"]) {
         st.flow = flow; st.market = null; st.mpPin = null; st.mpNone = false;
-        st.condSet = false; st.specSel = {}; st.brandTyped = ""; st.brandQ = "";
+        st.condSet = false; st.completeSet = false; st.specSel = {}; st.brandTyped = ""; st.brandQ = "";
         st.model = ""; st.bookName = ""; st.picked = false; st.askAt = 0;
         const R = omniRows("dewalt dcd791 drill") || {}, rows = R.rows || [];
         const f = rows.find(x => ["mp", "book", "item"].includes(x.kind));
@@ -245,7 +249,7 @@ console.log("");
       const R = omniRows("dewalt dcd791 drill") || {};
       const f = (R.rows || []).find(x => ["mp", "book", "item"].includes(x.kind));
       if (f) omniPick(f);
-      st.cond = "good"; st.condSet = true;
+      st.cond = "good"; st.condSet = true; st.completeSet = true;
       for (let i = 0; i < 8; i++) {
         const q = askQueue(calcItem());
         const o = q.find(z => !z.answered && !z.optional);
@@ -253,7 +257,7 @@ console.log("");
         const pick = o.opts[0], k = pick.set, v = String(pick.v);
         if (k === "brand") { st.brand = v; st.brandTyped = ""; st.brandQ = ""; st.brandSet = true; }
         else if (k === "comp") st.complete = v === "1";
-        else if (k === "cond") { st.cond = v; st.condSet = true; }
+        else if (k === "cond") { st.cond = v; st.condSet = true; st.completeSet = true; }
         else if (k === "spec") { const [gi, oi] = v.split(":"); st.specSel[st.itemId + ":" + gi] = Number(oi); }
         else break;
       }
@@ -342,14 +346,14 @@ console.log("");
       const out = [];
       for (const state of ["start", "picked", "priced"]) {
         st.flow = "ask"; st.market = null; st.mpPin = null; st.mpNone = false;
-        st.condSet = false; st.specSel = {}; st.brandTyped = ""; st.brandQ = "";
+        st.condSet = false; st.completeSet = false; st.specSel = {}; st.brandTyped = ""; st.brandQ = "";
         st.model = ""; st.bookName = ""; st.picked = false; st.askAt = 0; st.cond = "";
         if (state !== "start") {
           const R = omniRows("dewalt dcd791 drill") || {}, rows = R.rows || [];
           const f = rows.find(x => ["mp", "book", "item"].includes(x.kind));
           if (f) omniPick(f);
         }
-        if (state === "priced") { st.cond = "good"; st.condSet = true; }
+        if (state === "priced") { st.cond = "good"; st.condSet = true; st.completeSet = true; }
         render();
         const d = document.documentElement;
         const down = d.scrollHeight - window.innerHeight;
@@ -378,7 +382,7 @@ console.log("");
     const hit = await pg.evaluate(() => {
       const out = [];
       for (const state of ["start", "simple", "detail", "priced"]) {
-        st.flow = "ask"; st.market = null; st.condSet = false; st.specSel = {};
+        st.flow = "ask"; st.market = null; st.condSet = false; st.completeSet = false; st.specSel = {};
         st.brandTyped = ""; st.brandQ = ""; st.model = ""; st.bookName = "";
         st.picked = false; st.askAt = 0; st.cond = "";
         if (state !== "start") {
@@ -386,7 +390,7 @@ console.log("");
           const f = (R.rows || []).find(x => ["mp", "book", "item"].includes(x.kind));
           if (f) omniPick(f);
         }
-        if (state === "priced") { st.cond = "good"; st.condSet = true; }
+        if (state === "priced") { st.cond = "good"; st.condSet = true; st.completeSet = true; }
         render();
         const d = document.documentElement;
         const down = d.scrollHeight - window.innerHeight;
@@ -424,7 +428,6 @@ console.log("");
     ["setup",      () => { st.mode = "setup"; render(); }],
     ["deal log",   () => { st.mode = "log"; render(); }],
     ["devices",    () => { st.mode = "devices"; render(); }],
-    ["walk away",  () => { st.mode = "walk"; render(); }],
     ["gold",       () => { st.mode = "metal"; st.metalKind = "jewelry"; render(); }],
     ["start",      () => { st.mode = "item"; st.picked = false; render(); }],
     ["item priced",() => { st.mode = "item"; st.catId = "elec"; st.itemId = "e1";
@@ -441,7 +444,12 @@ console.log("");
       await pg.mouse.wheel(0, 2000);
       await pg.waitForTimeout(250);
       const r = await pg.evaluate(() => {
-        const c = [...document.querySelectorAll("#view .card, #view .stepCard")];
+        /* A card inside a closed <details> is not on the screen, and
+           Chromium's skipped layout hands back STALE geometry for it - a
+           rect from a position the card does not occupy. Measuring those
+           reported Setup as unscrollable when it scrolls perfectly. */
+        const c = [...document.querySelectorAll("#view .card, #view .stepCard")]
+          .filter(e => !e.closest("details:not([open])") && e.offsetParent !== null);
         if (!c.length) return {n:0, lastBottom:0, vh:innerHeight};
         return {n:c.length,
                 lastBottom: Math.round(c[c.length - 1].getBoundingClientRect().bottom),
@@ -454,6 +462,46 @@ console.log("");
   }
   if (stuck.length) { bad++; console.log("FAIL the desk cannot reach its own bottom card: " + stuck.join(" | ")); }
   else console.log("ok   every desk screen scrolls to its last card, real wheel, two window heights");
+
+  /* REPORTED FROM THE COUNTER: "the gold/silver page does not scroll like
+     it's supposed to." It does not, at any desk width, and the sweep above
+     missed it twice over - it drove one wheel in the middle of the screen,
+     which on a three-column page only reaches the MIDDLE column, and it
+     rendered gold with no weight typed in, which is two cards shorter than
+     the page a counter is actually looking at.
+     So: weigh something, then wheel over each column in turn. */
+  {
+    const bad2 = [];
+    for (const [w, h] of [[1440, 900], [1280, 780], [1100, 820]]) {
+      const pg = await browser.newPage({viewport:{width:w, height:h}});
+      await pg.goto(BASE + "/index.html", {waitUntil:"networkidle"});
+      await pg.evaluate(() => { st.mode = "metal"; st.metal = "gold"; st.grams = "12.4"; render(); });
+      for (const col of ["colL", "colC", "colR"]) {
+        const box = await pg.evaluate((c) => {
+          const e = document.querySelector("#view ." + c); if (!e) return null;
+          const r = e.getBoundingClientRect();
+          return {x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height * 0.6)};
+        }, col);
+        if (!box) { bad2.push(`${w}x${h}: no .${col}`); continue; }
+        await pg.mouse.move(box.x, box.y);
+        await pg.mouse.wheel(0, 3000);
+        await pg.waitForTimeout(200);
+        const r = await pg.evaluate((c) => {
+          const e = document.querySelector("#view ." + c);
+          const cards = [...e.querySelectorAll(".card")];
+          return {n: cards.length, moved: e.scrollTop,
+                  over: e.scrollHeight - Math.round(e.getBoundingClientRect().height),
+                  reach: cards.length ? Math.round(cards[cards.length - 1].getBoundingClientRect().bottom) : 0,
+                  vh: innerHeight};
+        }, col);
+        if (r.n && r.reach > r.vh + 2)
+          bad2.push(`${w}x${h} .${col}: last card ends at ${r.reach}, window is ${r.vh}, wheel moved ${r.moved} of ${r.over}`);
+      }
+      await pg.close();
+    }
+    if (bad2.length) { bad++; console.log("FAIL the gold page cannot reach its own bottom card: " + bad2.join(" | ")); }
+    else console.log("ok   gold with a weight on the scale scrolls every column, real wheel, three desk sizes");
+  }
 }
 
 /* AND THE RAIL, WHICH THE CHECK ABOVE CANNOT SEE.
@@ -630,7 +678,7 @@ console.log("\n  the rail says what he pays back, not just what he gets");
     const pay = await dk.evaluate(() => {
       st.mode = "item"; st.catId = "tools"; st.itemId = "t1"; st.picked = true;
       st.brandSet = true; st.brand = "hi"; st.model = "DCD791";
-      st.condSet = true; st.cond = "good"; st.complete = true;
+      st.condSet = true; st.completeSet = true; st.cond = "good"; st.complete = true;
       st.market = {kind:"found", key:mkKey(), mid:120, lo:100, hi:150,
                    n:21, sold:21, basis:"sold", comps:[]};
       (SPEC_CHOICES[st.itemId] || []).forEach((g, gi) => {
@@ -673,6 +721,42 @@ console.log("\n  the rail says what he pays back, not just what he gets");
   await dk.close();
   if (pay_bad.length) { bad++; console.log("FAIL the repayment on the rail: " + pay_bad.join(" | ")); }
   else console.log("ok   the rail carries the repayment ladder, day 30 lit, forfeit date on the card");
+}
+
+/* REPORTED FROM THE COUNTER: "I don't need the separate walk away section,
+   and the small left side bar has wasted space." Both are the same panel:
+   five buttons in a column drawn 900px tall because grid-row:1/-1 stretches
+   it, and a sixth button nobody opens. The tab goes, the panel hugs what is
+   left - and the law that was on that page has to still be reachable, or
+   this is a deletion wearing a tidy-up's clothes. */
+{
+  const dk = await browser.newPage({viewport:{width:1440, height:900}});
+  await dk.goto(BASE + "/index.html", {waitUntil:"networkidle"});
+  const r = await dk.evaluate(() => {
+    const d = document.getElementById("tabs");
+    const bs = [...d.querySelectorAll("button")];
+    const last = bs[bs.length - 1].getBoundingClientRect(), box = d.getBoundingClientRect();
+    st.mode = "setup"; render();
+    const view = document.getElementById("view");
+    return {tabs: bs.map(b => b.textContent.trim()),
+            slack: Math.round(box.bottom - last.bottom), dockH: Math.round(box.height), vh: innerHeight,
+            fold: !!document.getElementById("rulesFold"),
+            rules: view.textContent,
+            flagsGone: typeof renderFlags === "undefined"};
+  });
+  const miss = [];
+  if (r.tabs.some(t => /walk/i.test(t))) miss.push("the walk-away tab is still on the rail");
+  if (r.slack > 24) miss.push(`${r.slack}px of empty panel below the last button`);
+  if (!r.fold) miss.push("Setup has no rules fold");
+  /* every part of that page, by the bit of it that would hurt to lose */
+  for (const [what, re] of [["the red flags", /stolen/i],
+                            ["what we don't take", /whatever the price/i],
+                            ["the reporting deadline", /end of the next business day/i],
+                            ["the hold-order clock", /certified letter/i]])
+    if (!re.test(r.rules)) miss.push("Setup lost " + what);
+  if (miss.length) { bad++; console.log("FAIL the navigation rail: " + miss.join(" | ")); }
+  else console.log(`ok   ${r.tabs.length} tabs, ${r.dockH}px of dock in a ${r.vh}px window, and the walk-away rules kept on Setup`);
+  await dk.close();
 }
 
 await browser.close();

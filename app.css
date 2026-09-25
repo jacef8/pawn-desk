@@ -190,6 +190,22 @@
     .omni{grid-area:omni}
     .colL{grid-area:left}.colC{grid-area:center}.colR{grid-area:right}
     .colL,.colC,.colR{min-width:0;padding:4px 2px 8px}
+    /* THE GOLD PAGE COULD NOT REACH ITS OWN BOTTOM.
+       Reported from the counter, and it reproduces at every desk width: ten
+       cards ending at 1105px in a 900px window, no scrollbar, no wheel, no
+       keyboard. It is opted out of #view{overflow:auto} above because the
+       ITEM page needs a visible overflow for its sticky rail to stick
+       against - and the gold page, which has no sticky anything, was
+       carried out with it.
+       Its three columns scroll themselves instead, the same way the item
+       page's question column does, so the page still holds one screen and
+       the weight box does not walk off the top while you read the offer.
+       align-items:stretch is the half that matters: start-aligned grid
+       items are sized to their CONTENT, so the column grows past its row
+       and its own overflow never has anything to do. */
+    #view.metal{overflow:hidden;align-items:stretch;grid-template-rows:minmax(0,1fr)}
+    #view.metal>.colL,#view.metal>.colC,#view.metal>.colR{
+      min-height:0;overflow:auto;scrollbar-width:thin;overscroll-behavior:contain}
     .foot{display:none}
   }
   @media (max-width:1079px){#view.item,#view.metal{display:block}.colL,.colC,.colR{margin-top:14px}}
@@ -752,6 +768,49 @@
   .askS{font-size:12px;color:var(--ink-3);line-height:1.4}
   .askOpt.on .askS{color:color-mix(in srgb,var(--on-accent) 78%,transparent)}
   .askWorth{margin-top:12px}
+  /* THE END OF THE RUN, ON THE CARD THAT ASKED THE LAST QUESTION.
+     It reads as an answer, not another question: accent edge, the three
+     numbers in display weight, and no controls in it. */
+  .askDone{margin-top:16px;padding:13px 15px 14px;border-radius:var(--r-s);
+    background:var(--field-a);border:1px solid var(--accent)}
+  .askDone.bad{background:var(--warn-wash);border-color:var(--bad)}
+  .adHd{font-size:12px;letter-spacing:.08em;text-transform:uppercase;
+    font-family:var(--mono);color:var(--ink-3)}
+  .adHd b{color:var(--accent-ink);letter-spacing:.08em}
+  .askDone.bad .adHd b{color:var(--warn-ink)}
+  .adBig{font:800 34px/1.02 var(--disp);letter-spacing:-.03em;margin-top:8px;color:var(--ink)}
+  .adGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:11px}
+  .adCell{padding:9px 10px 10px;border-radius:var(--r-xs);background:var(--well);
+    border:1px solid var(--line);min-width:0}
+  .adCell .k{font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;
+    color:var(--ink-3);font-family:var(--mono);line-height:1.3}
+  .adCell .d{font:800 23px/1.04 var(--disp);letter-spacing:-.03em;margin-top:4px;
+    color:var(--ink);font-variant-numeric:tabular-nums;overflow-wrap:break-word}
+  .adWhy{margin-top:10px;font-size:13px;line-height:1.5;color:var(--ink-2)}
+  /* WHAT WAS ACTUALLY AGREED. A box, not a tile. */
+  .struck{margin-top:13px;padding:11px 12px 12px;border-radius:var(--r-s);
+    background:var(--well);border:1px solid var(--line)}
+  .struckRow{display:flex;gap:8px;align-items:stretch;margin-top:9px;flex-wrap:wrap}
+  .struckPick{display:flex;padding:3px;border-radius:999px;background:var(--recess,var(--well));
+    border:1px solid var(--line);flex:0 0 auto}
+  .struckPick button{padding:0 15px;min-height:38px;border:none;border-radius:999px;
+    background:transparent;color:var(--ink-3);font:700 13px/1 var(--sans);cursor:pointer}
+  .struckPick button.on{background:var(--accent);color:var(--on-accent);box-shadow:var(--fill-sh)}
+  .struckIn{flex:1 1 110px;min-width:96px;font:800 20px/1 var(--disp);
+    font-variant-numeric:tabular-nums;text-align:center}
+  .struckUse{flex:0 0 auto;min-height:38px;padding:0 14px;font-size:12.5px;
+    display:inline-flex;align-items:center}
+  .struckNote{margin-top:8px}
+  @media(max-width:430px){ .adGrid{grid-template-columns:minmax(0,1fr)} }
+  /* A SCROLL THAT MOVES NOTHING IS AN INVISIBLE SCROLL.
+     "Write the ticket" lands on a card that on a desk is usually already on
+     screen, so the button looked dead. The card says it was aimed at. */
+  .flashTo{animation:flashTo 1.3s ease-out 1}
+  @keyframes flashTo{
+    0%{box-shadow:0 0 0 0 var(--accent)}
+    12%{box-shadow:0 0 0 3px var(--accent)}
+    100%{box-shadow:0 0 0 0 transparent}}
+  @media(prefers-reduced-motion:reduce){ .flashTo{animation:none} }
   .askNav{display:flex;align-items:center;gap:12px;margin-top:16px}
   .askNav .ghostBtn,.askNav .brassBtn{min-height:42px;padding:0 20px;font-size:13px;
     display:inline-flex;align-items:center;justify-content:center;line-height:1}
@@ -888,7 +947,14 @@
        header sits beside it rather than over it, which is what keeps the
        title and the navigation from competing for the same 1400px. */
     .dash{grid-template-columns:minmax(0,96px) minmax(0,1fr)}
+    /* REPORTED FROM THE COUNTER: "the small left side bar has wasted space."
+       grid-row:1/-1 spans the dock down both rows so the header can sit
+       beside it - which is right - but a stretched grid item fills its row,
+       so a panel of five buttons was drawn 900px tall with two-thirds of it
+       empty glass. align-self:start hugs the buttons; max-height keeps it
+       scrolling rather than overflowing if a tab is ever added. */
     .deskDock{grid-row:1/-1;grid-column:1;flex-direction:column;align-items:stretch;
+      align-self:start;max-height:100%;
       justify-content:flex-start;overflow-y:auto;overflow-x:hidden}
     .deskDock button{min-width:0;width:100%;padding:11px 4px}
     .bar{grid-column:2;grid-row:1}

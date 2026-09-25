@@ -98,7 +98,7 @@ console.log("\n  the controls");
       /* Not "worth": the built-in price list already knows this item, so
          worth counts as answered whether or not anything was looked up.
          Condition is the one nothing can answer for you. */
-      st.page = "cond"; st.condSet = false; render();
+      st.page = "cond"; st.condSet = false; st.completeSet = false; render();
       const nav = document.getElementById("pageNav");
       return {skip: !!(nav && nav.querySelector(".pageSkip")),
               where: (nav && (nav.querySelector(".pageWhere")||{}).textContent) || ""};

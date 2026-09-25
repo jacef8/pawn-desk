@@ -34,7 +34,7 @@ const start = (itemId) => page.evaluate((id) => {
   const c = CATALOG.find(x => x.items.some(i => i.id === id));
   st.flow = "ask"; st.mode = "item"; st.catId = c.id; st.itemId = id; st.picked = true;
   st.askAt = 0; st.brand = "mid"; st.brandTyped = ""; st.specSel = {};
-  st.condSet = false; st.complete = true; st.market = null;
+  st.condSet = false; st.completeSet = false; st.complete = true; st.market = null;
   render();
 }, itemId);
 
@@ -393,14 +393,14 @@ console.log("\n  no figure until the run has been made");
     const c = CATALOG.find(x => x.items.some(i => i.id === "e2"));
     st.flow="ask"; st.mode="item"; st.catId=c.id; st.itemId="e2"; st.picked=true;
     st.brandTyped="Microsoft"; st.brandSet=false; st.market=null; st.specSel={};
-    st.model=""; st.detail=""; st.mpNone=false; st.condSet=false; st.askAt=0;
+    st.model=""; st.detail=""; st.mpNone=false; st.condSet=false; st.completeSet = false; st.askAt=0;
     render();
     const half = {ready: priceReady(calcItem()),
                   pin: (document.getElementById("pin")||{}).innerText || "",
                   ticket: (document.getElementById("ticket")||{}).innerText || ""};
     /* Now finish it, the way a counter with no signal would: the model off
        the label, the specs, the price typed by hand, the shape. */
-    st.model="Surface Pro 7"; st.condSet=true;
+    st.model="Surface Pro 7"; st.condSet=true; st.completeSet = true;
     (SPEC_CHOICES[st.itemId]||[]).forEach((g,gi)=>{
       st.specSel[st.itemId+":"+gi]=specBase(g); });
     st.market={kind:"hand", key:mkKey(), mid:300};
@@ -535,17 +535,17 @@ console.log("\n  the run asks which one it is");
 
     /* a gap earlier in the run */
     st.market = {kind:"found", key:mkKey(), mid:30, lo:13, hi:35, n:21, sold:21, basis:"sold", comps:[]};
-    st.condSet = false; render();
+    st.condSet = false; st.completeSet = false; render();
     out.gap = read();
 
     /* nothing left at all */
-    st.market = {kind:"hand", key:mkKey(), mid:100}; st.condSet = true; render();
+    st.market = {kind:"hand", key:mkKey(), mid:100}; st.condSet = true; st.completeSet = true; render();
     out.done = read();
     return out;
   });
   ok(lbl.gap && /still to answer/i.test(lbl.gap.t) && lbl.gap.k === "go",
      "a gap earlier in the run is named and jumped to — \"" + (lbl.gap||{}).t + "\"");
-  ok(lbl.done && /log this deal/i.test(lbl.done.t) && lbl.done.k === "log",
+  ok(lbl.done && /write the ticket/i.test(lbl.done.t) && lbl.done.k === "log",
      "  and a finished run offers the thing you actually do next — \"" + (lbl.done||{}).t + "\"");
   ok(!/see the detail/i.test(JSON.stringify(lbl)),
      "  and neither of them says \"see the detail\"");
@@ -559,7 +559,7 @@ console.log("\n  the run asks which one it is");
      already followed this rule; condition did not. */
   const condLit = await page.evaluate(() => {
     st.market = {kind:"found", key:mkKey(), mid:30, lo:13, hi:35, n:21, sold:21, basis:"sold", comps:[]};
-    st.condSet = false; st.cond = "good"; render();
+    st.condSet = false; st.completeSet = false; st.cond = "good"; render();
     const q = askQueue(calcItem());
     st.askAt = q.findIndex(z => z.id === "cond"); render();
     const before = [...document.querySelectorAll("#askCard .askOpt.on")].length;
@@ -771,6 +771,138 @@ console.log("\n  the free-text box stops asking for what the buttons ask");
   ok(/deck/i.test(r.line) && /hours/i.test(r.line) && /asked next/.test(r.line),
      "  so the model step says they are coming — " + r.line);
   ok(!/deck/i.test(r.ph), "  and stops offering them as a placeholder — " + (r.ph || "(empty)"));
+}
+
+/* REPORTED FROM THE COUNTER: "the default answers for all the steps should
+   not be highlighted already, because that appears that it has already been
+   selected. So if you hit the next button, it's really a skip button and
+   that answer was not actually selected, throwing things off."
+   The condition question was fixed for this once already. The specs and the
+   completeness question were not, and completeness was the worse of the two
+   because it ALSO counted itself answered. */
+console.log("\n  nothing is lit until somebody picks it");
+{
+  const r = await page.evaluate(() => {
+    const out = {};
+    const c = CATALOG.find(y => y.items.some(i => i.id === "t1"));
+    st.flow="ask"; st.mode="item"; st.catId=c.id; st.itemId="t1"; st.picked=true;
+    st.specSel={}; st.complete=true; st.completeSet=false; st.condSet=false;
+    st.cond="good"; st.brandSet=false; st.brandTyped=""; st.model="DCD791";
+    st.market={kind:"found", key:mkKey(), mid:100, lo:80, hi:120, n:20, sold:20, basis:"sold", comps:[]};
+    const q = askQueue(calcItem());
+    const look = (id) => {
+      const i = q.findIndex(z => z.id === id);
+      if (i < 0) return null;
+      st.askAt = i; render();
+      const card = document.getElementById("askCard");
+      const opts = [...card.querySelectorAll(".askOpts .askOpt")];
+      return {n: opts.length, lit: opts.filter(b => b.classList.contains("on")).length,
+              answered: q[i].answered};
+    };
+    out.spec = look((q.find(z => /^spec:/.test(z.id)) || {}).id);
+    out.comp = look("complete");
+    out.cond = look("cond");
+    /* and picking one DOES light it */
+    const i = q.findIndex(z => z.id === "complete");
+    if (i >= 0) { st.askAt = i; render();
+      const b = document.querySelector("#askCard .askOpts .askOpt");
+      if (b) b.click();
+      /* answering moves the run on by itself, so come back to the card that
+         was answered before counting what is lit on it */
+      st.askAt = i; render();
+      const card = document.getElementById("askCard");
+      out.after = card ? [...card.querySelectorAll(".askOpts .askOpt")]
+        .filter(b2 => b2.classList.contains("on")).length : -1;
+      out.nowAnswered = askQueue(calcItem()).find(z => z.id === "complete").answered; }
+    return out;
+  });
+  ok(r.spec && r.spec.n > 1 && r.spec.lit === 0,
+     "a spec card opens with none of its " + ((r.spec||{}).n) + " choices highlighted");
+  ok(r.comp && r.comp.lit === 0, "  \"is it all there\" opens with neither answer highlighted");
+  ok(r.comp && r.comp.answered === false,
+     "  and does NOT count itself answered, so Next reads Skip rather than agreement");
+  ok(r.cond && r.cond.lit === 0, "  the condition card is still clean too");
+  ok(r.after === 1, "  and tapping one lights exactly that one \u2014 got " + r.after);
+  ok(r.nowAnswered === true, "  and only then is the question answered");
+}
+
+/* REPORTED FROM THE COUNTER: "when step eight, which is the final step, is
+   answered, it needs to have some sort of conclusion. Right now it just sits
+   there and all the information is on the right sidebar, almost appearing
+   like it's still waiting on me to answer a question." */
+console.log("\n  the run ends in an answer, on the card that asked the last question");
+{
+  const r = await page.evaluate(() => {
+    const c = CATALOG.find(y => y.items.some(i => i.id === "t1"));
+    st.flow="ask"; st.mode="item"; st.catId=c.id; st.itemId="t1"; st.picked=true;
+    st.specSel={}; st.complete=true; st.completeSet=false; st.condSet=false;
+    st.brandSet=true; st.model="DCD791";
+    st.market={kind:"found", key:mkKey(), mid:100, lo:80, hi:120, n:20, sold:20, basis:"sold", comps:[]};
+    let q = askQueue(calcItem());
+    st.askAt = q.length - 1; render();
+    const before = !!document.querySelector("#askCard .askDone");
+    /* answer everything that is still open */
+    (SPEC_CHOICES[st.itemId]||[]).forEach((g,gi)=>{ st.specSel[st.itemId+":"+gi]=0; });
+    st.completeSet = true; st.condSet = true;
+    q = askQueue(calcItem()); st.askAt = q.length - 1; render();
+    const card = document.getElementById("askCard");
+    const done = card.querySelector(".askDone");
+    return {before, after: !!done,
+      cells: done ? [...done.querySelectorAll(".adCell .d")].map(e => e.textContent.trim()) : [],
+      keys:  done ? [...done.querySelectorAll(".adCell .k")].map(e => e.textContent.trim()) : [],
+      why:   done ? (done.querySelector(".adWhy")||{}).textContent || "" : "",
+      open:  askQueue(calcItem()).filter(z => !z.answered).length};
+  });
+  ok(r.open === 0, "everything is answered");
+  ok(r.before === false, "  with a question still open the card carries no verdict");
+  ok(r.after === true, "  answered, the card itself carries one");
+  ok(r.cells.length === 3 && r.cells.every(v => /^\$[\d,]+$/.test(v)),
+     "  three figures, all money \u2014 " + r.cells.join(" / "));
+  ok(/pays back/i.test(r.keys.join(" ")), "  one of them is what he pays back \u2014 " + r.keys.join(" | "));
+  ok(/never above the top/i.test(r.why), "  and the window is stated with it");
+}
+
+/* REPORTED FROM THE COUNTER: "there's this window that I may want to lend
+   within, how do I input the actual decision so that I can log that number
+   with the deal? None of them are a manual entry." */
+console.log("\n  the number actually agreed can be typed, and it is what gets logged");
+{
+  const r = await page.evaluate(() => {
+    const out = {};
+    const x0 = calcItem();
+    out.suggested = Math.round(x0.target);
+    out.emptyLogs = struckAmt(x0).amt;
+    out.emptyTyped = struckAmt(x0).typed;
+    const box = document.querySelector("#askCard .struck");
+    out.hasBox = !!box;
+    const inp = box && box.querySelector(".struckIn");
+    out.hasInput = !!inp;
+    if (inp) { inp.value = "77"; inp.dispatchEvent(new Event("input", {bubbles:true})); }
+    const x1 = calcItem();
+    out.typedAmt = struckAmt(x1).amt;
+    out.typedFlag = struckAmt(x1).typed;
+    out.note = box ? (box.querySelector(".struckNote")||{}).textContent || "" : "";
+    /* the two boxes on screen stay in step */
+    out.mirrored = [...document.querySelectorAll(".struckIn")].map(e => e.value);
+    /* bought instead of lent */
+    const bb = box && box.querySelector('[data-struckkind="buy"]');
+    if (bb) bb.click();
+    out.kind = struckAmt(calcItem()).kind;
+    const b2 = document.querySelector("#askCard .struck");
+    out.buyNote = b2 ? (b2.querySelector(".struckNote")||{}).textContent || "" : "";
+    return out;
+  });
+  ok(r.hasBox && r.hasInput, "the conclusion carries a box to type it in");
+  ok(r.emptyTyped === false && r.emptyLogs === r.suggested,
+     "  left empty it logs the suggested " + r.emptyLogs);
+  ok(r.typedFlag === true && r.typedAmt === 77,
+     "  typed, it logs what was typed \u2014 got " + r.typedAmt);
+  ok(/\$77/.test(r.note) && /pays back/i.test(r.note),
+     "  and the screen says what that means before it is saved \u2014 " + r.note.slice(0, 90));
+  ok(r.mirrored.every(v => v === "77"),
+     "  every copy of the box on screen shows the same number \u2014 " + r.mirrored.join(", "));
+  ok(r.kind === "buy" && /bought outright/i.test(r.buyNote),
+     "  and it can record a straight buy instead of a loan");
 }
 
 ok(!errs.length, "no page errors" + (errs.length ? ": " + errs[0] : ""));

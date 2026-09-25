@@ -716,10 +716,30 @@ const ladder = (p,c) => [
  {k:"DAY 31–60",due:p+c*2},
  {k:"DAY 90",due:p+c*2+(c/30)*30}];
 
+/* WHAT HE PAYS TO GET IT BACK IS A PRICE. IT WAS WRITTEN AS A STATUTE.
+
+   The charge was hardcoded `Math.max(5, target*0.25)` - 25% per 30 days,
+   which is the CEILING §539.001(11) sets, not a rate anybody at this shop
+   chose. So the desk quoted the legal maximum on every single ticket and
+   printed it in the largest type on the rail: $105 out the door came back
+   as $131 by day 30, $158 by day 60. Reading that off a screen to the man
+   standing there is how you watch him leave.
+
+   A ceiling belongs at the top of a control, not inside the arithmetic. The
+   rate is shop policy now - one number, set once, kept like buyFloor and
+   buyMult - and 25% is where the slider stops, with the statute quoted
+   underneath so nobody has to remember where the line is.
+
+   The $5 floor stays: the same subsection allows it outright, and on a $40
+   loan the percentage alone does not cover writing the ticket. */
+const PAWN_CAP=25;
+function pawnPct(){ const n=Number(st.pawnPct); return Math.min(PAWN_CAP,Math.max(0,isNaN(n)?0:n)); }
+function pawnCharge(p){ return Math.max(5,Math.round((Number(p)||0)*pawnPct())/100); }
+
 /* ---------------- state ---------------- */
 const KEY="pawndesk:web:v1";
-let st={mode:"item",catId:"guns",itemId:"g1",picked:false,cond:"good",brand:"mid",complete:true,liq:null,brandTyped:"",model:"",detail:"",specSel:{},
-        overrides:{},bookVals:{},modelVals:{},ltvs:{},buys:{},buyFloor:25,buyMult:2,payPct:70,payTouched:false,loanPct:48,loanTouched:false,editing:false,
+let st={mode:"item",catId:"guns",itemId:"g1",picked:false,cond:"good",brand:"mid",complete:true,completeSet:false,struck:"",struckKind:"loan",liq:null,brandTyped:"",model:"",detail:"",specSel:{},
+        overrides:{},bookVals:{},modelVals:{},ltvs:{},buys:{},buyFloor:25,buyMult:2,pawnPct:10,payPct:70,payTouched:false,loanPct:48,loanTouched:false,editing:false,
         manual:null, /* {date, spot:{gold,silver}, avg90:{gold,silver}} — a same-day hand edit beats the feed */
         deal:"buy",metal:"gold",karat:"14k",grams:"",whyOpen:false,photoRead:null,bookQ:"",bookName:""};
 try{
@@ -728,6 +748,8 @@ try{
     st.bookVals=s.bookVals||{}; st.modelVals=s.modelVals||{};
     if(s.buyFloor!=null)st.buyFloor=Math.max(0,Number(s.buyFloor)||0);
     if(s.buyMult!=null)st.buyMult=Math.max(1,Number(s.buyMult)||1);
+    /* Shop policy, not a daily figure - it does not expire with the feed. */
+    if(s.pawnPct!=null)st.pawnPct=Math.min(PAWN_CAP,Math.max(0,Number(s.pawnPct)||0));
          /* A hand-set pay rate wins only for the day it was set — tomorrow's
             feed brings new numbers, so the rate goes back to following them. */
          if(s.payDate===FEED.date && typeof s.payPct==="number"){ st.payPct=s.payPct; st.payTouched=!!s.payTouched; }
@@ -746,7 +768,7 @@ function persist(){
   try{
     localStorage.setItem(KEY,JSON.stringify({overrides:st.overrides,ltvs:st.ltvs,buys:st.buys,
       bookVals:st.bookVals,modelVals:st.modelVals,
-      buyFloor:st.buyFloor,buyMult:st.buyMult,payPct:st.payPct,flow:st.flow,
+      buyFloor:st.buyFloor,buyMult:st.buyMult,pawnPct:st.pawnPct,payPct:st.payPct,flow:st.flow,
       payTouched:st.payTouched,loanPct:st.loanPct,loanTouched:st.loanTouched,payDate:FEED.date,manual:st.manual}));
     flashSave("Saved");
   }catch(e){ flashSave("Couldn't save"); }
@@ -849,11 +871,19 @@ function homeFeedHTML(limit){
 
 /* ---------------- tabs ---------------- */
 const PRICE_TABS=[["item","Price an item"],["metal","Gold & silver"]];
-const REF_TABS=[["log","Deal log"],["device","Phones & devices"],["flags","Walk away"],["setup","Setup"]];
+/* WALK AWAY WAS A TAB NOBODY OPENED.
+   Reported from the counter: "I don't need the separate walk away section."
+   Fair - it is a page of law and a list of things we do not take, read once
+   and then never again, holding a sixth of a navigation column all day. But
+   none of it is disposable: the sheriff's reporting deadline and the hold
+   order clock live on it, and losing those would be losing the one thing on
+   the page with a penalty attached. So it folds into Setup, which is where
+   the things you read once already live. */
+const REF_TABS=[["log","Deal log"],["device","Phones & devices"],["setup","Setup"]];
 /* A dock label is one or two words under a drawing, because a column 96px
    wide is what is left once the working area has what it needs. Line art
    at one weight: a tag, a coin, a ledger, a phone, a hand, a dial. */
-const TAB_SHORT={item:"Price",metal:"Gold",log:"Deal log",device:"Devices",flags:"Walk away",setup:"Setup"};
+const TAB_SHORT={item:"Price",metal:"Gold",log:"Deal log",device:"Devices",setup:"Setup"};
 const TAB_ICON={
   item:'<path d="M3 11.5V4.5A1.5 1.5 0 0 1 4.5 3h7L21 12.5 12.5 21 3 11.5Z"/><circle cx="7.6" cy="7.6" r="1.3"/>',
   metal:'<circle cx="12" cy="12" r="8.2"/><path d="M12 7.4v9.2M9.6 9.6h4a1.9 1.9 0 0 1 0 3.8h-3.6a1.9 1.9 0 0 0 0 3.8h4"/>',
@@ -881,6 +911,10 @@ document.getElementById("view").addEventListener("click",e=>{
      that wants to send you to a tab needs saying so here. */
   const go=e.target.closest&&e.target.closest("[data-gotab]");
   if(go){ st.mode=go.dataset.gotab; st.editing=false; render(); }
+  /* Setup draws itself with no wiring pass of its own, so the one fold on it
+     that is worth remembering is remembered from here. */
+  if(e.target.closest&&e.target.closest("#rulesFold>summary"))
+    setTimeout(()=>{ const d=document.getElementById("rulesFold"); if(d)st.openRules=d.open; },0);
 });
 document.getElementById("tabs").addEventListener("click",e=>{
   const b=e.target.closest("[data-tab]"); if(!b)return;
@@ -1026,7 +1060,7 @@ function calcItem(){
               :Math.min(target,r5(resale*Math.max(8,ltv-12)/100)),
           high:buyTooThin?Math.max(1,Math.min(Math.round(cap.pay),Math.round(resale*Math.min(100,ltv+8)/100)))
               :Math.min(buy,r5(resale*Math.min(100,ltv+8)/100)),
-          charge:Math.max(5,target*0.25),margin:resale-target,buyMargin:resale-buy,
+          charge:pawnCharge(target),margin:resale-target,buyMargin:resale-buy,
           buyCapBy,buyTooThin,buyFloor,buyMult};
 }
 /* The panel that does not move. Everything else on this page walks the
@@ -1155,7 +1189,7 @@ function railHTML(x){
       <div class="v">${thin?"&mdash;":money(x.target)}</div></div>
     ${thin?"":`
     <div class="railBack">
-      <div class="railBackHd"><b>He pays back</b><span>$${(x.charge/30).toFixed(2)}/day after day 60</span></div>
+      <div class="railBackHd"><b>He pays back</b><span>${pawnPct()}% per 30 days · $${(x.charge/30).toFixed(2)}/day after 60</span></div>
       <div class="railLadder">${ladder(x.target,x.charge).map((r,i)=>
         `<div class="rbCell${i===0?" now":""}"><div class="k">${r.k}</div><div class="d">${money(r.due)}</div></div>`).join("")}</div>
       <div class="rbDay60">Day 60 it is <b>ours</b> &mdash; no notice, no letter.</div>
@@ -1341,13 +1375,26 @@ function ticketDetailHTML(x){
     ${whyHTML("item")}
     </details>`;
 }
+/* THE RATE SITS WITH THE NUMBER IT EXPLAINS.
+   Putting it in the rates fold with the lending percentages would have been
+   tidier and wronger: the question "why is he paying back $131" gets asked
+   while looking at the $131, and an answer two cards away is not an answer. */
+function pawnRateHTML(){
+  const p=pawnPct();
+  return `<div class="rateRow" style="margin-top:2px"><span class="label" style="margin:0">Your charge, each 30 days (%)</span>
+      <input id="pawnNum" class="numIn rateNum" type="number" inputmode="numeric" min="0" max="${PAWN_CAP}" step="1" value="${p}"></div>
+    <input type="range" min="0" max="${PAWN_CAP}" step="1" value="${p}" id="pawnSlider">
+    <div class="sliderScale"><span>0% — no charge</span><span>${PAWN_CAP}% — the legal ceiling</span></div>
+    ${p>=PAWN_CAP?`<div class="tagWarn" style="margin-top:9px"><b>That is the statutory maximum.</b> It is legal to charge it. It is also the number a customer does the arithmetic on and walks out — ${money(100)} lent comes back as ${money(125)}. Set this to what the shop actually charges, not to what the law allows.</div>`:""}`;
+}
 function paybackHTML(x){
   return `<details class="card foldCard"${st.openPayback?" open":""} id="paybackFold">
     <summary><span class="label" style="margin:0">8 &middot; After the money moves</span><span class="foldSub">what he pays back, and the day it becomes ours</span></summary>
-    <span class="label" style="margin-bottom:0;color:var(--ink-2)">He pays back</span>
-    <div class="ladder">${ladder(x.target,x.charge).map(r=>`<div class="widget rung"><div class="k">${r.k}</div><div class="d">${money(r.due)}</div></div>`).join("")}</div>
+    ${pawnRateHTML()}
+    <span class="label" style="margin-bottom:0;margin-top:14px;color:var(--ink-2)">He pays back</span>
+    <div class="ladder" id="payLadder">${ladder(x.target,x.charge).map(r=>`<div class="widget rung"><div class="k">${r.k}</div><div class="d">${money(r.due)}</div></div>`).join("")}</div>
     <div style="font-size:12px;line-height:1.5;color:var(--ink-2);margin-top:9px">
-      It is <b style="color:var(--ink)">not</b> 25% again every month. The charge is capped at <b style="color:var(--ink)">twice</b> the 30-day amount from day 31 through day 60, then accrues <b style="color:var(--ink)">$${(x.charge/30).toFixed(2)}/day</b> after that — and remember, past day 60 the item is already yours; late redemption is a courtesy you price with this rate.
+      It is <b style="color:var(--ink)">not</b> ${pawnPct()}% again every month. The charge is capped at <b style="color:var(--ink)">twice</b> the 30-day amount from day 31 through day 60, then accrues <b style="color:var(--ink)">$${(x.charge/30).toFixed(2)}/day</b> after that — and remember, past day 60 the item is already yours; late redemption is a courtesy you price with this rate.
     </div>
     <div class="tagWarn"><b>Day 60 it's ours.</b> Maturity is day 30, then we must hold it 30 more. Not redeemed by day 60 and title passes to us automatically — no notice, no letter, no auction. Within the first 30 days only he or his attorney-in-fact may redeem it.</div>
     <div class="fine">&sect; 539.001(11) caps the charge at 25% of the amount financed per 30 days, minimum $5. Overcharging voids the transaction and forfeits twice the charge — but an honest mistake corrected when you catch it carries no penalty. Fix it, don't hide it.</div>
@@ -1893,20 +1940,31 @@ function askQueue(x){
   const handSet=!!(x.checked&&x.market&&x.market.kind==="hand");
   const sc=handSet?[]:(SPEC_CHOICES[st.itemId]||[]);
   sc.forEach((g,gi)=>{
-    const key=st.itemId+":"+gi, sel=st.specSel[key]??specBase(g);
+    const key=st.itemId+":"+gi;
     q.push({id:"spec:"+gi, title:g.label+"?",
       hint:g.options.map(o=>o.note).filter(Boolean)[0]||"",
-      opts:g.options.map((o,oi)=>({t:o.t, sub:o.note||"", on:sel===oi, set:"spec", v:gi+":"+oi})),
+      /* `sel` is what the ARITHMETIC uses - the recorded pick, or the
+         book's neutral default when there isn't one. It is not what the
+         screen may claim was chosen. A bare drill defaults to the
+         two-battery kit and doubles the price, and the card was showing
+         that answer already highlighted, so Next read as agreement to a
+         guess nobody made. Only a recorded pick lights up now. */
+      opts:g.options.map((o,oi)=>({t:o.t, sub:o.note||"", on:st.specSel[key]===oi, set:"spec", v:gi+":"+oi})),
       answered:st.specSel[key]!=null});
   });
   if(cat.complete.on){
     const what=cat.complete.label||"the bits that come with it";
     q.push({id:"complete", title:"Is it all there?",
-      hint:what+". Missing pieces come off the price.",
-      opts:[{t:"All there", on:st.complete===true, set:"comp", v:"1"},
+      /* Same rule, and this one was the worst of them: st.complete starts
+         true so "All there" came up lit AND the question counted itself
+         answered, which means a drill with no battery in it priced as a
+         kit unless the counter happened to re-tap the button that was
+         already glowing. Nothing lit, and nothing answered, until he says. */
+      opts:[{t:"All there", on:!!st.completeSet&&st.complete===true, set:"comp", v:"1"},
             {t:"Something missing", sub:"worth "+Math.round((Number(cat.complete.mult)||0.7)*100)+"% of a complete one",
-             on:st.complete===false, set:"comp", v:"0"}],
-      answered:true});
+             on:!!st.completeSet&&st.complete===false, set:"comp", v:"0"}],
+      hint:what+". Missing pieces come off the price."+(st.completeSet?"":" Nothing picked yet \u2014 the price is treating it as complete until you say."),
+      answered:!!st.completeSet});
   }
   /* ANYTHING ELSE COMES LAST, NOT ON THE MODEL CARD.
      It used to sit under the model box, which put a catch-all "anything
@@ -2034,6 +2092,79 @@ function coveredLine(){
   return list.charAt(0).toUpperCase()+list.slice(1)
     +(c.length<2?" is":" are")+" asked next \u2014 no need to type "+(c.length<2?"it":"them")+" here.";
 }
+/* THE LAST QUESTION ENDED IN NOTHING.
+
+   Answer step 8 and the card sat exactly where it was, carrying a live
+   button and no verdict. The answer HAD appeared - over in the rail, off to
+   the right, in the same panel that had been sitting there half-filled since
+   the item was picked - so from the counter it read as a screen still
+   waiting on you rather than a screen that had finished. On a phone there is
+   no rail at all, so it read as nothing happening whatsoever.
+
+   A run of questions has to end in an answer, and the answer belongs on the
+   card that asked the last question. Nothing here is new arithmetic; it is
+   the decision the rail already holds, said once, where the eye already is. */
+/* THE NUMBER YOU ACTUALLY AGREED ON HAD NOWHERE TO GO.
+
+   The desk handed over a window - low, suggested, top - as three read-only
+   tiles, and then logged `x.target` as though the middle tile were the deal.
+   It never is. What gets counted out of the drawer is a negotiation, and the
+   one figure that matters six months later is that one: it is what the
+   shop's own price book learns from, what a redemption is measured against,
+   and what ties the row to the ticket.
+
+   So the run ends with a box. Empty still logs the suggestion, because a
+   counter in a hurry should not be blocked - but the moment a number is
+   typed, that is the number, and the screen says so before it is saved. */
+function struckAmt(x){
+  const kind=st.struckKind==="buy"?"buy":"loan";
+  const n=Number(st.struck);
+  const typed=st.struck!==""&&st.struck!=null&&isFinite(n)&&n>0;
+  return {kind, typed, amt:Math.round(typed?n:(kind==="buy"?x.buy:x.target))};
+}
+function struckNoteHTML(x){
+  const k=struckAmt(x), sug=k.kind==="buy"?x.buy:x.target;
+  if(!k.typed)return `Leave it empty and the log keeps the suggested ${money(sug)}. Type what you actually handed over instead — the shop's own price book is built out of this number.`;
+  if(k.kind==="loan"&&k.amt>x.high)
+    return `<b style="color:var(--bad-ink)">${money(k.amt)} is over the ${money(x.high)} top.</b> That is the cushion spent. It will log exactly as typed — he pays back ${money(k.amt+pawnCharge(k.amt))} by day 30.`;
+  return k.kind==="loan"
+    ? `Lent <b style="color:var(--ink)">${money(k.amt)}</b> — he pays back <b style="color:var(--ink)">${money(k.amt+pawnCharge(k.amt))}</b> by day 30, fee ${money(pawnCharge(k.amt))}. This is what the log keeps.`
+    : `Bought outright for <b style="color:var(--ink)">${money(k.amt)}</b> — no loan, no ticket to redeem. This is what the log keeps.`;
+}
+function struckHTML(x){
+  const k=struckAmt(x), sug=k.kind==="buy"?x.buy:x.target;
+  return `<div class="struck">
+    <span class="label" style="margin:0">What you actually did — the number that gets logged</span>
+    <div class="struckRow">
+      <div class="struckPick">
+        <button type="button" class="${k.kind==="loan"?"on":""}" data-struckkind="loan">Lent</button>
+        <button type="button" class="${k.kind==="buy"?"on":""}" data-struckkind="buy">Bought</button>
+      </div>
+      <input class="numIn struckIn" type="number" inputmode="decimal" min="0" step="1" autocomplete="off"
+        placeholder="${Math.round(sug)}" value="${esc(st.struck==null?"":String(st.struck))}"
+        aria-label="What you actually ${k.kind==="loan"?"lent":"paid"}">
+      <button type="button" class="ghostBtn struckUse" data-struckset="${Math.round(sug)}">Use ${money(sug)}</button>
+    </div>
+    <div class="struckNote cardHint" style="margin-top:8px">${struckNoteHTML(x)}</div>
+  </div>`;
+}
+function askDoneHTML(x){
+  if(x.buyTooThin)return `<div class="askDone bad">
+    <div class="adHd">That is everything &mdash; <b>and the answer is no</b></div>
+    <div class="adBig">Walk away</div>
+    <div class="adWhy">It will not clear the ${money(x.buyFloor)} you want out of it &mdash; not as a buy, and not as a loan you end up owning. Hand it back.</div>
+  </div>`;
+  return `<div class="askDone">
+    <div class="adHd">That is everything &mdash; <b>here is the answer</b></div>
+    <div class="adGrid">
+      <div class="adCell"><div class="k">Buy it for</div><div class="d">${money(x.buy)}</div></div>
+      <div class="adCell"><div class="k">Or lend him</div><div class="d">${money(x.target)}</div></div>
+      <div class="adCell"><div class="k">He pays back by day 30</div><div class="d">${money(x.target+x.charge)}</div></div>
+    </div>
+    <div class="adWhy">${x.checked?"":`<b style="color:var(--warn-ink)">Estimate &mdash; nothing looked up.</b> `}Resells for ${money(Math.round(x.resale))} in this shape. Lend anywhere in ${money(x.low)}&ndash;${money(x.high)} &mdash; never above the top. The charge is ${pawnPct()}% per 30 days, ${money(x.charge)} on this one.</div>
+    ${struckHTML(x)}
+  </div>`;
+}
 function askHTML(x){
   const q=askQueue(x);
   const at=Math.max(0,Math.min(q.length-1,Number(st.askAt)||0));
@@ -2092,6 +2223,7 @@ function askHTML(x){
     ${cur.named?`<div class="cardHint" style="margin-top:0"><b style="color:var(--accent)">${esc(cur.named)}</b> &mdash; read off the name. Tap another if it is wrong.</div>`
       :cur.hint?`<div class="cardHint" style="margin-top:0">${esc(cur.hint)}</div>`:""}
     ${body}
+    ${(at>=q.length-1&&q.every(z=>z.answered))?askDoneHTML(x):""}
     <div class="askNav">
       ${at<=0
         /* THE SAME DEAD BUTTON, AT THE OTHER END OF THE RUN.
@@ -2123,7 +2255,7 @@ function askHTML(x){
                either the run has a gap in it, or it is finished and the
                deal wants logging. Say which. */
              const open=q.findIndex(z=>!z.answered);
-             if(open<0)return `<button class="brassBtn" data-askdone="log">Log this deal &darr;</button>`;
+             if(open<0)return `<button class="brassBtn" data-askdone="log">Write the ticket &darr;</button>`;
              if(open!==at)return `<button class="brassBtn" data-askgo="${open}">Still to answer: ${esc(q[open].title)}</button>`;
              return `<button class="brassBtn" data-askdone="here">Pick one above &uarr;</button>`;
            })()
@@ -2339,8 +2471,8 @@ function renderItem(){
     +`<div class="pills mb14" style="border-radius:var(--r-s)">${CONDITIONS.map(c=>`<button class="${c.id===st.cond?"on":""}" style="flex:1;padding:7px 5px;font-size:11px${x.handSet?";opacity:.55":""}" data-cond="${c.id}" title="${x.handSet?"Does not change the price while the resale value is your own figure":c.hint}">${c.label.replace("New in box","New")}</button>`).join("")}</div>`;
   if(cat.complete.on){
     mid+=`<span class="label">${cat.complete.label}</span><div class="pills mb14" style="border-radius:var(--r-s)">
-      <button class="${st.complete?"on":""}" style="flex:1" data-comp="1">All there</button>
-      <button class="${!st.complete?"on":""}" style="flex:1" data-comp="0">Pieces missing</button></div>`;
+      <button class="${st.completeSet&&st.complete?"on":""}" style="flex:1" data-comp="1">All there</button>
+      <button class="${st.completeSet&&!st.complete?"on":""}" style="flex:1" data-comp="0">Pieces missing</button></div>`;
   }
   mid+=`<span class="label">How fast it moves in Bristol</span><div class="pills" style="border-radius:var(--r-s)">${LIQUIDITY.map(l=>`<button class="${x.liqId===l.id?"on":""}" style="flex:1;padding:7px 5px;font-size:11px" data-liq="${l.id}" title="${l.hint}">${l.label}</button>`).join("")}</div>
   ${ST?"</details>":"</div>"}
@@ -2515,11 +2647,11 @@ function wireItem(){
     else { st.mpNone=false; const c=CATALOG.find(x=>x.id===st.catId); st.itemId=c.items[0].id; st.bookName=""; }
     st.needKind=false;
     if(un&&st.photoRead)st.photoRead=Object.assign({},st.photoRead,{unplaced:false});
-    st.liq=null;st.brandTyped="";st.brandQ="";st.model="";st.detail="";st.complete=true;st.editing=false;
+    st.liq=null;st.brandTyped="";st.brandQ="";st.model="";st.detail="";st.complete=true;st.completeSet=false;st.struck="";st.editing=false;
     st.brandSet=false;
     const h=typed?brandInText(st.catId,typed):null; st.brand=h?h.tier:"mid";
     render();});
-  v.querySelectorAll("[data-item]").forEach(b=>b.onclick=()=>{st.needKind=false;st.itemId=b.dataset.item;st.market=null;st.omniDone="";st.mpPin=null;st.mpNone=false;st.condSet=false;st.cond="good";st.bookName="";st.liq=null;st.brand="mid";st.brandTyped="";st.brandQ="";st.model="";st.detail="";st.complete=true;st.askAt=0;st.brandSet=false;
+  v.querySelectorAll("[data-item]").forEach(b=>b.onclick=()=>{st.needKind=false;st.itemId=b.dataset.item;st.market=null;st.omniDone="";st.mpPin=null;st.mpNone=false;st.condSet=false;st.cond="good";st.bookName="";st.liq=null;st.brand="mid";st.brandTyped="";st.brandQ="";st.model="";st.detail="";st.complete=true;st.completeSet=false;st.struck="";st.askAt=0;st.brandSet=false;
     /* picking "Something else" with no saved value drops you straight into the price box */
     st.editing=(st.itemId===custId(st.catId));
     render();if(st.editing)document.getElementById("valIn")?.focus();});
@@ -2541,7 +2673,7 @@ function wireItem(){
     refreshStep4();
   };
   v.querySelectorAll("[data-cond]").forEach(b=>b.onclick=()=>{st.cond=b.dataset.cond;st.condSet=true;render();});
-  v.querySelectorAll("[data-comp]").forEach(b=>b.onclick=()=>{st.complete=b.dataset.comp==="1";render();});
+  v.querySelectorAll("[data-comp]").forEach(b=>b.onclick=()=>{st.complete=b.dataset.comp==="1";st.completeSet=true;render();});
   /* Answering IS moving on. A questionnaire that makes you answer and then
      press Next has two actions where the counter's hand expects one. The
      last question does not advance - there is nowhere to go, and the price
@@ -2549,7 +2681,7 @@ function wireItem(){
   v.querySelectorAll("[data-ask]").forEach(b=>b.onclick=()=>{
     const kind=b.dataset.ask, val=b.dataset.askv;
     if(kind==="brand"){ st.brand=val; st.brandTyped="";st.brandQ=""; st.brandSet=true; }
-    else if(kind==="comp"){ st.complete=val==="1"; }
+    else if(kind==="comp"){ st.complete=val==="1"; st.completeSet=true; }
     else if(kind==="cond"){ st.cond=val; st.condSet=true; }
     else if(kind==="spec"){ const [gi,oi]=val.split(":"); st.specSel[st.itemId+":"+gi]=Number(oi); }
     const q=askQueue(calcItem());
@@ -2581,9 +2713,13 @@ function wireItem(){
       return;
     }
     /* The run is done, so the next thing the counter does is write it
-       down. Straight to the ticket box, focused. */
+       down. Straight to the ticket box, focused - and on a desk, where that
+       box is very often already on screen, the scroll alone is invisible and
+       was reported as a dead button. So the card it lands on says so. */
     const log=document.getElementById("logCard")||document.getElementById("nextStep");
     if(log&&log.scrollIntoView)log.scrollIntoView({behavior:"smooth",block:"start"});
+    if(log){ log.classList.remove("flashTo"); void log.offsetWidth; log.classList.add("flashTo");
+             setTimeout(()=>log.classList.remove("flashTo"),1400); }
     const t=document.getElementById("ticketIn")||(log&&log.querySelector("input"));
     if(t&&t.focus)setTimeout(()=>{try{t.focus({preventScroll:true});}catch(e){}},260);
   });
@@ -2669,7 +2805,7 @@ function wireItem(){
       document.getElementById("view").querySelectorAll("[data-hit]").forEach(b=>b.onclick=()=>{
         const e=hits[Number(b.dataset.hit)];
         st.catId=e[2]; st.itemId=custId(e[2]); st.bookName=e[0]; st.overrides[custId(e[2])]=bookVal(e);
-        st.liq=e[3]; st.brand="mid"; st.brandTyped="";st.brandQ=""; st.brandSet=false; st.complete=true; st.editing=false;
+        st.liq=e[3]; st.brand="mid"; st.brandTyped="";st.brandQ=""; st.brandSet=false; st.complete=true;st.completeSet=false;st.struck=""; st.editing=false;
         persist(); render();
       });
     };
@@ -2701,6 +2837,7 @@ function wireItem(){
   wireLogButton();
   wireOmni();
   wireShots();
+  wirePawnRate();
 }
 
 /* ---------------- gold tab ---------------- */
@@ -2829,11 +2966,12 @@ function meltMathHTML(m){
 }
 function metalLadderHTML(m){
   if(!m||!PAWN())return "";
-  const charge=Math.max(5,m.loan*0.25);
+  const charge=pawnCharge(m.loan);
   return `<div class="card"><span class="label">What he pays back</span>
-    <div class="ladder">${ladder(m.loan,charge).map(r=>`<div class="widget rung"><div class="k">${r.k}</div><div class="d">${money(r.due)}</div></div>`).join("")}</div>
+    ${pawnRateHTML()}
+    <div class="ladder" id="payLadder" style="margin-top:14px">${ladder(m.loan,charge).map(r=>`<div class="widget rung"><div class="k">${r.k}</div><div class="d">${money(r.due)}</div></div>`).join("")}</div>
     <div style="font-size:13.5px;line-height:1.5;color:var(--ink-2);margin-top:9px">
-      It is <b style="color:var(--ink)">not</b> 25% again every month. The charge caps at <b style="color:var(--ink)">twice</b> the
+      It is <b style="color:var(--ink)">not</b> ${pawnPct()}% again every month. The charge caps at <b style="color:var(--ink)">twice</b> the
       30-day amount from day 31 through day 60, then runs <b style="color:var(--ink)">$${(charge/30).toFixed(2)}/day</b>.
       Past day 60 the metal is already ours \u2014 late redemption is a courtesy you price with that rate.
     </div>
@@ -3019,6 +3157,7 @@ function wireMetal(){
     setTouched(true);setRate(n);p.value=n;paintSlider(p);upd();};
   if(pn)pn.onblur=()=>{pn.value=curRate();persist();};
   wireSuggest();
+  wirePawnRate();
 }
 
 /* ---- building the price list from the tool, not from a terminal ----------
@@ -3177,8 +3316,9 @@ function harvShareHTML(){
     <b style="font-family:var(--mono)">/data</b>, then redeploy. Do that before paying for a long run.
     <div style="margin-top:8px"><button class="ghostBtn" id="harvCheck">${syncBusy?"Checking\u2026":"Check again"}</button></div></div>`;
   if(st.syncShared==="yes")return `<div class="tagNote" style="margin-top:10px">
-    <b style="color:var(--accent)">Shared.</b> The service has a disk, so what this device prices reaches the others,
-    and it survives a restart. Checked ${esc(when)}.
+    <b style="color:var(--accent)">Saved, and on all your devices.</b> A price you build here shows up on the
+    phone too, and none of it is lost when the service restarts. Nothing to do — this is the way it should read.
+    Last checked ${esc(when)}.
     <div style="margin-top:8px"><button class="ghostBtn" id="harvCheck" style="padding:5px 11px;font-size:11.5px">${syncBusy?"Checking\u2026":"Check again"}</button></div></div>`;
   return `<div class="cardHint">Whether these reach your other devices depends on the service having a disk attached.
     <button class="ghostBtn" id="harvCheck" style="padding:6px 12px;font-size:12px;margin-left:6px">${syncBusy?"Checking\u2026":"Check sharing"}</button>
@@ -3427,6 +3567,10 @@ ${window.PHONE?"":`  <div class="card"><span class="label">How the pricing page 
     <div class="cardHint" style="margin-top:0"><b style="color:var(--ink)">One question at a time</b> is the questionnaire: one question on the screen, big answers, and answering it moves to the next by itself. The specifics &mdash; how many batteries, whether it is all there &mdash; are questions in the run rather than fields buried under it. Back, or tap any dot, to go anywhere.<br><b style="color:var(--ink)">One page at a time</b> puts one job on the screen &mdash; what it is, what it is worth, condition, your offer &mdash; with a bar to move between them and the price always on top. The default, because everything at once is thirteen cards.<br><b style="color:var(--ink)">One step at a time</b> shows the step you are on and folds the rest to a line carrying its answer &mdash; click any line to open it. The way the phone works, and it puts an item on about one screen.<br><b style="color:var(--ink)">Everything open</b> is the old layout, every step expanded at once.</div>
     <div class="cardHint" style="font-size:12.5px">Throws away everything this browser has cached and reloads from the site. Nothing you have recorded is touched &mdash; the shelf tags, listings and deal log are kept separately.</div>
   </div>`}
+  <details class="card foldCard" id="rulesFold"${st.openRules?" open":""}>
+    <summary><span class="label" style="margin:0">Walk away, and what goes to the sheriff</span><span class="foldSub">the red flags, what we don't take, and the reporting deadlines</span></summary>
+    ${flagsInner()}
+  </details>
 </div>`;
 }
 /* Taking in a phone: what to check before money changes hands. Setup does
@@ -3437,8 +3581,8 @@ function renderDevice(){
   ${DEVICE_STEPS.map((s,i)=>
     `<div class="card step"><div style="display:flex;gap:12px;align-items:flex-start"><span class="n">${String(i+1).padStart(2,"0")}</span><div><div class="t">${s.t}</div><div class="d">${s.d}</div></div></div></div>`).join("")}</div>`;
 }
-function renderFlags(){
-  return `<div class="narrow"><div class="card"><p style="font-size:14px;line-height:1.6;margin:0;color:var(--ink-2)">Any one of these and the answer is no. A stolen item costs you the loan, the goods, and a conversation with the sheriff.</p></div>
+function flagsInner(){
+  return `<div class="card"><p style="font-size:14px;line-height:1.6;margin:0;color:var(--ink-2)">Any one of these and the answer is no. A stolen item costs you the loan, the goods, and a conversation with the sheriff.</p></div>
   ${FLAGS.map(f=>`<div class="card flag" style="display:flex;gap:12px;align-items:center"><span class="x">&times;</span><span>${f}</span></div>`).join("")}
   <div class="card"><span class="label">Things we don't take, whatever the price</span>
     <div class="cardHint" style="margin-top:0">Nothing wrong with the customer &mdash; these just cost more than they make. They are kept off the price lists on purpose, so nothing here quotes you a number for one.</div>
@@ -3448,7 +3592,7 @@ function renderFlags(){
     <div class="rules">Every transaction goes to the sheriff's office on the approved state form. Photo ID, <b>right</b> thumbprint, serial numbers, full description — no exceptions, no favors, no matter who's standing there.</div>
     <div class="rules sect"><span class="hd"><b>By the end of the next business day.</b></span> Yesterday's forms go to the sheriff today — &sect; 539.001(9)(a). Keep our copies on the premises a year, and don't destroy any of them for three.</div>
     <div class="rules sect"><span class="hd"><b>If a hold order lands on something:</b></span> it runs 90 days. When it expires, we send the sheriff a certified letter, return receipt. If no court extends it within 10 days of them receiving that letter, the item becomes ours. Nothing else starts that clock — if nobody sends the letter, we simply lose it.</div>
-  </div></div>`;
+  </div>`;
 }
 
 /* ================= RUNTIME CAPABILITIES =================================
@@ -3854,7 +3998,8 @@ function watchDeals(){
 function refreshDealViews(){
   if(st.mode==="log"){ const v=document.getElementById("view"); v.innerHTML=renderLog(); wireLog(); return; }
   const oc=document.getElementById("ownComps"); if(oc)oc.innerHTML=ownCompsInner(calcItem());
-  const lg=document.getElementById("logCard"); if(lg)lg.innerHTML=logCardInner(calcItem());
+  const lg=document.getElementById("logCard");
+  if(lg){ lg.innerHTML=logCardInner(calcItem()); wireLogButton(); }
 }
 /* A price-book pick lands in the category's one custom slot, so every book
    item in a category would otherwise share an id — and share a sales history
@@ -3926,7 +4071,7 @@ function bookChecked(name){ return Number(BOOK_PRICES[name])>0; }
 function pickBookEntry(e){
   st.catId=e[2]; st.itemId=custId(e[2]); st.bookName=e[0]; st.overrides[custId(e[2])]=bookVal(e);
   st.liq=e[3]; st.brand="mid"; st.brandTyped="";st.brandQ=""; st.brandSet=false; st.model=""; st.detail="";
-  st.complete=true; st.editing=false; st.specSel={};
+  st.complete=true;st.completeSet=false;st.struck=""; st.editing=false; st.specSel={};
   persist(); render();
 }
 function wireBookSearch(){
@@ -4623,7 +4768,7 @@ function applyPhotoRead(r){
   st.model = tidyModel(r.model);
   st.detail = String(r.detail||"").slice(0,80);
   st.brandTyped = String(r.brand||"").slice(0,40);
-  st.complete = true;
+  st.complete = true; st.completeSet=false;
   if(st.brandTyped){
     const hit=brandLookup(st.catId,st.brandTyped);
     st.brand = hit ? hit.tier : "mid";
@@ -4686,7 +4831,8 @@ function logCardInner(x){
      customer - no name, no address, no ID. Without it, matching a row here
      to the item in Bravo means going by the date and the description. */
   return `<div class="card"><span class="label">Deal log</span>
-    <div class="row2" style="margin-bottom:9px"><input id="logTicket" class="numIn" type="text" inputmode="numeric"
+    ${struckHTML(x)}
+    <div class="row2" style="margin:9px 0"><input id="logTicket" class="numIn" type="text" inputmode="numeric"
       autocomplete="off" placeholder="Ticket # (optional)" value="${esc(st.ticket||"")}"
       style="flex:1;min-width:0;font-family:var(--mono);font-size:14px"></div>
     <button id="logDeal" class="brassBtn" title="Saves the item, your estimate, the offer and the ticket number. Mark it Sold later and the desk prices the next one from what it actually brought." style="width:100%;padding:11px 0">Log this deal</button>
@@ -4697,6 +4843,7 @@ function logCardHTML(x){ return `<div id="logCard">${logCardInner(x)}</div>`; }
 async function saveDeal(){
   if(!CAP.db)return;
   const x=calcItem();
+  const _k=struckAmt(x);
   const msg=document.getElementById("logMsg");
   const specTxt=(SPEC_CHOICES[st.itemId]||[]).map((g,gi)=>{
     const o=g.options[st.specSel[st.itemId+":"+gi]??specBase(g)]||g.options[specBase(g)];
@@ -4711,17 +4858,41 @@ async function saveDeal(){
       brand: st.brandTyped||"", tier: st.brand, model: st.model||"", detail: st.detail||"",
       specs: specTxt, cond: st.cond, complete: !!st.complete, liq: x.liqId,
       market: x.market?x.market.kind:"", marketMid: x.market?x.market.mid:null,
-      resale: Math.round(x.resale), ltv: x.ltv, loan: x.target, charge: Math.round(x.charge),
+      /* `loan` is what was actually handed over, not the suggestion - that
+         is kept beside it as `suggested` so the two can be compared later. */
+      resale: Math.round(x.resale), ltv: x.ltv,
+      loan: _k.amt, dealKind: _k.kind, struck: _k.typed, suggested: Math.round(x.target),
+      charge: _k.kind==="loan"?Math.round(pawnCharge(_k.amt)):0, pawnPct: pawnPct(),
       ticket: String((document.getElementById("logTicket")||{}).value||"").trim().slice(0,24),
       status: "open", soldPrice: null, soldTs: null
     });
-    if(msg)msg.textContent="Logged. It sits under Not settled yet in the Deal log until you mark it Sold or Redeemed.";
+    st.struck="";
+    if(msg)msg.textContent=(_k.kind==="buy"?"Logged \u2014 bought for ":"Logged \u2014 lent ")+money(_k.amt)
+      +". It sits under Not settled yet in the Deal log until you mark it Sold or Redeemed.";
+    const si=document.querySelectorAll(".struckIn"); si.forEach(e=>{ e.value=""; });
+    document.querySelectorAll(".struckNote").forEach(n=>{ n.innerHTML=struckNoteHTML(calcItem()); });
   }catch(err){
     const code=(err&&err.code)||"unavailable";
     if(msg)msg.innerHTML=`<span style="color:var(--warn)">${esc(code==="quota_exceeded"?"The log is full — clear out old deals.":"Couldn't save that one. Try again.")}</span>`;
   }
 }
+/* Two instances can be on screen at once - the one that ends the run and the
+   one beside the Log button - so they are found by class, kept in step by
+   hand, and the note repaints without a render so the cursor stays put. */
+function wireStruck(){
+  document.querySelectorAll("[data-struckkind]").forEach(b=>b.onclick=()=>{
+    st.struckKind=b.dataset.struckkind==="buy"?"buy":"loan"; render(); });
+  document.querySelectorAll("[data-struckset]").forEach(b=>b.onclick=()=>{
+    st.struck=Number(b.dataset.struckset)||""; render(); });
+  document.querySelectorAll(".struckIn").forEach(el=>{
+    el.oninput=()=>{ st.struck=el.value;
+      document.querySelectorAll(".struckIn").forEach(o=>{ if(o!==el)o.value=el.value; });
+      const x=calcItem();
+      document.querySelectorAll(".struckNote").forEach(n=>{ n.innerHTML=struckNoteHTML(x); }); };
+  });
+}
 function wireLogButton(){
+  wireStruck();
   const tk=document.getElementById("logTicket");
   if(tk)tk.oninput=()=>{ st.ticket=tk.value; };
   const b=document.getElementById("logDeal");
@@ -5630,7 +5801,7 @@ function startOver(){
   st.mode="item";                 /* from the scale too, not just the item page */
   st.picked=false; st.bookName=""; st.brandTyped="";st.brandQ=""; st.model=""; st.detail="";
   st.brand="mid"; st.brandSet=false; st.liq=null; st.market=null; st.mpPin=null; st.mpNone=false;
-  st.cond="good"; st.condSet=false; st.complete=true; st.specSel={}; st.editing=false;
+  st.cond="good"; st.condSet=false; st.complete=true;st.completeSet=false;st.struck=""; st.specSel={}; st.editing=false;
   st.ask=0; st.askKey=""; st.ticket=""; st.needKind=false; st.photoRead=null; st.compRead=null;
   st.fakeAns={}; st.fakeKey=""; st.stepAt=0; st.openS3=st.openS4=st.openS5=false;
   photoFile=null; findMsg="";
@@ -5671,7 +5842,7 @@ function omniPick(r){
   st.brandSet=false;
   const hit=st.brandTyped?brandLookup(st.catId,st.brandTyped):null; st.brand=hit?hit.tier:"mid";
   st.model=r.model||""; st.detail=r.detail||"";
-  st.complete=r.complete!==false;
+  st.complete=r.complete!==false; st.completeSet=true;
   if(r.cond)st.cond=r.cond;
   st.specSel={}; applySpecPicks(r.spec,st.detail+" "+st.model);
   st.editing=(r.kind==="custom");
@@ -7018,7 +7189,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0925.2017";
+const APP_BUILD="0925.2125";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -8383,6 +8554,29 @@ function wireBuy(){
   const rs=document.getElementById("buyReset"); if(rs)rs.onclick=()=>{ delete st.buys[st.catId]; persist(); render(); };
 }
 
+/* ONE SLIDER, TWO PAGES, AND NO FULL RENDER WHILE A THUMB IS ON IT.
+   A render() on `input` replaces the slider node mid-drag and the drag dies
+   on the first pixel - the same trap the lending-rate slider already works
+   around. So the drag patches just the two things that move (the ladder and
+   the rail) and the release does the real render and the save. */
+function wirePawnRate(){
+  const sl=document.getElementById("pawnSlider"), n=document.getElementById("pawnNum");
+  const set=v=>{ st.pawnPct=Math.min(PAWN_CAP,Math.max(0,Number(v)||0));
+    const lad=document.getElementById("payLadder");
+    if(lad){ const c=(st.mode==="metal")?(()=>{const m=calcMetal();return m?[m.loan,pawnCharge(m.loan)]:null;})()
+                                       :(()=>{const x=calcItem();return [x.target,x.charge];})();
+      if(c)lad.innerHTML=ladder(c[0],c[1]).map(r=>
+        `<div class="widget rung"><div class="k">${r.k}</div><div class="d">${money(r.due)}</div></div>`).join(""); }
+    if(st.mode!=="metal"){ try{ paintPin(calcItem()); }catch(e){} }
+  };
+  if(sl){ try{ paintSlider(sl); }catch(e){}
+    sl.oninput=()=>{ if(n)n.value=sl.value; try{ paintSlider(sl); }catch(e){} set(sl.value); };
+    sl.onchange=()=>{ persist(); render(); }; }
+  if(n){ n.oninput=()=>{ let v=parseInt(n.value); if(isNaN(v))return;
+           v=Math.max(0,Math.min(PAWN_CAP,v)); if(sl){sl.value=v; try{ paintSlider(sl); }catch(e){}} set(v); };
+         n.onblur=()=>{ n.value=pawnPct(); persist(); render(); }; }
+}
+
 /* ---------------- render ---------------- */
 function render(){
   const _ae=document.activeElement, _omF=!!(_ae&&_ae.id==="omniIn"), _omS=_omF?[_ae.selectionStart,_ae.selectionEnd]:null;
@@ -8406,7 +8600,10 @@ function render(){
   else if(st.mode==="log"){v.innerHTML=renderLog();wireLog();}
   else if(st.mode==="device"){v.innerHTML=renderDevice();}
   else if(st.mode==="setup"){v.innerHTML=renderSetup();}
-  else {v.innerHTML=renderFlags();}
+  /* "flags" no longer has a tab, and the rules it held are folded into
+     Setup, so a mode with no page of its own lands on Setup rather than on
+     a page with no way back to it. */
+  else {v.innerHTML=renderSetup();}
   /* After the chain, never inside it: dropped between the last else-if and
      its else, this line stole the else, and every screen that was not
      out of date drew the walk-away list instead of itself. */

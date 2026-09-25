@@ -182,7 +182,7 @@ console.log("\n  what a missing piece costs");
     const run = (catId, itemId) => {
       const cat = CATALOG.find(x => x.id === catId);
       st.mode="item"; st.catId=catId; st.itemId=itemId; st.picked=true;
-      st.market=null; st.cond="good"; st.condSet=true; st.overrides={}; st.specSel={};
+      st.market=null; st.cond="good"; st.condSet=true; st.completeSet = true; st.overrides={}; st.specSel={};
       st.complete = true;  const whole = calcItem().resale;
       st.complete = false; const part  = calcItem().resale;
       st.complete = true;
@@ -211,7 +211,7 @@ console.log("\n  the meter reaches every screen");
     await pg.goto(BASE + "/index.html", {waitUntil:"networkidle"});
     const n = await pg.evaluate(() => {
       const c = CATALOG.find(x => x.items.some(i => i.id === "t1"));
-      st.mode="item"; st.catId=c.id; st.itemId="t1"; st.picked=true; st.condSet=true;
+      st.mode="item"; st.catId=c.id; st.itemId="t1"; st.picked=true; st.condSet=true; st.completeSet = true;
       st.market={kind:"found", key:mkKey(), n:12, med:110, lo:95, hi:130, sold:9, conf:"h", mid:110};
       render();
       return document.querySelectorAll(".wCard").length;
@@ -223,7 +223,7 @@ console.log("\n  the meter reaches every screen");
   await ph.goto(BASE + "/phone.html", {waitUntil:"networkidle"});
   const n = await ph.evaluate(() => {
     const c = CATALOG.find(x => x.items.some(i => i.id === "t1"));
-    st.mode="item"; st.catId=c.id; st.itemId="t1"; st.picked=true; st.condSet=true;
+    st.mode="item"; st.catId=c.id; st.itemId="t1"; st.picked=true; st.condSet=true; st.completeSet = true;
     st.market={kind:"found", key:mkKey(), n:12, med:110, lo:95, hi:130, sold:9, conf:"h", mid:110};
     render();
     /* The meter moved when the wallet design went in: on the phone it
@@ -353,7 +353,7 @@ console.log("\n  a row too thin to buy is too thin to lend on");
        the book already carries, so the row stays exactly as thin as it was. */
     /* No make and no model on a wheelbarrow - the desk does not ask for
        either on a cheap book row, so neither is set here. */
-    st.condSet = true;
+    st.condSet = true; st.completeSet = true;
     (SPEC_CHOICES[st.itemId] || []).forEach((g, gi) => {
       st.specSel[st.itemId + ":" + gi] = specBase(g); });
     st.market = {kind: "hand", key: mkKey(), mid: 28};
@@ -500,7 +500,7 @@ console.log("\n  the loan card does not repeat the rail");
       st.cond = "good"; st.complete = true; st.specSel = {}; st.market = null;
       st.model = "MS 271"; st.detail = "";
       /* Same reason: no figures are drawn until the run is finished. */
-      st.condSet = true;
+      st.condSet = true; st.completeSet = true;
       (SPEC_CHOICES[st.itemId] || []).forEach((g, gi) => {
         st.specSel[st.itemId + ":" + gi] = specBase(g); });
       st.market = {kind: "hand", key: mkKey(), mid: 300};
@@ -576,7 +576,7 @@ console.log("\n  cheap book rows are not asked for a make or a model");
       const e = PRICEBOOK.find(x => x[0] === name);
       if (!e) return null;
       pickBookEntry(e); st.picked = true;
-      st.condSet = false; st.market = null; st.mpNone = false;
+      st.condSet = false; st.completeSet = false; st.market = null; st.mpNone = false;
       const x = calcItem();
       return {resale: Math.round(x.resale), floor: x.buyFloor,
               easy: bookSimple(x), need: priceMissing(x)};
@@ -747,7 +747,7 @@ console.log("\n  the make step is never a dead end");
     const c = CATALOG.find(y => y.items.some(i => i.id === "e1"));
     st.flow="ask"; st.mode="item"; st.catId=c.id; st.itemId="e1"; st.picked=true;
     st.brandTyped=""; st.brandQ=""; st.brandSet=false; st.model=""; st.detail="";
-    st.mpNone=false; st.market=null; st.specSel={}; st.condSet=false;
+    st.mpNone=false; st.market=null; st.specSel={}; st.condSet=false; st.completeSet = false;
     const q0 = askQueue(calcItem());
     st.askAt = q0.findIndex(z => z.id === "brand"); render();
     /* the LAST hint in the card is the one under the make box; the first is
@@ -778,7 +778,7 @@ console.log("\n  a spec the search text already gave is not asked again");
     const go = (q) => { const R = omniRows(q) || {}, rows = R.rows || [];
       const first = rows.find(x => ["mp","book","item"].includes(x.kind));
       if (!first) return null;
-      st.market = null; st.mpPin = null; st.mpNone = false; st.condSet = false; st.specSel = {};
+      st.market = null; st.mpPin = null; st.mpNone = false; st.condSet = false; st.completeSet = false; st.specSel = {};
       st.brandTyped = ""; st.brandQ = ""; st.brandSet = false;
       st.model = ""; st.detail = ""; st.bookName = "";
       omniPick(first);
@@ -822,7 +822,7 @@ console.log("\n  the search is what a person would type, not the row's name");
   const r = await page.evaluate(() => {
     const go = (q) => { const R = omniRows(q) || {}, rows = R.rows || [];
       const f = rows.find(x => ["mp","book","item"].includes(x.kind)); if (!f) return null;
-      st.market = null; st.mpPin = null; st.mpNone = false; st.condSet = false; st.specSel = {};
+      st.market = null; st.mpPin = null; st.mpNone = false; st.condSet = false; st.completeSet = false; st.specSel = {};
       st.brandTyped = ""; st.brandQ = ""; st.brandSet = false;
       st.model = ""; st.detail = ""; st.bookName = "";
       omniPick(f); return compQuery(calcItem()); };
@@ -993,7 +993,7 @@ console.log("\n  a step shows that step, and not the rest of the shop");
   const r = await page.evaluate(() => {
     const e = PRICEBOOK.find(x => x[0] === "Camera drone");
     pickBookEntry(e); st.picked = true; st.flow = "ask"; st.market = null;
-    st.condSet = false; st.brandTyped = "DJI"; st.model = "Mavic 3";
+    st.condSet = false; st.completeSet = false; st.brandTyped = "DJI"; st.model = "Mavic 3";
     st.mpNone = false; st.specSel = {};
     const q = askQueue(calcItem()), out = {};
     q.forEach((z, i) => { st.askAt = i; render();
@@ -1028,7 +1028,7 @@ console.log("\n  the run starts where the desk stops knowing");
 {
   const r = await page.evaluate(() => {
     const go = (q) => { st.flow = "ask"; st.market = null; st.mpPin = null;
-      st.mpNone = false; st.condSet = false; st.specSel = {}; st.brandTyped = "";
+      st.mpNone = false; st.condSet = false; st.completeSet = false; st.specSel = {}; st.brandTyped = "";
       st.brandQ = ""; st.brandSet = false; st.model = ""; st.detail = "";
       st.bookName = ""; st.picked = false; st.askAt = 0;
       const R = omniRows(q) || {}, rows = R.rows || [];
@@ -1163,6 +1163,57 @@ console.log("\n  a product line resolves to the maker that built it");
   ok(flow.tier === "hi", "  and prices it at the top tier, not the middle — got " + flow.tier);
   ok(!perr.length, "  no page errors" + (perr.length ? ": " + perr[0] : ""));
   await page.close();
+}
+
+/* REPORTED FROM THE COUNTER: "there's no way that in 30 days this person
+   would pay $131 to get back a PlayStation that I lent them somewhere around
+   $100 to $125 on."
+   He was right, and it was not a rounding error. The charge was hardcoded at
+   target*0.25 - the CEILING \u00a7539.001(11) sets - so the desk quoted the legal
+   maximum on every ticket as though it were the shop's price. */
+console.log("\n  the pawn charge is the shop's rate, not the statute's ceiling");
+{
+  const r = await page.evaluate(() => {
+    const out = {cap: PAWN_CAP, def: pawnPct()};
+    const c = CATALOG.find(y => y.items.some(i => i.id === "e2"));
+    st.mode="item"; st.catId=c.id; st.itemId="e2"; st.picked=true;
+    st.condSet=true; st.completeSet=true; st.cond="good"; st.specSel={};
+    st.brandSet=true; st.brandTyped="Sony"; st.model="PS5"; st.mpNone=false;
+    st.overrides={}; st.bookVals={}; st.market={kind:"hand", key:mkKey(), mid:1200};
+    (SPEC_CHOICES[st.itemId]||[]).forEach((g,gi)=>{ st.specSel[st.itemId+":"+gi]=0; });
+    const at = (pct) => { st.pawnPct = pct; const x = calcItem();
+      return {loan: Math.round(x.target), charge: Math.round(x.charge),
+              day30: Math.round(ladder(x.target, x.charge)[0].due)}; };
+    out.ten = at(10); out.max = at(25); out.zero = at(0);
+    /* the cap is a cap, not a suggestion, and it cannot be argued past */
+    st.pawnPct = 40; out.over = pawnPct();
+    st.pawnPct = -5; out.under = pawnPct();
+    st.pawnPct = 10;
+    /* and the wording that explains it follows the rate rather than saying 25 */
+    render();
+    st.openPayback = true; render();
+    const fold = document.getElementById("paybackFold");
+    out.prose = fold ? fold.textContent.replace(/\s+/g, " ") : "";
+    out.hasControl = !!(fold && fold.querySelector("#pawnSlider") && fold.querySelector("#pawnNum"));
+    return out;
+  });
+  ok(r.cap === 25, "the statutory ceiling is still known \u2014 " + r.cap + "%");
+  ok(r.def < r.cap, "  but the desk does not open at it \u2014 default is " + r.def + "%");
+  ok(r.ten.charge === Math.round(r.ten.loan * 0.10),
+     "  at 10% a " + r.ten.loan + " loan carries a " + r.ten.charge + " charge");
+  ok(r.max.charge === Math.round(r.max.loan * 0.25),
+     "  at the ceiling it carries " + r.max.charge + " \u2014 the old hardcoded number");
+  ok(r.ten.day30 < r.max.day30,
+     "  so day 30 is " + r.ten.day30 + " rather than " + r.max.day30);
+  ok(r.zero.charge === 5,
+     "  and the $5 minimum the statute allows survives a 0% rate \u2014 " + r.zero.charge);
+  ok(r.over === 25 && r.under === 0,
+     "  the rate cannot be pushed past the ceiling or below nothing \u2014 " + r.over + " / " + r.under);
+  ok(r.hasControl, "  the rate is set where the repayment is read, not in a menu");
+  ok(/not 10% again every month/i.test(r.prose) && !/not 25% again/i.test(r.prose),
+     "  and the explanation quotes the shop's rate, not a frozen 25");
+  ok(/caps the charge at 25%/i.test(r.prose),
+     "  while the fine print still names the statutory cap");
 }
 
 ok(!errs.length, "no page errors" + (errs.length ? ": " + errs[0] : ""));
