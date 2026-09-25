@@ -404,6 +404,45 @@ console.log("\n  the money path refuses an unbounded run");
 }
 
 
+/* TWO WAYS A QUIET SOLDCOMPS TURNS A GOOD RUN INTO A BAD BOOK.
+   On 25 Sep SoldComps mailed Jace to say the month's lookups were gone.
+   The harvest had no idea. The service answers a spent quota by falling
+   back to eBay ASKING prices and saying why in a warning - and the run
+   printed that warning once, then carried on harvesting asks for every
+   remaining target and merging them straight over sold rows. Asks read
+   high, so it would have moved hundreds of numbers the wrong way, and
+   quietly: the figures look perfectly plausible.
+
+   Two guards, because they fail differently. The first stops the RUN when
+   the reason is about the whole month (quota spent, key rejected) rather
+   than about one model ("only 2 used sales in 90 days" is fine, carry on).
+   The second is the rule that should hold whatever the reason: an asking
+   price may not overwrite a row that was built from real sales. That row
+   ages instead, and says when it was last checked. */
+console.log("\n  a quiet SoldComps cannot quietly rewrite the book");
+{
+  const harv = readFileSync(join(ROOT, "tools/harvest.js"), "utf8");
+
+  ok(/quota spent\|key rejected/.test(harv),
+     "the run stops on a month-wide failure, not just a model-wide one");
+  ok(/process\.exit\(3\)/.test(harv),
+     "  and exits non-zero so a Routine cannot mistake it for a clean run");
+  ok(/only 2 used sales|one model|about ONE model/i.test(harv),
+     "  while a thin single model is still allowed to carry on");
+
+  /* the deeper rule */
+  ok(/prevWasSold/.test(harv),
+     "an asking price may not overwrite a row built from sales");
+  ok(/heldAsk/.test(harv) && /Kept the sale, refused the ask/.test(harv),
+     "  and what it refused is reported, not swallowed");
+
+  /* it must still be ABLE to update a sold row with better sold data */
+  const i = harv.indexOf("prevWasSold");
+  const seg = harv.slice(i, i + 400);
+  ok(/!== "sold"/.test(seg),
+     "  a sold finding still replaces a sold row \u2014 the guard is about basis, not age");
+}
+
 /* ONE BLIND LIST, NOT TWO.
    The desk refuses to price 21 refs; the harvester kept its own hand-made
    set and knew about 2 of them. 185 seed targets sat in aisles the counter

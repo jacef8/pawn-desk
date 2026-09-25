@@ -252,6 +252,7 @@ if (has("merge")) {
                         && !/^[a-z]\d{1,2}$/.test(String(f.ref));
   const byName = new Map(rows.map((r, i) => [String(r[1]) + "|" + String(r[2]).toLowerCase(), i]));
   let added = 0, updated = 0, skipped = 0, wild = 0, asks = 0, mixed = 0;
+  const heldAsk = [];
   const touched = [], touchedMoves = [], newRows = [], heldWild = [], heldThin = [], heldMixed = [];
   let n = 0;
   const nextId = () => { let id; do { id = "h" + (++n); } while (rows.some(r => r[0] === id)); return id; };
@@ -338,6 +339,26 @@ if (has("merge")) {
          new id would quietly orphan them. Say which rows were rewritten -
          some of them were checked by a person against a better source than
          a marketplace search. */
+      /* AN ASK MAY NOT PAINT OVER A SALE.
+         The row being replaced carries the note it was written with, and
+         "12 eBay sales in the last 90 days" is a different kind of fact
+         from "24 listings, asking prices". Asks read high, so overwriting
+         the first with the second moves the number the wrong way AND
+         downgrades what is known about it, silently, in a diff that goes
+         to main unread.
+         It happens whenever SoldComps goes quiet - a spent quota, a
+         rejected key, a model with two sales this quarter - which is to
+         say it happens on the runs that most look like they worked.
+         The sold row stays. It ages instead, and the row says when it was
+         last checked, which is the honest version. */
+      const prevNote = String(rows[at][8] || "");
+      const prevWasSold = /\bsales?\b.*\b90 days\b|\bsold\b/i.test(prevNote);
+      if (prevWasSold && (f.basis || "asking") !== "sold") {
+        asks++;
+        heldAsk.push({ name: f.name, was: `${rows[at][3]}-${rows[at][4]}`,
+                       now: `${row[3]}-${row[4]}`, n: f.n, prev: prevNote });
+        continue;
+      }
       row[0] = rows[at][0];
       touched.push(`${rows[at][2]}  ${rows[at][3]}-${rows[at][4]} -> ${row[3]}-${row[4]}`);
       touchedMoves.push({ name: rows[at][2], ref: f.ref, wasLo: rows[at][3], wasHi: rows[at][4],
@@ -491,6 +512,19 @@ if (has("merge")) {
     heldWild.forEach((r) => L.push(`- ${r.name} \u2014 $${r.lo}\u2013${r.hi} against a book value of $${r.book} (${r.ratio}x, ${r.n} listings)`));
     L.push("");
   }
+  if (heldAsk.length) {
+    L.push(`## Kept the sale, refused the ask (${heldAsk.length})`);
+    L.push("");
+    L.push("These rows were built from real sales and this run only found asking");
+    L.push("prices for them. Asks read high, so the sold figure stays and ages");
+    L.push("rather than being painted over. Usually it means SoldComps went quiet");
+    L.push("for that model - or for the month.");
+    L.push("");
+    heldAsk.slice(0, 40).forEach((r) =>
+      L.push(`- ${r.name}: kept $${r.was}, refused $${r.now} (${r.n} listings, asking)`));
+    if (heldAsk.length > 40) L.push(`- \u2026 and ${heldAsk.length - 40} more`);
+    L.push("");
+  }
   if (heldThin.length) {
     L.push(`## Too thin to price (${heldThin.length})`);
     L.push("");
@@ -506,7 +540,8 @@ if (has("merge")) {
   console.log(`\n  ${added} added, ${updated} updated, ${skipped} skipped (under ${MIN} listings)` +
     (wild ? `, ${wild} held back as wild (--wild merges them)` : "") +
     (mixed ? `, ${mixed} held back as mixed searches (--mixed merges them)` : "") +
-    (asks ? `, ${asks} held back as asking-price only` : "") + ".");
+    (asks ? `, ${asks} held back as asking-price only`
+          + (heldAsk.length ? ` (${heldAsk.length} of them kept a sold row that was already there)` : "") : "") + ".");
   if (touched.length) {
     console.log("\n  Rewritten (these had a price already):");
     touched.slice(0, 20).forEach(t => console.log("    " + t));
@@ -777,6 +812,26 @@ for (let i = 0; i < todo.length; i++) {
     continue;
   }
   /* Say the bad news once, not six hundred times. */
+  /* A SPENT QUOTA IS NOT A WARNING, IT IS THE END OF THE RUN.
+     The service falls back to eBay asking prices when SoldComps will not
+     answer, and says why. Two of those reasons are about ONE model - "only
+     2 used sales in 90 days" - and carrying on is right there.
+     The other two are about the whole month: the quota is spent, or the key
+     was rejected. Every remaining target will come back an asking price,
+     and asks read high - so the run would spend an evening replacing real
+     sold rows with what sellers are hoping for. That is worse than not
+     running, and it is silent: the numbers look plausible.
+     SoldComps mailed Jace on 25 Sep to say the month was gone. The harvest
+     had no idea and would have carried on. A halted week is free. */
+  if (got.warning && /quota spent|key rejected/i.test(got.warning)) {
+    console.error(`\n  STOPPING: ${got.warning}`);
+    console.error(`  Every target left would come back an asking price, and asking`);
+    console.error(`  prices merged over sold rows make the book worse, not staler.`);
+    console.error(`  ${i} of ${todo.length} priced before this. Nothing is lost - the`);
+    console.error(`  rest stay outstanding and come up first next run.\n`);
+    save();
+    process.exit(3);
+  }
   if (got.warning && !said) { said = true; console.log(`\n  ! ${got.warning}\n    Findings from this run are asking prices. They will be graded and labelled as such.\n`); }
 
   const seen = new Set();
