@@ -59,6 +59,49 @@ one ratio, applied to the 280 rows already harvested.
 | Reverb | asks only, price guide closed, inflates on vague queries (above) |
 | WorthPoint | **for automation, still no** — terms forbid automated access and commercial use; robots.txt disallows /search and /worthopedia/*/price to every crawler; 403s non-browser requests. **Wired as a LINK OUT on 24 Sep** for jewelry, collectibles and instruments: a person clicking through to a site they subscribe to is ordinary use, a program fetching it is not, and the desk never reads a number back. $29.99/mo or $249.99/yr, 7-day trial; Jace has no subscription yet, so the button lands on their signup wall until he does. The search URL could not be verified from here for the same robots.txt reason — it is one constant, `WORTHPOINT_SEARCH` in app.js, to correct from the address bar after one real search. |
 | Google Shopping | no sold data at all - current merchant offers, skewed to new retail |
+| Facebook Marketplace (scraped) | **no.** No public listings API, and Meta's terms forbid automated collection; the only way in is a third-party scraper actor, which costs a couple of dollars a run and puts the shop's name on the wrong side of somebody else's terms for asking prices we can get for free by tapping a link. **Wired as a LINK OUT on 25 Sep instead** — see below. |
+
+## Facebook Marketplace and Craigslist — added as link-outs, 25 Sep 2026
+
+Eighteen aisles carry a notice saying the desk will not look this up and to
+price it locally. The comps card then offered four buttons, every one of
+them pointing at eBay — the place the notice had just finished saying does
+not carry it. The instruction was right and there was nowhere to follow it
+to.
+
+Two buttons now appear on exactly those aisles, and nowhere else:
+
+- **Facebook Marketplace** — where a mower, a window unit or a generator
+  actually changes hands around here. It opens in the counter's own
+  signed-in session, which is also what keeps the results local: Marketplace
+  searches around wherever that account sits, and these devices sit in
+  Bristol.
+- **Craigslist, Tallahassee** — the whole panhandle, no sign-in.
+
+Both are **asking prices** and are labelled as such on the button. That is
+not a step down on these aisles: there is no sold data for a used window
+unit anywhere a program can reach, and a neighbour's asking price forty
+miles away is a truer read on what one brings in Liberty County than a
+national average of control boards.
+
+**Link-outs only, and that is the whole point.** Facebook has no public
+Marketplace listings API and its terms forbid automated collection, so the
+desk can never read a number back off it — no auto-fill, no row in the
+book, nothing to go stale. The same line WorthPoint sits on. Scraping it
+through a third-party actor was considered and declined: a couple of
+dollars a run to obtain, against the terms, asking prices that a tap
+already gives us for nothing.
+
+Not guns. Facebook bans firearms outright, so that search comes back empty
+or full of holsters, and GunWatcher is the real comp there.
+
+**Unverified from here, same as WorthPoint.** Facebook will not serve a page
+to anything that is not a signed-in browser, so the search URL is the shape
+their site uses rather than one anyone here loaded. It is one constant,
+`FB_MARKETPLACE_SEARCH` in app.js. If a tap lands somewhere useless: one
+real search on facebook.com, copy the address bar up to and including the
+`=`, paste it in. The comps card has a Copy button for the search words, so
+it is never a dead end.
 
 ## Worth looking at
 

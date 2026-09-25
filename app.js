@@ -4159,6 +4159,16 @@ function watchCountUrl(q){
    comps card has a Copy button for the search words, so the fallback is a
    paste into their own search box and nothing is ever a dead end. */
 const WORTHPOINT_SEARCH="https://www.worthpoint.com/worthopedia/search?query=";
+/* Marketplace has no public API and Facebook will not serve a page to
+   anything that is not a signed-in browser, so this URL could not be
+   checked from here any more than WorthPoint's could. It is the shape their
+   search uses and it opens in the counter's own signed-in session, which is
+   also what keeps the results local - Marketplace searches around wherever
+   that account is set, and these devices are set to Bristol.
+   If a tap lands somewhere useless: do ONE search on facebook.com, copy the
+   address bar up to and including the "=", and paste it here. The comps
+   card has a Copy button for the search words, so it is never a dead end. */
+const FB_MARKETPLACE_SEARCH="https://www.facebook.com/marketplace/search/?query=";
 /* Where it earns its keep. Not a blanket button: everywhere else has a
    model number and eBay is better at those. */
 const WORTHPOINT_CATS={jewel:1,coll:1,music:1};
@@ -4200,6 +4210,31 @@ function compTargets(x){
      line. See tools/source-findings.md.
      Jewelry, collectibles and instruments only - a DeWalt drill has a model
      number and eBay prices it fine. */
+  /* WHERE "PRICE IT LOCALLY" ACTUALLY GOES.
+     Eighteen aisles carry a notice saying the desk will not look this up
+     and to price it locally, and then offered four buttons all pointing at
+     eBay - the one place the notice just said does not carry it. The
+     instruction was right and there was nowhere to follow it to.
+
+     These are ASKING prices and they are labelled as such. That is not a
+     step down here: on a mower, a window unit or a generator there is no
+     sold data anywhere a program can reach, and a neighbour's asking price
+     forty miles away is a truer read on what one brings in Liberty County
+     than a national average of carburettors.
+
+     Link-outs only, on purpose. Facebook's terms forbid automated
+     collection and Marketplace has no public listings API; a person tapping
+     through to a site they already use is ordinary, a scraper is not - the
+     same line WorthPoint sits on. Nothing reads a number back, so nothing
+     enters the book by this route. See tools/source-findings.md. */
+  /* Not guns: Facebook bans firearms outright, so that search comes back
+     empty or full of holsters, and GunWatcher above is the real comp. */
+  if(ebayBlind(x)&&!guns){
+    t.push({id:"fbm",name:"Facebook Marketplace",sub:"asking prices &mdash; what one is going for near here",
+      url:FB_MARKETPLACE_SEARCH+e});
+    t.push({id:"cl",name:"Craigslist \u2014 Tallahassee",sub:"asking prices &mdash; the whole panhandle, no sign-in",
+      url:"https://tallahassee.craigslist.org/search/sss?query="+e});
+  }
   if(WORTHPOINT_CATS[st.catId])
     t.push({id:"wp",name:"WorthPoint \u2014 marks &amp; makers",
       sub:"paid sign-in &mdash; years of sold, not 90 days",
@@ -6366,20 +6401,14 @@ let MODEL_PRICES=[
  ["b32","g8","Taurus Judge",320,400,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=taurus+judge","Public Defender, stainless and Magnum above basic"],
  ["b33","g8","Colt Python (2020+)",950,1200,"m","2026-09-19","https://www.webuyguns.com/valuations/colt/python","New retail near $1,100 caps it; older Pythons far more"],
  ["c1","p1","Stihl MS 170 / 180",170,230,"m","2026-09-22","shelf tags photographed 19 Sep 2026, Bristol area","MS 180 slightly more; easy start and good chain"],
- ["c2","p1","Stihl MS 250",142,250,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Stihl%20MS%20250&LH_Sold=1&LH_Complete=1","10 listings, asking prices - no sold data","ms-250 ms250"],
  ["c3","p1","Stihl MS 271 Farm Boss",300,420,"m","2026-09-22","https://www.tractorhouse.com/listings/for-sale/stihl/ms/chainsaws/1186","20 in bar, low hours"],
- ["c4","p1","Stihl MS 291",232,350,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Stihl%20MS%20291&LH_Sold=1&LH_Complete=1","8 listings, asking prices - no sold data","ms-291 ms291"],
- ["c5","p1","Stihl MS 362",500,800,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Stihl%20MS%20362&LH_Sold=1&LH_Complete=1","15 listings, asking prices - no sold data","ms-362 ms362"],
  ["c6","p1","Stihl MS 461 / 462",780,1020,"m","2026-09-22","https://opeforum.com/threads/ms462.32595/","MS 462 more; piston condition"],
  ["c7","p1","Husqvarna 450 / 445",210,290,"m","2026-09-22","shelf tags photographed 19 Sep 2026, Bristol area","450 over 445"],
- ["c8","p1","Husqvarna 455 Rancher",298,359,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Husqvarna%20455%20Rancher&LH_Sold=1&LH_Complete=1","9 listings, asking prices - no sold data",""],
- ["c9","p1","Husqvarna 460 Rancher",133,400,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Husqvarna%20460%20Rancher&LH_Sold=1&LH_Complete=1","13 listings, asking prices - no sold data",""],
  ["c10","p1","Echo CS-400 / CS-4010",130,210,"l","2026-09-22","","Thin sales data; CS-4010 is newer"],
  ["c11","p1","Echo CS-590 Timber Wolf",265,385,"l","2026-09-22","https://www.treetrader.com/listings/for-sale/echo/cs590-timber-wolf/chainsaws-outdoor-power/1186","Bar and chain included matters a lot"],
  ["c12","p2","Stihl FS 56 / FS 91",110,215,"l","2026-09-22","https://used.equipmentshare.com/products/stihl-fs-91-r-563012","FS 91 about double the FS 56"],
  ["c13","p2","Stihl FS 131",240,360,"l","2026-09-22","","Bike-handle and blade kits add"],
  ["c14","p2","Echo SRM-225",100,170,"l","2026-09-22","","Starts easily; head and shaft condition"],
- ["c15","p3","Stihl BR 600",349,490,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Stihl%20BR%20600&LH_Sold=1&LH_Complete=1","7 listings, asking prices - no sold data","br-600 br600"],
  ["c16","p3","Stihl BR 800",425,575,"m","2026-09-22","shelf tags photographed 19 Sep 2026, Bristol area","Hours and landscaper wear"],
  ["c17","p3","Echo PB-580T",230,330,"l","2026-09-22","https://opeforum.com/threads/need-backpack-blower-asap-please.26602/","Lawn-crew wear lowers price"],
  ["c18","p3","Echo PB-770T",330,450,"l","2026-09-22","https://opeforum.com/threads/would-you-buy-a-used-echo-pb-770t.8184/","Hours and carb history"],
@@ -6730,45 +6759,21 @@ let MODEL_PRICES=[
  ["h355","e3","iPad Air 5",280,309,"m","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=iPad%20Air%205&LH_Sold=1&LH_Complete=1","6 listings, asking prices - no sold data",""],
  ["h361","e3","Samsung Galaxy Tab S8",230,270,"m","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Samsung%20Galaxy%20Tab%20S8&LH_Sold=1&LH_Complete=1","8 listings, asking prices - no sold data",""],
  ["h365","e3","Samsung Galaxy Tab S9",215,330,"m","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Samsung%20Galaxy%20Tab%20S9&LH_Sold=1&LH_Complete=1","9 listings, asking prices - no sold data",""],
- ["h371","p1","Stihl MS 170",130,185,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Stihl%20MS%20170&LH_Sold=1&LH_Complete=1","15 listings, asking prices - no sold data","ms-170 ms170"],
  ["h377","e2","Dell Latitude 7420",170,180,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Dell%20Latitude%207420&LH_Sold=1&LH_Complete=1","7 listings, asking prices - no sold data",""],
  ["h387","e2","Asus ZenBook 14",400,850,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Asus%20ZenBook%2014&LH_Sold=1&LH_Complete=1","10 listings, asking prices - no sold data",""],
  ["h395","e2","Lenovo Chromebook Flex 5",125,180,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Lenovo%20Chromebook%20Flex%205&LH_Sold=1&LH_Complete=1","6 listings, asking prices - no sold data",""],
  ["h401","e2","Asus Vivobook 15",202,320,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Asus%20Vivobook%2015&LH_Sold=1&LH_Complete=1","6 listings, asking prices - no sold data",""],
- ["h433","t6","Hobart Handler 140",450,600,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Hobart%20Handler%20140&LH_Sold=1&LH_Complete=1","10 listings, asking prices - no sold data",""],
- ["h437","t6","Miller Millermatic 141",600,950,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Miller%20Millermatic%20141&LH_Sold=1&LH_Complete=1","7 listings, asking prices - no sold data",""],
- ["h441","t6","Titanium Easy-Flux 125",117,120,"l","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Titanium%20Easy-Flux%20125&LH_Sold=1&LH_Complete=1","4 listings, asking prices - no sold data","flux-125 flux125"],
- ["h445","f6","Titan T-3 power rack",100,120,"l","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Titan%20T-3%20power%20rack&LH_Sold=1&LH_Complete=1","4 listings, asking prices - no sold data",""],
  ["h465","f2","Echelon EX-3",250,500,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Echelon%20EX-3&LH_Sold=1&LH_Complete=1","16 listings, asking prices - no sold data",""],
- ["h471","f3","ProForm Carbon E7",25,75,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=ProForm%20Carbon%20E7&LH_Sold=1&LH_Complete=1","34 listings, asking prices - no sold data",""],
- ["h479","f3","Horizon EX-59",23,55,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Horizon%20EX-59&LH_Sold=1&LH_Complete=1","31 listings, asking prices - no sold data","ex-59 ex59"],
- ["h495","p6","Greenworks 1800 PSI pressure washer",25,70,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Greenworks%201800%20PSI%20pressure%20washer&LH_Sold=1&LH_Complete=1","30 listings, asking prices - no sold data",""],
- ["h505","a6","Frigidaire FFFC09M1RW chest freezer",175,450,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Frigidaire%20FFFC09M1RW%20chest%20freezer&LH_Sold=1&LH_Complete=1","35 listings, asking prices - no sold data",""],
- ["h524","a7","Frigidaire FFRE0833U1 window air conditioner",120,187,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Frigidaire%20FFRE0833U1%20window%20air%20conditioner&LH_Sold=1&LH_Complete=1","37 listings, asking prices - no sold data",""],
- ["h526","a7","LG LW8017ERSM window air conditioner",120,290,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=LG%20LW8017ERSM%20window%20air%20conditioner&LH_Sold=1&LH_Complete=1","37 listings, asking prices - no sold data",""],
- ["h528","a7","GE AHEC08AC window air conditioner",100,200,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=GE%20AHEC08AC%20window%20air%20conditioner&LH_Sold=1&LH_Complete=1","22 listings, asking prices - no sold data","ahec-08ac ahec08ac"],
  ["h531","t4","Craftsman CMEC6150",60,88,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Craftsman%20CMEC6150&LH_Sold=1&LH_Complete=1","7 listings, asking prices - no sold data","cmec-6150 cmec6150"],
  ["h533","t4","DeWalt DWFP55126",65,160,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=DeWalt%20DWFP55126&LH_Sold=1&LH_Complete=1","6 listings, asking prices - no sold data","dwfp-55126 dwfp55126"],
  ["h535","t4","Bostitch BTFP02012",120,130,"l","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Bostitch%20BTFP02012&LH_Sold=1&LH_Complete=1","5 listings, asking prices - no sold data","btfp-02012 btfp02012"],
- ["h558","f4","Bowflex 5.1S bench",50,95,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Bowflex%205.1S%20bench&LH_Sold=1&LH_Complete=1","34 listings, asking prices - no sold data",""],
  ["h565","h4","Moultrie A-40",27,60,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Moultrie%20A-40&LH_Sold=1&LH_Complete=1","27 listings, asking prices - no sold data","a-40 a40"],
  ["h567","h4","Moultrie Edge",44,67,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Moultrie%20Edge&LH_Sold=1&LH_Complete=1","29 listings, asking prices - no sold data",""],
  ["h569","h4","Stealth Cam G42NG",40,70,"l","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Stealth%20Cam%20G42NG&LH_Sold=1&LH_Complete=1","5 listings, asking prices - no sold data","g-42ng g42ng"],
  ["h572","h4","Tactacam Reveal X",60,147,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Tactacam%20Reveal%20X&LH_Sold=1&LH_Complete=1","25 listings, asking prices - no sold data",""],
  ["h574","h4","Tactacam Reveal SK",60,147,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Tactacam%20Reveal%20SK&LH_Sold=1&LH_Complete=1","26 listings, asking prices - no sold data",""],
- ["h578","p1","Stihl MS 180",150,200,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Stihl%20MS%20180&LH_Sold=1&LH_Complete=1","16 listings, asking prices - no sold data","ms-180 ms180"],
- ["h581","p1","Stihl MS 251",200,350,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Stihl%20MS%20251&LH_Sold=1&LH_Complete=1","14 listings, asking prices - no sold data","ms-251 ms251"],
- ["h583","p1","Stihl MS 261",243,540,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Stihl%20MS%20261&LH_Sold=1&LH_Complete=1","12 listings, asking prices - no sold data","ms-261 ms261"],
- ["h585","p1","Stihl MS 271",300,375,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Stihl%20MS%20271&LH_Sold=1&LH_Complete=1","11 listings, asking prices - no sold data","ms-271 ms271"],
- ["h589","p1","Husqvarna 240",145,220,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Husqvarna%20240&LH_Sold=1&LH_Complete=1","6 listings, asking prices - no sold data",""],
- ["h591","p1","Husqvarna 435",160,220,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Husqvarna%20435&LH_Sold=1&LH_Complete=1","19 listings, asking prices - no sold data",""],
- ["h593","p1","Husqvarna 440",160,230,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Husqvarna%20440&LH_Sold=1&LH_Complete=1","11 listings, asking prices - no sold data",""],
- ["h597","p1","Echo CS-400",214,250,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Echo%20CS-400&LH_Sold=1&LH_Complete=1","9 listings, asking prices - no sold data","cs-400 cs400"],
  ["h599","p2","Ryobi 40V string trimmer",104,119,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Ryobi%2040V%20string%20trimmer&LH_Sold=1&LH_Complete=1","complete kits only - 4 eBay sales in the last 90 days",""],
- ["h602","p7","Generac GP6500",500,750,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Generac%20GP6500&LH_Sold=1&LH_Complete=1","11 listings, asking prices - no sold data","gp-6500 gp6500"],
  ["h604","p7","Champion 3500 watt generator",279,600,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Champion%203500%20watt%20generator&LH_Sold=1&LH_Complete=1","6 eBay sales in the last 90 days",""],
- ["h606","p7","Predator 9000 generator",500,700,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Predator%209000%20generator&LH_Sold=1&LH_Complete=1","13 listings, asking prices - no sold data",""],
- ["h608","p7","DuroMax XP12000EH",900,925,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=DuroMax%20XP12000EH&LH_Sold=1&LH_Complete=1","6 listings, asking prices - no sold data","xp-12000eh xp12000eh"],
  ["h610","t1","DeWalt DCD771",50,55,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=DeWalt%20DCD771&LH_Sold=1&LH_Complete=1","complete kits only - 4 eBay sales in the last 90 days","dcd-771 dcd771"],
  ["h612","t1","DeWalt DCD996",55,80,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=DeWalt%20DCD996&LH_Sold=1&LH_Complete=1","10 eBay sales in the last 90 days","dcd-996 dcd996"],
  ["h614","t1","Milwaukee 2801-20",110,110,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Milwaukee%202801-20&LH_Sold=1&LH_Complete=1","complete kits only - 4 eBay sales in the last 90 days",""],
@@ -7189,7 +7194,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0925.2125";
+const APP_BUILD="0925.2212";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -7936,7 +7941,18 @@ const EBAY_CANNOT_ITEM={
      search: whole saws mixed with parts. */
   p1:"A saw is cheap to buy new and expensive to ship, so eBay lists bars, chains, carburettors and recoil starters \u2014 32 models came back, not one of them on a real sale. Price it off the shelf record and what the dealers in town are asking.",
   p2:"A trimmer does not ship, so eBay lists heads, spools, shafts and carburettors. One of seven models came back priceable. Price it locally.",
-  p3:"A backpack blower does not ship, so eBay lists tubes, elbows, straps and carburettors \u2014 twelve models, not one clean row. Price it locally."
+  p3:"A backpack blower does not ship, so eBay lists tubes, elbows, straps and carburettors \u2014 twelve models, not one clean row. Price it locally.",
+  /* 25 Sep: 14 generators tried, ONE came back on a real sale. This one is
+     not quite the shipping story the rest of the aisle tells - a 47lb
+     inverter ships fine - it is that the search cannot tell a machine from
+     a carburettor. Honda EU2200i came back $20 to $700 inside one search;
+     EU3000iS, a $2,300 machine new, came back $28 to $99. Those are covers,
+     wheel kits and carbs sitting in the same list as whole units, and the
+     median of that mixture is not a price of anything.
+     What made it worse than the rest of the aisle: the three rows it DID
+     merge were all asking prices near new retail, so the desk was quoting
+     a used generator at what a new one costs. */
+  p7:"A generator search cannot tell a machine from a carburettor \u2014 14 models tried, one came back on a real sale, and a Honda EU2200i spanned $20 to $700 inside a single search. Price it off Facebook Marketplace locally, your own sales and the shelf record."
 };
 const EBAY_CANNOT={
   guns:"eBay does not sell firearms, so a search for one comes back as parts — latches, barrels, stocks. Use the GunBroker and GunWatcher buttons above: completed auctions there are the real comp.",

@@ -746,7 +746,13 @@ console.log("\n  the make and the model are picked, not spelled");
   ok(r.afterBrand.name === "Stihl" && r.afterBrand.tier === "hi" && r.afterBrand.set === true,
      "  one tap sets the spelling AND the tier — " + r.afterBrand.name + "/" + r.afterBrand.tier);
   ok(r.afterBrand.at > 0, "  and moves on, the same as tapping a tier");
-  ok(r.models.length >= 5 && r.models.every(m => /^Stihl/.test(m)),
+  /* This asked for five and got eight until 25 Sep, when the chainsaw rows
+     built out of eBay asking prices came out of the book - a saw search
+     returns bars, chains and carburettors, so those five "measured" Stihls
+     were measured off parts. Three are left and they are real. The
+     assertion that matters is the every(), not the count: what is offered
+     belongs to the make that was picked. */
+  ok(r.models.length >= 3 && r.models.every(m => /^Stihl/.test(m)),
      "the models offered are that make's, measured — " + r.models.length + " of them");
   ok(/^Stihl/.test(r.model) && r.pinned,
      "  tapping one spells it the way the sold-price search expects — " + r.model);

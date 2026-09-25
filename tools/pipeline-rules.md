@@ -239,6 +239,38 @@ report it, with the count, so it can be added to `EBAY_CANNOT_ITEM` in
 app.js. That is a code change and belongs in its own commit, not the price
 commit.
 
+### Retiring an aisle is two jobs, not one
+
+Adding a ref to `EBAY_CANNOT_ITEM` stops the NEXT run spending on it. It
+does nothing about the rows already in the book, and those are the ones
+doing the damage: the model screen tells the counter "the desk will not
+look this one up" and the price book hands him a figure for that exact
+model anyway, built out of the carburettors the warning is about, printed
+in the same type as a measured sale.
+
+Measured 25 Sep: 27 rows across nine already-retired aisles were sitting
+there like that. Stihl MS 170 at **$130&ndash;$185 when a new one is about
+$200**. Generac GP6500 at $500&ndash;$750, DuroMax XP12000EH at
+$900&ndash;$925 &mdash; near new retail, on machines that had been on the
+blind list for a day.
+
+So after the code change, run:
+
+```
+node tools/drop-asking-rows.mjs            # what it would take out
+node tools/drop-asking-rows.mjs --go       # take it out
+node tools/drop-asking-rows.mjs --go p7    # one aisle
+```
+
+It removes any row whose aisle is blind **and** whose note says the figure
+rests on asking prices with no sold data, from `prices.json` and from the
+fallback copy in `app.js` both. The desk falls back to its own typical
+figure and says so in orange &mdash; worth more than a precise-looking
+wrong number, and the Marketplace and Craigslist buttons on those aisles
+now go somewhere that actually sells the thing.
+
+`check-pricing` holds the invariant, so this cannot quietly come back.
+
 ## The report
 
 `tools/price-changes.md` is written on every merge. Read it before

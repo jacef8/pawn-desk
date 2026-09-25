@@ -1216,6 +1216,67 @@ console.log("\n  the pawn charge is the shop's rate, not the statute's ceiling")
      "  while the fine print still names the statutory cap");
 }
 
+/* THE BOOK WAS QUOTING PRICES ON AISLES THE DESK SAYS IT CANNOT PRICE.
+   Two true things that contradict each other: the model step warns "the
+   desk will not look this one up", and the price book hands over a figure
+   for that exact model anyway - built out of the carburettors and belts the
+   warning is about. Stihl MS 170 came out at $130-$185 when a NEW one is
+   about $200, and a generator search returned $20 to $700 inside one model.
+   This is the invariant, not the incident: a row may not rest on asking
+   prices alone on an aisle that is on the blind list. */
+console.log("\n  the price book does not quote what the desk says it cannot price");
+{
+  const r = await page.evaluate(async () => {
+    const blind = Object.keys(EBAY_CANNOT_ITEM);
+    const book = await (await fetch("./prices.json", {cache:"no-store"})).json();
+    const askOnly = /asking prices? *- *no sold data|listings, asking/i;
+    const bad = book.rows.filter(w => blind.indexOf(w[1]) >= 0 && askOnly.test(String(w[8] || "")));
+    /* and the fallback copy inside app.js has to agree with the file */
+    const inApp = MODEL_PRICES.filter(w => blind.indexOf(w[1]) >= 0 && askOnly.test(String(w[8] || "")));
+    return {blind, n: book.rows.length,
+            bad: bad.map(w => w[1] + " " + w[2] + " $" + w[3] + "-$" + w[4]),
+            inApp: inApp.length,
+            p7Blind: blind.indexOf("p7") >= 0,
+            p7Note: EBAY_CANNOT_ITEM.p7 || "",
+            p7Rows: book.rows.filter(w => w[1] === "p7").map(w => w[2] + " :: " + String(w[8]).slice(0, 30))};
+  });
+  ok(r.bad.length === 0,
+     "no row in " + r.n + " rests on asking prices on a blind aisle" +
+     (r.bad.length ? " \u2014 " + r.bad.slice(0, 4).join(" | ") : ""));
+  ok(r.inApp === 0, "  and app.js's fallback copy carries none either");
+  ok(r.p7Blind, "generators are on the blind list \u2014 14 tried, one real sale");
+  ok(/\$20 to \$700/.test(r.p7Note),
+     "  and the notice says what the search actually returned");
+  ok(r.p7Rows.length === 2 && r.p7Rows.some(t => /eBay sales/.test(t)),
+     "  the two generator rows left are the ones with something behind them \u2014 " + r.p7Rows.join(" | "));
+}
+
+/* "Price it locally" had nowhere to go: eighteen aisles carry that notice
+   and the comps card offered four buttons, all of them eBay. */
+console.log("\n  the aisles told to price locally have somewhere local to go");
+{
+  const r = await page.evaluate(() => {
+    const look = (cat, item) => {
+      const c = CATALOG.find(y => y.items.some(i => i.id === item));
+      st.mode = "item"; st.catId = c.id; st.itemId = item; st.picked = true;
+      st.brandTyped = ""; st.model = ""; st.market = null;
+      const x = calcItem();
+      return {blind: !!ebayBlind(x), ids: compTargets(x).map(t => t.id)};
+    };
+    return {gen: look("power", "p7"), saw: look("power", "p1"),
+            drill: look("tools", "t1"), gun: look("guns", "g1"),
+            quad: look("rolling", "r1")};
+  });
+  ok(r.gen.blind && r.gen.ids.indexOf("fbm") >= 0 && r.gen.ids.indexOf("cl") >= 0,
+     "a generator offers Marketplace and Craigslist \u2014 " + r.gen.ids.join(", "));
+  ok(r.saw.ids.indexOf("fbm") >= 0, "  so does a chainsaw \u2014 " + r.saw.ids.join(", "));
+  ok(r.quad.ids.indexOf("fbm") >= 0, "  and a four-wheeler, the whole aisle being blind \u2014 " + r.quad.ids.join(", "));
+  ok(!r.drill.blind && r.drill.ids.indexOf("fbm") < 0,
+     "  a drill does not, because eBay prices one fine \u2014 " + r.drill.ids.join(", "));
+  ok(r.gun.ids.indexOf("fbm") < 0 && r.gun.ids.indexOf("gw") >= 0,
+     "  and a gun does not, because Facebook bans them \u2014 " + r.gun.ids.join(", "));
+}
+
 ok(!errs.length, "no page errors" + (errs.length ? ": " + errs[0] : ""));
 await browser.close();
 console.log(fails ? "\n  " + fails + " FAILED\n" : "\n  all passed\n");
