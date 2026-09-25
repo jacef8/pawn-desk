@@ -157,6 +157,45 @@ priced in September, spread across shelves - about 80 lookups, 4% of a
 month - and see what actually moved. If tools moved 1% in 30 days, push
 them to a year and bank the difference.
 
+## What it used to be worth
+
+`tools/harvest-history.json` keeps one entry per row per CHANGE: date, low,
+high, and whether that figure came from sales or from asks. The merge
+appends to it; `tools/backfill-history.mjs` seeded it from the nine commits
+of prices.json already in git.
+
+**Nothing reads it yet, and that is fine.** A book row holds one price and a
+re-harvest overwrites it, so the desk has never been able to say whether a
+thing is falling or flat - and those are different loans. A 60-day ticket on
+a phone shedding 5% a month is not the bet a drill is. The gold page already
+reasons this way: a loan prices off the LOWER of spot and the 90-day
+average, so a peak cannot size a ticket that outlives it. Goods deserve the
+same and have never had the data.
+
+Recording costs no lookups and nothing at the counter. It is worth nothing
+today and a great deal in three months, which is why it starts now rather
+than when somebody wants it.
+
+What it is NOT yet: a trend. As of 25 Sep it holds 570 points across 523
+rows, 41 of which have moved, all inside five days - and most of that
+movement is CORRECTIONS (a hand raise on the 20th, the first real eBay
+measurement on the 24th) rather than the market. Do not price off it until
+the shelves have turned over a couple of times on their own intervals.
+
+It lives beside the findings file and follows `--out`, so a test merge
+writes a temp history rather than the real one. It is not in the app's
+payload: the counter never downloads it.
+
+Three things it is FOR, once there is enough of it:
+
+1. **Size a loan off the trend, not today.** The peak guard the gold page
+   already applies, applied to goods.
+2. **Say the direction on the card.** "was $272-391 in September" tells the
+   counter whether to lean high or low.
+3. **Measure the shelf intervals instead of reasoning about them.** The
+   sample described above stops being a special exercise and becomes
+   arithmetic over a file that is already there.
+
 ## The calendar beats the news
 
 Most of what moves a used price is not news, it is a date that has not

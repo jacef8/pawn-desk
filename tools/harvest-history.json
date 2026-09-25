@@ -1,0 +1,4472 @@
+{
+ "updated": "2026-09-25",
+ "note": "What each row used to be worth. One entry per change. Seeded from git, then appended by the harvest.",
+ "rows": {
+  "g1|remington 870 express": [
+   [
+    "2026-09-19",
+    300,
+    400,
+    "ask"
+   ]
+  ],
+  "g1|remington 870 wingmaster": [
+   [
+    "2026-09-19",
+    450,
+    625,
+    "ask"
+   ]
+  ],
+  "g1|mossberg 500": [
+   [
+    "2026-09-19",
+    225,
+    325,
+    "ask"
+   ]
+  ],
+  "g1|mossberg 590 / 590a1": [
+   [
+    "2026-09-19",
+    380,
+    550,
+    "ask"
+   ]
+  ],
+  "g1|maverick 88": [
+   [
+    "2026-09-19",
+    150,
+    210,
+    "ask"
+   ]
+  ],
+  "g1|mossberg 835 ulti-mag": [
+   [
+    "2026-09-19",
+    250,
+    350,
+    "ask"
+   ]
+  ],
+  "g1|benelli nova / supernova": [
+   [
+    "2026-09-19",
+    290,
+    410,
+    "ask"
+   ]
+  ],
+  "g1|browning bps": [
+   [
+    "2026-09-19",
+    525,
+    725,
+    "ask"
+   ]
+  ],
+  "g2|remington 1100": [
+   [
+    "2026-09-19",
+    450,
+    675,
+    "ask"
+   ]
+  ],
+  "g2|remington 11-87": [
+   [
+    "2026-09-19",
+    550,
+    750,
+    "ask"
+   ]
+  ],
+  "g2|beretta a300 outlander": [
+   [
+    "2026-09-19",
+    525,
+    675,
+    "ask"
+   ]
+  ],
+  "g2|beretta a400": [
+   [
+    "2026-09-19",
+    1175,
+    1500,
+    "ask"
+   ]
+  ],
+  "g2|benelli m2": [
+   [
+    "2026-09-19",
+    875,
+    1150,
+    "ask"
+   ]
+  ],
+  "g2|benelli super black eagle": [
+   [
+    "2026-09-19",
+    1075,
+    1450,
+    "ask"
+   ]
+  ],
+  "g2|browning a5": [
+   [
+    "2026-09-19",
+    1050,
+    1300,
+    "ask"
+   ]
+  ],
+  "g2|mossberg 930": [
+   [
+    "2026-09-19",
+    400,
+    500,
+    "ask"
+   ]
+  ],
+  "g2|mossberg 940": [
+   [
+    "2026-09-19",
+    575,
+    700,
+    "ask"
+   ]
+  ],
+  "g2|stoeger m3000 / m3500": [
+   [
+    "2026-09-19",
+    350,
+    450,
+    "ask"
+   ]
+  ],
+  "g2|winchester sx4": [
+   [
+    "2026-09-19",
+    625,
+    800,
+    "ask"
+   ]
+  ],
+  "g3|remington 700": [
+   [
+    "2026-09-19",
+    450,
+    700,
+    "ask"
+   ]
+  ],
+  "g3|winchester model 70": [
+   [
+    "2026-09-19",
+    750,
+    975,
+    "ask"
+   ]
+  ],
+  "g3|savage axis": [
+   [
+    "2026-09-19",
+    240,
+    325,
+    "ask"
+   ]
+  ],
+  "g3|savage 110": [
+   [
+    "2026-09-19",
+    375,
+    525,
+    "ask"
+   ]
+  ],
+  "g3|ruger american rifle": [
+   [
+    "2026-09-19",
+    340,
+    450,
+    "ask"
+   ]
+  ],
+  "g3|tikka t3x": [
+   [
+    "2026-09-19",
+    650,
+    825,
+    "ask"
+   ]
+  ],
+  "g3|browning x-bolt": [
+   [
+    "2026-09-19",
+    700,
+    900,
+    "ask"
+   ]
+  ],
+  "g4|marlin 336": [
+   [
+    "2026-09-19",
+    575,
+    800,
+    "ask"
+   ]
+  ],
+  "g4|winchester model 94": [
+   [
+    "2026-09-19",
+    500,
+    700,
+    "ask"
+   ]
+  ],
+  "g4|henry big boy": [
+   [
+    "2026-09-19",
+    650,
+    775,
+    "ask"
+   ]
+  ],
+  "g4|henry lever .22 (h001 / golden boy)": [
+   [
+    "2026-09-19",
+    325,
+    475,
+    "ask"
+   ]
+  ],
+  "g6|ruger 10/22": [
+   [
+    "2026-09-19",
+    215,
+    300,
+    "ask"
+   ]
+  ],
+  "g6|marlin model 60": [
+   [
+    "2026-09-19",
+    175,
+    250,
+    "ask"
+   ]
+  ],
+  "g5|ar-15, entry-level": [
+   [
+    "2026-09-19",
+    375,
+    500,
+    "ask"
+   ]
+  ],
+  "g5|s&w m&p15 sport ii": [
+   [
+    "2026-09-19",
+    425,
+    525,
+    "ask"
+   ]
+  ],
+  "g5|ruger ar-556": [
+   [
+    "2026-09-19",
+    425,
+    500,
+    "ask"
+   ]
+  ],
+  "SKS rifle|sks": [
+   [
+    "2026-09-19",
+    450,
+    625,
+    "ask"
+   ]
+  ],
+  "AK-pattern rifle|ak-pattern rifle": [
+   [
+    "2026-09-19",
+    625,
+    825,
+    "ask"
+   ]
+  ],
+  "g9|cva accura": [
+   [
+    "2026-09-19",
+    400,
+    525,
+    "ask"
+   ]
+  ],
+  "g9|cva optima": [
+   [
+    "2026-09-19",
+    190,
+    260,
+    "ask"
+   ]
+  ],
+  "g9|cva wolf": [
+   [
+    "2026-09-19",
+    125,
+    175,
+    "ask"
+   ]
+  ],
+  "g9|thompson/center encore": [
+   [
+    "2026-09-19",
+    550,
+    700,
+    "ask"
+   ]
+  ],
+  "g9|thompson/center impact": [
+   [
+    "2026-09-19",
+    175,
+    250,
+    "ask"
+   ]
+  ],
+  "g7|glock 17": [
+   [
+    "2026-09-19",
+    370,
+    440,
+    "ask"
+   ]
+  ],
+  "g7|glock 19": [
+   [
+    "2026-09-19",
+    390,
+    470,
+    "ask"
+   ]
+  ],
+  "g7|glock 26": [
+   [
+    "2026-09-19",
+    370,
+    440,
+    "ask"
+   ]
+  ],
+  "g7|glock 43 / 43x": [
+   [
+    "2026-09-19",
+    350,
+    430,
+    "ask"
+   ]
+  ],
+  "g7|glock 48": [
+   [
+    "2026-09-19",
+    360,
+    425,
+    "ask"
+   ]
+  ],
+  "g7|glock 22 / 23 (.40)": [
+   [
+    "2026-09-19",
+    300,
+    370,
+    "ask"
+   ]
+  ],
+  "g7|sig sauer p365": [
+   [
+    "2026-09-19",
+    375,
+    475,
+    "ask"
+   ]
+  ],
+  "g7|sig sauer p320": [
+   [
+    "2026-09-19",
+    360,
+    440,
+    "ask"
+   ]
+  ],
+  "g7|sig sauer p226 / p229": [
+   [
+    "2026-09-19",
+    575,
+    800,
+    "ask"
+   ]
+  ],
+  "g7|s&w m&p9 2.0": [
+   [
+    "2026-09-19",
+    320,
+    400,
+    "ask"
+   ]
+  ],
+  "g7|s&w m&p shield / shield plus": [
+   [
+    "2026-09-19",
+    260,
+    340,
+    "ask"
+   ]
+  ],
+  "g7|s&w bodyguard 380": [
+   [
+    "2026-09-19",
+    220,
+    280,
+    "ask"
+   ]
+  ],
+  "g7|springfield hellcat": [
+   [
+    "2026-09-19",
+    340,
+    410,
+    "ask"
+   ]
+  ],
+  "g7|springfield xd / xds": [
+   [
+    "2026-09-19",
+    240,
+    310,
+    "ask"
+   ]
+  ],
+  "g7|taurus g2c / g3c": [
+   [
+    "2026-09-19",
+    130,
+    185,
+    "ask"
+   ]
+  ],
+  "g7|taurus g3 / gx4": [
+   [
+    "2026-09-19",
+    145,
+    210,
+    "ask"
+   ]
+  ],
+  "g7|ruger lcp": [
+   [
+    "2026-09-19",
+    170,
+    230,
+    "ask"
+   ]
+  ],
+  "g7|ruger security-9 / max-9": [
+   [
+    "2026-09-19",
+    185,
+    245,
+    "ask"
+   ]
+  ],
+  "g7|ruger mark iv": [
+   [
+    "2026-09-19",
+    370,
+    490,
+    "ask"
+   ]
+  ],
+  "g7|canik tp9": [
+   [
+    "2026-09-19",
+    265,
+    335,
+    "ask"
+   ]
+  ],
+  "g7|cz p-10": [
+   [
+    "2026-09-19",
+    330,
+    400,
+    "ask"
+   ]
+  ],
+  "g7|cz 75": [
+   [
+    "2026-09-19",
+    550,
+    700,
+    "ask"
+   ]
+  ],
+  "g7|beretta 92fs / m9": [
+   [
+    "2026-09-19",
+    450,
+    575,
+    "ask"
+   ]
+  ],
+  "g7|1911 (rock island, tisas, springfield mil-spec)": [
+   [
+    "2026-09-19",
+    330,
+    480,
+    "ask"
+   ]
+  ],
+  "g7|hi-point c9": [
+   [
+    "2026-09-19",
+    110,
+    150,
+    "ask"
+   ]
+  ],
+  "g7|sccy cpx": [
+   [
+    "2026-09-19",
+    100,
+    140,
+    "ask"
+   ]
+  ],
+  "g8|s&w 686": [
+   [
+    "2026-09-19",
+    625,
+    800,
+    "ask"
+   ]
+  ],
+  "g8|s&w 642 / 638": [
+   [
+    "2026-09-19",
+    320,
+    400,
+    "ask"
+   ]
+  ],
+  "g8|ruger gp100": [
+   [
+    "2026-09-19",
+    540,
+    660,
+    "ask"
+   ]
+  ],
+  "g8|ruger sp101": [
+   [
+    "2026-09-19",
+    450,
+    560,
+    "ask"
+   ]
+  ],
+  "g8|ruger lcr": [
+   [
+    "2026-09-19",
+    370,
+    450,
+    "ask"
+   ]
+  ],
+  "g8|ruger blackhawk / single-six": [
+   [
+    "2026-09-19",
+    400,
+    575,
+    "ask"
+   ]
+  ],
+  "g8|taurus judge": [
+   [
+    "2026-09-19",
+    320,
+    400,
+    "ask"
+   ]
+  ],
+  "g8|colt python (2020+)": [
+   [
+    "2026-09-19",
+    950,
+    1200,
+    "ask"
+   ]
+  ],
+  "p1|stihl ms 170 / 180": [
+   [
+    "2026-09-19",
+    100,
+    150,
+    "ask"
+   ],
+   [
+    "2026-09-22",
+    170,
+    230,
+    "ask"
+   ]
+  ],
+  "p1|stihl ms 250": [
+   [
+    "2026-09-19",
+    175,
+    260,
+    "ask"
+   ],
+   [
+    "2026-09-22",
+    210,
+    310,
+    "ask"
+   ],
+   [
+    "2026-09-24",
+    142,
+    250,
+    "ask"
+   ]
+  ],
+  "p1|stihl ms 271 farm boss": [
+   [
+    "2026-09-19",
+    250,
+    350,
+    "ask"
+   ],
+   [
+    "2026-09-22",
+    300,
+    420,
+    "ask"
+   ]
+  ],
+  "p1|stihl ms 291": [
+   [
+    "2026-09-19",
+    240,
+    340,
+    "ask"
+   ],
+   [
+    "2026-09-22",
+    290,
+    410,
+    "ask"
+   ],
+   [
+    "2026-09-24",
+    232,
+    350,
+    "ask"
+   ]
+  ],
+  "p1|stihl ms 362": [
+   [
+    "2026-09-19",
+    425,
+    600,
+    "ask"
+   ],
+   [
+    "2026-09-22",
+    510,
+    720,
+    "ask"
+   ],
+   [
+    "2026-09-24",
+    500,
+    800,
+    "ask"
+   ]
+  ],
+  "p1|stihl ms 461 / 462": [
+   [
+    "2026-09-19",
+    650,
+    850,
+    "ask"
+   ],
+   [
+    "2026-09-22",
+    780,
+    1020,
+    "ask"
+   ]
+  ],
+  "p1|husqvarna 450 / 445": [
+   [
+    "2026-09-19",
+    160,
+    240,
+    "ask"
+   ],
+   [
+    "2026-09-22",
+    210,
+    290,
+    "ask"
+   ]
+  ],
+  "p1|husqvarna 455 rancher": [
+   [
+    "2026-09-19",
+    200,
+    300,
+    "ask"
+   ],
+   [
+    "2026-09-22",
+    370,
+    505,
+    "ask"
+   ],
+   [
+    "2026-09-24",
+    298,
+    359,
+    "ask"
+   ]
+  ],
+  "p1|husqvarna 460 rancher": [
+   [
+    "2026-09-19",
+    250,
+    360,
+    "ask"
+   ],
+   [
+    "2026-09-22",
+    300,
+    430,
+    "ask"
+   ],
+   [
+    "2026-09-24",
+    133,
+    400,
+    "ask"
+   ]
+  ],
+  "p1|echo cs-400 / cs-4010": [
+   [
+    "2026-09-19",
+    110,
+    175,
+    "ask"
+   ],
+   [
+    "2026-09-22",
+    130,
+    210,
+    "ask"
+   ]
+  ],
+  "p1|echo cs-590 timber wolf": [
+   [
+    "2026-09-19",
+    220,
+    320,
+    "ask"
+   ],
+   [
+    "2026-09-22",
+    265,
+    385,
+    "ask"
+   ]
+  ],
+  "p2|stihl fs 56 / fs 91": [
+   [
+    "2026-09-19",
+    90,
+    180,
+    "ask"
+   ],
+   [
+    "2026-09-22",
+    110,
+    215,
+    "ask"
+   ]
+  ],
+  "p2|stihl fs 131": [
+   [
+    "2026-09-19",
+    200,
+    300,
+    "ask"
+   ],
+   [
+    "2026-09-22",
+    240,
+    360,
+    "ask"
+   ]
+  ],
+  "p2|echo srm-225": [
+   [
+    "2026-09-19",
+    85,
+    140,
+    "ask"
+   ],
+   [
+    "2026-09-22",
+    100,
+    170,
+    "ask"
+   ]
+  ],
+  "p3|stihl br 600": [
+   [
+    "2026-09-19",
+    275,
+    375,
+    "ask"
+   ],
+   [
+    "2026-09-22",
+    330,
+    450,
+    "ask"
+   ],
+   [
+    "2026-09-24",
+    349,
+    490,
+    "ask"
+   ]
+  ],
+  "p3|stihl br 800": [
+   [
+    "2026-09-19",
+    350,
+    475,
+    "ask"
+   ],
+   [
+    "2026-09-22",
+    425,
+    575,
+    "ask"
+   ]
+  ],
+  "p3|echo pb-580t": [
+   [
+    "2026-09-19",
+    190,
+    275,
+    "ask"
+   ],
+   [
+    "2026-09-22",
+    230,
+    330,
+    "ask"
+   ]
+  ],
+  "p3|echo pb-770t": [
+   [
+    "2026-09-19",
+    275,
+    375,
+    "ask"
+   ],
+   [
+    "2026-09-22",
+    330,
+    450,
+    "ask"
+   ]
+  ],
+  "p3|husqvarna 350bt": [
+   [
+    "2026-09-19",
+    120,
+    180,
+    "ask"
+   ],
+   [
+    "2026-09-22",
+    255,
+    345,
+    "ask"
+   ]
+  ],
+  "p7|Inverter generator — 2kW|honda eu2200i": [
+   [
+    "2026-09-19",
+    650,
+    850,
+    "ask"
+   ],
+   [
+    "2026-09-22",
+    780,
+    1020,
+    "ask"
+   ]
+  ],
+  "p7|honda eu3000is": [
+   [
+    "2026-09-19",
+    1150,
+    1600,
+    "ask"
+   ],
+   [
+    "2026-09-22",
+    1380,
+    1920,
+    "ask"
+   ]
+  ],
+  "p4|honda hrx / hrn mower": [
+   [
+    "2026-09-19",
+    225,
+    375,
+    "ask"
+   ],
+   [
+    "2026-09-22",
+    270,
+    450,
+    "ask"
+   ]
+  ],
+  "p5|john deere e100–e130 / s100–s130": [
+   [
+    "2026-09-19",
+    950,
+    1500,
+    "ask"
+   ],
+   [
+    "2026-09-22",
+    1140,
+    1800,
+    "ask"
+   ]
+  ],
+  "p5|john deere x350 / x380": [
+   [
+    "2026-09-19",
+    2000,
+    2900,
+    "ask"
+   ],
+   [
+    "2026-09-22",
+    2400,
+    3480,
+    "ask"
+   ]
+  ],
+  "Zero-turn mower|residential zero-turn, 48–54 in": [
+   [
+    "2026-09-19",
+    1700,
+    2700,
+    "ask"
+   ]
+  ],
+  "t1|dewalt 20v drill kit": [
+   [
+    "2026-09-19",
+    65,
+    110,
+    "ask"
+   ]
+  ],
+  "t1|dewalt 20v impact driver kit": [
+   [
+    "2026-09-19",
+    75,
+    115,
+    "ask"
+   ]
+  ],
+  "t1|milwaukee m18 fuel drill kit": [
+   [
+    "2026-09-19",
+    150,
+    220,
+    "ask"
+   ]
+  ],
+  "t1|milwaukee m18 fuel impact driver kit": [
+   [
+    "2026-09-19",
+    120,
+    180,
+    "ask"
+   ]
+  ],
+  "t2|milwaukee m18 fuel 1/2 in impact wrench": [
+   [
+    "2026-09-19",
+    185,
+    250,
+    "ask"
+   ]
+  ],
+  "t1|makita 18v lxt drill kit": [
+   [
+    "2026-09-19",
+    60,
+    100,
+    "ask"
+   ]
+  ],
+  "t1|ryobi one+ drill kit": [
+   [
+    "2026-09-19",
+    30,
+    55,
+    "ask"
+   ]
+  ],
+  "h1|leupold vx-3hd": [
+   [
+    "2026-09-19",
+    300,
+    390,
+    "ask"
+   ],
+   [
+    "2026-09-24",
+    425,
+    595,
+    "sold"
+   ]
+  ],
+  "h1|leupold vx-freedom": [
+   [
+    "2026-09-19",
+    155,
+    220,
+    "ask"
+   ]
+  ],
+  "h1|vortex crossfire ii": [
+   [
+    "2026-09-19",
+    65,
+    100,
+    "ask"
+   ]
+  ],
+  "h1|vortex diamondback scope": [
+   [
+    "2026-09-19",
+    100,
+    150,
+    "ask"
+   ]
+  ],
+  "h1|vortex viper pst gen ii": [
+   [
+    "2026-09-19",
+    550,
+    750,
+    "ask"
+   ]
+  ],
+  "h3|vortex ranger 1800": [
+   [
+    "2026-09-19",
+    110,
+    150,
+    "ask"
+   ],
+   [
+    "2026-09-24",
+    130,
+    175,
+    "sold"
+   ]
+  ],
+  "h2|vortex diamondback hd 10x42": [
+   [
+    "2026-09-19",
+    110,
+    160,
+    "ask"
+   ],
+   [
+    "2026-09-24",
+    120,
+    144,
+    "sold"
+   ]
+  ],
+  "h8|minn kota terrova": [
+   [
+    "2026-09-19",
+    850,
+    1350,
+    "ask"
+   ]
+  ],
+  "h8|minn kota endura": [
+   [
+    "2026-09-19",
+    80,
+    150,
+    "ask"
+   ]
+  ],
+  "h4|Cellular game camera|tactacam reveal x": [
+   [
+    "2026-09-19",
+    50,
+    75,
+    "ask"
+   ]
+  ],
+  "h5|mathews v3x": [
+   [
+    "2026-09-19",
+    550,
+    750,
+    "ask"
+   ],
+   [
+    "2026-09-24",
+    800,
+    1450,
+    "sold"
+   ]
+  ],
+  "h5|hoyt rx-7": [
+   [
+    "2026-09-19",
+    750,
+    1000,
+    "ask"
+   ],
+   [
+    "2026-09-24",
+    800,
+    1080,
+    "sold"
+   ]
+  ],
+  "h6|ravin r10 / r26": [
+   [
+    "2026-09-19",
+    600,
+    950,
+    "ask"
+   ]
+  ],
+  "h6|tenpoint crossbow": [
+   [
+    "2026-09-19",
+    450,
+    750,
+    "ask"
+   ]
+  ],
+  "Fish finder|garmin striker vivid": [
+   [
+    "2026-09-19",
+    170,
+    290,
+    "ask"
+   ]
+  ],
+  "Fish finder|humminbird helix 7": [
+   [
+    "2026-09-19",
+    300,
+    550,
+    "ask"
+   ]
+  ],
+  "m2|fender player stratocaster": [
+   [
+    "2026-09-19",
+    480,
+    620,
+    "ask"
+   ]
+  ],
+  "m2|squier affinity stratocaster": [
+   [
+    "2026-09-19",
+    150,
+    200,
+    "ask"
+   ]
+  ],
+  "m2|squier classic vibe stratocaster": [
+   [
+    "2026-09-19",
+    290,
+    370,
+    "ask"
+   ]
+  ],
+  "m2|gibson les paul standard": [
+   [
+    "2026-09-19",
+    1750,
+    2100,
+    "ask"
+   ]
+  ],
+  "m2|epiphone les paul standard": [
+   [
+    "2026-09-19",
+    320,
+    500,
+    "ask"
+   ]
+  ],
+  "m1|martin d-28": [
+   [
+    "2026-09-19",
+    2300,
+    2900,
+    "ask"
+   ]
+  ],
+  "m1|taylor 114ce": [
+   [
+    "2026-09-19",
+    550,
+    700,
+    "ask"
+   ]
+  ],
+  "m1|taylor 214ce": [
+   [
+    "2026-09-19",
+    800,
+    1050,
+    "ask"
+   ]
+  ],
+  "m3|fender blues junior": [
+   [
+    "2026-09-19",
+    450,
+    560,
+    "ask"
+   ]
+  ],
+  "e4|iphone 13": [
+   [
+    "2026-09-19",
+    215,
+    275,
+    "ask"
+   ],
+   [
+    "2026-09-23",
+    162,
+    216,
+    "sold"
+   ]
+  ],
+  "e4|iphone 14": [
+   [
+    "2026-09-19",
+    255,
+    330,
+    "ask"
+   ]
+  ],
+  "e4|iphone 15": [
+   [
+    "2026-09-19",
+    350,
+    430,
+    "ask"
+   ]
+  ],
+  "e4|iphone 15 pro": [
+   [
+    "2026-09-19",
+    440,
+    530,
+    "ask"
+   ]
+  ],
+  "e4|iphone 15 pro max": [
+   [
+    "2026-09-19",
+    540,
+    640,
+    "ask"
+   ]
+  ],
+  "e4|iphone 16": [
+   [
+    "2026-09-19",
+    480,
+    580,
+    "ask"
+   ]
+  ],
+  "e4|iphone 16 pro": [
+   [
+    "2026-09-19",
+    600,
+    700,
+    "ask"
+   ]
+  ],
+  "e4|iphone 16 pro max": [
+   [
+    "2026-09-19",
+    700,
+    800,
+    "ask"
+   ]
+  ],
+  "e4|iphone 17": [
+   [
+    "2026-09-19",
+    660,
+    770,
+    "ask"
+   ]
+  ],
+  "e4|galaxy s23": [
+   [
+    "2026-09-19",
+    210,
+    265,
+    "ask"
+   ]
+  ],
+  "e4|galaxy s24": [
+   [
+    "2026-09-19",
+    290,
+    370,
+    "ask"
+   ]
+  ],
+  "e4|galaxy s25": [
+   [
+    "2026-09-19",
+    380,
+    470,
+    "ask"
+   ]
+  ],
+  "e3|ipad 9th gen": [
+   [
+    "2026-09-19",
+    140,
+    185,
+    "ask"
+   ]
+  ],
+  "e3|ipad 10th gen": [
+   [
+    "2026-09-19",
+    220,
+    300,
+    "ask"
+   ]
+  ],
+  "e5|playstation 5 (disc)": [
+   [
+    "2026-09-19",
+    370,
+    460,
+    "ask"
+   ]
+  ],
+  "e5|playstation 5 digital": [
+   [
+    "2026-09-19",
+    320,
+    410,
+    "ask"
+   ],
+   [
+    "2026-09-23",
+    329,
+    430,
+    "sold"
+   ]
+  ],
+  "e5|playstation 4": [
+   [
+    "2026-09-19",
+    90,
+    140,
+    "ask"
+   ]
+  ],
+  "e5|xbox series x": [
+   [
+    "2026-09-19",
+    420,
+    530,
+    "ask"
+   ],
+   [
+    "2026-09-23",
+    470,
+    560,
+    "sold"
+   ]
+  ],
+  "e5|xbox series s": [
+   [
+    "2026-09-19",
+    210,
+    290,
+    "ask"
+   ],
+   [
+    "2026-09-23",
+    210,
+    305,
+    "sold"
+   ]
+  ],
+  "e5|xbox one s / one x": [
+   [
+    "2026-09-19",
+    100,
+    170,
+    "ask"
+   ]
+  ],
+  "e5|nintendo switch oled": [
+   [
+    "2026-09-19",
+    185,
+    240,
+    "ask"
+   ],
+   [
+    "2026-09-23",
+    175,
+    190,
+    "sold"
+   ]
+  ],
+  "e5|nintendo switch": [
+   [
+    "2026-09-19",
+    135,
+    180,
+    "ask"
+   ]
+  ],
+  "e5|Handheld game console|nintendo switch lite": [
+   [
+    "2026-09-19",
+    95,
+    130,
+    "ask"
+   ]
+  ],
+  "e5|nintendo switch 2": [
+   [
+    "2026-09-19",
+    350,
+    415,
+    "ask"
+   ],
+   [
+    "2026-09-23",
+    169,
+    449,
+    "sold"
+   ]
+  ],
+  "Handheld game console|steam deck": [
+   [
+    "2026-09-19",
+    400,
+    520,
+    "ask"
+   ]
+  ],
+  "e2|macbook air m1": [
+   [
+    "2026-09-19",
+    320,
+    410,
+    "ask"
+   ]
+  ],
+  "e2|macbook air m2": [
+   [
+    "2026-09-19",
+    540,
+    660,
+    "ask"
+   ]
+  ],
+  "GoPro / action camera|gopro hero 11 / 12": [
+   [
+    "2026-09-19",
+    180,
+    270,
+    "ask"
+   ]
+  ],
+  "Camera drone|dji mini 3": [
+   [
+    "2026-09-19",
+    330,
+    420,
+    "ask"
+   ]
+  ],
+  "Camera drone|dji mini 4 pro": [
+   [
+    "2026-09-19",
+    690,
+    850,
+    "ask"
+   ]
+  ],
+  "VR headset|meta quest 3": [
+   [
+    "2026-09-19",
+    320,
+    420,
+    "ask"
+   ],
+   [
+    "2026-09-23",
+    170,
+    330,
+    "sold"
+   ]
+  ],
+  "Smart watch|apple watch series 8 / 9": [
+   [
+    "2026-09-19",
+    120,
+    190,
+    "ask"
+   ]
+  ],
+  "r2|honda rancher 420": [
+   [
+    "2026-09-19",
+    3800,
+    5400,
+    "ask"
+   ]
+  ],
+  "r2|honda foreman 520": [
+   [
+    "2026-09-19",
+    4200,
+    5900,
+    "ask"
+   ]
+  ],
+  "r2|polaris sportsman 570": [
+   [
+    "2026-09-19",
+    3600,
+    5200,
+    "ask"
+   ]
+  ],
+  "r2|can-am outlander 570": [
+   [
+    "2026-09-19",
+    3800,
+    5500,
+    "ask"
+   ]
+  ],
+  "r2|yamaha grizzly 700": [
+   [
+    "2026-09-19",
+    5400,
+    7400,
+    "ask"
+   ]
+  ],
+  "r2|kawasaki brute force 750": [
+   [
+    "2026-09-19",
+    4900,
+    6900,
+    "ask"
+   ]
+  ],
+  "UTV / side-by-side|polaris ranger 570": [
+   [
+    "2026-09-19",
+    5800,
+    8000,
+    "ask"
+   ]
+  ],
+  "UTV / side-by-side|polaris ranger 1000": [
+   [
+    "2026-09-19",
+    8300,
+    10500,
+    "ask"
+   ]
+  ],
+  "UTV / side-by-side|polaris rzr 900 / xp 1000": [
+   [
+    "2026-09-19",
+    7500,
+    11500,
+    "ask"
+   ]
+  ],
+  "UTV / side-by-side|kawasaki mule": [
+   [
+    "2026-09-19",
+    4300,
+    7000,
+    "ask"
+   ]
+  ],
+  "UTV / side-by-side|john deere gator xuv": [
+   [
+    "2026-09-19",
+    8500,
+    13500,
+    "ask"
+   ]
+  ],
+  "Golf cart|club car precedent": [
+   [
+    "2026-09-19",
+    3800,
+    5800,
+    "ask"
+   ]
+  ],
+  "Golf cart|ezgo txt": [
+   [
+    "2026-09-19",
+    3300,
+    5000,
+    "ask"
+   ]
+  ],
+  "Golf cart|yamaha drive2": [
+   [
+    "2026-09-19",
+    4500,
+    6800,
+    "ask"
+   ]
+  ],
+  "e3|samsung galaxy tab a8": [
+   [
+    "2026-09-23",
+    61,
+    116,
+    "sold"
+   ]
+  ],
+  "e5|playstation 5 disc": [
+   [
+    "2026-09-23",
+    400,
+    449,
+    "sold"
+   ]
+  ],
+  "e5|playstation 5 slim": [
+   [
+    "2026-09-23",
+    360,
+    462,
+    "sold"
+   ]
+  ],
+  "e5|playstation 4 pro": [
+   [
+    "2026-09-23",
+    125,
+    180,
+    "sold"
+   ]
+  ],
+  "e5|playstation 4 slim": [
+   [
+    "2026-09-23",
+    100,
+    135,
+    "sold"
+   ]
+  ],
+  "Headphones — over-ear|sony wh-1000xm4": [
+   [
+    "2026-09-23",
+    95,
+    150,
+    "sold"
+   ]
+  ],
+  "Headphones — over-ear|sony wh-1000xm5": [
+   [
+    "2026-09-23",
+    109,
+    128,
+    "sold"
+   ]
+  ],
+  "Headphones — over-ear|sony wh-ch720n": [
+   [
+    "2026-09-23",
+    35,
+    55,
+    "sold"
+   ]
+  ],
+  "Headphones — over-ear|bose quietcomfort 45": [
+   [
+    "2026-09-23",
+    85,
+    100,
+    "sold"
+   ]
+  ],
+  "Headphones — over-ear|bose quietcomfort ultra": [
+   [
+    "2026-09-23",
+    143,
+    209,
+    "sold"
+   ]
+  ],
+  "Headphones — over-ear|bose quietcomfort 35 ii": [
+   [
+    "2026-09-23",
+    47,
+    100,
+    "sold"
+   ]
+  ],
+  "Wireless earbuds|apple airpods 4": [
+   [
+    "2026-09-23",
+    60,
+    108,
+    "sold"
+   ]
+  ],
+  "Wireless earbuds|apple airpods pro": [
+   [
+    "2026-09-23",
+    50,
+    97,
+    "sold"
+   ]
+  ],
+  "Wireless earbuds|apple airpods pro 2": [
+   [
+    "2026-09-23",
+    60,
+    80,
+    "sold"
+   ]
+  ],
+  "Game controller|xbox wireless controller series x|s": [
+   [
+    "2026-09-23",
+    17,
+    49,
+    "sold"
+   ]
+  ],
+  "Game controller|xbox elite series 2": [
+   [
+    "2026-09-23",
+    40,
+    65,
+    "sold"
+   ]
+  ],
+  "Game controller|xbox elite series 2 core": [
+   [
+    "2026-09-23",
+    45,
+    68,
+    "sold"
+   ]
+  ],
+  "Game controller|xbox one wireless controller": [
+   [
+    "2026-09-23",
+    15,
+    26,
+    "sold"
+   ]
+  ],
+  "Game controller|sony dualsense": [
+   [
+    "2026-09-23",
+    35,
+    80,
+    "sold"
+   ]
+  ],
+  "Game controller|sony dualsense edge": [
+   [
+    "2026-09-23",
+    89,
+    140,
+    "sold"
+   ]
+  ],
+  "Headphones — over-ear|bose 700": [
+   [
+    "2026-09-23",
+    78,
+    90,
+    "sold"
+   ]
+  ],
+  "Headphones — over-ear|beats studio3": [
+   [
+    "2026-09-23",
+    30,
+    60,
+    "sold"
+   ]
+  ],
+  "Headphones — over-ear|beats studio pro": [
+   [
+    "2026-09-23",
+    60,
+    79,
+    "sold"
+   ]
+  ],
+  "Headphones — over-ear|beats solo 3": [
+   [
+    "2026-09-23",
+    34,
+    55,
+    "sold"
+   ]
+  ],
+  "Headphones — over-ear|beats solo 4": [
+   [
+    "2026-09-23",
+    60,
+    76,
+    "sold"
+   ]
+  ],
+  "Headphones — over-ear|sennheiser hd 450bt": [
+   [
+    "2026-09-23",
+    35,
+    50,
+    "sold"
+   ]
+  ],
+  "Headphones — over-ear|sennheiser momentum 4": [
+   [
+    "2026-09-23",
+    110,
+    140,
+    "sold"
+   ]
+  ],
+  "Headphones — over-ear|audio-technica ath-m50x": [
+   [
+    "2026-09-23",
+    60,
+    95,
+    "sold"
+   ]
+  ],
+  "Headphones — over-ear|audio-technica ath-m20x": [
+   [
+    "2026-09-23",
+    28,
+    40,
+    "sold"
+   ]
+  ],
+  "Headphones — over-ear|jbl tune 760nc": [
+   [
+    "2026-09-23",
+    25,
+    36,
+    "sold"
+   ]
+  ],
+  "Headphones — over-ear|jbl live 660nc": [
+   [
+    "2026-09-23",
+    20,
+    36,
+    "sold"
+   ]
+  ],
+  "Headphones — over-ear|skullcandy crusher evo": [
+   [
+    "2026-09-23",
+    63,
+    80,
+    "sold"
+   ]
+  ],
+  "Headphones — over-ear|marshall major iv": [
+   [
+    "2026-09-23",
+    35,
+    52,
+    "sold"
+   ]
+  ],
+  "Wireless earbuds|samsung galaxy buds2": [
+   [
+    "2026-09-23",
+    22,
+    40,
+    "sold"
+   ]
+  ],
+  "Wireless earbuds|samsung galaxy buds2 pro": [
+   [
+    "2026-09-23",
+    40,
+    50,
+    "sold"
+   ]
+  ],
+  "Wireless earbuds|samsung galaxy buds fe": [
+   [
+    "2026-09-23",
+    22,
+    34,
+    "sold"
+   ]
+  ],
+  "Wireless earbuds|samsung galaxy buds live": [
+   [
+    "2026-09-23",
+    40,
+    80,
+    "sold"
+   ]
+  ],
+  "Wireless earbuds|samsung galaxy buds3": [
+   [
+    "2026-09-23",
+    40,
+    58,
+    "sold"
+   ]
+  ],
+  "Wireless earbuds|sony wf-1000xm4": [
+   [
+    "2026-09-23",
+    45,
+    60,
+    "sold"
+   ]
+  ],
+  "Wireless earbuds|sony wf-1000xm5": [
+   [
+    "2026-09-23",
+    90,
+    106,
+    "sold"
+   ]
+  ],
+  "Wireless earbuds|sony wf-c500": [
+   [
+    "2026-09-23",
+    21,
+    29,
+    "sold"
+   ]
+  ],
+  "Wireless earbuds|sony linkbuds s": [
+   [
+    "2026-09-23",
+    32,
+    46,
+    "sold"
+   ]
+  ],
+  "Wireless earbuds|bose quietcomfort earbuds ii": [
+   [
+    "2026-09-23",
+    45,
+    100,
+    "sold"
+   ]
+  ],
+  "Wireless earbuds|bose sport earbuds": [
+   [
+    "2026-09-23",
+    50,
+    70,
+    "sold"
+   ]
+  ],
+  "Wireless earbuds|beats fit pro": [
+   [
+    "2026-09-23",
+    33,
+    54,
+    "sold"
+   ]
+  ],
+  "Wireless earbuds|beats studio buds": [
+   [
+    "2026-09-23",
+    25,
+    60,
+    "sold"
+   ]
+  ],
+  "Wireless earbuds|beats powerbeats pro": [
+   [
+    "2026-09-23",
+    55,
+    70,
+    "sold"
+   ]
+  ],
+  "Wireless earbuds|jabra elite 75t": [
+   [
+    "2026-09-23",
+    43,
+    55,
+    "sold"
+   ]
+  ],
+  "Wireless earbuds|jabra elite 85t": [
+   [
+    "2026-09-23",
+    30,
+    79,
+    "sold"
+   ]
+  ],
+  "Wireless earbuds|jabra elite 4": [
+   [
+    "2026-09-23",
+    50,
+    60,
+    "sold"
+   ]
+  ],
+  "Wireless earbuds|google pixel buds pro": [
+   [
+    "2026-09-23",
+    80,
+    105,
+    "sold"
+   ]
+  ],
+  "Wireless earbuds|google pixel buds a-series": [
+   [
+    "2026-09-23",
+    22,
+    45,
+    "sold"
+   ]
+  ],
+  "Wireless earbuds|jbl tune 230nc": [
+   [
+    "2026-09-23",
+    20,
+    26,
+    "sold"
+   ]
+  ],
+  "Wireless earbuds|anker soundcore liberty 4": [
+   [
+    "2026-09-23",
+    40,
+    70,
+    "sold"
+   ]
+  ],
+  "Wireless earbuds|anker soundcore life p3": [
+   [
+    "2026-09-23",
+    29,
+    40,
+    "sold"
+   ]
+  ],
+  "Wireless earbuds|skullcandy indy evo": [
+   [
+    "2026-09-23",
+    15,
+    20,
+    "sold"
+   ]
+  ],
+  "Wireless earbuds|raycon everyday": [
+   [
+    "2026-09-23",
+    33,
+    40,
+    "sold"
+   ]
+  ],
+  "Game controller|sony dualshock 4": [
+   [
+    "2026-09-23",
+    15,
+    35,
+    "sold"
+   ]
+  ],
+  "Game controller|nintendo switch pro controller": [
+   [
+    "2026-09-23",
+    16,
+    48,
+    "sold"
+   ]
+  ],
+  "Game controller|nintendo joy-con pair": [
+   [
+    "2026-09-23",
+    25,
+    30,
+    "sold"
+   ]
+  ],
+  "Game controller|nintendo switch 2 pro controller": [
+   [
+    "2026-09-23",
+    25,
+    60,
+    "sold"
+   ]
+  ],
+  "Game controller|8bitdo pro 2": [
+   [
+    "2026-09-23",
+    20,
+    30,
+    "sold"
+   ]
+  ],
+  "Game controller|8bitdo ultimate": [
+   [
+    "2026-09-23",
+    18,
+    34,
+    "sold"
+   ]
+  ],
+  "Game controller|scuf instinct pro": [
+   [
+    "2026-09-23",
+    46,
+    80,
+    "sold"
+   ]
+  ],
+  "Game controller|razer wolverine v2": [
+   [
+    "2026-09-23",
+    20,
+    60,
+    "sold"
+   ]
+  ],
+  "Game controller|powera enhanced wired": [
+   [
+    "2026-09-23",
+    13,
+    20,
+    "sold"
+   ]
+  ],
+  "Game controller|turtle beach recon controller": [
+   [
+    "2026-09-23",
+    7,
+    16,
+    "sold"
+   ]
+  ],
+  "Game controller|hori split pad pro": [
+   [
+    "2026-09-23",
+    12,
+    19,
+    "sold"
+   ]
+  ],
+  "e5|xbox one x": [
+   [
+    "2026-09-23",
+    120,
+    410,
+    "sold"
+   ]
+  ],
+  "e5|xbox one s": [
+   [
+    "2026-09-23",
+    80,
+    100,
+    "sold"
+   ]
+  ],
+  "e5|nintendo switch v2": [
+   [
+    "2026-09-23",
+    103,
+    140,
+    "sold"
+   ]
+  ],
+  "e5|nintendo switch lite": [
+   [
+    "2026-09-23",
+    95,
+    109,
+    "sold"
+   ]
+  ],
+  "e5|xbox one": [
+   [
+    "2026-09-23",
+    71,
+    99,
+    "sold"
+   ]
+  ],
+  "e5|xbox 360": [
+   [
+    "2026-09-23",
+    60,
+    110,
+    "sold"
+   ]
+  ],
+  "e5|playstation 3": [
+   [
+    "2026-09-23",
+    70,
+    290,
+    "sold"
+   ]
+  ],
+  "e5|nintendo wii u": [
+   [
+    "2026-09-23",
+    65,
+    160,
+    "sold"
+   ]
+  ],
+  "e5|nintendo wii": [
+   [
+    "2026-09-23",
+    45,
+    160,
+    "sold"
+   ]
+  ],
+  "e5|xbox series x digital": [
+   [
+    "2026-09-23",
+    265,
+    470,
+    "sold"
+   ]
+  ],
+  "Handheld game console|nintendo switch lite": [
+   [
+    "2026-09-23",
+    91,
+    105,
+    "sold"
+   ]
+  ],
+  "Handheld game console|nintendo switch oled": [
+   [
+    "2026-09-23",
+    175,
+    190,
+    "sold"
+   ]
+  ],
+  "Handheld game console|steam deck 256gb": [
+   [
+    "2026-09-23",
+    400,
+    440,
+    "sold"
+   ]
+  ],
+  "Handheld game console|steam deck oled": [
+   [
+    "2026-09-23",
+    630,
+    700,
+    "sold"
+   ]
+  ],
+  "Handheld game console|nintendo 3ds xl": [
+   [
+    "2026-09-23",
+    180,
+    280,
+    "sold"
+   ]
+  ],
+  "Handheld game console|new nintendo 2ds xl": [
+   [
+    "2026-09-23",
+    193,
+    279,
+    "sold"
+   ]
+  ],
+  "Handheld game console|sony ps vita": [
+   [
+    "2026-09-23",
+    128,
+    193,
+    "sold"
+   ]
+  ],
+  "Handheld game console|anbernic rg35xx": [
+   [
+    "2026-09-23",
+    47,
+    60,
+    "sold"
+   ]
+  ],
+  "Handheld game console|analogue pocket": [
+   [
+    "2026-09-23",
+    281,
+    420,
+    "sold"
+   ]
+  ],
+  "VR headset|meta quest 2": [
+   [
+    "2026-09-23",
+    55,
+    200,
+    "sold"
+   ]
+  ],
+  "VR headset|meta quest 3s": [
+   [
+    "2026-09-23",
+    100,
+    199,
+    "sold"
+   ]
+  ],
+  "VR headset|meta quest pro": [
+   [
+    "2026-09-23",
+    300,
+    445,
+    "sold"
+   ]
+  ],
+  "VR headset|sony playstation vr2": [
+   [
+    "2026-09-23",
+    189,
+    284,
+    "sold"
+   ]
+  ],
+  "VR headset|sony playstation vr": [
+   [
+    "2026-09-23",
+    170,
+    284,
+    "sold"
+   ]
+  ],
+  "VR headset|valve index": [
+   [
+    "2026-09-23",
+    115,
+    375,
+    "sold"
+   ]
+  ],
+  "VR headset|pico 4": [
+   [
+    "2026-09-23",
+    378,
+    579,
+    "sold"
+   ]
+  ],
+  "Smartwatch — Apple / Galaxy|samsung galaxy watch 5": [
+   [
+    "2026-09-23",
+    56,
+    135,
+    "sold"
+   ]
+  ],
+  "Smartwatch — Apple / Galaxy|samsung galaxy watch 6": [
+   [
+    "2026-09-23",
+    65,
+    70,
+    "sold"
+   ]
+  ],
+  "Smartwatch — Apple / Galaxy|samsung galaxy watch 7": [
+   [
+    "2026-09-23",
+    85,
+    99,
+    "sold"
+   ]
+  ],
+  "Smartwatch — Apple / Galaxy|fitbit versa 4": [
+   [
+    "2026-09-23",
+    42,
+    55,
+    "sold"
+   ]
+  ],
+  "Smartwatch — Apple / Galaxy|fitbit sense 2": [
+   [
+    "2026-09-23",
+    50,
+    61,
+    "sold"
+   ]
+  ],
+  "Smartwatch — Apple / Galaxy|garmin forerunner 265": [
+   [
+    "2026-09-23",
+    270,
+    285,
+    "sold"
+   ]
+  ],
+  "Smartwatch — Apple / Galaxy|garmin venu 2": [
+   [
+    "2026-09-23",
+    61,
+    180,
+    "sold"
+   ]
+  ],
+  "Monitor — 27in|dell s2721dgf": [
+   [
+    "2026-09-23",
+    100,
+    179,
+    "sold"
+   ]
+  ],
+  "Monitor — 27in|dell u2720q": [
+   [
+    "2026-09-23",
+    130,
+    200,
+    "sold"
+   ]
+  ],
+  "Monitor — 27in|lg 27gl83a-b": [
+   [
+    "2026-09-23",
+    32,
+    110,
+    "sold"
+   ]
+  ],
+  "Monitor — 27in|lg 27gn800": [
+   [
+    "2026-09-23",
+    95,
+    115,
+    "sold"
+   ]
+  ],
+  "Monitor — 27in|samsung odyssey g5": [
+   [
+    "2026-09-23",
+    95,
+    129,
+    "sold"
+   ]
+  ],
+  "Monitor — 27in|samsung odyssey g7": [
+   [
+    "2026-09-23",
+    139,
+    250,
+    "sold"
+   ]
+  ],
+  "Monitor — 27in|aoc 24g2": [
+   [
+    "2026-09-23",
+    67,
+    99,
+    "sold"
+   ]
+  ],
+  "Monitor — 27in|hp 24mh": [
+   [
+    "2026-09-23",
+    44,
+    75,
+    "sold"
+   ]
+  ],
+  "e6|jbl flip 5": [
+   [
+    "2026-09-23",
+    40,
+    60,
+    "sold"
+   ]
+  ],
+  "e6|jbl flip 6": [
+   [
+    "2026-09-23",
+    37,
+    49,
+    "sold"
+   ]
+  ],
+  "e6|jbl charge 4": [
+   [
+    "2026-09-23",
+    35,
+    65,
+    "sold"
+   ]
+  ],
+  "e6|jbl charge 5": [
+   [
+    "2026-09-23",
+    70,
+    90,
+    "sold"
+   ]
+  ],
+  "e6|jbl xtreme 3": [
+   [
+    "2026-09-23",
+    41,
+    150,
+    "sold"
+   ]
+  ],
+  "e6|bose soundlink flex": [
+   [
+    "2026-09-23",
+    58,
+    80,
+    "sold"
+   ]
+  ],
+  "e6|bose soundlink revolve": [
+   [
+    "2026-09-23",
+    40,
+    105,
+    "sold"
+   ]
+  ],
+  "e6|ultimate ears boom 3": [
+   [
+    "2026-09-23",
+    40,
+    54,
+    "sold"
+   ]
+  ],
+  "e6|ultimate ears megaboom 3": [
+   [
+    "2026-09-23",
+    50,
+    64,
+    "sold"
+   ]
+  ],
+  "e6|sony srs-xb13": [
+   [
+    "2026-09-23",
+    20,
+    30,
+    "sold"
+   ]
+  ],
+  "e6|sony srs-xb43": [
+   [
+    "2026-09-23",
+    128,
+    169,
+    "sold"
+   ]
+  ],
+  "e6|anker soundcore motion boom": [
+   [
+    "2026-09-23",
+    60,
+    82,
+    "sold"
+   ]
+  ],
+  "e6|anker soundcore flare 2": [
+   [
+    "2026-09-23",
+    26,
+    35,
+    "sold"
+   ]
+  ],
+  "e6|marshall emberton": [
+   [
+    "2026-09-23",
+    60,
+    80,
+    "sold"
+   ]
+  ],
+  "e6|jbl clip 4": [
+   [
+    "2026-09-23",
+    16,
+    32,
+    "sold"
+   ]
+  ],
+  "e6|jbl go 3": [
+   [
+    "2026-09-23",
+    15,
+    20,
+    "sold"
+   ]
+  ],
+  "e6|bose soundlink micro": [
+   [
+    "2026-09-23",
+    34,
+    50,
+    "sold"
+   ]
+  ],
+  "e6|sony srs-xg300": [
+   [
+    "2026-09-23",
+    77,
+    105,
+    "sold"
+   ]
+  ],
+  "e6|anker soundcore 3": [
+   [
+    "2026-09-23",
+    26,
+    60,
+    "sold"
+   ]
+  ],
+  "e6|marshall willen": [
+   [
+    "2026-09-23",
+    48,
+    60,
+    "sold"
+   ]
+  ],
+  "e7|rockford fosgate r500x1d": [
+   [
+    "2026-09-23",
+    100,
+    120,
+    "sold"
+   ]
+  ],
+  "e7|kicker 46cxa8001": [
+   [
+    "2026-09-23",
+    115,
+    150,
+    "sold"
+   ]
+  ],
+  "e7|jl audio 12w3v3": [
+   [
+    "2026-09-23",
+    105,
+    349,
+    "sold"
+   ]
+  ],
+  "e7|jl audio jx1000/1d": [
+   [
+    "2026-09-23",
+    200,
+    300,
+    "sold"
+   ]
+  ],
+  "e7|pioneer gm-d8601": [
+   [
+    "2026-09-23",
+    78,
+    90,
+    "sold"
+   ]
+  ],
+  "e7|sundown sa-12": [
+   [
+    "2026-09-23",
+    220,
+    342,
+    "sold"
+   ]
+  ],
+  "e4|iphone 12": [
+   [
+    "2026-09-23",
+    105,
+    200,
+    "sold"
+   ]
+  ],
+  "e4|oneplus 10t": [
+   [
+    "2026-09-23",
+    125,
+    155,
+    "sold"
+   ]
+  ],
+  "Video game — current title|nba 2k24": [
+   [
+    "2026-09-23",
+    4,
+    10,
+    "sold"
+   ]
+  ],
+  "Video game — current title|ea sports fc 25": [
+   [
+    "2026-09-23",
+    11,
+    15,
+    "sold"
+   ]
+  ],
+  "Video game — current title|ea sports fc 24": [
+   [
+    "2026-09-23",
+    9,
+    13,
+    "sold"
+   ]
+  ],
+  "Video game — current title|mario kart 8 deluxe": [
+   [
+    "2026-09-23",
+    25,
+    32,
+    "sold"
+   ]
+  ],
+  "Video game — current title|pokemon scarlet": [
+   [
+    "2026-09-23",
+    35,
+    70,
+    "sold"
+   ]
+  ],
+  "Video game — current title|red dead redemption 2": [
+   [
+    "2026-09-23",
+    10,
+    15,
+    "sold"
+   ]
+  ],
+  "Video game — current title|baldur's gate 3": [
+   [
+    "2026-09-23",
+    49,
+    58,
+    "sold"
+   ]
+  ],
+  "e3|lenovo tab m10": [
+   [
+    "2026-09-23",
+    50,
+    75,
+    "sold"
+   ]
+  ],
+  "e3|onn. 10 tablet pro": [
+   [
+    "2026-09-23",
+    40,
+    50,
+    "sold"
+   ]
+  ],
+  "e1|samsung tu7000 55in": [
+   [
+    "2026-09-23",
+    50,
+    150,
+    "sold"
+   ]
+  ],
+  "e2|dell inspiron 15 3520": [
+   [
+    "2026-09-23",
+    135,
+    255,
+    "sold"
+   ]
+  ],
+  "e2|hp pavilion 15": [
+   [
+    "2026-09-23",
+    65,
+    200,
+    "sold"
+   ],
+   [
+    "2026-09-24",
+    99,
+    230,
+    "sold"
+   ]
+  ],
+  "e2|hp envy x360 15": [
+   [
+    "2026-09-23",
+    250,
+    592,
+    "sold"
+   ],
+   [
+    "2026-09-24",
+    250,
+    450,
+    "sold"
+   ]
+  ],
+  "e2|lenovo legion 5 15": [
+   [
+    "2026-09-23",
+    450,
+    600,
+    "sold"
+   ]
+  ],
+  "e2|asus tuf gaming a15": [
+   [
+    "2026-09-23",
+    600,
+    750,
+    "sold"
+   ]
+  ],
+  "e2|acer aspire 5": [
+   [
+    "2026-09-23",
+    327,
+    660,
+    "sold"
+   ],
+   [
+    "2026-09-24",
+    272,
+    391,
+    "sold"
+   ]
+  ],
+  "e2|microsoft surface laptop 4": [
+   [
+    "2026-09-23",
+    174,
+    300,
+    "sold"
+   ],
+   [
+    "2026-09-24",
+    165,
+    225,
+    "sold"
+   ]
+  ],
+  "e2|acer swift 3": [
+   [
+    "2026-09-23",
+    325,
+    600,
+    "sold"
+   ],
+   [
+    "2026-09-24",
+    258,
+    522,
+    "sold"
+   ]
+  ],
+  "e3|samsung galaxy tab s6 lite": [
+   [
+    "2026-09-23",
+    110,
+    150,
+    "sold"
+   ]
+  ],
+  "e3|samsung galaxy tab a7 lite": [
+   [
+    "2026-09-23",
+    40,
+    65,
+    "sold"
+   ]
+  ],
+  "Video game — sports title|nba 2k24": [
+   [
+    "2026-09-23",
+    4,
+    10,
+    "sold"
+   ]
+  ],
+  "Video game — sports title|ea sports fc 25": [
+   [
+    "2026-09-23",
+    11,
+    15,
+    "sold"
+   ]
+  ],
+  "Video game — sports title|ea sports fc 24": [
+   [
+    "2026-09-23",
+    9,
+    13,
+    "sold"
+   ]
+  ],
+  "Video game — Nintendo title|mario kart 8 deluxe": [
+   [
+    "2026-09-23",
+    25,
+    32,
+    "sold"
+   ]
+  ],
+  "Video game — Nintendo title|pokemon scarlet": [
+   [
+    "2026-09-23",
+    35,
+    70,
+    "sold"
+   ]
+  ],
+  "Gaming laptop|lenovo legion 5 15": [
+   [
+    "2026-09-23",
+    450,
+    600,
+    "sold"
+   ]
+  ],
+  "Gaming laptop|asus tuf gaming a15": [
+   [
+    "2026-09-23",
+    600,
+    750,
+    "sold"
+   ]
+  ],
+  "Video game — sports title|madden nfl 25": [
+   [
+    "2026-09-23",
+    2,
+    7,
+    "sold"
+   ]
+  ],
+  "Video game — current title|grand theft auto v": [
+   [
+    "2026-09-23",
+    4,
+    9,
+    "sold"
+   ]
+  ],
+  "Gaming laptop|hp omen 16": [
+   [
+    "2026-09-23",
+    450,
+    1450,
+    "sold"
+   ]
+  ],
+  "Gaming laptop|alienware m15 r7": [
+   [
+    "2026-09-23",
+    675,
+    1134,
+    "sold"
+   ]
+  ],
+  "Gaming laptop|msi katana 15": [
+   [
+    "2026-09-23",
+    680,
+    900,
+    "sold"
+   ]
+  ],
+  "e2|lenovo thinkpad t14": [
+   [
+    "2026-09-24",
+    240,
+    430,
+    "sold"
+   ]
+  ],
+  "e2|microsoft surface laptop 5": [
+   [
+    "2026-09-24",
+    180,
+    249,
+    "sold"
+   ]
+  ],
+  "j1|rolex datejust 36": [
+   [
+    "2026-09-24",
+    4999,
+    6450,
+    "sold"
+   ]
+  ],
+  "j1|rolex explorer": [
+   [
+    "2026-09-24",
+    5900,
+    8299,
+    "sold"
+   ]
+  ],
+  "j1|omega seamaster 300m": [
+   [
+    "2026-09-24",
+    1800,
+    3200,
+    "sold"
+   ]
+  ],
+  "j1|omega speedmaster professional": [
+   [
+    "2026-09-24",
+    1975,
+    4101,
+    "sold"
+   ]
+  ],
+  "j1|tudor black bay 58": [
+   [
+    "2026-09-24",
+    3900,
+    4200,
+    "sold"
+   ]
+  ],
+  "j1|cartier tank must": [
+   [
+    "2026-09-24",
+    1395,
+    2900,
+    "sold"
+   ]
+  ],
+  "j1|breitling navitimer": [
+   [
+    "2026-09-24",
+    3250,
+    3950,
+    "sold"
+   ]
+  ],
+  "j1|tag heuer carrera": [
+   [
+    "2026-09-24",
+    449,
+    1820,
+    "sold"
+   ]
+  ],
+  "j1|tag heuer aquaracer": [
+   [
+    "2026-09-24",
+    575,
+    1199,
+    "sold"
+   ]
+  ],
+  "f1|nordictrack commercial 1750": [
+   [
+    "2026-09-24",
+    60,
+    280,
+    "sold"
+   ]
+  ],
+  "f1|bowflex treadmill 10": [
+   [
+    "2026-09-24",
+    100,
+    150,
+    "sold"
+   ]
+  ],
+  "t6|lincoln power mig 140c": [
+   [
+    "2026-09-24",
+    240,
+    470,
+    "sold"
+   ]
+  ],
+  "a3|lg wm3400cw washer": [
+   [
+    "2026-09-24",
+    40,
+    75,
+    "sold"
+   ]
+  ],
+  "t7|snap-on kra tool box": [
+   [
+    "2026-09-24",
+    36,
+    170,
+    "sold"
+   ]
+  ],
+  "a1|whirlpool wfe505w0hs range": [
+   [
+    "2026-09-24",
+    80,
+    125,
+    "sold"
+   ]
+  ],
+  "f2|peloton bike": [
+   [
+    "2026-09-24",
+    190,
+    350,
+    "sold"
+   ]
+  ],
+  "f2|peloton bike plus": [
+   [
+    "2026-09-24",
+    200,
+    350,
+    "sold"
+   ]
+  ],
+  "f2|nordictrack s22i": [
+   [
+    "2026-09-24",
+    85,
+    375,
+    "sold"
+   ]
+  ],
+  "f2|schwinn ic4": [
+   [
+    "2026-09-24",
+    179,
+    450,
+    "sold"
+   ]
+  ],
+  "f2|schwinn 170": [
+   [
+    "2026-09-24",
+    23,
+    110,
+    "sold"
+   ]
+  ],
+  "f2|keiser m3i": [
+   [
+    "2026-09-24",
+    305,
+    650,
+    "sold"
+   ]
+  ],
+  "f3|sole e25": [
+   [
+    "2026-09-24",
+    100,
+    300,
+    "sold"
+   ]
+  ],
+  "f3|schwinn 470": [
+   [
+    "2026-09-24",
+    99,
+    150,
+    "sold"
+   ]
+  ],
+  "f7|callaway strata complete set": [
+   [
+    "2026-09-24",
+    275,
+    325,
+    "sold"
+   ]
+  ],
+  "f7|taylormade sim2 iron set": [
+   [
+    "2026-09-24",
+    385,
+    473,
+    "sold"
+   ]
+  ],
+  "f7|taylormade m4 iron set": [
+   [
+    "2026-09-24",
+    349,
+    360,
+    "sold"
+   ]
+  ],
+  "f7|mizuno jpx 921 iron set": [
+   [
+    "2026-09-24",
+    420,
+    550,
+    "sold"
+   ]
+  ],
+  "f7|wilson profile complete set": [
+   [
+    "2026-09-24",
+    115,
+    220,
+    "sold"
+   ]
+  ],
+  "p6|ryobi 3100 psi pressure washer": [
+   [
+    "2026-09-24",
+    30,
+    40,
+    "sold"
+   ]
+  ],
+  "t8|paslode cf325xp": [
+   [
+    "2026-09-24",
+    130,
+    200,
+    "sold"
+   ]
+  ],
+  "t8|paslode 900420": [
+   [
+    "2026-09-24",
+    70,
+    100,
+    "sold"
+   ]
+  ],
+  "t8|bostitch f21pl": [
+   [
+    "2026-09-24",
+    118,
+    165,
+    "sold"
+   ]
+  ],
+  "t8|metabo hpt nr90aes1": [
+   [
+    "2026-09-24",
+    80,
+    126,
+    "sold"
+   ]
+  ],
+  "j2|seiko skx007": [
+   [
+    "2026-09-24",
+    145,
+    340,
+    "sold"
+   ]
+  ],
+  "j2|seiko 5 sports srpd": [
+   [
+    "2026-09-24",
+    190,
+    199,
+    "sold"
+   ]
+  ],
+  "j2|seiko prospex turtle": [
+   [
+    "2026-09-24",
+    328,
+    499,
+    "sold"
+   ]
+  ],
+  "j2|citizen eco-drive promaster": [
+   [
+    "2026-09-24",
+    145,
+    280,
+    "sold"
+   ]
+  ],
+  "j2|bulova marine star": [
+   [
+    "2026-09-24",
+    93,
+    229,
+    "sold"
+   ]
+  ],
+  "j2|fossil grant": [
+   [
+    "2026-09-24",
+    40,
+    55,
+    "sold"
+   ]
+  ],
+  "j2|tissot prx": [
+   [
+    "2026-09-24",
+    195,
+    415,
+    "sold"
+   ]
+  ],
+  "j2|hamilton khaki field": [
+   [
+    "2026-09-24",
+    425,
+    495,
+    "sold"
+   ]
+  ],
+  "j2|invicta pro diver 8926": [
+   [
+    "2026-09-24",
+    50,
+    70,
+    "sold"
+   ]
+  ],
+  "j2|movado museum": [
+   [
+    "2026-09-24",
+    85,
+    260,
+    "sold"
+   ]
+  ],
+  "j2|michael kors lexington": [
+   [
+    "2026-09-24",
+    25,
+    75,
+    "sold"
+   ]
+  ],
+  "j2|apple watch series 7": [
+   [
+    "2026-09-24",
+    70,
+    140,
+    "sold"
+   ]
+  ],
+  "j2|apple watch series 8": [
+   [
+    "2026-09-24",
+    59,
+    120,
+    "sold"
+   ]
+  ],
+  "j2|apple watch se": [
+   [
+    "2026-09-24",
+    75,
+    110,
+    "sold"
+   ]
+  ],
+  "j2|garmin fenix 6": [
+   [
+    "2026-09-24",
+    175,
+    217,
+    "sold"
+   ]
+  ],
+  "j2|garmin fenix 7": [
+   [
+    "2026-09-24",
+    300,
+    410,
+    "sold"
+   ]
+  ],
+  "j2|garmin forerunner 245": [
+   [
+    "2026-09-24",
+    90,
+    136,
+    "sold"
+   ]
+  ],
+  "t4|porter-cable c2002": [
+   [
+    "2026-09-24",
+    65,
+    104,
+    "sold"
+   ]
+  ],
+  "t4|california air tools 8010": [
+   [
+    "2026-09-24",
+    145,
+    210,
+    "sold"
+   ]
+  ],
+  "h7|penn battle iii": [
+   [
+    "2026-09-24",
+    80,
+    119,
+    "sold"
+   ]
+  ],
+  "h7|penn slammer iii": [
+   [
+    "2026-09-24",
+    177,
+    194,
+    "sold"
+   ]
+  ],
+  "h7|shimano stradic": [
+   [
+    "2026-09-24",
+    118,
+    190,
+    "sold"
+   ]
+  ],
+  "h7|shimano curado": [
+   [
+    "2026-09-24",
+    123,
+    190,
+    "sold"
+   ]
+  ],
+  "h7|shimano sedona": [
+   [
+    "2026-09-24",
+    36,
+    65,
+    "sold"
+   ]
+  ],
+  "h7|abu garcia ambassadeur 6500": [
+   [
+    "2026-09-24",
+    50,
+    85,
+    "sold"
+   ]
+  ],
+  "h7|abu garcia revo sx": [
+   [
+    "2026-09-24",
+    55,
+    103,
+    "sold"
+   ]
+  ],
+  "h7|daiwa bg 3000": [
+   [
+    "2026-09-24",
+    80,
+    90,
+    "sold"
+   ]
+  ],
+  "h7|daiwa tatula": [
+   [
+    "2026-09-24",
+    115,
+    153,
+    "sold"
+   ]
+  ],
+  "h7|ugly stik gx2 combo": [
+   [
+    "2026-09-24",
+    30,
+    55,
+    "sold"
+   ]
+  ],
+  "h7|lew's mach crush": [
+   [
+    "2026-09-24",
+    50,
+    70,
+    "sold"
+   ]
+  ],
+  "a9|brother cs7000x sewing machine": [
+   [
+    "2026-09-24",
+    150,
+    200,
+    "sold"
+   ]
+  ],
+  "a9|singer heavy duty 4423": [
+   [
+    "2026-09-24",
+    100,
+    155,
+    "sold"
+   ]
+  ],
+  "f5|bowflex selecttech 552": [
+   [
+    "2026-09-24",
+    25,
+    76,
+    "sold"
+   ]
+  ],
+  "f5|bowflex selecttech 1090": [
+   [
+    "2026-09-24",
+    25,
+    64,
+    "sold"
+   ]
+  ],
+  "f5|powerblock elite": [
+   [
+    "2026-09-24",
+    145,
+    305,
+    "sold"
+   ]
+  ],
+  "a10|dyson v8": [
+   [
+    "2026-09-24",
+    40,
+    128,
+    "sold"
+   ]
+  ],
+  "a10|dyson v10": [
+   [
+    "2026-09-24",
+    85,
+    219,
+    "sold"
+   ]
+  ],
+  "a10|dyson v11": [
+   [
+    "2026-09-24",
+    124,
+    290,
+    "sold"
+   ]
+  ],
+  "a10|dyson v15": [
+   [
+    "2026-09-24",
+    105,
+    334,
+    "sold"
+   ]
+  ],
+  "t3|dewalt dwe402": [
+   [
+    "2026-09-24",
+    45,
+    60,
+    "sold"
+   ]
+  ],
+  "t3|dewalt dcg413": [
+   [
+    "2026-09-24",
+    70,
+    110,
+    "sold"
+   ]
+  ],
+  "t3|makita 9557pb": [
+   [
+    "2026-09-24",
+    55,
+    65,
+    "sold"
+   ]
+  ],
+  "h4|browning strike force": [
+   [
+    "2026-09-24",
+    55,
+    72,
+    "sold"
+   ]
+  ],
+  "h4|browning dark ops": [
+   [
+    "2026-09-24",
+    39,
+    60,
+    "sold"
+   ]
+  ],
+  "h4|stealth cam fusion x": [
+   [
+    "2026-09-24",
+    29,
+    36,
+    "sold"
+   ]
+  ],
+  "h4|spypoint flex": [
+   [
+    "2026-09-24",
+    39,
+    70,
+    "sold"
+   ]
+  ],
+  "h4|spypoint link micro": [
+   [
+    "2026-09-24",
+    26,
+    45,
+    "sold"
+   ]
+  ],
+  "Wireless earbuds|apple airpods 3rd generation": [
+   [
+    "2026-09-23",
+    14,
+    60,
+    "ask"
+   ]
+  ],
+  "Wireless earbuds|jbl vibe beam": [
+   [
+    "2026-09-23",
+    20,
+    30,
+    "ask"
+   ]
+  ],
+  "Monitor — 27in|asus tuf vg27aq": [
+   [
+    "2026-09-23",
+    50,
+    150,
+    "ask"
+   ]
+  ],
+  "e4|samsung galaxy a13": [
+   [
+    "2026-09-23",
+    48,
+    65,
+    "ask"
+   ]
+  ],
+  "Video game — current title|hogwarts legacy": [
+   [
+    "2026-09-23",
+    8,
+    20,
+    "ask"
+   ]
+  ],
+  "Video game — sports title|ea sports college football 25": [
+   [
+    "2026-09-23",
+    8,
+    12,
+    "ask"
+   ]
+  ],
+  "e3|samsung galaxy tab s9 fe": [
+   [
+    "2026-09-23",
+    210,
+    275,
+    "ask"
+   ]
+  ],
+  "Gaming laptop|acer nitro 5": [
+   [
+    "2026-09-23",
+    320,
+    499,
+    "ask"
+   ]
+  ],
+  "e3|ipad air 5": [
+   [
+    "2026-09-23",
+    280,
+    309,
+    "ask"
+   ]
+  ],
+  "e3|samsung galaxy tab s8": [
+   [
+    "2026-09-23",
+    230,
+    270,
+    "ask"
+   ]
+  ],
+  "e3|samsung galaxy tab s9": [
+   [
+    "2026-09-23",
+    215,
+    330,
+    "ask"
+   ]
+  ],
+  "p1|stihl ms 170": [
+   [
+    "2026-09-24",
+    130,
+    185,
+    "ask"
+   ]
+  ],
+  "e2|dell latitude 7420": [
+   [
+    "2026-09-24",
+    170,
+    180,
+    "ask"
+   ]
+  ],
+  "e2|asus zenbook 14": [
+   [
+    "2026-09-24",
+    400,
+    850,
+    "ask"
+   ]
+  ],
+  "e2|lenovo chromebook flex 5": [
+   [
+    "2026-09-24",
+    125,
+    180,
+    "ask"
+   ]
+  ],
+  "e2|asus vivobook 15": [
+   [
+    "2026-09-24",
+    202,
+    320,
+    "ask"
+   ]
+  ],
+  "t6|hobart handler 140": [
+   [
+    "2026-09-24",
+    450,
+    600,
+    "ask"
+   ]
+  ],
+  "t6|miller millermatic 141": [
+   [
+    "2026-09-24",
+    600,
+    950,
+    "ask"
+   ]
+  ],
+  "t6|titanium easy-flux 125": [
+   [
+    "2026-09-24",
+    117,
+    120,
+    "ask"
+   ]
+  ],
+  "f6|titan t-3 power rack": [
+   [
+    "2026-09-24",
+    100,
+    120,
+    "ask"
+   ]
+  ],
+  "f2|echelon ex-3": [
+   [
+    "2026-09-24",
+    250,
+    500,
+    "ask"
+   ]
+  ],
+  "f3|proform carbon e7": [
+   [
+    "2026-09-24",
+    25,
+    75,
+    "ask"
+   ]
+  ],
+  "f3|horizon ex-59": [
+   [
+    "2026-09-24",
+    23,
+    55,
+    "ask"
+   ]
+  ],
+  "p6|greenworks 1800 psi pressure washer": [
+   [
+    "2026-09-24",
+    25,
+    70,
+    "ask"
+   ]
+  ],
+  "a6|frigidaire fffc09m1rw chest freezer": [
+   [
+    "2026-09-24",
+    175,
+    450,
+    "ask"
+   ]
+  ],
+  "a7|frigidaire ffre0833u1 window air conditioner": [
+   [
+    "2026-09-24",
+    120,
+    187,
+    "ask"
+   ]
+  ],
+  "a7|lg lw8017ersm window air conditioner": [
+   [
+    "2026-09-24",
+    120,
+    290,
+    "ask"
+   ]
+  ],
+  "a7|ge ahec08ac window air conditioner": [
+   [
+    "2026-09-24",
+    100,
+    200,
+    "ask"
+   ]
+  ],
+  "t4|craftsman cmec6150": [
+   [
+    "2026-09-24",
+    60,
+    88,
+    "ask"
+   ]
+  ],
+  "t4|dewalt dwfp55126": [
+   [
+    "2026-09-24",
+    65,
+    160,
+    "ask"
+   ]
+  ],
+  "t4|bostitch btfp02012": [
+   [
+    "2026-09-24",
+    120,
+    130,
+    "ask"
+   ]
+  ],
+  "f4|bowflex 5.1s bench": [
+   [
+    "2026-09-24",
+    50,
+    95,
+    "ask"
+   ]
+  ],
+  "h4|moultrie a-40": [
+   [
+    "2026-09-24",
+    27,
+    60,
+    "ask"
+   ]
+  ],
+  "h4|moultrie edge": [
+   [
+    "2026-09-24",
+    44,
+    67,
+    "ask"
+   ]
+  ],
+  "h4|stealth cam g42ng": [
+   [
+    "2026-09-24",
+    40,
+    70,
+    "ask"
+   ]
+  ],
+  "h4|tactacam reveal x": [
+   [
+    "2026-09-24",
+    60,
+    147,
+    "ask"
+   ]
+  ],
+  "h4|tactacam reveal sk": [
+   [
+    "2026-09-24",
+    60,
+    147,
+    "ask"
+   ]
+  ],
+  "p1|stihl ms 180": [
+   [
+    "2026-09-24",
+    150,
+    200,
+    "ask"
+   ]
+  ],
+  "p1|stihl ms 251": [
+   [
+    "2026-09-24",
+    200,
+    350,
+    "ask"
+   ]
+  ],
+  "p1|stihl ms 261": [
+   [
+    "2026-09-24",
+    243,
+    540,
+    "ask"
+   ]
+  ],
+  "p1|stihl ms 271": [
+   [
+    "2026-09-24",
+    300,
+    375,
+    "ask"
+   ]
+  ],
+  "p1|husqvarna 240": [
+   [
+    "2026-09-24",
+    145,
+    220,
+    "ask"
+   ]
+  ],
+  "p1|husqvarna 435": [
+   [
+    "2026-09-24",
+    160,
+    220,
+    "ask"
+   ]
+  ],
+  "p1|husqvarna 440": [
+   [
+    "2026-09-24",
+    160,
+    230,
+    "ask"
+   ]
+  ],
+  "p1|echo cs-400": [
+   [
+    "2026-09-24",
+    214,
+    250,
+    "ask"
+   ]
+  ],
+  "p2|ryobi 40v string trimmer": [
+   [
+    "2026-09-24",
+    104,
+    119,
+    "sold"
+   ]
+  ],
+  "p7|generac gp6500": [
+   [
+    "2026-09-24",
+    500,
+    750,
+    "ask"
+   ]
+  ],
+  "p7|champion 3500 watt generator": [
+   [
+    "2026-09-24",
+    279,
+    600,
+    "sold"
+   ]
+  ],
+  "p7|predator 9000 generator": [
+   [
+    "2026-09-24",
+    500,
+    700,
+    "ask"
+   ]
+  ],
+  "p7|duromax xp12000eh": [
+   [
+    "2026-09-24",
+    900,
+    925,
+    "ask"
+   ]
+  ],
+  "t1|dewalt dcd771": [
+   [
+    "2026-09-24",
+    50,
+    55,
+    "sold"
+   ]
+  ],
+  "t1|dewalt dcd996": [
+   [
+    "2026-09-24",
+    55,
+    80,
+    "sold"
+   ]
+  ],
+  "t1|milwaukee 2801-20": [
+   [
+    "2026-09-24",
+    110,
+    110,
+    "sold"
+   ]
+  ],
+  "t1|milwaukee m12 fuel 2504": [
+   [
+    "2026-09-24",
+    80,
+    85,
+    "sold"
+   ]
+  ],
+  "t1|makita xfd10": [
+   [
+    "2026-09-24",
+    81,
+    95,
+    "ask"
+   ]
+  ],
+  "t1|makita xph12": [
+   [
+    "2026-09-24",
+    80,
+    120,
+    "sold"
+   ]
+  ],
+  "t1|ryobi p252": [
+   [
+    "2026-09-24",
+    25,
+    48,
+    "sold"
+   ]
+  ],
+  "t1|kobalt 24v drill": [
+   [
+    "2026-09-24",
+    40,
+    50,
+    "sold"
+   ]
+  ],
+  "t2|milwaukee 2767-20": [
+   [
+    "2026-09-24",
+    199,
+    239,
+    "sold"
+   ]
+  ],
+  "t2|dewalt dcf899": [
+   [
+    "2026-09-24",
+    125,
+    150,
+    "sold"
+   ]
+  ],
+  "t2|ingersoll rand 2235timax": [
+   [
+    "2026-09-24",
+    75,
+    175,
+    "sold"
+   ]
+  ],
+  "t2|makita xwt08": [
+   [
+    "2026-09-24",
+    180,
+    200,
+    "sold"
+   ]
+  ],
+  "h1|vortex crossfire ii 3-9x40": [
+   [
+    "2026-09-24",
+    80,
+    100,
+    "sold"
+   ]
+  ],
+  "h1|vortex diamondback 4-12x40": [
+   [
+    "2026-09-24",
+    136,
+    165,
+    "sold"
+   ]
+  ],
+  "h1|vortex viper hs 4-16x44": [
+   [
+    "2026-09-24",
+    280,
+    400,
+    "sold"
+   ]
+  ],
+  "h1|vortex strike eagle 1-6x24": [
+   [
+    "2026-09-24",
+    150,
+    225,
+    "sold"
+   ]
+  ],
+  "h1|leupold vx-freedom 3-9x40": [
+   [
+    "2026-09-24",
+    220,
+    250,
+    "sold"
+   ]
+  ],
+  "h1|nikon prostaff 3-9x40": [
+   [
+    "2026-09-24",
+    125,
+    175,
+    "sold"
+   ]
+  ],
+  "h1|bushnell banner 3-9x40": [
+   [
+    "2026-09-24",
+    35,
+    50,
+    "sold"
+   ]
+  ],
+  "h1|burris fullfield ii": [
+   [
+    "2026-09-24",
+    100,
+    203,
+    "sold"
+   ]
+  ],
+  "h1|athlon argos btr": [
+   [
+    "2026-09-24",
+    200,
+    200,
+    "sold"
+   ]
+  ],
+  "h1|primary arms slx 1-6": [
+   [
+    "2026-09-24",
+    210,
+    259,
+    "sold"
+   ]
+  ],
+  "h2|nikon monarch 5 10x42": [
+   [
+    "2026-09-24",
+    165,
+    229,
+    "sold"
+   ]
+  ],
+  "h2|bushnell h2o 10x42": [
+   [
+    "2026-09-24",
+    32,
+    50,
+    "sold"
+   ]
+  ],
+  "h2|leupold bx-2 alpine": [
+   [
+    "2026-09-24",
+    155,
+    200,
+    "sold"
+   ]
+  ],
+  "h3|vortex impact 850": [
+   [
+    "2026-09-24",
+    125,
+    140,
+    "ask"
+   ]
+  ],
+  "h3|leupold rx-1400i": [
+   [
+    "2026-09-24",
+    130,
+    150,
+    "sold"
+   ]
+  ],
+  "h3|sig sauer kilo 1400": [
+   [
+    "2026-09-24",
+    151,
+    190,
+    "sold"
+   ]
+  ],
+  "h3|tectectec prowild": [
+   [
+    "2026-09-24",
+    45,
+    80,
+    "ask"
+   ]
+  ],
+  "h5|mathews phase4": [
+   [
+    "2026-09-24",
+    800,
+    1250,
+    "sold"
+   ]
+  ],
+  "h5|hoyt carbon rx": [
+   [
+    "2026-09-24",
+    855,
+    1390,
+    "sold"
+   ]
+  ],
+  "h5|bowtech solution": [
+   [
+    "2026-09-24",
+    425,
+    650,
+    "sold"
+   ]
+  ],
+  "h5|pse nock on": [
+   [
+    "2026-09-24",
+    650,
+    980,
+    "sold"
+   ]
+  ],
+  "h5|diamond edge 320": [
+   [
+    "2026-09-24",
+    150,
+    300,
+    "sold"
+   ]
+  ],
+  "h5|diamond infinite edge pro": [
+   [
+    "2026-09-24",
+    165,
+    265,
+    "sold"
+   ]
+  ],
+  "h5|bear species": [
+   [
+    "2026-09-24",
+    200,
+    280,
+    "sold"
+   ]
+  ],
+  "h5|bear cruzer g2": [
+   [
+    "2026-09-24",
+    180,
+    250,
+    "sold"
+   ]
+  ],
+  "h5|elite ember": [
+   [
+    "2026-09-24",
+    340,
+    460,
+    "sold"
+   ]
+  ],
+  "h6|tenpoint turbo m1": [
+   [
+    "2026-09-24",
+    451,
+    800,
+    "ask"
+   ]
+  ],
+  "h6|barnett whitetail hunter str": [
+   [
+    "2026-09-24",
+    200,
+    338,
+    "sold"
+   ]
+  ],
+  "h6|barnett hyper raptor": [
+   [
+    "2026-09-24",
+    375,
+    500,
+    "sold"
+   ]
+  ],
+  "h6|excalibur matrix": [
+   [
+    "2026-09-24",
+    466,
+    600,
+    "sold"
+   ]
+  ],
+  "h6|centerpoint sniper 370": [
+   [
+    "2026-09-24",
+    150,
+    200,
+    "sold"
+   ]
+  ]
+ }
+}

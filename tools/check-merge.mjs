@@ -404,6 +404,56 @@ console.log("\n  the money path refuses an unbounded run");
 }
 
 
+/* WHAT IT USED TO BE WORTH.
+   A book row holds ONE price and a re-harvest overwrites it, so the desk
+   has never been able to say whether a thing is falling or flat - and
+   those are different loans. A 60-day ticket on a phone shedding 5% a
+   month is not the bet a drill is. The gold page already reasons this way:
+   a loan prices off the LOWER of spot and the 90-day average, so a peak
+   cannot size a ticket that outlives it. Goods deserve the same and have
+   never had the data to do it with.
+   Recording costs no lookups. It is worth nothing today and everything in
+   three months, which is why it starts now. */
+console.log("\n  the book remembers what a thing used to be worth");
+{
+  const harv = readFileSync(join(ROOT, "tools/harvest.js"), "utf8");
+  ok(/-history\.json/.test(harv), "a merge writes the history file");
+  ok(/last\[1\] === r\[3\] && last\[2\] === r\[4\]/.test(harv),
+     "  one entry per CHANGE, not one per run");
+  ok(/at\.length > 24/.test(harv), "  and it is bounded, not a growing file forever");
+  ok(/String\(OUT\)\.replace/.test(harv),
+     "  and it follows --out, so a test merge cannot write the real history");
+  ok(/at\.sort\(/.test(harv),
+     "  a row carrying an older date than what is already there still sorts in");
+
+  const hp = join(ROOT, "tools/harvest-history.json");
+  ok(existsSync(hp), "the history exists, seeded from git");
+  if (existsSync(hp)) {
+    const H = JSON.parse(readFileSync(hp, "utf8")).rows || {};
+    const n = Object.keys(H).length;
+    const moved = Object.values(H).filter((v) => v.length > 1).length;
+    ok(n > 400, `  covering ${n} rows`);
+    ok(moved > 10, `  ${moved} of which have actually moved at least once`);
+    /* every point is [date, lo, hi, basis] and dates run forwards */
+    const bad = [];
+    for (const [k, v] of Object.entries(H)) {
+      for (const e of v)
+        if (!Array.isArray(e) || e.length !== 4 || !/^\d{4}-\d{2}-\d{2}$/.test(String(e[0])))
+          { bad.push(k); break; }
+      for (let i = 1; i < v.length; i++)
+        if (String(v[i][0]) < String(v[i-1][0])) { bad.push(k + " (out of order)"); break; }
+    }
+    ok(!bad.length, "  every point is [date, lo, hi, basis] and in order" +
+       (bad.length ? " — bad: " + bad.slice(0,3).join(", ") : ""));
+  }
+
+  /* the app must not be made to download it */
+  const idx = readFileSync(join(ROOT, "index.html"), "utf8");
+  const sw  = readFileSync(join(ROOT, "sw.js"), "utf8");
+  ok(!/-history\.json/.test(idx) && !/-history\.json/.test(sw),
+     "  and the counter never downloads it — it lives in tools/, not the app");
+}
+
 /* THE HARVEST WAS BUDGETED TO EAT THE WHOLE PLAN.
    970 targets on one 28-day rule is a full sweep every 28 days, up to
    1,942 lookups against 2,000 a month - so the counter, which is what the

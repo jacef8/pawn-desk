@@ -79,6 +79,11 @@ const GO     = has("go");
 const VIA    = String(arg("via", "ebay")).toLowerCase();
 const SOLD_ONLY = has("sold-only");
 const OUT    = arg("out",  join(HERE, "harvest.json"));
+/* Beside the findings file, not beside this script. The suites run merges
+   with --out pointing at a temp findings file, and a hardcoded path here
+   meant those test merges wrote into the REAL history - which is how 41
+   moved rows quietly became 71 while I was adding the test that noticed. */
+const HIST   = String(OUT).replace(/\.json$/i, "") + "-history.json";
 const SEED   = arg("seed", join(HERE, "seed-models.json"));
 const PRICES = join(ROOT, "prices.json");
 const MIN    = Number(arg("min", 4));
@@ -569,6 +574,47 @@ if (has("merge")) {
     if (heldThin.length > 40) L.push(`- \u2026 and ${heldThin.length - 40} more`);
     L.push("");
   }
+  /* WHAT IT USED TO BE WORTH.
+     A book row holds ONE price and a re-harvest overwrites it, so the desk
+     has never been able to say whether a thing is falling or flat - and
+     those are different loans. A 60-day ticket on a phone that sheds 5% a
+     month is not the same bet as one on a drill that has not moved since
+     2023. The gold page already reasons this way: a loan prices off the
+     LOWER of spot and the 90-day average, so a peak cannot size a ticket
+     that outlives it. Goods deserve the same and have never had the data.
+     Recording costs no lookups and nothing at the counter. It is only
+     worth anything in three months, which is exactly why it has to start
+     now rather than when somebody wants it.
+     Kept beside the findings rather than in prices.json: the app fetches
+     that file on every load and it does not need to carry a year of
+     history to quote one number. */
+  try {
+    let H = {};
+    if (existsSync(HIST)) { try { H = JSON.parse(readFileSync(HIST, "utf8")).rows || {}; } catch (e) {} }
+    let kept = 0;
+    for (const r of rows) {
+      if (!Array.isArray(r) || r.length < 7) continue;
+      const k = r[1] + "|" + String(r[2]).toLowerCase();
+      const at = (H[k] = H[k] || []);
+      const last = at[at.length - 1];
+      /* one entry per change, not one per run - a run that re-proves the
+         same number is not a data point about the market */
+      if (last && last[1] === r[3] && last[2] === r[4]) continue;
+      at.push([r[6], r[3], r[4], /sales? in the last/i.test(String(r[8] || "")) ? "sold" : "ask"]);
+      /* A row carries its OWN date, and a gun priced off GunWatcher on the
+         19th keeps that date for ever - so an append can land before what
+         is already there. Sort, or the series reads backwards. */
+      at.sort((a, b) => String(a[0]).localeCompare(String(b[0])));
+      while (at.length > 24) at.shift();
+      kept++;
+    }
+    writeFileSync(HIST, JSON.stringify(
+      { updated: new Date().toISOString().slice(0, 10),
+        note: "What each row used to be worth. One entry per change. Written by the harvest; nothing reads it yet.",
+        rows: H }, null, 1));
+    if (kept) console.log(`  ${kept} row(s) added a point to tools/price-history.json`);
+  } catch (e) { console.error("  (could not write price history: " + e.message + ")"); }
+
   writeFileSync(join(ROOT, "tools/price-changes.md"), L.join("\n"));
   console.log("\n  Report written to tools/price-changes.md");
 
