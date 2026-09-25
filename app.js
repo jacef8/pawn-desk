@@ -1842,8 +1842,35 @@ function bookSimple(x){
   return isCustom() && !!st.bookName
       && (Number(x.resale)||0)*0.4 < (Number(x.buyFloor)||25);
 }
+/* A SURFACE BOOK WAS BEING FILED AS A FIREARM.
+   "Not on the lists" parked the item in custId(st.catId) - whatever
+   category happened to be selected - and the desk opens on guns. So the
+   thing on the counter became cust-guns: the gun brand book, the gun buy
+   rate, GunBroker offered as its comp, and no chance of reading "Microsoft"
+   out of the words because Microsoft is not a gun maker. The counter saw
+   only the end of that chain: NOTHING PICKED YET on the make step.
+   The words usually say which aisle. Read them against every category and
+   take the one that answers; a tie or a blank still asks. */
+function guessCat(txt){
+  const t=String(txt||"").trim(); if(t.length<3)return null;
+  const hits=CATALOG.map(c=>c.id).filter(id=>!!brandFromName(id,t));
+  return hits.length===1?hits[0]:null;
+}
 function askQueue(x){
   const q=[], cat=x.cat, ov=itemOv(), easy=bookSimple(x);
+  /* THE DESK ASKED A QUESTION IT NEVER DREW.
+     needKind means "I do not know what sort of thing this is, and nothing
+     is priced until somebody says". The buttons for it lived inside
+     #nextStep - a card the one-question run does not render on either the
+     phone or the desk - so the counter was asked nothing, and the item sat
+     in whatever aisle was last open. A question belongs in the run with the
+     rest of the questions. */
+  if(st.needKind){
+    q.push({id:"kind", title:"What kind of thing is it?",
+      hint:"Nothing is priced until this is answered \u2014 it decides where the desk looks for a price and what share of new to work from.",
+      opts:CATALOG.map(c=>({t:c.label, on:false, set:"kind", v:c.id})),
+      answered:false});
+  }
   if(cat.brand.on){
     const tiers=(ov&&ov.tiers)||cat.brand;
     /* If the make is known, that IS the answer - show it answered rather
@@ -2648,8 +2675,24 @@ function wireItem(){
     st.needKind=false;
     if(un&&st.photoRead)st.photoRead=Object.assign({},st.photoRead,{unplaced:false});
     st.liq=null;st.brandTyped="";st.brandQ="";st.model="";st.detail="";st.complete=true;st.completeSet=false;st.struck="";st.editing=false;
-    st.brandSet=false;
-    const h=typed?brandInText(st.catId,typed):null; st.brand=h?h.tier:"mid";
+    /* THE MAKE WAS READ AND THEN THROWN AWAY.
+       Reported from the counter: typed "microsoft surface book", answered
+       "Electronics", and the make step still said NOTHING PICKED YET. The
+       desk had in fact read it - this line set the TIER off those same
+       words and priced against it - it just never wrote down WHICH make,
+       so the screen claimed ignorance about something it had already
+       used. "It should understand Microsoft as a brand." It did. It was
+       hiding it.
+       brandFromName rather than brandInText, because the words on the
+       counter are as often a product line as a maker: "surface" is
+       Microsoft, "inspiron" is Dell, "quietcomfort" is Bose, and the
+       whole-name scan alone finds none of those. brandSet goes with it -
+       a make the desk is confident enough to price with is a make it is
+       confident enough to show, and the counter can tap another if it is
+       wrong. */
+    const h=typed?brandFromName(st.catId,typed):null;
+    st.brand=h?h.tier:"mid";
+    if(h){ st.brandTyped=h.name; st.brandQ=h.name; st.brandSet=true; }
     render();});
   v.querySelectorAll("[data-item]").forEach(b=>b.onclick=()=>{st.needKind=false;st.itemId=b.dataset.item;st.market=null;st.omniDone="";st.mpPin=null;st.mpNone=false;st.condSet=false;st.cond="good";st.bookName="";st.liq=null;st.brand="mid";st.brandTyped="";st.brandQ="";st.model="";st.detail="";st.complete=true;st.completeSet=false;st.struck="";st.askAt=0;st.brandSet=false;
     /* picking "Something else" with no saved value drops you straight into the price box */
@@ -2681,6 +2724,18 @@ function wireItem(){
   v.querySelectorAll("[data-ask]").forEach(b=>b.onclick=()=>{
     const kind=b.dataset.ask, val=b.dataset.askv;
     if(kind==="brand"){ st.brand=val; st.brandTyped="";st.brandQ=""; st.brandSet=true; }
+    else if(kind==="kind"){
+      /* Same work the category buttons did, minus the reset: the words the
+         counter typed are the only thing known about this item, so they are
+         kept and the make is read out of them against the aisle just
+         chosen - which is the whole reason it could not be read before. */
+      const typed=st.bookName||"";
+      st.catId=val; st.itemId=custId(val); st.bookName=typed||"Something else";
+      st.needKind=false; st.mpNone=true; st.liq=null; st.market=null; st.mpPin=null;
+      const bh=typed?brandFromName(val,typed):null;
+      st.brand=bh?bh.tier:"mid";
+      st.brandTyped=bh?bh.name:""; st.brandQ=st.brandTyped; st.brandSet=!!bh;
+    }
     else if(kind==="comp"){ st.complete=val==="1"; st.completeSet=true; }
     else if(kind==="cond"){ st.cond=val; st.condSet=true; }
     else if(kind==="spec"){ const [gi,oi]=val.split(":"); st.specSel[st.itemId+":"+gi]=Number(oi); }
@@ -3015,7 +3070,13 @@ function metalResultHTML(num){
            the refiner's range, and "leaves $-16 to $25" is not an answer. */
         if(hi<=offR) return left+` That is less than the ${money(offR)} you would pay, so there is nothing in scrapping at this rate.`;
         if(lo<offR)  return left+` Against the ${money(offR)} you would pay that is about a wash &mdash; anywhere from ${money(offR-lo)} short to ${money(hi-offR)} ahead. Scrapping is not the way out of this one.`;
-        return left+` That leaves ${money(lo-offR)} to ${money(hi-offR)} over the ${money(offR)} you paid.`;
+        /* "That leaves $48 to $60 over the $169 you paid" was asked about
+           from the counter, and rightly. "Leaves ... over" reads as a
+           leftover BALANCE rather than the profit it is, and it slipped
+           into the past tense - "you paid" - on a card describing an offer
+           nobody has made yet. The other two branches on this very line
+           say "would pay". Say profit, and say it in the same tense. */
+        return left+` That is <b style="color:var(--ink)">${money(lo-offR)} to ${money(hi-offR)} profit</b> on the ${money(offR)} you would pay.`;
       })()}</div>`:""}
     ${pawn&&(m.guarded||m.trimmed)?`<div class="tagNote">${(m.premium>0.05||m.trimmed)
       ?`<b style="color:var(--ink)">Peak guard is on.</b> ${st.metal==="gold"?"Gold":"Silver"} is ${Math.round(m.premium*100)}% above its 90-day average, so the loan is sized off the average${m.trimmed?" and trimmed another 10%":""} \u2014 as if today's high never happened.`
@@ -5433,6 +5494,14 @@ const MODELBOOK=[
  MB(/\bpixel\s*\d{1,2}a?(\s*(pro\s*xl|pro|xl|fold))?\b/,"Google","e4"),
  MB(/\bipad(\s*(pro|air|mini))?(\s*\d+)?\b/,"Apple","e3",{label:m=>"iPad"+(m[1]?" "+pretty(m[1]):"")+(m[3]||"")}),
  MB(/\bmacbook(\s*(pro|air))?(\s*m\d)?\b/,"Apple","e2",{label:m=>"MacBook"+(m[1]?" "+pretty(m[1]):"")+(m[3]?" "+m[3].trim().toUpperCase():"")}),
+ /* SURFACE IS FOUR DIFFERENT MACHINES AND THE DESK KNEW NONE OF THEM.
+    "microsoft surface" found the laptop rows fine, but "surface book" and
+    "surface pro" - the two names anybody actually says - found nothing:
+    Surface Book went to COMIC BOOKS on the strength of the word "book",
+    and Surface Pro offered a coin collection and a gas grill off "pro".
+    A Book, a Laptop and a Studio are laptops; a Pro and a Go are tablets. */
+ MB(/\bsurface\s*(book|laptop|studio)(\s*\d+)?\b/,"Microsoft","e2",{label:m=>"Surface "+pretty(m[1])+(m[2]||"")}),
+ MB(/\bsurface\s*(pro|go)(\s*\d+)?\b/,"Microsoft","e3",{label:m=>"Surface "+pretty(m[1])+(m[2]||"")}),
  MB(/\b(sony\s*)?(ps5|ps4|playstation\s*\d?)(\s*(pro|slim|digital))?\b/,"Sony","e5",{label:m=>pretty(m[2].replace("playstation","PlayStation"))+(m[3]?" "+pretty(m[3]):""),
    spec:m=>/ps4|playstation\s*4/.test(m[0])?{Version:"Previous gen"}:/digital/.test(m[0])?{Version:"Current gen, digital"}:null}),
  MB(/\bxbox(\s*(series\s*[xs]|one\s*[xs]?|one|360))?\b/,"Microsoft","e5",{label:m=>"Xbox"+(m[1]?" "+pretty(m[1]):""),
@@ -5846,10 +5915,20 @@ function startOver(){
 function omniPick(r){
   if(!r||r.kind==="sold")return;
   if(r.kind==="own"){
+    /* Before anything else: if the words name a make the desk knows, and
+       only one aisle carries it, that is the aisle. */
+    const g=guessCat(r.q);
+    if(g)st.catId=g;
     st.omniQ=r.q; st.omniHl=0; st.mode="item"; st.itemId=custId(st.catId); st.bookName=r.q;
-    st.brandTyped="";st.brandQ=""; st.model=""; st.detail=""; st.brand="mid"; st.brandSet=false; st.liq=null; st.market=null;
+    const bh=g?brandFromName(g,r.q):null;
+    st.brandTyped=bh?bh.name:""; st.brandQ=st.brandTyped; st.brand=bh?bh.tier:"mid"; st.brandSet=!!bh;
+    st.model=""; st.detail=""; st.liq=null; st.market=null;
     st.mpPin=null; st.mpNone=true; st.condSet=false; st.phKindsOpen=true; st.omniDone=r.q;
-    st.needKind=true;               /* nothing is priced until this is answered */
+    /* A guess that came off a make the desk actually carries is not a
+       silent one - the aisle shows in the breadcrumb and the make step
+       shows the maker it was read from, which is the evidence for it. Only
+       when the words say nothing does the run stop and ask. */
+    st.needKind=!g;
     render();
     const k=document.querySelector(".phKinds"); if(k&&k.scrollIntoView)k.scrollIntoView({block:"center"});
     return;
@@ -5873,9 +5952,17 @@ function omniPick(r){
     st.overrides[custId(r.catId)]=bookVal([r.name,r.value,r.catId,r.liq]); st.liq=r.liq; persist(); }
   else { st.itemId=custId(r.catId); st.bookName=r.name; st.liq=null; }
   st.needKind=false;
+  /* Same rule one path over: when the matched row carries no make of its
+     own, read one out of what was actually typed before settling for the
+     standard tier. */
   st.brandTyped=r.brand||"";
   st.brandSet=false;
-  const hit=st.brandTyped?brandLookup(st.catId,st.brandTyped):null; st.brand=hit?hit.tier:"mid";
+  let hit=st.brandTyped?brandLookup(st.catId,st.brandTyped):null;
+  if(!hit){
+    const fromWords=brandFromName(st.catId,String(r.q||st.omniQ||r.name||""));
+    if(fromWords){ hit=fromWords; st.brandTyped=fromWords.name; st.brandSet=true; }
+  }
+  st.brand=hit?hit.tier:"mid";
   st.model=r.model||""; st.detail=r.detail||"";
   st.complete=r.complete!==false; st.completeSet=true;
   if(r.cond)st.cond=r.cond;
@@ -7194,7 +7281,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0925.2212";
+const APP_BUILD="0925.2244";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

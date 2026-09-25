@@ -197,9 +197,20 @@ function wirePhone(){
   ns.querySelectorAll("[data-phcat]").forEach(b=>b.onclick=()=>{
     const c=b.dataset.phcat, nm=((isCustom()&&st.bookName)||[st.brandTyped,st.model].filter(Boolean).join(" ")||"").slice(0,60);
     st.catId=c; st.itemId=custId(c); st.bookName=nm||"Something else"; st.liq=null;
-    st.brandTyped=""; st.model=""; st.detail=""; st.phKindsOpen=false;
-    /* the brand is sitting in what was typed - read the tier off it */
-    const bh=nm?brandInText(c,nm):null; st.brand=bh?bh.tier:"mid";
+    st.model=""; st.detail=""; st.phKindsOpen=false;
+    /* THE BRAND WAS SITTING IN WHAT WAS TYPED AND THE DESK BINNED IT.
+       This line already read the TIER off those words and priced against
+       it, then blanked brandTyped on the line above - so "microsoft
+       surface book" priced as a mid-tier maker while the make step said
+       NOTHING PICKED YET. The desk knew and would not say.
+       brandFromName, not brandInText: what a counter types is as often a
+       product line as a maker - "surface" is Microsoft, "inspiron" is
+       Dell - and the whole-name scan finds none of those. */
+    const bh=nm?brandFromName(c,nm):null;
+    st.brand=bh?bh.tier:"mid";
+    st.brandTyped=bh?bh.name:"";
+    st.brandQ=st.brandTyped;
+    st.brandSet=!!bh;
     st.market=null; st.mpPin=null; st.mpNone=true; st.condSet=false; st.editing=false; render();
   });
 }
@@ -367,7 +378,22 @@ async function snapPriceAfterPhoto(){
 function snapHTML(){
   const x=calcItem();
   const has=st.picked, F=fakeState(fakeSheet(x));
-  const name=[st.brandTyped,st.model].filter(Boolean).join(" ")||(has?displayName(x):"");
+  /* THE HEADING GOT SHORTER THE MORE THE DESK WORKED OUT.
+     This read make + model, falling back to the typed description only
+     when neither was known. So the moment the desk read "Microsoft" out of
+     "microsoft surface book", the card stopped saying what was on the
+     counter and started saying "Microsoft" - the counter's own words
+     replaced by one word of the desk's. For an item that IS the words the
+     counter typed, those words are the name; the model is added only if it
+     is not already among them. */
+  const name=(function(){
+    const made=[st.brandTyped,st.model].filter(Boolean).join(" ").trim();
+    let typed="";
+    try{ if(isCustom()&&st.bookName)typed=String(st.bookName).trim(); }catch(e){}
+    if(!typed)return made||(has?displayName(x):"");
+    const m=String(st.model||"").trim();
+    return (m&&typed.toLowerCase().indexOf(m.toLowerCase())<0)?typed+" "+m:typed;
+  })();
   const bits=[st.detail,COND_WORDS[st.cond]&&COND_WORDS[st.cond][0]].filter(Boolean).join(" \u00b7 ");
 
   /* The camera, full width, before anything else. */

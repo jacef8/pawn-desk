@@ -911,6 +911,106 @@ console.log("\n  the number actually agreed can be typed, and it is what gets lo
      "  and it can record a straight buy instead of a loan");
 }
 
+/* REPORTED FROM THE COUNTER, with a photograph: typed "microsoft surface
+   book", and the make step said NOTHING PICKED YET. "The tool may not know
+   this specific model, but it should understand Microsoft as a brand."
+   It did know. Three separate things were hiding it:
+     - "surface book" matched nothing, so the word "book" sent it to COMIC
+       BOOKS and the counter took the "not on the lists" route;
+     - that route parked the item in whatever aisle was open, which is guns
+       by default - so the make was being looked up in the FIREARMS book,
+       where Microsoft is quite reasonably absent;
+     - and the one line that did read the words read only the TIER off them
+       and then blanked the make, on both the phone and the desk. */
+console.log("\n  the make the counter typed is not thrown away");
+{
+  const r = await page.evaluate(async () => {
+    const out = {};
+    /* the desk knows all of this already - none of it is new knowledge */
+    out.reads = !!brandFromName("elec", "microsoft surface book");
+    out.notAGun = !brandFromName("guns", "microsoft surface book");
+    out.guess = guessCat("microsoft surface book");
+    /* the search finds the machine now, rather than a long box of comics */
+    const find = async (q) => {
+      st.mode = "item"; st.picked = false; st.bookName = ""; st.needKind = false; render();
+      const inp = document.getElementById("omniIn");
+      inp.value = q; inp.dispatchEvent(new Event("input", {bubbles:true}));
+      await new Promise(z => setTimeout(z, 350));
+      return [...document.querySelectorAll("[data-omni]")].map(e => e.innerText.replace(/\s+/g, " "));
+    };
+    out.book = (await find("surface book"))[0] || "";
+    out.pro  = (await find("surface pro"))[0] || "";
+    /* and the route that was actually taken */
+    const rows = await find("microsoft surface book");
+    out.rows = rows.length;
+    const own = [...document.querySelectorAll("[data-omni]")]
+      .find(e => /not on the lists/i.test(e.innerText));
+    own.click();
+    await new Promise(z => setTimeout(z, 250));
+    out.cat = st.catId; out.item = st.itemId; out.needKind = st.needKind;
+    out.brand = st.brandTyped; out.tier = st.brand; out.set = st.brandSet;
+    out.kept = st.bookName;
+    const q = askQueue(calcItem());
+    const bi = q.findIndex(z => z.id === "brand");
+    st.askAt = bi; render();
+    const card = document.getElementById("askCard");
+    out.says = card ? card.innerText.replace(/\s+/g, " ").slice(0, 120) : "";
+    return out;
+  });
+  ok(r.reads && r.notAGun,
+     "the desk reads Microsoft out of those words for electronics, and not for guns");
+  ok(r.guess === "elec", "  so the aisle can be read off them too \u2014 got " + r.guess);
+  ok(/Surface Book/i.test(r.book) && /Laptop/i.test(r.book),
+     '  "surface book" finds a laptop, not a long box of comics \u2014 ' + r.book.slice(0, 48));
+  ok(/Surface Pro/i.test(r.pro) && /Tablet/i.test(r.pro),
+     '  "surface pro" finds a tablet, not a gas grill \u2014 ' + r.pro.slice(0, 48));
+  ok(r.cat === "elec" && r.item === "cust-elec",
+     "  and the not-on-the-lists route no longer files it under guns \u2014 " + r.item);
+  ok(r.needKind === false, "  it does not have to stop and ask, either");
+  ok(r.brand === "Microsoft" && r.set === true,
+     "  the make is written down, not just used \u2014 " + JSON.stringify(r.brand) + " set=" + r.set);
+  ok(/Microsoft/.test(r.says) && !/Nothing picked yet/i.test(r.says),
+     "  so the make step names it instead of claiming ignorance \u2014 " + r.says.slice(0, 80));
+  ok(r.kept === "microsoft surface book",
+     "  and the counter's own words are still what the card is called \u2014 " + JSON.stringify(r.kept));
+}
+
+/* When the words say nothing, the desk has to ASK - and it was asking in a
+   card that neither the phone nor the desk draws in the one-question run,
+   so it asked nobody and filed the thing under guns. */
+console.log("\n  and when the words say nothing, the run asks");
+{
+  const r = await page.evaluate(async () => {
+    st.mode = "item"; st.picked = false; st.bookName = ""; st.needKind = false;
+    st.catId = "guns"; render();
+    const inp = document.getElementById("omniIn");
+    inp.value = "blue thingamajig"; inp.dispatchEvent(new Event("input", {bubbles:true}));
+    await new Promise(z => setTimeout(z, 350));
+    [...document.querySelectorAll("[data-omni]")]
+      .find(e => /not on the lists/i.test(e.innerText)).click();
+    await new Promise(z => setTimeout(z, 250));
+    const card = document.getElementById("askCard");
+    const before = {needKind: st.needKind, cat: st.catId,
+      q: card ? card.querySelector(".askQ").textContent.trim() : "(no card at all)",
+      opts: card ? card.querySelectorAll(".askOpt").length : -1,
+      lit: card ? card.querySelectorAll(".askOpt.on").length : -1,
+      priced: priceReady(calcItem())};
+    const pick = card && card.querySelector('[data-askv="elec"]');
+    if (pick) pick.click();
+    await new Promise(z => setTimeout(z, 250));
+    return {before, after: {needKind: st.needKind, cat: st.catId, item: st.itemId, kept: st.bookName}};
+  });
+  ok(/what kind of thing/i.test(r.before.q),
+     "the run asks it, on the card the counter is already looking at \u2014 " + JSON.stringify(r.before.q));
+  ok(r.before.opts === 11 && r.before.lit === 0,
+     "  every aisle offered, none of them lit \u2014 " + r.before.opts + " options, " + r.before.lit + " lit");
+  ok(r.before.priced === false, "  and nothing is priced until it is answered");
+  ok(r.after.cat === "elec" && r.after.item === "cust-elec" && r.after.needKind === false,
+     "  answering moves it to that aisle \u2014 " + r.after.item);
+  ok(r.after.kept === "blue thingamajig",
+     "  keeping what was typed \u2014 " + JSON.stringify(r.after.kept));
+}
+
 ok(!errs.length, "no page errors" + (errs.length ? ": " + errs[0] : ""));
 await browser.close();
 console.log(`\n  ${pass} passed, ${fail} failed\n`);
