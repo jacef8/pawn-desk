@@ -233,9 +233,44 @@ const pct = (a, f) => a[Math.min(a.length - 1, Math.max(0, Math.round(f * (a.len
 
 /* ---- findings so far ---- */
 let found = {};
-if (existsSync(OUT)) { try { found = JSON.parse(readFileSync(OUT, "utf8")).found || {}; } catch (e) {} }
-const save = () => writeFileSync(OUT,
-  JSON.stringify({ updated: new Date().toISOString(), found }, null, 1));
+let spend = {};          /* declared HERE, beside found, because the loader
+                            below writes to both - and a `let` further down
+                            the file put this one in its temporal dead zone,
+                            where the assignment threw and the catch ate it.
+                            found loaded, spend silently did not, and the
+                            allowance read 0 of 900 with a spent month
+                            sitting in the file. */
+if (existsSync(OUT)) { try {
+  const st = JSON.parse(readFileSync(OUT, "utf8"));
+  found = st.found || {};
+  spend = st.spend || {};
+} catch (e) {
+  /* Not silent. A state file that will not parse means the run is about to
+     re-price a book it thinks is empty - which is the most expensive
+     mistake available to it. */
+  console.error("  (could not read " + OUT + ": " + e.message + ")");
+  console.error("  Treating the book as unpriced would spend the month. Stopping.");
+  process.exit(5);
+} }
+/* WHAT THE HARVEST MAY SPEND IN A MONTH, AND WHAT IS NOT ITS TO SPEND.
+   SoldComps counts every lookup the same, whether the harvest made it or
+   the counter did with a customer waiting. There is no way to reserve half
+   the plan for the counter at their end - so the reserve has to be a
+   CEILING at ours. The harvest gets a monthly allowance and stops; the
+   rest is Jace's, by construction rather than by hoping.
+   900 of 2000 on the $9 plan. At the shelf intervals above a normal month
+   needs well under that, so the cap only ever bites on a catch-up. */
+const MONTH_CAP = Math.max(0, Number(arg("cap", 900)) || 0);
+const monthKey = () => new Date().toISOString().slice(0, 7);
+let spentThisRun = 0;
+const spentThisMonth = () => (Number(spend[monthKey()]) || 0) + spentThisRun;
+const save = () => {
+  const s = Object.assign({}, spend);
+  if (spentThisRun) s[monthKey()] = (Number(s[monthKey()]) || 0) + spentThisRun;
+  writeFileSync(OUT, JSON.stringify(
+    { updated: new Date().toISOString(), spend: s, found }, null, 1));
+  spend = s; spentThisRun = 0;
+};
 
 /* ================= merge: findings -> prices.json ================= */
 if (has("merge")) {
@@ -575,7 +610,73 @@ const key = (t) => t.ref + "|" + t.name;
  * are left alone far longer. That is a fact about the market, not a price,
  * and re-proving it monthly would spend 127 lookups to learn nothing.
  */
-const STALE_DAYS = Math.max(0, Number(arg("stale", 28)) || 0);
+/* HOW OFTEN A SHELF ACTUALLY NEEDS RE-PRICING.
+   One 28-day rule across all 970 targets was the whole problem: the book
+   came due every 28 days, a full sweep is up to 1,942 lookups, and the
+   plan is 2,000 a month - so the harvest was budgeted to eat the entire
+   allowance and the COUNTER, which is what the tool is for, got whatever
+   was left. Usually nothing. On 25 Sep SoldComps mailed to say the month
+   was gone.
+
+   And the rule was wrong on its own terms. Used prices do not drift, they
+   STEP. A DeWalt DCD791 does not wander 5% a month; it sits flat until
+   DeWalt ships the DCD800 and the whole line shifts down a rung. What
+   moves is what has an EVENT: an annual release, a season, a metal price.
+   A cordless drill has none of those, and re-pricing it fortnightly buys
+   nothing and costs two lookups every time.
+
+   So: by shelf, by what makes it move. These are reasoned, not measured -
+   the book was two days old when they were set - and the sample in
+   tools/pipeline-rules.md is how they get corrected with data. */
+const STALE_BY_TIER = { fast: 30, steady: 90, slow: 180 };
+const TIER_OF = {
+  e: "fast",     /* phones, laptops, consoles, titles - real release steps */
+  p: "steady",   /* outdoor power - seasonal, then flat */
+  h: "steady",   /* hunting & fishing - in season, out of season */
+  f: "steady",   /* fitness - January, then flat all year */
+  t: "slow",     /* tools - a drill is a drill until the next model */
+  m: "slow",     /* instruments */
+  a: "slow",     /* appliances & household */
+  j: "slow",     /* jewelry - priced off metal weight anyway */
+  c: "steady",   /* cards & coins - grading and hype move these */
+  r: "slow",     /* trailers & ATVs */
+  g: "slow",     /* firearms never price off eBay at all */
+};
+const tierOf = (ref) => TIER_OF[String(ref || "").trim().charAt(0).toLowerCase()] || "steady";
+const staleFor = (ref) => STALE_BY_TIER[tierOf(ref)] || STALE_BY_TIER.steady;
+
+/* THE CALENDAR BEATS THE NEWS FOR THE THINGS THAT MATTER.
+   Jace asked whether the desk could watch for a new phone or a new console.
+   Most of what moves a used price is not news at all - it is a date that
+   has been the same for fifteen years. iPhones land in September and the
+   old one steps down within the fortnight. Madden lands in August, Call of
+   Duty in November, Samsung's Galaxy S in January.
+   So these aisles come due BEFORE the event rather than on their own
+   schedule, and the book is right while the customer is standing there
+   rather than five weeks later. A month is the lead: long enough to have
+   the new prices, short enough that they are still the new prices. */
+const PRICE_EVENTS = [
+  { month: 9,  refs: ["e"], what: "new iPhone - last year's steps down" },
+  { month: 8,  refs: ["e"], what: "Madden and the autumn sports titles" },
+  { month: 11, refs: ["e"], what: "Call of Duty, and console bundles for Christmas" },
+  { month: 1,  refs: ["e"], what: "Samsung Galaxy S launch" },
+  { month: 1,  refs: ["f"], what: "January - treadmills and weights move" },
+  { month: 3,  refs: ["p"], what: "spring - mowers, trimmers, pressure washers" },
+  { month: 9,  refs: ["h"], what: "hunting season opens" },
+  { month: 6,  refs: ["p"], what: "storm season - generators and saws" },
+];
+/* The month an event lands in, and the month before it. */
+const eventNow = () => {
+  const m = new Date().getUTCMonth() + 1;
+  const next = m === 12 ? 1 : m + 1;
+  return PRICE_EVENTS.filter((e) => e.month === m || e.month === next);
+};
+const dueForEvent = (ref) => {
+  const L = String(ref || "").trim().charAt(0).toLowerCase();
+  return eventNow().some((e) => e.refs.indexOf(L) >= 0);
+};
+
+const STALE_DAYS = Math.max(0, Number(arg("stale", 0)) || 0);
 const LOCAL_STALE_DAYS = 120;
 const ageOf = (d) => {
   const t = Date.parse(String(d || "") + "T12:00:00Z");
@@ -584,8 +685,15 @@ const ageOf = (d) => {
 const needsPricing = (t) => {
   const f = found[key(t)];
   if (!f) return true;
-  if (!STALE_DAYS) return false;                    /* --stale 0: never reprice */
-  return ageOf(f.date) >= (f.local ? LOCAL_STALE_DAYS : STALE_DAYS);
+  if (STALE_DAYS === 0 && has("stale")) return false;  /* --stale 0: never reprice */
+  const age = ageOf(f.date);
+  if (f.local) return age >= LOCAL_STALE_DAYS;
+  /* --stale N overrides the shelf, for a deliberate one-off */
+  const want = STALE_DAYS || staleFor(t.ref);
+  /* An aisle with an event this month or next comes due early - but not
+     from cold: a row priced last week is still last week's price. */
+  if (!STALE_DAYS && dueForEvent(t.ref) && age >= 21) return true;
+  return age >= want;
 };
 let todo = targets.filter(needsPricing);
 /* Oldest first, so a run cut short by a quota or a crash refreshes the
@@ -642,6 +750,7 @@ async function viaEbay(t) {
   let comps = [], basis = "", warned = "", found = 0;
   for (const q of tries) {
     let j;
+    spentThisRun++;                                  /* the meter, not the result */
     const r = await fetch(SERVER + "/ebay", { method: "POST",
       headers: { "content-type": "application/json", "x-pawn-token": TOKEN },
       body: JSON.stringify({ q, limit: 40, kind: KIND[t.ref] || "" }) });
@@ -745,7 +854,19 @@ console.log("  Targets in the list      : " + targets.length);
   const priced = targets.filter(t => found[key(t)]).length;
   const fresh  = targets.filter(t => found[key(t)] && !needsPricing(t)).length;
   console.log("  Already priced           : " + priced + (STALE_DAYS ? "  (" + fresh + " still fresh, the rest due a recheck)" : ""));
-  if (STALE_DAYS) console.log("  Repriced after           : " + STALE_DAYS + " days  (" + LOCAL_STALE_DAYS + " for rows eBay cannot price)");
+  if (STALE_DAYS) console.log("  Repriced after           : " + STALE_DAYS + " days  (--stale overrides the shelves)");
+  else console.log("  Repriced after           : " + STALE_BY_TIER.fast + "d electronics, "
+    + STALE_BY_TIER.steady + "d seasonal, " + STALE_BY_TIER.slow + "d tools & the rest, "
+    + LOCAL_STALE_DAYS + "d where eBay is blind");
+  {
+    const ev = eventNow();
+    if (ev.length) console.log("  Pulled forward           : " + ev.map(e => e.what).join("; "));
+  }
+  if (MONTH_CAP) {
+    const used = spentThisMonth(), left = Math.max(0, MONTH_CAP - used);
+    console.log("  Harvest allowance        : " + used + " of " + MONTH_CAP
+      + " used this month, " + left + " left  (the rest of the plan is the counter's)");
+  }
 }
 console.log("  This run                 : " + todo.length);
 console.log("  Source                   : " + (VIA === "ebay"
@@ -783,6 +904,14 @@ for (let i = 0; i < todo.length; i++) {
     console.log(`\n  Stopping: spent $${spentUsd.toFixed(2)} of the $${SPEND_CAP.toFixed(2)} you agreed to.`);
     console.log(`  ${todo.length - i} target(s) left. Raise --spend to carry on.\n`);
     break;
+  }
+  if (MONTH_CAP && spentThisMonth() >= MONTH_CAP) {
+    console.error(`\n  STOPPING: the harvest has used its ${MONTH_CAP} lookups for ${monthKey()}.`);
+    console.error(`  The rest of the plan is the counter's - it is what the tool is for.`);
+    console.error(`  ${i} of ${todo.length} priced. The rest stay outstanding and come`);
+    console.error(`  up first next month. Raise it for one run with --cap N.\n`);
+    save();
+    process.exit(4);
   }
   const tag = `[${i + 1}/${todo.length}] ${t.name}`;
   if (ebayBlind(t.ref, t.name)) {

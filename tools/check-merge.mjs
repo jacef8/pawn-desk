@@ -404,6 +404,55 @@ console.log("\n  the money path refuses an unbounded run");
 }
 
 
+/* THE HARVEST WAS BUDGETED TO EAT THE WHOLE PLAN.
+   970 targets on one 28-day rule is a full sweep every 28 days, up to
+   1,942 lookups against 2,000 a month - so the counter, which is what the
+   tool is FOR, got whatever was left. Usually nothing.
+   Two changes. A ceiling on what the harvest may spend in a month, because
+   SoldComps counts every lookup the same and there is no way to reserve
+   half the plan at their end. And intervals by shelf, because used prices
+   do not drift, they STEP: a drill sits flat until the next model ships,
+   while a phone steps every September. */
+console.log("\n  the harvest lives inside an allowance, and prices by shelf");
+{
+  const harv = readFileSync(join(ROOT, "tools/harvest.js"), "utf8");
+
+  ok(/MONTH_CAP/.test(harv) && /arg\("cap", 900\)/.test(harv),
+     "the harvest has a monthly ceiling, not the whole plan");
+  ok(/process\.exit\(4\)/.test(harv),
+     "  and stops on it with its own exit code");
+  ok(/spentThisRun\+\+/.test(harv),
+     "  counting every request, not every success");
+  ok(/spend: s/.test(harv) || /spend: /.test(harv),
+     "  and the ledger is written to the state file so it survives the run");
+
+  ok(/STALE_BY_TIER/.test(harv) && /fast: 30/.test(harv) && /slow: 180/.test(harv),
+     "intervals are per shelf, not one number for 970 targets");
+  ok(/TIER_OF/.test(harv) && /e: "fast"/.test(harv) && /t: "slow"/.test(harv),
+     "  electronics move fast, tools do not");
+
+  ok(/PRICE_EVENTS/.test(harv) && /iPhone/.test(harv),
+     "a release calendar pulls the affected aisles forward");
+  ok(/dueForEvent/.test(harv) && /age >= 21/.test(harv),
+     "  a month before the event, but not from cold - last week's price is still last week's");
+
+  /* the state file must survive a round trip with the ledger in it */
+  const st = JSON.parse(readFileSync(join(ROOT, "tools/harvest.json"), "utf8"));
+  ok(st.found && Object.keys(st.found).length > 100,
+     "the state file still carries its findings — " + Object.keys(st.found || {}).length + " rows");
+  ok(st.spend && typeof st.spend === "object",
+     "  and the spend ledger beside them");
+
+  /* the bug that hid itself: spend assigned before it was declared, the
+     assignment threw, and the catch ate it - found loaded, spend did not */
+  const decl = harv.indexOf("let spend = {}");
+  const use  = harv.indexOf("spend = st.spend");
+  ok(decl > 0 && decl < use,
+     "  spend is declared before the loader writes it, not after");
+  ok(!/catch \(e\) \{\} \}/.test(harv.slice(0, harv.indexOf("spend = st.spend") + 300)),
+     "  and a state file that will not parse is not swallowed");
+}
+
 /* TWO WAYS A QUIET SOLDCOMPS TURNS A GOOD RUN INTO A BAD BOOK.
    On 25 Sep SoldComps mailed Jace to say the month's lookups were gone.
    The harvest had no idea. The service answers a spent quota by falling

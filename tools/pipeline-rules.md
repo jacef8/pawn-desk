@@ -119,11 +119,59 @@ still outstanding when the run finishes.
 Targets come up oldest first, so a capped run always refreshes what needed
 it most.
 
-A finding is repriced once it is **28 days old** (120 days for rows eBay
-cannot price at all - mowers and trimmers nobody ships, where the answer is
-a fact about the market rather than a price). Without that the harvest runs
-once and is a no-op for ever after, and the book freezes at whatever the
-first Monday said.
+## The allowance, and the shelves
+
+**The harvest may spend 900 lookups a month and no more.** SoldComps counts
+every lookup the same whether the harvest made it or the counter did with a
+customer waiting, so there is no way to reserve half the plan at their end -
+the reserve has to be a ceiling at ours. The harvest stops at 900 and says
+so; the rest of the plan is the counter's, by construction rather than by
+hoping. `--cap N` raises it for one deliberate run.
+
+The ledger lives in `tools/harvest.json` under `spend`, by calendar month,
+and counts every REQUEST rather than every success - a failed lookup costs
+the same as a good one.
+
+**Rows come due by shelf, not on one clock.** The old rule was 28 days for
+everything, which meant all 970 targets came due every 28 days: a full
+sweep, 1,942 lookups, 97% of the plan, with nothing left for the counter.
+That is how September was spent.
+
+It was also wrong on its own terms. Used prices do not drift, they STEP. A
+DeWalt DCD791 sits flat until DeWalt ships the DCD800 and the line shifts
+down a rung. What moves is what has an EVENT - an annual release, a season,
+a metal price - and a cordless drill has none of those.
+
+| Shelf | Repriced after | Why |
+|---|---|---|
+| Electronics | **30 days** | real release-cycle steps |
+| Outdoor power, hunting, fitness, cards | **90 days** | seasonal, then flat |
+| Tools, instruments, appliances, jewelry, trailers | **180 days** | nothing moves between models |
+| Aisles eBay cannot price | 120 days | the answer is a fact, not a price |
+
+`--stale N` overrides all of it for a one-off.
+
+**These are reasoned, not measured.** They were set when the book was two
+days old. The way to correct them is cheap: next month re-price 40 rows
+priced in September, spread across shelves - about 80 lookups, 4% of a
+month - and see what actually moved. If tools moved 1% in 30 days, push
+them to a year and bank the difference.
+
+## The calendar beats the news
+
+Most of what moves a used price is not news, it is a date that has not
+changed in fifteen years. iPhones land in September and last year's steps
+down within the fortnight; Madden in August, Call of Duty in November,
+Samsung's Galaxy S in January; mowers in spring, generators in storm
+season, treadmills in January.
+
+`PRICE_EVENTS` in harvest.js pulls those aisles forward a month before the
+event, so the book is right while the customer is standing there rather
+than five weeks later. A row priced in the last three weeks is still left
+alone - last week's price is still last week's price.
+
+Add to that table when a pattern shows up. It is a calendar, so it needs no
+network, no key and nothing to go stale.
 
 Because the whole list was priced on the same day, it also comes due on the
 same day: expect one heavy week roughly every four, not a steady trickle.
