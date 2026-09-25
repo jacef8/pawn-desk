@@ -1153,11 +1153,15 @@ function pinHTML(x){
    two are what he asks next. The forfeit date is not a footnote either: it
    is the whole deal, and it goes on the card rather than in a fold. */
 function railHTML(x){
-  /* THE DESK GETS THE SAME HERO, OR IT IS NOT ONE APP.
-     The rail used to be a dial with the loan under it. Design A puts
-     the offer on a saturated card with the things you can do to it
-     underneath, and the desk has more room for that than the phone
-     does, not less. Same component, same order, same words. */
+  /* THE RAIL ONCE THERE IS AN ANSWER.
+     It used to open with a saturated card carrying the offer, the loan and
+     the resale - the phone's hero, on the desk. That was right while the
+     middle column was a question; it stopped being right the moment the
+     run started ending in the answer six inches to the left. Reported from
+     the counter as redundant, and it was.
+     What is here instead is everything the middle column does NOT say:
+     the actions, what kills one of these, the rungs past day 30, and the
+     cushion. */
   const thin=x.buyTooThin;
   const I={
     look:'<circle cx="11" cy="11" r="7"/><path d="M16 16l5 5"/>',
@@ -1170,26 +1174,35 @@ function railHTML(x){
   const canLook=!!(CAP.sample&&!ebayBlind(x));
   const act=(id,label,icon,on)=>`<button class="act" data-dact="${id}"${on?"":" disabled"}>`
     +`<i><svg viewBox="0 0 24 24" aria-hidden="true">${icon}</svg></i><span>${label}</span></button>`;
-  return `<div class="hero deskHero${thin?" bad":""}">
+  /* THE SAME THREE NUMBERS, TWICE, SIX INCHES APART.
+     Reported from the counter: once the run ends in the answer, the blue
+     hero beside it is "redundant of the new middle section." It is - buy
+     it for, lend him, resells, all of it repeated in a bigger typeface
+     than the card that just produced them.
+     What the rail keeps is what the middle does NOT say. The three actions
+     are actions, not numbers, so they stay - "Another" especially, since
+     it is how the next customer gets served. The ladder keeps days 31-60
+     and 90; the middle only names day 30. The cushion is nowhere else. And
+     the space the hero gave up goes to the thing a counter actually wants
+     in the last second before the money moves: what kills one of these. */
+  /* pinHTML above returns a bare strip whenever the run is not finished,
+     so this function is only ever reached once there IS an answer - which
+     is why the old hero branch that used to follow was unreachable and has
+     been taken out rather than left sitting here looking live. */
+  return `<div class="railTop${thin?" bad":""}">
       <div class="heroWho">On the counter</div>
-      <div class="heroWhat">${esc(displayName(x))}</div>
-      <div class="heroLab">${thin?"Walk away":"Buy it for"}</div>
-      <div class="heroBig${thin?" bad":""}">${thin?"&mdash;":money(x.buy)}</div>
-      <div class="heroSub">${thin
-        ? "It will not clear the "+money(x.buyFloor)+" you want out of it."
-        : "Lend him <b>"+money(x.target)+"</b> \u00b7 resells "+money(Math.round(x.resale))}</div>
+      <div class="railWhat">${esc(displayName(x))}</div>
+      ${thin?`<div class="railNo"><b>Walk away.</b> It will not clear the ${money(x.buyFloor)} you want out of it &mdash; not as a buy, and not as a loan you end up owning.</div>`:""}
       <div class="acts">
         ${act("look","Look up",I.look,canLook)}
         ${act("log","Log it",I.log,true)}
         ${act("new","Another",I.add,true)}
       </div>
     </div>
-    <div class="wRow"><i><svg viewBox="0 0 24 24" aria-hidden="true">${I.lend}</svg></i>
-      <div class="t"><b>Lend him</b><span>60-day pawn loan</span></div>
-      <div class="v">${thin?"&mdash;":money(x.target)}</div></div>
+    ${killerHTML(x)}
     ${thin?"":`
     <div class="railBack">
-      <div class="railBackHd"><b>He pays back</b><span>${pawnPct()}% per 30 days · $${(x.charge/30).toFixed(2)}/day after 60</span></div>
+      <div class="railBackHd"><b>He pays back</b><span>${pawnPct()}% per 30 days \u00b7 $${(x.charge/30).toFixed(2)}/day after 60</span></div>
       <div class="railLadder">${ladder(x.target,x.charge).map((r,i)=>
         `<div class="rbCell${i===0?" now":""}"><div class="k">${r.k}</div><div class="d">${money(r.due)}</div></div>`).join("")}</div>
       <div class="rbDay60">Day 60 it is <b>ours</b> &mdash; no notice, no letter.</div>
@@ -1215,6 +1228,24 @@ function railHTML(x){
    The bar is the share that were real sales. Amber, not green, when most of
    what is behind the figure is somebody's asking price: asks run high, and
    high is the wrong way to be wrong when the money is going out. */
+/* WHAT KILLS ONE OF THESE.
+   The desk has carried a driver and a killer for every kind of thing since
+   the beginning, and they sat folded inside a details on the step that sets
+   the brand - read once while typing a model, gone by the time anybody is
+   deciding. They belong in the last second before the money moves, which
+   on a desk is the rail: the price is settled, the offer is on the screen,
+   and the only question left is whether the thing in your hands is the
+   thing the price assumed. */
+function killerHTML(x){
+  const ov=itemOv()||{}, cat=x.cat||{};
+  const kill=ov.killer||cat.killer||"", drive=ov.driver||cat.driver||"";
+  if(!kill&&!drive)return "";
+  return `<div class="card killCard">
+    <span class="label" style="margin:0">Before the money moves</span>
+    ${kill?`<div class="killRow no"><b>What kills it</b><span>${esc(kill)}</span></div>`:""}
+    ${drive?`<div class="killRow go"><b>What sets the price</b><span>${esc(drive)}</span></div>`:""}
+  </div>`;
+}
 function weightHTML(x){
   const m=x.market;
   const CONF={h:[100,"","good data"],m:[62,"warn","fair data"],l:[28,"warn","thin - check it"]};
@@ -2178,11 +2209,13 @@ function struckHTML(x){
 function askDoneHTML(x){
   if(x.buyTooThin)return `<div class="askDone bad">
     <div class="adHd">That is everything &mdash; <b>and the answer is no</b></div>
+    <div class="adWhat">${esc(displayName(x))}${st.condSet?` \u00b7 ${esc((COND_WORDS[st.cond]||[st.cond])[0])}`:""}</div>
     <div class="adBig">Walk away</div>
     <div class="adWhy">It will not clear the ${money(x.buyFloor)} you want out of it &mdash; not as a buy, and not as a loan you end up owning. Hand it back.</div>
   </div>`;
   return `<div class="askDone">
     <div class="adHd">That is everything &mdash; <b>here is the answer</b></div>
+    <div class="adWhat">${esc(displayName(x))}${st.condSet?` \u00b7 ${esc((COND_WORDS[st.cond]||[st.cond])[0])}`:""}</div>
     <div class="adGrid">
       <div class="adCell"><div class="k">Buy it for</div><div class="d">${money(x.buy)}</div></div>
       <div class="adCell"><div class="k">Or lend him</div><div class="d">${money(x.target)}</div></div>
@@ -2244,13 +2277,35 @@ function askHTML(x){
          <div class="cardHint" style="margin-top:8px">Most of the time the answer is nothing, and Skip is the right move. Extra words narrow a sold-price search, and a search that is too narrow finds a different product instead of fewer of the right one.</div>
        </div>`
     : `<div class="askOpts">${(cur.opts||[]).map(opt).join("")}</div>`;
+  /* THE LAST QUESTION STAYED ON SCREEN AFTER IT WAS ANSWERED.
+     Reported from the counter: "after I'm done with step 8, it needs to go
+     away and move the deal details into the top section." Right - five
+     condition buttons with one of them lit, above the answer they produced,
+     is the form still asking after it has been filled in. The answer takes
+     the card; Back and the dots still reach every question, including this
+     one, so nothing is locked in. */
+  const allDone=q.every(z=>z.answered);
+  /* "Change an answer" has to reach the question this card REPLACED, not
+     the one before it - the counter just answered the condition, and a back
+     button that lands on "Anything else?" is answering a question nobody
+     asked. askEdit puts the last question back on screen in place of the
+     answer; anything that moves the run clears it. */
+  const finished=allDone&&at>=q.length-1&&!st.askEdit;
+  if(finished)return `<div class="card askCard askFin" id="askCard">
+    <div class="askWhere">${q.length} of ${q.length} \u00b7 all answered</div>
+    ${askDoneHTML(x)}
+    <div class="askNav">
+      <button class="ghostBtn" data-askedit="1">&larr; Change an answer</button>
+      <div class="askDots">${q.map((z,i)=>`<i class="${i===at?"on":""}${z.answered?" done":""}" title="${esc(z.title)}" data-askgo="${i}"></i>`).join("")}</div>
+      <button class="brassBtn" data-askdone="log">Write the ticket &darr;</button>
+    </div>
+  </div>`;
   return `<div class="card askCard" id="askCard">
-    <div class="askWhere">${at+1} of ${q.length}${q.every(z=>z.answered)?" \u00b7 all answered":""}</div>
+    <div class="askWhere">${at+1} of ${q.length}${allDone?" \u00b7 all answered":""}</div>
     <div class="askQ">${esc(cur.title)}</div>
     ${cur.named?`<div class="cardHint" style="margin-top:0"><b style="color:var(--accent)">${esc(cur.named)}</b> &mdash; read off the name. Tap another if it is wrong.</div>`
       :cur.hint?`<div class="cardHint" style="margin-top:0">${esc(cur.hint)}</div>`:""}
     ${body}
-    ${(at>=q.length-1&&q.every(z=>z.answered))?askDoneHTML(x):""}
     <div class="askNav">
       ${at<=0
         /* THE SAME DEAD BUTTON, AT THE OTHER END OF THE RUN.
@@ -2282,7 +2337,9 @@ function askHTML(x){
                either the run has a gap in it, or it is finished and the
                deal wants logging. Say which. */
              const open=q.findIndex(z=>!z.answered);
-             if(open<0)return `<button class="brassBtn" data-askdone="log">Write the ticket &darr;</button>`;
+             if(open<0)return st.askEdit
+               ? `<button class="brassBtn" data-askedit="0">Back to the answer &rarr;</button>`
+               : `<button class="brassBtn" data-askdone="log">Write the ticket &darr;</button>`;
              if(open!==at)return `<button class="brassBtn" data-askgo="${open}">Still to answer: ${esc(q[open].title)}</button>`;
              return `<button class="brassBtn" data-askdone="here">Pick one above &uarr;</button>`;
            })()
@@ -2550,11 +2607,13 @@ function renderItem(){
   if(!st.picked&&!window.PHONE)return `<div class="startHome">
     <div class="startMain">
       ${omniHTML()}
-      <div class="startWays">
-        <span class="label" style="margin:0">Or start from one of these</span>
-        <div class="startChips">${START_TRY.map(t=>
-          `<button class="tryChip" type="button" data-try="${esc(t)}">${esc(t)}</button>`).join("")}</div>
-      </div>
+      <!-- The worked examples used to sit here: eight chips that typed
+           themselves into the box. They were built to show what the search
+           accepts, and after a week at the counter that is not a thing
+           anybody needs shown twice - it is a row of somebody else's items
+           standing between the search box and the real lists. Taken out at
+           the counter's request. START_TRY stays: the phone has no room for
+           the tiles below and still names a few in one line of prose. -->
       <div class="startWays">
         <span class="label" style="margin:0">Or pick the kind of thing it is &mdash; ${CATALOG.reduce((a,c)=>a+c.items.length,0)} of them, and ${mpCount()} models by name</span>
         <div class="startGrid">${CATALOG.map(c=>
@@ -2654,13 +2713,6 @@ function wireItem(){
     if(a==="new"){ const n=document.getElementById("pinNew"); if(n)n.click();
                    else { st.picked=false; st.omniDone=""; st.market=null; render(); } return; }
   });
-  v.querySelectorAll("[data-try]").forEach(b=>b.onclick=()=>{
-    const inp=document.getElementById("omniIn"); if(!inp)return;
-    inp.value=b.dataset.try;
-    inp.dispatchEvent(new Event("input",{bubbles:true}));
-    inp.focus();
-    try{ inp.scrollIntoView({block:"nearest"}); }catch(e){}
-  });
   v.querySelectorAll("[data-cat]").forEach(b=>b.onclick=()=>{
     /* Typing something the lists don't carry parks you on a custom item and
        asks what kind of thing it is - and these buttons are the answer on this
@@ -2674,7 +2726,7 @@ function wireItem(){
     else { st.mpNone=false; const c=CATALOG.find(x=>x.id===st.catId); st.itemId=c.items[0].id; st.bookName=""; }
     st.needKind=false;
     if(un&&st.photoRead)st.photoRead=Object.assign({},st.photoRead,{unplaced:false});
-    st.liq=null;st.brandTyped="";st.brandQ="";st.model="";st.detail="";st.complete=true;st.completeSet=false;st.struck="";st.editing=false;
+    st.liq=null;st.brandTyped="";st.brandQ="";st.model="";st.detail="";st.complete=true;st.completeSet=false;st.struck="";st.askEdit=false;st.editing=false;
     /* THE MAKE WAS READ AND THEN THROWN AWAY.
        Reported from the counter: typed "microsoft surface book", answered
        "Electronics", and the make step still said NOTHING PICKED YET. The
@@ -2694,7 +2746,7 @@ function wireItem(){
     st.brand=h?h.tier:"mid";
     if(h){ st.brandTyped=h.name; st.brandQ=h.name; st.brandSet=true; }
     render();});
-  v.querySelectorAll("[data-item]").forEach(b=>b.onclick=()=>{st.needKind=false;st.itemId=b.dataset.item;st.market=null;st.omniDone="";st.mpPin=null;st.mpNone=false;st.condSet=false;st.cond="good";st.bookName="";st.liq=null;st.brand="mid";st.brandTyped="";st.brandQ="";st.model="";st.detail="";st.complete=true;st.completeSet=false;st.struck="";st.askAt=0;st.brandSet=false;
+  v.querySelectorAll("[data-item]").forEach(b=>b.onclick=()=>{st.needKind=false;st.itemId=b.dataset.item;st.market=null;st.omniDone="";st.mpPin=null;st.mpNone=false;st.condSet=false;st.cond="good";st.bookName="";st.liq=null;st.brand="mid";st.brandTyped="";st.brandQ="";st.model="";st.detail="";st.complete=true;st.completeSet=false;st.struck="";st.askEdit=false;st.askAt=0;st.brandSet=false;
     /* picking "Something else" with no saved value drops you straight into the price box */
     st.editing=(st.itemId===custId(st.catId));
     render();if(st.editing)document.getElementById("valIn")?.focus();});
@@ -2751,6 +2803,7 @@ function wireItem(){
        "there is no model". Every other question stays where it is. */
     if(Number(b.dataset.askmove)>0&&q[at]&&q[at].id==="model"&&!q[at].answered)st.mpNone=true;
     st.askAt=Math.max(0,Math.min(q.length-1,at+Number(b.dataset.askmove)));
+    st.askEdit=false;
     render();
   });
   v.querySelectorAll("[data-askout]").forEach(b=>b.onclick=()=>{
@@ -2778,7 +2831,9 @@ function wireItem(){
     const t=document.getElementById("ticketIn")||(log&&log.querySelector("input"));
     if(t&&t.focus)setTimeout(()=>{try{t.focus({preventScroll:true});}catch(e){}},260);
   });
-  v.querySelectorAll("[data-askgo]").forEach(b=>b.onclick=()=>{ st.askAt=Number(b.dataset.askgo); render(); });
+  v.querySelectorAll("[data-askedit]").forEach(b=>b.onclick=()=>{
+    st.askEdit=b.dataset.askedit==="1"; render(); });
+  v.querySelectorAll("[data-askgo]").forEach(b=>b.onclick=()=>{ st.askAt=Number(b.dataset.askgo); st.askEdit=false; render(); });
   v.querySelectorAll("[data-liq]").forEach(b=>b.onclick=()=>{st.liq=b.dataset.liq;render();});
   v.querySelectorAll("[data-spec]").forEach(b=>b.onclick=()=>{
     const [gi,oi]=b.dataset.spec.split(":").map(Number);
@@ -2860,7 +2915,7 @@ function wireItem(){
       document.getElementById("view").querySelectorAll("[data-hit]").forEach(b=>b.onclick=()=>{
         const e=hits[Number(b.dataset.hit)];
         st.catId=e[2]; st.itemId=custId(e[2]); st.bookName=e[0]; st.overrides[custId(e[2])]=bookVal(e);
-        st.liq=e[3]; st.brand="mid"; st.brandTyped="";st.brandQ=""; st.brandSet=false; st.complete=true;st.completeSet=false;st.struck=""; st.editing=false;
+        st.liq=e[3]; st.brand="mid"; st.brandTyped="";st.brandQ=""; st.brandSet=false; st.complete=true;st.completeSet=false;st.struck="";st.askEdit=false; st.editing=false;
         persist(); render();
       });
     };
@@ -4132,7 +4187,7 @@ function bookChecked(name){ return Number(BOOK_PRICES[name])>0; }
 function pickBookEntry(e){
   st.catId=e[2]; st.itemId=custId(e[2]); st.bookName=e[0]; st.overrides[custId(e[2])]=bookVal(e);
   st.liq=e[3]; st.brand="mid"; st.brandTyped="";st.brandQ=""; st.brandSet=false; st.model=""; st.detail="";
-  st.complete=true;st.completeSet=false;st.struck=""; st.editing=false; st.specSel={};
+  st.complete=true;st.completeSet=false;st.struck="";st.askEdit=false; st.editing=false; st.specSel={};
   persist(); render();
 }
 function wireBookSearch(){
@@ -5905,7 +5960,7 @@ function startOver(){
   st.mode="item";                 /* from the scale too, not just the item page */
   st.picked=false; st.bookName=""; st.brandTyped="";st.brandQ=""; st.model=""; st.detail="";
   st.brand="mid"; st.brandSet=false; st.liq=null; st.market=null; st.mpPin=null; st.mpNone=false;
-  st.cond="good"; st.condSet=false; st.complete=true;st.completeSet=false;st.struck=""; st.specSel={}; st.editing=false;
+  st.cond="good"; st.condSet=false; st.complete=true;st.completeSet=false;st.struck="";st.askEdit=false; st.specSel={}; st.editing=false;
   st.ask=0; st.askKey=""; st.ticket=""; st.needKind=false; st.photoRead=null; st.compRead=null;
   st.fakeAns={}; st.fakeKey=""; st.stepAt=0; st.openS3=st.openS4=st.openS5=false;
   photoFile=null; findMsg="";
@@ -7281,7 +7336,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0925.2244";
+const APP_BUILD="0925.2318";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

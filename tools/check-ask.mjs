@@ -41,8 +41,13 @@ const start = (itemId) => page.evaluate((id) => {
 const read = () => page.evaluate(() => {
   const c = document.getElementById("askCard");
   if (!c) return null;
+  /* Once every question is answered the card stops being a question and
+     becomes the answer - no .askQ at all - so the walk has to be able to
+     see that rather than falling over on it. */
+  const qEl = c.querySelector(".askQ");
   return { where: c.querySelector(".askWhere").textContent.trim(),
-    q: c.querySelector(".askQ").textContent.trim(),
+    finished: !qEl && !!c.querySelector(".askDone"),
+    q: qEl ? qEl.textContent.trim() : "",
     opts: [...c.querySelectorAll(".askOpt .askT")].map(t => t.textContent.trim()),
     dots: c.querySelectorAll(".askDots i").length,
     done: c.querySelectorAll(".askDots i.done").length,
@@ -1009,6 +1014,122 @@ console.log("\n  and when the words say nothing, the run asks");
      "  answering moves it to that aisle \u2014 " + r.after.item);
   ok(r.after.kept === "blue thingamajig",
      "  keeping what was typed \u2014 " + JSON.stringify(r.after.kept));
+}
+
+/* REPORTED FROM THE COUNTER: "after I'm done with step 8, it needs to go
+   away and move the deal details into the top section." Five condition
+   buttons with one of them lit, sitting above the answer they produced, is
+   a form still asking after it has been filled in. */
+console.log("\n  the answered question gives up the card to its answer");
+{
+  const r = await page.evaluate(() => {
+    const out = {};
+    const c = CATALOG.find(y => y.items.some(i => i.id === "t1"));
+    st.flow="ask"; st.mode="item"; st.catId=c.id; st.itemId="t1"; st.picked=true;
+    st.brandSet=true; st.brandTyped="DeWalt"; st.model="DCD791"; st.mpNone=false;
+    st.market={kind:"found", key:mkKey(), mid:50, lo:40, hi:60, n:20, sold:20, basis:"sold", comps:[]};
+    (SPEC_CHOICES[st.itemId]||[]).forEach((g,gi)=>{ st.specSel[st.itemId+":"+gi]=0; });
+    st.completeSet=true; st.complete=true; st.condSet=false; st.askEdit=false;
+    const q = askQueue(calcItem()); st.askAt = q.length - 1; render();
+    const c1 = document.getElementById("askCard");
+    out.before = {q: (c1.querySelector(".askQ")||{}).textContent,
+                  conds: c1.querySelectorAll('[data-ask="cond"]').length,
+                  answer: !!c1.querySelector(".askDone")};
+    /* answer it */
+    (c1.querySelector('[data-ask="cond"][data-askv="good"]')||c1.querySelector('[data-ask="cond"]')).click();
+    const c2 = document.getElementById("askCard");
+    out.after = {q: !!c2.querySelector(".askQ"),
+                 conds: c2.querySelectorAll('[data-ask="cond"]').length,
+                 answer: !!c2.querySelector(".askDone"),
+                 named: (c2.querySelector(".adWhat")||{}).textContent || "",
+                 cells: [...c2.querySelectorAll(".adCell .d")].map(e => e.textContent.trim()),
+                 struck: !!c2.querySelector(".struck")};
+    /* and it is not a trap: the question it replaced is one tap away.
+       Guarded, so that a build where the answer card never appears reports
+       a failure rather than throwing and taking the suite with it. */
+    const ed = c2.querySelector("[data-askedit]");
+    out.edit = {q:"", conds:-1, fwd:""};
+    if (ed) {
+      ed.click();
+      const c3 = document.getElementById("askCard");
+      out.edit = {q: (c3.querySelector(".askQ")||{}).textContent || "",
+                  conds: c3.querySelectorAll('[data-ask="cond"]').length,
+                  fwd: (c3.querySelector(".askNav .brassBtn")||{}).textContent || ""};
+      const back = c3.querySelector('[data-askedit="0"]');
+      if (back) back.click();
+    }
+    out.backAgain = !!document.getElementById("askCard").querySelector(".askDone");
+    /* a dot still reaches any question, and clears the edit flag with it */
+    document.querySelectorAll("#askCard [data-askgo]")[0].click();
+    out.dot = (document.getElementById("askCard").querySelector(".askQ")||{}).textContent;
+    return out;
+  });
+  ok(r.before.conds === 5 && !r.before.answer,
+     "unanswered, the card is the question \u2014 " + JSON.stringify(r.before.q));
+  ok(r.after.q === false && r.after.conds === 0 && r.after.answer === true,
+     "  answered, the question is gone and the answer has the card");
+  ok(/Cordless drill/.test(r.after.named) && /Good/.test(r.after.named),
+     "  which names what it is and what shape \u2014 " + JSON.stringify(r.after.named));
+  ok(r.after.cells.length === 3 && r.after.struck,
+     "  carries the three figures and the box for what you actually did");
+  ok(/shape is it in/i.test(r.edit.q) && r.edit.conds === 5,
+     "  \"Change an answer\" reopens the question it replaced, not the one before it \u2014 " + JSON.stringify(r.edit.q));
+  ok(/back to the answer/i.test(r.edit.fwd),
+     "  and there is a way back from it \u2014 " + JSON.stringify(r.edit.fwd.trim()));
+  ok(r.backAgain === true, "  which returns to the answer");
+  ok(/what make/i.test(r.dot), "  and the dots still reach any question \u2014 " + JSON.stringify(r.dot));
+}
+
+/* REPORTED FROM THE COUNTER: "the big blue section on the right sidebar can
+   go away because it's redundant of the new middle section, and then fill
+   that right side with something else useful." */
+console.log("\n  the rail stops repeating the middle column");
+{
+  /* The rail is a desk-width layout and this suite runs at 900px, where
+     there is no rail at all - so this one gets its own window. */
+  const wide = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  await wide.goto(BASE + "/index.html", { waitUntil: "networkidle" });
+  const r = await wide.evaluate(() => {
+    const look = () => {
+      const rail = document.querySelector(".rail");
+      return rail ? {hero: !!rail.querySelector(".deskHero"),
+                     big: !!rail.querySelector(".heroBig"),
+                     kill: !!rail.querySelector(".killCard"),
+                     acts: rail.querySelectorAll(".acts .act").length,
+                     ladder: !!rail.querySelector(".railLadder"),
+                     cushion: /cushion/i.test(rail.innerText),
+                     text: rail.innerText.replace(/\s+/g, " ")} : null;
+    };
+    const c = CATALOG.find(y => y.items.some(i => i.id === "t1"));
+    st.flow="ask"; st.mode="item"; st.catId=c.id; st.itemId="t1"; st.picked=true;
+    st.brandSet=true; st.brandTyped="DeWalt"; st.model="DCD791"; st.mpNone=false;
+    st.market=null; st.specSel={}; st.completeSet=false; st.condSet=false; st.askEdit=false;
+    render();
+    const mid = priceReady(calcItem());
+    const unfinished = look();
+    st.market={kind:"found", key:mkKey(), mid:50, lo:40, hi:60, n:20, sold:20, basis:"sold", comps:[]};
+    (SPEC_CHOICES[st.itemId]||[]).forEach((g,gi)=>{ st.specSel[st.itemId+":"+gi]=0; });
+    st.completeSet=true; st.condSet=true; st.cond="good"; render();
+    return {mid, unfinished, finished: look(), ready: priceReady(calcItem())};
+  });
+  await wide.close();
+  if (!r.unfinished || !r.finished) { fail++; console.log("  FAIL  no rail drew at all at 1440px"); }
+  /* Mid-run there is no offer anywhere, on purpose - pinHTML holds the rail
+     to a bare "still needs ..." strip until the run is finished, which is
+     also why the hero branch inside railHTML was unreachable and came out. */
+  ok(r.mid === false && !r.unfinished.hero && !r.unfinished.big
+     && /no price yet/i.test(r.unfinished.text),
+     "mid-run the rail names what is missing and quotes nothing \u2014 " +
+     r.unfinished.text.slice(0, 60));
+  ok(r.ready && r.finished && !r.finished.hero && !r.finished.big,
+     "  finished, the big blue block is gone");
+  ok(r.finished.acts === 3,
+     "  the three actions stay, because they are actions and not numbers \u2014 " + r.finished.acts);
+  ok(r.finished.ladder && r.finished.cushion,
+     "  so do the rungs the middle does not name, and the cushion");
+  ok(r.finished.kill && /what kills it/i.test(r.finished.text),
+     "  and the space goes to what kills one of these \u2014 " +
+     (r.finished.text.match(/WHAT KILLS IT[^A-Z]*[^.]*\./i) || [""])[0].slice(0, 70));
 }
 
 ok(!errs.length, "no page errors" + (errs.length ? ": " + errs[0] : ""));

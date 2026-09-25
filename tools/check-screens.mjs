@@ -43,7 +43,10 @@ const WANT = {
      examples as buttons now and the phone keeps the words, so the phrase
      moved rather than vanished - both spellings are accepted, and the
      press-it-and-it-works half is pinned separately below. */
-  item:   /take a picture|photograph|camera|what it is|try stihl|start from one of these/i,
+  /* "start from one of these" was the worked-example chip row, taken out at
+     the counter's request on 25 Sep. What is left on the front page is the
+     search box, the camera card and the kinds laid out. */
+  item:   /take a picture|photograph|camera|what it is|try stihl|pick the kind of thing it is/i,
   metal:  /gold|silver/i,
   device: /money changes hands/i,
   /* "flags" is no longer a screen - the counter did not want a tab for it -
@@ -297,10 +300,14 @@ console.log("");
 /* A WORKED EXAMPLE IS ONLY WORTH SHOWING IF PRESSING IT WORKS.
    The front page used to name four things you could type, as prose, under
    a search box - a list of instructions for retyping something by hand,
-   with 600px of empty screen beneath it. They are buttons now, and the
-   twelve kinds the desk carries are laid out instead of folded away. Both
-   are only an improvement while they still DO anything, and a chip that
-   fills nothing looks exactly like a chip that works. */
+   with 600px of empty screen beneath it. The twelve kinds the desk carries
+   are laid out instead of folded away, and that is only an improvement
+   while the tiles still DO something - a tile that opens nothing looks
+   exactly like a tile that works.
+   The worked-example chips were taken out at the counter's request on 25
+   Sep: a row of somebody else's items standing between the search box and
+   the real lists, useful for a week and clutter after that. So this now
+   also holds them GONE, because a row like that comes back easily. */
 {
   const p = await browser.newPage({viewport: {width: 1440, height: 900}});
   const errs = [];
@@ -309,23 +316,20 @@ console.log("");
   const r = await p.evaluate(() => {
     const out = {};
     st.picked = false; st.omniDone = ""; render();
-    const chips = [...document.querySelectorAll("[data-try]")];
     const tiles = [...document.querySelectorAll(".kindTile[data-cat]")];
-    out.chips = chips.length;
+    out.chips = document.querySelectorAll("[data-try]").length;
     out.tiles = tiles.length;
     out.kinds = CATALOG.length;
-    if (chips.length) {
-      chips[0].click();
-      const inp = document.getElementById("omniIn");
-      out.filled = inp ? inp.value : "";
-      const list = document.getElementById("omniList");
-      out.opened = !!(list && !list.hidden && list.querySelectorAll("[data-omni]").length);
+    /* the tiles are the way in that is left, so they have to work */
+    if (tiles.length) {
+      tiles[0].click();
+      out.landed = st.catId === tiles[0].dataset.cat && !!st.picked;
     }
     return out;
   });
-  const ok = r.chips >= 4 && r.tiles === r.kinds && r.filled && r.opened;
-  if (!ok) { bad++; console.log(`FAIL front page ways in — chips:${r.chips} tiles:${r.tiles}/${r.kinds} filled:"${r.filled}" listOpened:${r.opened}`); }
-  else console.log(`ok   ${r.chips} worked examples fill the box and open the list, ${r.tiles} kinds laid out`);
+  const ok = r.chips === 0 && r.tiles === r.kinds && r.landed;
+  if (!ok) { bad++; console.log(`FAIL front page ways in — worked-example chips:${r.chips} (want 0) tiles:${r.tiles}/${r.kinds} tileOpens:${r.landed}`); }
+  else console.log(`ok   no worked-example chips, ${r.tiles} kinds laid out and each one opens`);
   if (errs.length) { bad++; console.log("FAIL front page — page errors: " + errs.join(" | ")); }
   await p.close();
 }
@@ -683,6 +687,11 @@ console.log("\n  the rail says what he pays back, not just what he gets");
                    n:21, sold:21, basis:"sold", comps:[]};
       (SPEC_CHOICES[st.itemId] || []).forEach((g, gi) => {
         st.specSel[st.itemId + ":" + gi] = specBase(g); });
+      /* Stand at the end of the run, which is the moment this block is
+         about - the offer is made, and the question the customer asks out
+         loud is "so what do I owe you". The answer card only takes over the
+         LAST card, so the run has to actually be standing on it. */
+      st.askEdit = false; st.askAt = askQueue(calcItem()).length - 1;
       render();
       const rail = document.querySelector(".rail");
       const back = rail && rail.querySelector(".railBack");
@@ -695,8 +704,8 @@ console.log("\n  the rail says what he pays back, not just what he gets");
               litIsFirst: !!(lit && cells[0] === lit),
               litSize: lit ? parseFloat(getComputedStyle(lit.querySelector(".d")).fontSize) : 0,
               plainSize: cells[1] ? parseFloat(getComputedStyle(cells[1].querySelector(".d")).fontSize) : 0,
-              heroSize: (() => { const h = rail.querySelector(".heroBig");
-                return h ? parseFloat(getComputedStyle(h).fontSize) : 0; })(),
+              answerSize: (() => { const a = document.querySelector("#askCard .adCell .d");
+                return a ? parseFloat(getComputedStyle(a).fontSize) : 0; })(),
               forfeit: !!(back && /day 60 it is/i.test(back.textContent)),
               target: x.target, charge: x.charge,
               /* a stray comment rendering as text is a real failure mode here */
@@ -708,8 +717,12 @@ console.log("\n  the rail says what he pays back, not just what he gets");
       if (!pay.litIsFirst) pay_bad.push("day 30 is not the lit rung");
       if (!(pay.litSize > pay.plainSize)) pay_bad.push(
         `day 30 (${pay.litSize}px) is not larger than the others (${pay.plainSize}px)`);
-      if (!(pay.heroSize > pay.litSize)) pay_bad.push(
-        `the repayment (${pay.litSize}px) competes with the hero (${pay.heroSize}px)`);
+      /* There is no hero in the rail any more - it was a second copy of the
+         answer card beside it and came out at the counter's request - so the
+         day-30 rung is now the largest number the rail carries, and what it
+         must not do is shout louder than the answer card itself. */
+      if (!(pay.answerSize > pay.litSize)) pay_bad.push(
+        `the rail's repayment (${pay.litSize}px) competes with the answer card (${pay.answerSize}px)`);
       if (!pay.forfeit) pay_bad.push("the day-60 forfeit line is not on the card");
       if (pay.leaked) pay_bad.push("a source comment is rendering as text inside the repayment block");
       /* the arithmetic on the card must be the arithmetic in the book */

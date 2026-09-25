@@ -512,8 +512,19 @@ console.log("\n  the loan card does not repeat the rail");
   };
   const wide = await look(1400), narrow = await look(900);
   ok(wide.rail === true && narrow.rail === false, "the rail shows wide and not narrow");
-  ok(/LEND HIM/i.test(wide.pin) && /BUY IT FOR/i.test(wide.pin),
-     "  wide, the rail carries the loan and the buy price");
+  /* This used to require BOTH figures in the rail. It was right while the
+     middle column was a question - the rail was the only place the money
+     lived. Once the run started ending in the answer, that made the rail a
+     second copy of the card beside it, and the counter said so: "the big
+     blue section on the right sidebar can go away because it's redundant of
+     the new middle section." So the rail is now held to the opposite rule -
+     it must NOT restate what the answer card already says, and it must
+     carry the things that card does not. */
+  ok(!/BUY IT FOR/i.test(wide.pin),
+     "  wide, the rail no longer restates the buy price the answer card carries");
+  ok(/what kills it/i.test(wide.pin) && /cushion/i.test(wide.pin)
+     && /he pays back/i.test(wide.pin),
+     "  it carries what that card does not \u2014 the killer, the cushion and the later rungs");
   ok(!/LOW LOAN/.test(wide.txt) && !/SUGGESTED LOAN/.test(wide.txt) && !/TOP LOAN/.test(wide.txt),
      "  so the card drops the three range tiles");
   ok(!/OR BUY IT OUTRIGHT/.test(wide.txt), "  and the buy row");

@@ -967,13 +967,6 @@
      written out as prose to retype and the twelve categories folded shut.
      Both are controls now. */
   .startWays{display:flex;flex-direction:column;gap:10px}
-  .startChips{display:flex;flex-wrap:wrap;gap:8px}
-  .tryChip{padding:9px 15px;border-radius:999px;cursor:pointer;
-    border:1px solid var(--line);background:linear-gradient(160deg,var(--g2-hi),var(--g2));
-    color:var(--ink-2);font-size:13.5px;font-weight:600;box-shadow:var(--raise);
-    transition:transform .12s,color .12s,border-color .12s}
-  .tryChip:hover{transform:translateY(-1px);color:var(--ink);border-color:var(--accent)}
-  .tryChip:active{transform:translateY(1px)}
   .startGrid{display:grid;gap:9px;grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
   .kindTile{display:flex;flex-direction:column;gap:3px;align-items:flex-start;text-align:left;
     padding:14px 15px;border-radius:var(--r-s);cursor:pointer;border:1px solid var(--line);
@@ -1040,6 +1033,26 @@
   /* WHAT HE PAYS BACK. Second-loudest thing on the rail, under the hero.
      It is the question the customer asks out loud while you are still
      holding the offer, and it used to be folded shut three cards away. */
+  /* The rail once the run is finished: a name, the three actions, and then
+     the things the middle column does not say. No second copy of the money. */
+  .railTop{padding:13px 15px 12px;border-radius:var(--r);
+    background:linear-gradient(158deg,var(--glass-hi),var(--glass) 72%);
+    border:1px solid var(--line);box-shadow:var(--raise)}
+  .railWhat{font:800 21px/1.12 var(--disp);letter-spacing:-.025em;color:var(--ink);
+    margin:2px 0 11px;overflow-wrap:break-word}
+  /* A "no" is the one thing worth saying in both columns. */
+  .railTop.bad{border-color:var(--bad)}
+  .railNo{margin:0 0 11px;padding:9px 11px;border-radius:var(--r-s);
+    background:var(--bad-wash);color:var(--bad-ink);font-size:13.5px;line-height:1.45}
+  .railNo b{color:var(--bad)}
+  .killCard{margin-top:7px;padding:12px 14px 13px}
+  .killRow{display:flex;flex-direction:column;gap:2px;margin-top:9px}
+  .killRow b{font-size:11px;letter-spacing:.09em;text-transform:uppercase;font-family:var(--mono)}
+  .killRow.no b{color:var(--bad)}
+  .killRow.go b{color:var(--accent-ink)}
+  .killRow span{font-size:13.5px;line-height:1.45;color:var(--ink-2)}
+  /* the answer card's subject line, so the figures are never orphaned */
+  .adWhat{margin-top:7px;font:800 19px/1.15 var(--disp);letter-spacing:-.02em;color:var(--ink)}
   .railBack{margin-top:7px;padding:12px 14px 11px;border-radius:var(--r-s);
     background:var(--glass);border:1px solid var(--line)}
   .railBackHd{display:flex;align-items:baseline;gap:8px;margin-bottom:9px}
