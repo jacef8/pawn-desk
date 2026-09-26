@@ -434,12 +434,27 @@ function snapHTML(){
     /* Same two functions the desk calls. This used to be its own copy of
        the hero and the feed, which is how two screens become two apps. */
     const t=(typeof homeToday==="function")?homeToday():{rows:[]};
-    return `<div class="snapWrap">
+    /* `start` says this wrapper is the front screen, not a half-worked item.
+       Without it the mid-run rule that strips the hero's actions stripped
+       these too, and the camera left the phone with its framing tip still
+       sitting there. */
+    return `<div class="snapWrap start">
       ${homeHeroHTML({})}
       ${un?snapHelpHTML(un):""}
       ${omniHTML()}
       ${t.rows.length?homeFeedHTML(4)
-        :`<div class="snapTip">Fill the frame \u2014 a model plate or a label beats the whole object in shot.</div>`}
+        :(camOn?`<div class="snapTip">Fill the frame \u2014 a model plate or a label beats the whole object in shot.</div>`:"")}
+      ${camOn?`<div class="snapCam start">
+        <label style="display:none"><input id="photoCam" type="file" accept="image/*" capture="environment"></label>
+        <label style="display:none"><input id="photoIn" type="file" accept="image/jpeg,image/png,image/webp"></label>
+        ${photoBusy?`<div class="snapBusy">Reading the picture\u2026 <button class="ghostBtn" id="photoStop">Stop</button></div>`:""}
+        ${photoErrHTML()}
+       </div>`
+      /* Not the setup CARD: that was 535px at the top of an 844px screen and
+         pushed the search box off the bottom. A line, and the tap that fixes
+         it. */
+      :`<div class="snapOff">Snap it is off \u2014 no sold-price lookups on this device.
+        <button class="ghostBtn" data-gotab="setup" type="button">Set it up</button></div>`}
       ${snapShelfHTML()}
     </div>`;
   }

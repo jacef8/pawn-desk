@@ -246,5 +246,10 @@
      the actions: Look-up is the evidence row directly under it, Another
      and Detail are in the run's own Back/Skip, and there is nothing to
      log until there is a price. They come back the moment there is one. */
-  body.phone .snapWrap:not(.ready) .hero .acts{display:none}
-  body.phone .snapWrap:not(.ready) .hero{padding-bottom:16px}
+  /* :not(.ready) alone also caught the START page, whose wrapper is not
+     ready either - and that took the camera off the front screen while
+     leaving the "fill the frame" tip underneath it, so the phone told the
+     counter how to frame a photo it had no way to take. The start page is
+     the one place the four actions ARE the screen. */
+  body.phone .snapWrap:not(.ready):not(.start) .hero .acts{display:none}
+  body.phone .snapWrap:not(.ready):not(.start) .hero{padding-bottom:16px}

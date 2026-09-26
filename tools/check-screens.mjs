@@ -846,6 +846,68 @@ for (const [file, w, h] of [["index.html", 1280, 900], ["phone.html", 412, 915]]
   else console.log("ok   " + file + ": no \"the desk\", and a named source always says sold or asking");
 }
 
+/* THE PHONE'S FRONT SCREEN MUST HAVE A WAY TO TAKE A PICTURE.
+   Reported from the counter: "what happened to the camera function?" The
+   camera was the phone's first move, and a CSS rule written for the
+   mid-run hero - .snapWrap:not(.ready) .hero .acts{display:none} - also
+   matched the START page, whose wrapper is not "ready" either. So the
+   four round actions went, Snap it with them, and the framing tip stayed
+   underneath: the phone explained how to frame a photo it had no way to
+   take. Every suite passed, because every suite read text, and the text
+   was still there.
+   So this one presses it: a visible control that reaches #photoCam, and
+   no framing tip where there is no camera. */
+console.log("\n  the phone's front screen can take a picture");
+{
+  const p = await browser.newPage({viewport:{width:390,height:844}});
+  const errs = [];
+  p.on("pageerror", e => errs.push(String(e)));
+  await p.goto(BASE + "/phone.html", {waitUntil:"networkidle"});
+  const r = await p.evaluate(async () => {
+    /* what a connected phone with image lookups looks like */
+    CAP.sample = {limits: async () => ({images:{}}), json: async () => ({})};
+    CAP.images = true;
+    st.mode = "item"; st.picked = false; render();
+    const out = {tip: /fill the frame/i.test(document.getElementById("view").innerText)};
+    const vis = e => { if (!e) return false; const b = e.getBoundingClientRect();
+                       return b.width > 8 && b.height > 8 && getComputedStyle(e).visibility !== "hidden"; };
+    const snap = document.querySelector('[data-whome="snap"]');
+    out.snapThere  = !!snap;
+    out.snapShown  = vis(snap);
+    out.snapLive   = !!(snap && !snap.disabled);
+    out.inputThere = !!document.getElementById("photoCam");
+    /* the input existing is not the same as the input being READ: an
+       unwired one opens the camera and then swallows the picture. */
+    out.inputWired = typeof (document.getElementById("photoCam") || {}).onchange === "function";
+    /* and it actually opens the picker rather than doing nothing */
+    let clicked = false;
+    const inp = document.getElementById("photoCam");
+    if (inp) inp.click = () => { clicked = true; };
+    if (snap) snap.click();
+    out.opensPicker = clicked;
+    /* with no camera the tip must not be there either */
+    CAP.sample = null; CAP.images = false; render();
+    out.tipWhenOff = /fill the frame/i.test(document.getElementById("view").innerText);
+    return out;
+  });
+  const want = [
+    ["a Snap it control exists", r.snapThere],
+    ["and is visible on the front screen", r.snapShown],
+    ["and is not disabled on a connected phone", r.snapLive],
+    ["the camera input is on the page", r.inputThere],
+    ["and something reads what comes back", r.inputWired],
+    ["and pressing Snap it opens it", r.opensPicker],
+    ["the framing tip is shown with a camera", r.tip],
+    ["and not shown without one", !r.tipWhenOff],
+  ];
+  for (const [what, ok] of want) {
+    if (ok) console.log("ok   " + what);
+    else { bad++; console.log("FAIL " + what); }
+  }
+  if (errs.length) { bad++; console.log("FAIL phone front screen — page errors: " + errs.join(" | ")); }
+  await p.close();
+}
+
 await browser.close();
 console.log(bad ? `FAILED (${bad})` : "all screens draw themselves, every id once");
 process.exit(bad ? 1 : 0);
