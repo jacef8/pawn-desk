@@ -908,6 +908,52 @@ console.log("\n  the phone's front screen can take a picture");
   await p.close();
 }
 
+/* THE ICONS ARE THE ONE PART OF THE TOOL SEEN WITH THE TOOL SHUT.
+   A manifest naming a 512 that is really a 180, or a favicon link pointing
+   at a file nobody generated, fails silently: the browser drops back to a
+   blank page-corner and the installed app to a grey square, and nothing in
+   the console says why. Read the PNG headers and check the sizes match
+   what is claimed. */
+console.log("\n  what it looks like with the tool shut");
+{
+  const bytes = f => readFileSync(join(ROOT, f));
+  /* IHDR is the first chunk of every PNG: 8 bytes signature, 4 length,
+     4 "IHDR", then width and height as big-endian 32-bit. */
+  const png = f => { const b = bytes(f);
+    if (b.slice(1, 4).toString() !== "PNG") throw new Error(f + " is not a PNG");
+    return {w: b.readUInt32BE(16), h: b.readUInt32BE(20)}; };
+  const head = readFileSync(join(ROOT, "index.html"), "utf8")
+             + readFileSync(join(ROOT, "phone.html"), "utf8");
+  for (const mf of ["manifest.webmanifest", "manifest-phone.webmanifest"]) {
+    const m = JSON.parse(bytes(mf).toString());
+    for (const ic of m.icons) {
+      const want = Number(ic.sizes.split("x")[0]);
+      try {
+        const got = png(ic.src);
+        if (got.w === want && got.h === want) console.log(`ok   ${mf}: ${ic.src} really is ${want}x${want}`);
+        else { bad++; console.log(`FAIL ${mf}: ${ic.src} claims ${want}x${want}, is ${got.w}x${got.h}`); }
+      } catch (e) { bad++; console.log(`FAIL ${mf}: ${ic.src} — ${e.message}`); }
+    }
+    /* A launcher may crop a maskable icon to a circle, so one has to exist
+       or Android draws the square one shrunk inside a white blob. */
+    if (m.icons.some(i => i.purpose === "maskable")) console.log(`ok   ${mf}: has a maskable icon`);
+    else { bad++; console.log(`FAIL ${mf}: no maskable icon — Android will letterbox it`); }
+  }
+  /* Everything the two pages point at by hand: the tab icon and iOS's. */
+  for (const f of ["favicon.svg", "favicon-32.png", "apple-touch-icon.png"]) {
+    if (!head.includes(f)) { bad++; console.log(`FAIL nothing links ${f}`); continue; }
+    try { bytes(f); console.log(`ok   ${f} is linked and present`); }
+    catch (e) { bad++; console.log(`FAIL ${f} is linked but missing`); }
+  }
+  /* Offline, an icon that is not in the cache list is an icon the installed
+     app loses the first time it opens with no signal. */
+  const sw = bytes("sw.js").toString();
+  const missed = ["icon-192.png", "icon-512.png", "icon-maskable-512.png",
+                  "apple-touch-icon.png", "favicon.svg", "favicon-32.png"].filter(f => !sw.includes(f));
+  if (missed.length) { bad++; console.log("FAIL not cached for offline: " + missed.join(", ")); }
+  else console.log("ok   every icon is cached for offline");
+}
+
 await browser.close();
 console.log(bad ? `FAILED (${bad})` : "all screens draw themselves, every id once");
 process.exit(bad ? 1 : 0);

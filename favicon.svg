@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" >
+    <defs>
+      <linearGradient id="ground" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#1C212B"/><stop offset="55%" stop-color="#13161C"/>
+        <stop offset="100%" stop-color="#0B0D13"/></linearGradient>
+      <radialGradient id="sheen" cx=".26" cy=".18" r=".8">
+        <stop offset="0%" stop-color="#3B82F6" stop-opacity=".30"/>
+        <stop offset="60%" stop-color="#3B82F6" stop-opacity="0"/></radialGradient>
+      <radialGradient id="gold" cx=".34" cy=".30" r=".85">
+        <stop offset="0%" stop-color="#FFE9A8"/><stop offset="38%" stop-color="#F2C14E"/>
+        <stop offset="76%" stop-color="#D19A28"/><stop offset="100%" stop-color="#9A6B16"/></radialGradient>
+      <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#FFF0BE" stop-opacity=".85"/>
+        <stop offset="100%" stop-color="#6E4A0C" stop-opacity=".55"/></linearGradient>
+      <radialGradient id="cast" cx=".5" cy=".5" r=".5">
+        <stop offset="0%" stop-color="#000" stop-opacity=".55"/>
+        <stop offset="100%" stop-color="#000" stop-opacity="0"/></radialGradient>
+    </defs>
+    <rect x="0" y="0" width="1000" height="1000" rx="120" fill="url(#ground)"/>
+    <rect x="0" y="0" width="1000" height="1000" rx="120" fill="url(#sheen)"/>
+    
+  <ellipse cx="324.1776" cy="515.0047999999999" rx="134.74239999999998" ry="32.864" fill="url(#cast)"/>
+  <circle cx="324.1776" cy="363.8304" r="164.32" fill="url(#gold)"/>
+  <circle cx="324.1776" cy="363.8304" r="164.32" fill="none" stroke="url(#rim)" stroke-width="12.324"/>
+  <ellipse cx="269.952" cy="294.81600000000003" rx="54.2256" ry="34.5072"
+           fill="#FFF6DD" opacity=".46" transform="rotate(-32 269.952 294.81600000000003)"/>
+    
+  <ellipse cx="675.8223999999999" cy="515.0047999999999" rx="134.74239999999998" ry="32.864" fill="url(#cast)"/>
+  <circle cx="675.8223999999999" cy="363.8304" r="164.32" fill="url(#gold)"/>
+  <circle cx="675.8223999999999" cy="363.8304" r="164.32" fill="none" stroke="url(#rim)" stroke-width="12.324"/>
+  <ellipse cx="621.5967999999999" cy="294.81600000000003" rx="54.2256" ry="34.5072"
+           fill="#FFF6DD" opacity=".46" transform="rotate(-32 621.5967999999999 294.81600000000003)"/>
+    
+  <ellipse cx="500" cy="804.208" rx="134.74239999999998" ry="32.864" fill="url(#cast)"/>
+  <circle cx="500" cy="653.0336" r="164.32" fill="url(#gold)"/>
+  <circle cx="500" cy="653.0336" r="164.32" fill="none" stroke="url(#rim)" stroke-width="12.324"/>
+  <ellipse cx="445.7744" cy="584.0192" rx="54.2256" ry="34.5072"
+           fill="#FFF6DD" opacity=".46" transform="rotate(-32 445.7744 584.0192)"/>
+  </svg>
