@@ -482,7 +482,11 @@ console.log("\n  the run asks which one it is");
     return {ids, iExtra, iWorth, iModel, lastSpec: spec.length ? Math.max(...spec) : -1,
             det: !!document.getElementById("detailIn"),
             answered: q[iExtra] && q[iExtra].answered,
-            skips: !!document.querySelector('[data-askmove="1"]:not([disabled])')};
+            optional: !!(q[iExtra] && q[iExtra].optional),
+            /* It is step 8 now, so there is no card after it to skip TO -
+               what matters is that the run is never gated on it and there
+               is always a live way onward. */
+            onward: !!document.querySelector('.askNav .brassBtn:not([disabled])')};
   });
   ok(r.iExtra > 0, "anything-else is its own question — " + r.ids.join(" > "));
   ok(r.iExtra > r.iModel, "  after the model");
@@ -531,7 +535,7 @@ console.log("\n  the run asks which one it is");
     const read = () => {
       const q = askQueue(calcItem());
       st.askAt = q.length - 1; render();
-      const b = document.querySelector(".askNav button[data-askdone],.askNav button[data-askgo]");
+      const b = document.querySelector(".askNav .brassBtn[data-askdone],.askNav .brassBtn[data-askgo]");
       return b ? {t:b.textContent.trim(), k:b.dataset.askdone || "go"} : null;
     };
     const out = {};
@@ -642,7 +646,8 @@ console.log("\n  the run asks which one it is");
   } else {
     ok(false, "could not set a hand-typed price to test with — got " + (hand && hand.kind));
   }
-  ok(r.answered === true && r.skips, "  and it never blocks — nothing is required");
+  ok(r.answered === true && r.optional === true && r.onward,
+     "  and it never blocks — optional, self-answered, always a way onward");
   /* this block walked the run to the extra step; the next one types into the
      model box, so put it back where it found it. */
   await page.evaluate(() => {
@@ -859,17 +864,18 @@ console.log("\n  the run ends in an answer, on the card that asked the last ques
     const card = document.getElementById("askCard");
     const done = card.querySelector(".askDone");
     return {before, after: !!done,
-      cells: done ? [...done.querySelectorAll(".adCell .d")].map(e => e.textContent.trim()) : [],
-      keys:  done ? [...done.querySelectorAll(".adCell .k")].map(e => e.textContent.trim()) : [],
+      cells: done ? [...done.querySelectorAll(".adDeal .d")].map(e => e.textContent.trim()) : [],
+      keys:  done ? [...done.querySelectorAll(".adDeal .k")].map(e => e.textContent.trim()) : [],
       why:   done ? (done.querySelector(".adWhy")||{}).textContent || "" : "",
       open:  askQueue(calcItem()).filter(z => !z.answered).length};
   });
   ok(r.open === 0, "everything is answered");
   ok(r.before === false, "  with a question still open the card carries no verdict");
   ok(r.after === true, "  answered, the card itself carries one");
-  ok(r.cells.length === 3 && r.cells.every(v => /^\$[\d,]+$/.test(v)),
-     "  three figures, all money \u2014 " + r.cells.join(" / "));
-  ok(/pays back/i.test(r.keys.join(" ")), "  one of them is what he pays back \u2014 " + r.keys.join(" | "));
+  ok(r.cells.length === 2 && r.cells.every(v => /^\$[\d,]+$/.test(v)),
+     "  the two decisions, both money \u2014 " + r.cells.join(" / "));
+  ok(/buy it outright/i.test(r.keys.join(" ")) && /pawn loan/i.test(r.keys.join(" ")),
+     "  named by the kind of deal \u2014 " + r.keys.join(" | "));
   ok(/never above the top/i.test(r.why), "  and the window is stated with it");
 }
 
@@ -1038,7 +1044,12 @@ console.log("\n  the answered question gives up the card to its answer");
     st.market={kind:"found", key:mkKey(), mid:50, lo:40, hi:60, n:20, sold:20, basis:"sold", comps:[]};
     (SPEC_CHOICES[st.itemId]||[]).forEach((g,gi)=>{ st.specSel[st.itemId+":"+gi]=0; });
     st.completeSet=true; st.complete=true; st.condSet=false; st.askEdit=false;
-    const q = askQueue(calcItem()); st.askAt = q.length - 1; render();
+    /* The condition is question 7 since the counter asked for 7 and 8 to
+       swap; "Anything else?" is 8 and is a notepad, which the answer card
+       carries rather than standing in front of. */
+    const q = askQueue(calcItem());
+    out.order = q.map(z => z.id);
+    st.askAt = q.findIndex(z => z.id === "cond"); render();
     const c1 = document.getElementById("askCard");
     out.before = {q: (c1.querySelector(".askQ")||{}).textContent,
                   conds: c1.querySelectorAll('[data-ask="cond"]').length,
@@ -1050,12 +1061,18 @@ console.log("\n  the answered question gives up the card to its answer");
                  conds: c2.querySelectorAll('[data-ask="cond"]').length,
                  answer: !!c2.querySelector(".askDone"),
                  named: (c2.querySelector(".adWhat")||{}).textContent || "",
-                 cells: [...c2.querySelectorAll(".adCell .d")].map(e => e.textContent.trim()),
+                 note: !!c2.querySelector(".adNote #detailIn"),
+                 deals: [...c2.querySelectorAll(".adDeal")].map(e => ({
+                   k: e.querySelector(".k").textContent.trim(),
+                   d: e.querySelector(".d").textContent.trim(),
+                   px: Math.round(parseFloat(getComputedStyle(e.querySelector(".d")).fontSize))})),
+                 whyPx: Math.round(parseFloat(getComputedStyle(c2.querySelector(".adWhy")).fontSize)),
+                 why: c2.querySelector(".adWhy").textContent,
                  struck: !!c2.querySelector(".struck")};
     /* and it is not a trap: the question it replaced is one tap away.
        Guarded, so that a build where the answer card never appears reports
        a failure rather than throwing and taking the suite with it. */
-    const ed = c2.querySelector("[data-askedit]");
+    const ed = c2.querySelector(".askNav .ghostBtn[data-askgo]");
     out.edit = {q:"", conds:-1, fwd:""};
     if (ed) {
       ed.click();
@@ -1063,27 +1080,47 @@ console.log("\n  the answered question gives up the card to its answer");
       out.edit = {q: (c3.querySelector(".askQ")||{}).textContent || "",
                   conds: c3.querySelectorAll('[data-ask="cond"]').length,
                   fwd: (c3.querySelector(".askNav .brassBtn")||{}).textContent || ""};
-      const back = c3.querySelector('[data-askedit="0"]');
-      if (back) back.click();
+      const fwd = c3.querySelector('[data-askmove="1"]');
+      if (fwd) fwd.click();
     }
     out.backAgain = !!document.getElementById("askCard").querySelector(".askDone");
     /* a dot still reaches any question, and clears the edit flag with it */
-    document.querySelectorAll("#askCard [data-askgo]")[0].click();
+    /* the DOTS specifically - "Change an answer" is a data-askgo too now */
+    document.querySelectorAll("#askCard .askDots [data-askgo]")[0].click();
     out.dot = (document.getElementById("askCard").querySelector(".askQ")||{}).textContent;
     return out;
   });
+  ok(r.order.slice(-2).join(",") === "cond,extra",
+     "the condition is 7 and the notepad is 8 \u2014 " + r.order.slice(-2).join(" then "));
   ok(r.before.conds === 5 && !r.before.answer,
      "unanswered, the card is the question \u2014 " + JSON.stringify(r.before.q));
   ok(r.after.q === false && r.after.conds === 0 && r.after.answer === true,
      "  answered, the question is gone and the answer has the card");
   ok(/Cordless drill/.test(r.after.named) && /Good/.test(r.after.named),
      "  which names what it is and what shape \u2014 " + JSON.stringify(r.after.named));
-  ok(r.after.cells.length === 3 && r.after.struck,
-     "  carries the three figures and the box for what you actually did");
+  /* REPORTED FROM THE COUNTER: "the pawn price and buy now price should be
+     the most visible numbers so I don't get confused on what number is
+     what." They were three identical tiles, one of which - resale - was not
+     a decision at all but the thing the other two are built from. */
+  ok(r.after.deals.length === 2, "  two decisions, not three lookalike tiles \u2014 " +
+     r.after.deals.map(d => d.k).join(" / "));
+  ok(/buy it outright/i.test(r.after.deals[0].k) && /pawn loan/i.test(r.after.deals[1].k),
+     "  labelled by the kind of deal, not by a verb");
+  ok(r.after.deals.every(d => d.px >= 34) && r.after.whyPx <= 15,
+     "  and they dwarf the evidence line \u2014 " + r.after.deals[0].px + "px against " + r.after.whyPx + "px");
+  ok(/resells for/i.test(r.after.why),
+     "  resale is still said, as what the two are built from");
+  /* "He pays back by day 30" was a third tile here AND the first rung of the
+     ladder on the rail, same typeface, four inches apart. */
+  ok(!r.after.deals.some(d => /pays back/i.test(d.k)),
+     "  and the repayment is not repeated at this size \u2014 the rail owns it");
+  ok(r.after.struck, "  the box for what you actually did is still here");
+  ok(r.after.note,
+     "  and \"Anything else?\" rides in the answer rather than standing in front of it");
   ok(/shape is it in/i.test(r.edit.q) && r.edit.conds === 5,
      "  \"Change an answer\" reopens the question it replaced, not the one before it \u2014 " + JSON.stringify(r.edit.q));
-  ok(/back to the answer/i.test(r.edit.fwd),
-     "  and there is a way back from it \u2014 " + JSON.stringify(r.edit.fwd.trim()));
+  ok(/next/i.test(r.edit.fwd),
+     "  with the ordinary way forward from it \u2014 " + JSON.stringify(r.edit.fwd.trim()));
   ok(r.backAgain === true, "  which returns to the answer");
   ok(/what make/i.test(r.dot), "  and the dots still reach any question \u2014 " + JSON.stringify(r.dot));
 }

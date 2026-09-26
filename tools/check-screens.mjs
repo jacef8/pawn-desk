@@ -704,7 +704,10 @@ console.log("\n  the rail says what he pays back, not just what he gets");
               litIsFirst: !!(lit && cells[0] === lit),
               litSize: lit ? parseFloat(getComputedStyle(lit.querySelector(".d")).fontSize) : 0,
               plainSize: cells[1] ? parseFloat(getComputedStyle(cells[1].querySelector(".d")).fontSize) : 0,
-              answerSize: (() => { const a = document.querySelector("#askCard .adCell .d");
+              /* The answer card's two decisions - buy and pawn loan - are the
+                 biggest numbers on the screen by the counter's own request,
+                 so the rail's day-30 rung has to sit under them. */
+              answerSize: (() => { const a = document.querySelector("#askCard .adDeal .d");
                 return a ? parseFloat(getComputedStyle(a).fontSize) : 0; })(),
               forfeit: !!(back && /day 60 it is/i.test(back.textContent)),
               target: x.target, charge: x.charge,

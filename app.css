@@ -779,13 +779,31 @@
   .adHd b{color:var(--accent-ink);letter-spacing:.08em}
   .askDone.bad .adHd b{color:var(--warn-ink)}
   .adBig{font:800 34px/1.02 var(--disp);letter-spacing:-.03em;margin-top:8px;color:var(--ink)}
-  .adGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:11px}
-  .adCell{padding:9px 10px 10px;border-radius:var(--r-xs);background:var(--well);
-    border:1px solid var(--line);min-width:0}
-  .adCell .k{font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;
-    color:var(--ink-3);font-family:var(--mono);line-height:1.3}
-  .adCell .d{font:800 23px/1.04 var(--disp);letter-spacing:-.03em;margin-top:4px;
-    color:var(--ink);font-variant-numeric:tabular-nums;overflow-wrap:break-word}
+  /* THE TWO DECISIONS, AND NOTHING ELSE AT THIS SIZE.
+     They are told apart by shape as well as by label, because at arm's
+     length across a counter two identical boxes of money are two identical
+     boxes of money. The buy is filled; the loan is outlined. */
+  .adPair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;margin-top:12px}
+  .adDeal{padding:13px 14px 14px;border-radius:var(--r-s);min-width:0}
+  .adDeal .k{font:700 11.5px/1.2 var(--mono);letter-spacing:.11em;text-transform:uppercase}
+  .adDeal .d{font:800 clamp(34px,3.4vw,44px)/1 var(--disp);letter-spacing:-.04em;
+    margin:6px 0 5px;font-variant-numeric:tabular-nums;overflow-wrap:break-word}
+  .adDeal .s{font-size:12.5px;line-height:1.4}
+  .adDeal.buy{background:var(--accent);box-shadow:var(--fill-sh)}
+  .adDeal.buy .k{color:color-mix(in srgb,var(--on-accent) 76%,transparent)}
+  .adDeal.buy .d{color:var(--on-accent)}
+  .adDeal.buy .s{color:color-mix(in srgb,var(--on-accent) 82%,transparent)}
+  .adDeal.lend{background:var(--well);border:1px solid var(--accent)}
+  .adDeal.lend .k{color:var(--accent-ink)}
+  .adDeal.lend .d{color:var(--ink)}
+  .adDeal.lend .s{color:var(--ink-2)}
+  .adDeal.lend .s b{color:var(--ink)}
+  @media(max-width:520px){ .adPair{grid-template-columns:minmax(0,1fr)} }
+  .adNote{display:block;margin-top:11px}
+  .adNote span{display:block;font:700 11px/1.2 var(--mono);letter-spacing:.09em;
+    text-transform:uppercase;color:var(--ink-3);margin-bottom:6px}
+  .adNote i{font-style:normal;letter-spacing:.05em;opacity:.8;text-transform:none}
+  .adNote input{width:100%;font-family:var(--sans);font-size:14.5px}
   .adWhy{margin-top:10px;font-size:13px;line-height:1.5;color:var(--ink-2)}
   /* WHAT WAS ACTUALLY AGREED. A box, not a tile. */
   .struck{margin-top:13px;padding:11px 12px 12px;border-radius:var(--r-s);
@@ -1038,13 +1056,21 @@
   .railTop{padding:13px 15px 12px;border-radius:var(--r);
     background:linear-gradient(158deg,var(--glass-hi),var(--glass) 72%);
     border:1px solid var(--line);box-shadow:var(--raise)}
-  .railWhat{font:800 21px/1.12 var(--disp);letter-spacing:-.025em;color:var(--ink);
-    margin:2px 0 11px;overflow-wrap:break-word}
+
   /* A "no" is the one thing worth saying in both columns. */
   .railTop.bad{border-color:var(--bad)}
   .railNo{margin:0 0 11px;padding:9px 11px;border-radius:var(--r-s);
     background:var(--bad-wash);color:var(--bad-ink);font-size:13.5px;line-height:1.45}
   .railNo b{color:var(--bad)}
+  /* WHERE THE NUMBER CAME FROM, said in words rather than left to be
+     inferred from a bar. */
+  .wVia{display:flex;align-items:baseline;gap:8px;margin:9px 0 4px;
+    padding-top:9px;border-top:1px solid var(--line)}
+  .wVia span{font:700 10.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;
+    color:var(--ink-3);flex:0 0 auto}
+  .wVia b{font-size:13.5px;color:var(--ink);line-height:1.3}
+  .wWhy{font-size:12.5px;line-height:1.45;color:var(--warn-ink);margin-bottom:5px}
+  .wFrom{font-size:12px;color:var(--ink-3);font-family:var(--mono);margin-bottom:5px}
   .killCard{margin-top:7px;padding:12px 14px 13px}
   .killRow{display:flex;flex-direction:column;gap:2px;margin-top:9px}
   .killRow b{font-size:11px;letter-spacing:.09em;text-transform:uppercase;font-family:var(--mono)}

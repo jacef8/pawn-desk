@@ -1203,9 +1203,12 @@ function railHTML(x){
      so this function is only ever reached once there IS an answer - which
      is why the old hero branch that used to follow was unreachable and has
      been taken out rather than left sitting here looking live. */
+  /* The name was here AND at the top of the answer card, which now leads
+     with "Laptop · Excellent". One of them had to go, and it is this one:
+     the card that carries the money should carry the name of the thing the
+     money is for. What is left is the three actions, which are the only
+     reason this strip exists. */
   return `<div class="railTop${thin?" bad":""}">
-      <div class="heroWho">On the counter</div>
-      <div class="railWhat">${esc(displayName(x))}</div>
       ${thin?`<div class="railNo"><b>Walk away.</b> It will not clear the ${money(x.buyFloor)} you want out of it &mdash; not as a buy, and not as a loan you end up owning.</div>`:""}
       <div class="acts">
         ${act("look","Look up",I.look,canLook)}
@@ -1285,9 +1288,26 @@ function weightHTML(x){
        By the time the counter is deciding, the price is already set and
        step 2 is long gone - and "12 sold" is a claim, while twelve pictures
        are something they can check against the thing in their hand. */
+    /* WHICH SOURCE, IN WORDS, AND WHY IT IS NOT THE BETTER ONE.
+       Asked from the counter: "how are we searching eBay right now? sold
+       comps usage is maxed out." The desk knew - the service answers every
+       lookup with the source it reached and a warning saying what it fell
+       past to get there - and the only place that ever appeared was one
+       word on the progress line, which is gone the moment the price lands.
+       So the counter was looking at a number with no idea whether it came
+       from sales, from asking prices, or from the built-in list.
+       It is named here now, on the price itself, in the order the service
+       tries them. */
+    const VIA={soldcomps:"SoldComps — completed sales",
+               marketplace_insights:"eBay sold prices",
+               browse:"eBay listings — what is for sale right now"};
+    const via=VIA[m.via]||"";
+    const why=String(m.viaWhy||"").trim();
     return card(n+" listing"+(n===1?"":"s"), sold+" sold · "+asks+" asking",
       bar(n?share*100:3,share>=0.5?"":"warn"),
-      (m.from?esc(m.from)+"<br>":"")
+      (via?`<div class="wVia"><span>Source</span><b>${esc(via)}</b></div>`:"")
+      +(why?`<div class="wWhy">${esc(why.charAt(0).toUpperCase()+why.slice(1))}.</div>`:"")
+      +(m.from?`<div class="wFrom">${esc(m.from)}</div>`:"")
       +(share>=0.5
         ?"Most of these are prices somebody actually paid."
         :"<b>Mostly asking prices.</b> Nobody paid these - they are what sellers hope for, and they run high. Treat the figure as a ceiling."))
@@ -2038,21 +2058,6 @@ function askQueue(x){
       hint:what+". Missing pieces come off the price."+(st.completeSet?"":" Nothing picked yet \u2014 the price is treating it as complete until you say."),
       answered:!!st.completeSet});
   }
-  /* ANYTHING ELSE COMES LAST, NOT ON THE MODEL CARD.
-     It used to sit under the model box, which put a catch-all "anything
-     else" in front of the specific questions - on a TV the thing you
-     reach for after the make is the screen size, and the card was asking
-     for free text before it asked for that. Its own step, after every
-     question that has a real answer.
-     It sits after the price step now. That is safe: the automatic lookup
-     fires when the item is PICKED, long before either, and what is typed
-     here only ever reaches the link-out buttons and the ticket - which
-     re-read it. And the Osmo measurement says extra words narrow a search
-     until it finds a different product, so keeping them out of the
-     automatic one is the better half of the trade. */
-  q.push({id:"extra", title:"Anything else?", kind:"extra", optional:true,
-    hint:"Only what changes the price and was not already asked. Usually nothing.",
-    answered:true});
   if(!handSet)q.push({id:"cond", title:"What shape is it in?",
     hint:"Next to a typical used one.",
     opts:CONDITIONS.map(c=>{const w=COND_WORDS[c.id]||[c.label,""];
@@ -2068,6 +2073,25 @@ function askQueue(x){
          claiming that was a decision. */
       return {t:w[0], sub:w[1]||"", on:!!st.condSet&&st.cond===c.id, set:"cond", v:c.id};}),
     answered:!!st.condSet});
+  /* ANYTHING ELSE COMES LAST - AFTER THE CONDITION, NOT BEFORE IT.
+     It used to sit under the model box, which put a catch-all "anything
+     else" in front of the specific questions - on a TV the thing you
+     reach for after the make is the screen size, and the card was asking
+     for free text before it asked for that. Its own step, after every
+     question that has a real answer.
+     26 Sep, asked for from the counter: it was landing at 7, one step
+     AHEAD of the condition, so the run asked "anything else?" and then
+     carried on asking. A catch-all that comes before the last real
+     question is not a catch-all. Condition is 7 now and this is 8.
+     It sits after the price step now. That is safe: the automatic lookup
+     fires when the item is PICKED, long before either, and what is typed
+     here only ever reaches the link-out buttons and the ticket - which
+     re-read it. And the Osmo measurement says extra words narrow a search
+     until it finds a different product, so keeping them out of the
+     automatic one is the better half of the trade. */
+  q.push({id:"extra", title:"Anything else?", kind:"extra", optional:true,
+    hint:"Only what changes the price and was not already asked. Usually nothing.",
+    answered:true});
   return q;
 }
 /* NOTHING IS PRICED UNTIL THE RUN HAS BEEN MADE.
@@ -2230,13 +2254,44 @@ function askDoneHTML(x){
   return `<div class="askDone">
     <div class="adHd">That is everything &mdash; <b>here is the answer</b></div>
     <div class="adWhat">${esc(displayName(x))}${st.condSet?` \u00b7 ${esc((COND_WORDS[st.cond]||[st.cond])[0])}`:""}</div>
-    <div class="adGrid">
-      <div class="adCell"><div class="k">Buy it for</div><div class="d">${money(x.buy)}</div></div>
-      <div class="adCell"><div class="k">Or lend him</div><div class="d">${money(x.target)}</div></div>
-      <div class="adCell"><div class="k">He pays back by day 30</div><div class="d">${money(x.target+x.charge)}</div></div>
+    <!-- THREE EQUAL BOXES AND NO WAY TO TELL WHICH WAS WHICH.
+         Reported from the counter: "the pawn price and buy now price
+         should be the most visible numbers so I don't get confused on what
+         number is what." They were three identical tiles in a row, and one
+         of them was not even a decision - resale is what the other two are
+         BUILT from, and it was wearing the same size and the same box.
+         So: two decisions, large, side by side, each labelled with the kind
+         of deal rather than a verb - a counter reading "Or lend him" has to
+         work out that this is the pawn number, and "Buy it for" and "Or
+         lend him" look alike at arm's length. Each carries the one line
+         that says what it commits you to. Resale drops to a line of
+         evidence underneath, where it explains the two above it.
+         "He pays back by day 30" came out of this row entirely: it is the
+         first rung of the ladder on the rail, in the same typeface, four
+         inches away - the duplication the counter asked about, and mine. -->
+    <div class="adPair">
+      <div class="adDeal buy">
+        <div class="k">Buy it outright</div>
+        <div class="d">${money(x.buy)}</div>
+        <div class="s">Yours. Nothing to pay back, nothing to hold.</div>
+      </div>
+      <div class="adDeal lend">
+        <div class="k">Pawn loan</div>
+        <div class="d">${money(x.target)}</div>
+        <div class="s">He pays back <b>${money(x.target+x.charge)}</b> by day 30.</div>
+      </div>
     </div>
-    <div class="adWhy">${x.checked?"":`<b style="color:var(--warn-ink)">Estimate &mdash; nothing looked up.</b> `}Resells for ${money(Math.round(x.resale))} in this shape. Lend anywhere in ${money(x.low)}&ndash;${money(x.high)} &mdash; never above the top. The charge is ${pawnPct()}% per 30 days, ${money(x.charge)} on this one.</div>
+    <div class="adWhy">${x.checked?"":`<b style="color:var(--warn-ink)">Estimate &mdash; nothing looked up.</b> `}<b>Resells for ${money(Math.round(x.resale))}</b> in this shape &mdash; that is where both numbers come from. Lend anywhere in ${money(x.low)}&ndash;${money(x.high)}, never above the top.</div>
     ${struckHTML(x)}
+    <!-- ANYTHING ELSE IS A NOTEPAD, NOT A QUESTION, AND IT IS STEP 8 NOW.
+         Moving it after the condition made it the last card - and the
+         answer card replaces the last card, so the box would have been
+         swallowed before the counter ever saw it. A catch-all has no
+         answer to give up its card for, and it also does not deserve a
+         card: it comes into the answer, beside the amount, where the last
+         thing before writing a ticket is "anything odd about this one". -->
+    <label class="adNote"><span>Anything else? <i>optional &mdash; only what changes the price</i></span>
+      <input id="detailIn" type="text" autocomplete="off" placeholder="${esc(detailHint(x).ph)}" value="${esc(st.detail)}" class="numIn"></label>
   </div>`;
 }
 function askHTML(x){
@@ -2305,11 +2360,17 @@ function askHTML(x){
      asked. askEdit puts the last question back on screen in place of the
      answer; anything that moves the run clears it. */
   const finished=allDone&&at>=q.length-1&&!st.askEdit;
+  /* "Change an answer" has to land on a question with an answer in it. Once
+     "Anything else?" became step 8 the card being replaced was the notepad,
+     so the button reopened an empty text box - technically the card it had
+     taken over, and useless. It goes to the last question that actually
+     asked something, which is the condition. */
+  const lastReal=(()=>{ for(let i=q.length-1;i>=0;i--) if(!q[i].optional)return i; return Math.max(0,q.length-1); })();
   if(finished)return `<div class="card askCard askFin" id="askCard">
     <div class="askWhere">${q.length} of ${q.length} \u00b7 all answered</div>
     ${askDoneHTML(x)}
     <div class="askNav">
-      <button class="ghostBtn" data-askedit="1">&larr; Change an answer</button>
+      <button class="ghostBtn" data-askgo="${lastReal}">&larr; Change an answer</button>
       <div class="askDots">${q.map((z,i)=>`<i class="${i===at?"on":""}${z.answered?" done":""}" title="${esc(z.title)}" data-askgo="${i}"></i>`).join("")}</div>
       <button class="brassBtn" data-askdone="log">Write the ticket &darr;</button>
     </div>
@@ -2351,9 +2412,7 @@ function askHTML(x){
                either the run has a gap in it, or it is finished and the
                deal wants logging. Say which. */
              const open=q.findIndex(z=>!z.answered);
-             if(open<0)return st.askEdit
-               ? `<button class="brassBtn" data-askedit="0">Back to the answer &rarr;</button>`
-               : `<button class="brassBtn" data-askdone="log">Write the ticket &darr;</button>`;
+             if(open<0)return `<button class="brassBtn" data-askdone="log">Write the ticket &darr;</button>`;
              if(open!==at)return `<button class="brassBtn" data-askgo="${open}">Still to answer: ${esc(q[open].title)}</button>`;
              return `<button class="brassBtn" data-askdone="here">Pick one above &uarr;</button>`;
            })()
@@ -3772,6 +3831,18 @@ async function pdLimits(){
    It throws like the rest of the service calls, and the caller falls
    through to the searches. A shop with no eBay keyset set on the service
    gets exactly what it got before. */
+/* WHAT THE SERVICE SAID ABOUT THE LAST LOOKUP, AND WHY.
+   /ebay answers with basis ("sold" or "asking"), the source it actually
+   reached, and a warning saying why it is not the better one - "sold-price
+   quota spent for the month, fell back to asking prices" is the live case
+   today. All three were read for one thing, a single word on the tally
+   strip, and then dropped on the floor: the tally is gone the moment the
+   price lands and the card moves on, so by the time anybody is deciding,
+   the screen had no idea where its own number came from.
+   It is kept here and carried onto the price itself. */
+let LAST_EBAY=null;
+const EBAY_SOURCE_NAME={soldcomps:"SoldComps", marketplace_insights:"eBay sold prices",
+                        browse:"eBay listings"};
 async function pdEbayComps(q,signal){
   if(!pdServer())throw pdErr("no_server");
   const ctl=new AbortController();
@@ -3789,6 +3860,8 @@ async function pdEbayComps(q,signal){
   finally{ clearTimeout(timer); if(signal)signal.removeEventListener("abort",stop); }
   let j=null; try{ j=await r.json(); }catch(e){}
   if(!r.ok||!j||!j.ok)throw pdErr((j&&j.code)||"upstream_error");
+  LAST_EBAY={basis:j.basis==="sold"?"sold":"asking",
+             source:String(j.source||""), warning:String(j.warning||""), ts:Date.now()};
   return j;
 }
 async function pdJSON(prompt,opts){
@@ -7359,7 +7432,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.0128";
+const APP_BUILD="0926.0207";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -8315,7 +8388,10 @@ function evidenceHTML(){
 function useComps(t){
   if(!t)return;
   st.market={kind:"found",key:mkKey(),n:t.n,med:t.med,lo:t.lo,hi:t.hi,sold:t.sold,
-             mostlyAsks:t.mostlyAsks,conf:t.conf,mid:t.mid,from:t.from};
+             mostlyAsks:t.mostlyAsks,conf:t.conf,mid:t.mid,from:t.from,
+             /* where it came from and why it is not better than it is */
+             via:LAST_EBAY?LAST_EBAY.source:"", viaBasis:LAST_EBAY?LAST_EBAY.basis:"",
+             viaWhy:LAST_EBAY?LAST_EBAY.warning:""};
   render();
 }
 /* A price on another shop's shelf is what a used one goes for here - it is

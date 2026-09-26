@@ -1328,6 +1328,53 @@ console.log("\n  the aisles told to price locally have somewhere local to go");
      "  and a gun does not, because Facebook bans them \u2014 " + r.gun.ids.join(", "));
 }
 
+/* ASKED FROM THE COUNTER: "how are we searching eBay right now? sold comps
+   usage is maxed out." The desk knew and would not say. The service answers
+   every lookup with the source it actually reached and a warning naming what
+   it fell past - "sold-price quota spent for the month, fell back to asking
+   prices" is the live case - and all of that was read for ONE WORD on the
+   progress strip, which disappears the moment the price lands. By the time
+   anybody was deciding, the screen had no idea where its own number came
+   from. */
+console.log("\n  the price says which source it came from, and why not a better one");
+{
+  const r = await page.evaluate(() => {
+    const look = (mkt) => {
+      const c = CATALOG.find(y => y.items.some(i => i.id === "t1"));
+      st.mode="item"; st.catId=c.id; st.itemId="t1"; st.picked=true;
+      st.brandSet=true; st.brandTyped="DeWalt"; st.model="DCD791"; st.mpNone=false;
+      (SPEC_CHOICES[st.itemId]||[]).forEach((g,gi)=>{ st.specSel[st.itemId+":"+gi]=0; });
+      st.completeSet=true; st.condSet=true; st.cond="good";
+      st.market = Object.assign({kind:"found", key:mkKey(), n:60, med:187, lo:120, hi:300,
+                                 conf:"m", mid:185, from:"eBay 60"}, mkt);
+      render();
+      const w = document.querySelector(".wCard");
+      return w ? w.innerText.replace(/\s+/g, " ") : "";
+    };
+    return {
+      /* today: the paid sold-price service is out of lookups for the month */
+      spent: look({sold:0, mostlyAsks:true, via:"browse", viaBasis:"asking",
+                   viaWhy:"sold-price quota spent for the month, fell back to asking prices"}),
+      /* and when the quota is there, it says that instead */
+      sold:  look({sold:60, mostlyAsks:false, via:"soldcomps", viaBasis:"sold", viaWhy:""}),
+      /* a price with no lookup behind it must not invent a source */
+      quiet: look({sold:0, mostlyAsks:true})
+    };
+  });
+  ok(/source/i.test(r.spent) && /eBay listings/i.test(r.spent),
+     "it names the source in words \u2014 " +
+     (r.spent.match(/SOURCE [^|]{0,44}/i) || [""])[0].trim());
+  ok(/quota spent for the month/i.test(r.spent),
+     "  and why it is not the better one");
+  ok(/mostly asking prices/i.test(r.spent),
+     "  while still saying what that means for the number");
+  ok(/SoldComps/i.test(r.sold) && !/quota spent/i.test(r.sold),
+     "  a real sold lookup says so instead \u2014 " +
+     (r.sold.match(/SOURCE [^|]{0,44}/i) || [""])[0].trim());
+  ok(!/source/i.test(r.quiet),
+     "  and a figure with no lookup behind it claims no source at all");
+}
+
 ok(!errs.length, "no page errors" + (errs.length ? ": " + errs[0] : ""));
 await browser.close();
 console.log(fails ? "\n  " + fails + " FAILED\n" : "\n  all passed\n");
