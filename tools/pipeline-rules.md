@@ -116,8 +116,25 @@ A backlog is meant to take several weeks to clear. That is the design, not
 a problem to be solved by spending more in one run. Report how many are
 still outstanding when the run finishes.
 
-Targets come up oldest first, so a capped run always refreshes what needed
+**Re-checks first, new ground with what is left.** A stale row is a number
+the desk states with confidence and lends against; an unpriced row shows an
+estimate and says so in orange. The confident wrong number is the dangerous
+one, so everything due a re-check runs before anything never priced, oldest
+first among the re-checks. (It used to be one queue sorted oldest-first,
+which put every unknown at the very front because a row with no date sorts
+as infinitely old - a side effect of the sort. With the seed list growing,
+that would have starved the re-checks permanently.)
+
+A capped run therefore always refreshes what needed
 it most.
+
+**The harvest cannot find anything.** It walks `seed-models.json` and stops
+when that list is exhausted, so a bigger allowance buys nothing once
+everything on it has a price. The lever for growing what the desk knows is
+the list. `node tools/gaps.mjs` ranks every shelf by how few models are
+written down for it, which is where adding names buys the most. It costs no
+lookups.
+
 
 ## The allowance, and the shelves
 

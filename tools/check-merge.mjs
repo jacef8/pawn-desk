@@ -474,6 +474,22 @@ console.log("\n  the harvest lives inside an allowance, and prices by shelf");
   const cap = Number((harv.match(/arg\("cap",\s*(\d+)\)/) || [])[1]);
   ok(/MONTH_CAP/.test(harv) && cap > 0 && cap < 2000,
      "the harvest has a monthly ceiling, not the whole plan \u2014 " + cap + " of 2,000");
+
+  /* KEEPING THE BOOK TRUE COMES BEFORE MAKING IT BIGGER.
+     One queue sorted oldest-first put every never-priced row at the very
+     front, because ageOf() returns Infinity for a row with no date - a side
+     effect of the sort, not a decision. Jace caught it: "there's an
+     infinite number of things that have never been checked, you could
+     theoretically never get through those and get to the rechecks." And it
+     gets worse as the seed list grows, which is the plan for it.
+     A stale row is a number the desk states with confidence and lends
+     against. An unpriced row shows an estimate and says so in orange. The
+     confident wrong number is the dangerous one, so it goes first. */
+  ok(/const recheck = todo\.filter/.test(harv) && /const fresh\s+= todo\.filter\(isNew\)/.test(harv)
+     && /todo = recheck\.concat\(fresh\)/.test(harv),
+     "re-checks are queued ahead of never-priced rows, not behind them");
+  ok(!/^todo\.sort\(/m.test(harv),
+     "  and the single oldest-first sort that caused it is gone");
   ok(/process\.exit\(4\)/.test(harv),
      "  and stops on it with its own exit code");
   ok(/spentThisRun\+\+/.test(harv),

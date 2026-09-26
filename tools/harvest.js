@@ -756,9 +756,35 @@ const needsPricing = (t) => {
   return age >= want;
 };
 let todo = targets.filter(needsPricing);
-/* Oldest first, so a run cut short by a quota or a crash refreshes the
-   rows that needed it most rather than whichever came first alphabetically. */
-todo.sort((a, b) => ageOf((found[key(b)] || {}).date) - ageOf((found[key(a)] || {}).date));
+/* KEEPING THE BOOK TRUE COMES BEFORE MAKING IT BIGGER.
+
+   This used to be one queue sorted oldest-first, and ageOf() returns
+   Infinity for a row that has never been priced - so everything unknown
+   sorted to the very front, ahead of every real price that had gone stale.
+   That was a side effect of the sort, not a decision, and Jace caught it:
+
+     "There's an infinite number of things that have never been checked.
+      You could theoretically never get through all of those and get to
+      checking the things that need to be rechecked."
+
+   Exactly right, and it gets worse the moment the seed list grows - which
+   is the whole plan for it. Add 400 models and 400 unknowns jump the queue
+   ahead of every stale price, permanently.
+
+   The two are not equally urgent either. A stale row is a number the desk
+   states with confidence and prices a loan against; when it is wrong, it
+   is wrong in the dangerous direction and nothing on the screen says so.
+   An unpriced row shows the built-in estimate with "nothing looked up yet"
+   in orange beside it - a gap the counter can see. A confident wrong
+   number beats a visible blank for harm, every time.
+
+   So: re-checks first, oldest first among them, and new ground gets what
+   is left of the allowance. */
+const isNew = (t) => !found[key(t)];
+const recheck = todo.filter((t) => !isNew(t));
+const fresh   = todo.filter(isNew);
+recheck.sort((a, b) => ageOf((found[key(b)] || {}).date) - ageOf((found[key(a)] || {}).date));
+todo = recheck.concat(fresh);
 if (limit > 0) todo = todo.slice(0, limit);
 
 /* THE SAME REASONING, APPLIED TO THE FREE PATH.
@@ -928,7 +954,12 @@ console.log("  Targets in the list      : " + targets.length);
       + " used this month, " + left + " left  (the rest of the plan is the counter's)");
   }
 }
-console.log("  This run                 : " + todo.length);
+console.log("  This run                 : " + todo.length
+  + "   (" + recheck.length + " due a re-check, then " + fresh.length + " never priced)");
+if (recheck.length && fresh.length)
+  console.log("                             re-checks go first \u2014 a stale price is stated with");
+if (recheck.length && fresh.length)
+  console.log("                             confidence, a missing one says so on the screen");
 console.log("  Source                   : " + (VIA === "ebay"
   ? "eBay API - sold prices where the keyset is granted them, asking prices otherwise"
   : "Claude web search - asking prices"));
