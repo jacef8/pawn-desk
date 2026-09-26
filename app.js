@@ -37,7 +37,9 @@ const CATALOG = [
    {id:"p7",name:"Generator — 3.5 to 7.5kW",value:350,liq:"fast"}]},
  {id:"tools",label:"Tools",ltv:35,
   driver:"Brand tier, then completeness. Battery and charger are half the value of a cordless tool.",
-  killer:"Bare tool, no battery. Worth a third.",
+  /* Same fault as the electronics aisle: a compressor, a welder and a tool
+     box were all being told about batteries. */
+  killer:"Bare tool with no battery, or a battery that won't hold a charge. Worth a third.",
   brand:{on:true,hi:"DeWalt / Milwaukee / Makita",mid:"Ryobi / Ridgid",lo:"Harbor Freight / no name"},
   complete:{on:true,label:"Battery, charger, case"},
   items:[
@@ -73,7 +75,13 @@ const CATALOG = [
    {id:"h9",name:"Outboard — 9.9 to 25hp",value:900,liq:"slow"}]},
  {id:"elec",label:"Electronics",ltv:25,
   driver:"Age. Model year is nearly the whole equation — two years old is half price.",
-  killer:"Activation lock. A locked phone is a brick. See the Devices tab before you lend a dollar.",
+  /* THIS LINE USED TO BE THE PHONE LINE, ON EVERYTHING IN THE AISLE.
+     Reported from the counter with a PlayStation 5 on the glass: "Activation
+     lock? This is a playstation not a phone." It was the category line, and
+     a category line is read by a TV, a laptop, a speaker and a car amp as
+     well. The aisle keeps what is true of anything with a circuit board in
+     it; every item below says its own. */
+  killer:"Won't power up, or it is locked to an account nobody can sign out of. Anything with a screen: look for cracks and dead pixels before you talk money.",
   brand:{on:true,hi:"Apple / Samsung flagship",mid:"Mainstream",lo:"Off brand"},
   /* 0.90 measured 23 Sep off sold comps: an Xbox Series X, Series S, PS5 or
      Switch listed "console only" went for 0.92, 0.94, 0.89 and 0.88 of one
@@ -1211,15 +1219,25 @@ function railHTML(x){
   return `<div class="railTop${thin?" bad":""}">
       ${thin?`<div class="railNo"><b>Walk away.</b> It will not clear the ${money(x.buyFloor)} you want out of it &mdash; not as a buy, and not as a loan you end up owning.</div>`:""}
       <div class="acts">
-        ${act("look","Look up",I.look,canLook)}
+        ${act("look",findBusy?"Looking\u2026":"Look up",I.look,canLook&&!findBusy)}
         ${act("log","Log it",I.log,true)}
         ${act("new","Another",I.add,true)}
       </div>
+      ${/* IT WAS NOT THAT THE BUTTON DID NOTHING - IT WAS THAT IT SAID
+            NOTHING. Reported from the counter: "the lookup button doesn't
+            do anything." It fires, it searches, it can change the price.
+            But every word it produces - "Searching eBay...", the tally,
+            "No listings found", "Every search failed" - was written into
+            #pdFindMsg, which belongs to the comps card and is not on the
+            page at all when the rail is up. Press it and the screen does
+            not move, win or lose. So the rail carries the running
+            commentary itself, right under the button that started it. */""}
+      ${(findBusy||findMsg)?`<div class="railFind${findBusy?" busy":""}" id="railFindMsg">${esc(findMsg||"Searching\u2026")}</div>`:""}
     </div>
     ${killerHTML(x)}
     ${thin?"":`
     <div class="railBack">
-      <div class="railBackHd"><b>He pays back</b><span>${pawnPct()}% per 30 days \u00b7 $${(x.charge/30).toFixed(2)}/day after 60</span></div>
+      <div class="railBackHd"><b>He pays back</b><span>${pawnPct()}% per 30 days \u00b7 $${(x.charge/30).toFixed(2)}/day after day\u00a060</span></div>
       <div class="railLadder">${ladder(x.target,x.charge).map((r,i)=>
         `<div class="rbCell${i===0?" now":""}"><div class="k">${r.k}</div><div class="d">${money(r.due)}</div></div>`).join("")}</div>
       <div class="rbDay60">Day 60 it is <b>ours</b> &mdash; no notice, no letter.</div>
@@ -1845,6 +1863,33 @@ const ITEM_OVERRIDES={
  p5:{driver:"Deck size, hours, and brand tier.",killer:"Blown spindles or a bent deck.",tiers:{hi:"John Deere / Kubota / Toro comm.",mid:"Cub Cadet / Troy-Bilt / Husqvarna",lo:"Murray / MTD / no name"},
      brands:{hi:["John Deere","Kubota","Toro Commercial","Exmark","Gravely"],mid:["Cub Cadet","Troy-Bilt","Husqvarna rider","Snapper","Ariens"],lo:["Murray","MTD","Yard Machines","no name"]},
      detail:{ph:"deck size & hours — 42in, ~300hrs",hint:"Deck size and hours are the price; a straight deck and clean cut matter more than paint."}},
+ /* Every item in the electronics and tools aisles says its own line. The
+    aisle line is the fallback, and a fallback that names a phone is wrong
+    on five of the seven things filed under it. */
+ e2:{driver:"Age first, then processor and memory. Five years old is parts money whatever it cost new.",
+     killer:"No charger. A swollen battery, a BIOS or activation password nobody can clear, or a machine that will not boot past the maker's logo."},
+ e3:{driver:"Model year and storage. Brand carries more of the price here than anywhere else in the aisle \u2014 an iPad holds money, the rest mostly does not.",
+     killer:"Activation lock \u2014 an iCloud or Google account still signed in makes it a brick. Cracked glass costs more to fix than the tablet is worth."},
+ e4:{driver:"Model year, storage and whether it is carrier-locked. Two years old is half price.",
+     killer:"Activation lock. A locked phone is a brick. See the Devices tab before you lend a dollar."},
+ e5:{driver:"Which generation, and disc drive or digital-only. A current-gen machine holds its money; the one before it falls off a cliff.",
+     killer:"No controller and no power or HDMI lead \u2014 that is a paperweight until you source them. Run a game before you call it working: a noisy fan or a drive that will not read is the end of it."},
+ e6:{driver:"Brand and size. A JBL or a Bose moves; everything else sits on the shelf.",
+     killer:"Won't hold a charge, a driver you can hear buzzing, or a proprietary charger that is not with it."},
+ e7:{driver:"Brand and RMS watts \u2014 the RMS figure, never the number printed on the box.",
+     killer:"Burnt voice coil, a torn surround, or no wiring harness. Installed gear pulled out of a car is often somebody else's \u2014 ask."},
+ t3:{driver:"Brand, and whether it is cordless with a battery. A corded grinder is $20 money.",
+     killer:"Seized spindle, or a burnt smell out of the vents. No guard."},
+ t4:{driver:"Brand and tank size, and whether the pump still builds pressure.",
+     killer:"Won't build pressure, or leaks down overnight. A rusted or cracked tank is scrap \u2014 never lend on one."},
+ t5:{driver:"Motor horsepower and voltage \u2014 a 240v unit narrows the buyers a lot. Tank condition is the rest.",
+     killer:"Rusted tank bottom, or a pump that will not build. And you have to get it back out the door: this is a two-man load and slow money."},
+ t6:{driver:"Brand and amperage, and whether the gun, leads and regulator came with it.",
+     killer:"No gun or ground clamp, or a dead transformer. The gas bottle is not his to pawn \u2014 those are leased from the gas supplier."},
+ t7:{driver:"Brand and size. An empty box is furniture \u2014 the money is the steel and the name on it.",
+     killer:"Bent drawers, dead casters, rust. Slow money even when it is clean."},
+ t8:{driver:"Brand, and pneumatic or cordless \u2014 a cordless one needs its battery to be worth anything.",
+     killer:"Dry-fired to death: leaking o-rings, a bent driver blade. No case and no fittings."},
  e1:{driver:"Size and model year are nearly the whole price.",killer:"Any panel line or burn-in — then it is worthless.",tiers:{hi:"Sony / Samsung / LG OLED",mid:"TCL / Hisense / Vizio",lo:"Onn / RCA / Sceptre"},
      brands:{hi:["Sony","Samsung","LG OLED","LG"],mid:["TCL","Hisense","Vizio"],lo:["Onn","RCA","Sceptre","Element","Westinghouse"]},
      detail:{ph:"size & year — 65in, 2024",hint:"Size and model year ARE the price — two model years old is half of new."}}
@@ -1953,7 +1998,10 @@ function detailHint(x){
   const ov=itemOv(), id=(x&&x.cat?x.cat.id:st.catId);
   const d=(ov&&ov.detail)||DETAIL_HINTS[id]||{ph:"",hint:""};
   return {ph:d.ph||"", hint:d.hint||"",
-    what: ov?"specs for this item"
+    /* Keyed on the DETAIL hint, not on the override existing: an item that
+       overrides only its driver and killer still wants the aisle's wording
+       for what to type in the box. */
+    what: (ov&&ov.detail)?"specs for this item"
         : id==="guns"?"caliber & barrel"
         : id==="power"?"size & wattage"
         : id==="elec"?"size & year":"specs"};
@@ -6165,6 +6213,9 @@ function omniPick(r){
     const bh=g?brandFromName(g,r.q):null;
     st.brandTyped=bh?bh.name:""; st.brandQ=st.brandTyped; st.brand=bh?bh.tier:"mid"; st.brandSet=!!bh;
     st.model=""; st.detail=""; st.liq=null; st.market=null;
+    /* The lookup's last word belongs to the item it was about. Left set, the
+       rail told the counter about listings on file for the thing before. */
+    findMsg="";
     st.mpPin=null; st.mpNone=true; st.condSet=false; st.phKindsOpen=true; st.omniDone=r.q;
     /* A guess that came off a make the desk actually carries is not a
        silent one - the aisle shows in the breadcrumb and the make step
@@ -6211,6 +6262,7 @@ function omniPick(r){
   st.specSel={}; applySpecPicks(r.spec,st.detail+" "+st.model);
   st.editing=(r.kind==="custom");
   st.photoRead=null; st.compRead=null; st.market=null; st.mpPin=null; st.mpNone=false; st.condSet=!!r.cond; if(!r.cond)st.cond="good";
+  findMsg="";   /* the last lookup's word belonged to the last item */
   /* Leave the chosen thing in the box. Emptying it and saying underneath what
      was filled in meant reading a sentence to learn what the box could have
      just shown. Clicking it selects the lot, so typing still replaces. */
@@ -7537,7 +7589,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.1410";
+const APP_BUILD="0926.1552";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -8385,7 +8437,11 @@ async function priceFind(signal,all){
   /* Keep it in state and let the render put it on screen. Writing straight
      into the node loses the message whenever anything re-renders afterwards,
      which is exactly what happens when the lookup lands a price. */
-  const say=t=>{ findMsg=t; const el=document.getElementById("pdFindMsg"); if(el)el.textContent=t; };
+  /* Both, because which one exists depends on the layout, and the rail is
+     the one the counter is looking at when it presses the button. */
+  const say=t=>{ findMsg=t;
+    for(const id of ["pdFindMsg","railFindMsg"]){
+      const el=document.getElementById(id); if(el)el.textContent=t; } };
   say("Searching "+passes[0].name+"\u2026");
   /* Second: the passes run one at a time instead of all at once. The first
      is the best source for the category - sold eBay listings, or GunWatcher

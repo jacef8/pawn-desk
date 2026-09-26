@@ -908,6 +908,109 @@ console.log("\n  the phone's front screen can take a picture");
   await p.close();
 }
 
+/* THE ADVICE ON THE CARD HAS TO BE ABOUT THE THING ON THE COUNTER.
+   Reported from the counter, with a PlayStation 5 on the glass and the
+   card reading "Activation lock. A locked phone is a brick": the killer
+   and driver lines are written per AISLE, and an aisle holds a TV, a
+   laptop, a speaker and a car amp as well as a phone. Nothing catches
+   this - the card renders, the words are spelled right, and only somebody
+   who knows what a PlayStation is would notice.
+   So: no item may be handed a line naming a DIFFERENT kind of thing. */
+console.log("\n  the advice names the thing in front of you");
+{
+  const p = await browser.newPage({viewport:{width:1400,height:900}});
+  await p.goto(BASE + "/index.html", {waitUntil:"networkidle"});
+  const wrong = await p.evaluate(() => {
+    /* A word that names one specific kind of thing, and the only items
+       allowed to say it. Word boundaries, so "crossbow" is not "bow". */
+    const OWNED = [
+      [/\bphones?\b/i,      ["e4"]],
+      [/\btablets?\b/i,     ["e3"]],
+      [/\blaptops?\b/i,     ["e2"]],
+      [/\bconsoles?\b/i,    ["e5"]],
+      [/\bmowers?\b/i,      ["p4", "p5"]],
+      [/\bgenerators?\b/i,  ["p7"]],
+      [/\bchainsaws?\b/i,   ["p1"]],
+      [/\bcompressors?\b/i, ["t4", "t5"]],
+      [/\bwelders?\b/i,     ["t6"]],
+      [/\bbows?\b/i,        ["h5"]],
+      [/\bscopes?\b/i,      ["h1"]],
+    ];
+    const out = [];
+    for (const cat of CATALOG) for (const it of cat.items) {
+      st.catId = cat.id; st.itemId = it.id;
+      const ov = (typeof itemOv === "function" && itemOv()) || {};
+      const said = [ov.killer || cat.killer || "", ov.driver || cat.driver || ""].join(" ");
+      for (const [re, owners] of OWNED) {
+        if (re.test(said) && !owners.includes(it.id)) {
+          const m = said.match(re)[0];
+          out.push(`${cat.id}/${it.id} "${it.name}" is told about a ${m}`);
+        }
+      }
+    }
+    return out;
+  });
+  if (wrong.length) { bad++; wrong.forEach(w => console.log("FAIL " + w)); }
+  else console.log("ok   no item is handed advice about something else");
+  await p.close();
+}
+
+/* THE BUTTON THAT SAID NOTHING.
+   Reported from the counter: "the lookup button doesn't do anything." It
+   fired every time - it searched, and it could move the price. But every
+   word it produced went to #pdFindMsg, which lives on the comps card and
+   is not on the page at all when the rail is up, so pressing it moved
+   nothing on screen whether it won or lost. A button that works silently
+   is a button that does not work. */
+console.log("\n  and the Look up button says what it is doing");
+{
+  const p = await browser.newPage({viewport:{width:1400,height:900}});
+  const errs = [];
+  p.on("pageerror", e => errs.push(String(e)));
+  await p.goto(BASE + "/index.html", {waitUntil:"networkidle"});
+  const r = await p.evaluate(async () => {
+    let release; const held = new Promise(r => release = r);
+    CAP.sample = {limits: async () => ({images:{}}),
+                  json: async () => { await held; return {comps: []}; }};
+    CAP.images = true;
+    st.mode = "item"; st.catId = "elec"; st.itemId = "e5"; st.picked = true;
+    st.cond = "good"; st.condSet = true; st.complete = true; st.completeSet = true;
+    st.brandTyped = "Sony"; st.model = "PLAYSTATION5";
+    (SPEC_CHOICES[st.itemId] || []).forEach((g, gi) => { st.specSel[st.itemId + ":" + gi] = 0; });
+    render();
+    const btn = () => document.querySelector('[data-dact="look"]');
+    const msg = () => document.getElementById("railFindMsg");
+    const shown = () => { const m = msg(); if (!m) return null;
+      const b = m.getBoundingClientRect();
+      return b.height > 0 && b.top >= 0 && b.bottom <= window.innerHeight ? m.textContent : null; };
+    const out = {startedQuiet: !msg()};
+    btn().click();
+    await new Promise(r => setTimeout(r, 120));
+    out.busyLabel = btn().innerText.trim();
+    out.busyLocked = btn().disabled;
+    out.busySays   = shown();
+    release();
+    await new Promise(r => setTimeout(r, 300));
+    out.doneLabel = btn().innerText.trim();
+    out.doneSays  = shown();
+    return out;
+  });
+  const want = [
+    ["nothing is claimed before it is pressed", r.startedQuiet],
+    ["the button reads as busy while it searches", /looking/i.test(r.busyLabel || "")],
+    ["and cannot be pressed twice", r.busyLocked === true],
+    ["it says what it is searching, in the window", !!r.busySays],
+    ["the button comes back when it is done", /look up/i.test(r.doneLabel || "")],
+    ["and the outcome is on screen, not swallowed", !!r.doneSays],
+  ];
+  for (const [what, ok] of want) {
+    if (ok) console.log("ok   " + what);
+    else { bad++; console.log("FAIL " + what); }
+  }
+  if (errs.length) { bad++; console.log("FAIL Look up — page errors: " + errs.join(" | ")); }
+  await p.close();
+}
+
 /* THE ICONS ARE THE ONE PART OF THE TOOL SEEN WITH THE TOOL SHUT.
    A manifest naming a 512 that is really a 180, or a favicon link pointing
    at a file nobody generated, fails silently: the browser drops back to a

@@ -284,6 +284,10 @@
     color:var(--ink);font-family:var(--mono);font-size:19px;padding:12px 13px;
     font-variant-numeric:tabular-nums;box-shadow:var(--well-sh)}
   .numIn.big{font-size:25px}
+  /* No rule meant the browser's own placeholder grey - near-invisible on a
+     well this dark, and that grey "95" in the log box is a real number the
+     counter is being asked to accept or overtype. */
+  .numIn::placeholder{color:var(--ink-3);opacity:1}
   .roOut{width:100%;background:transparent;border:1px dashed var(--line);border-radius:var(--r-xs);
     color:var(--ink-3);font-family:var(--mono);padding:10px 12px;box-shadow:none;cursor:default}
   input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:7px;
@@ -1089,9 +1093,17 @@
   .killRow b{font-size:11px;letter-spacing:.09em;text-transform:uppercase;font-family:var(--mono)}
   .killRow.no b{color:var(--bad)}
   .killRow.go b{color:var(--accent-ink)}
-  .killRow span{font-size:13.5px;line-height:1.45;color:var(--ink-2)}
+  /* GREY TEXT IN A BLACK BOX. Reported from the counter, about the last
+     thing read before the money moves. 80% white at 13.5px is fine in a
+     footnote and wrong here: this card is the one that says walk away.
+     Full white, a size up, and the label rows keep their colour. */
+  .killRow span{font-size:14.5px;line-height:1.5;color:var(--ink)}
   /* the answer card's subject line, so the figures are never orphaned */
   .adWhat{margin-top:7px;font:800 19px/1.15 var(--disp);letter-spacing:-.02em;color:var(--ink)}
+  /* What the Look up button is doing, under the Look up button. */
+  .railFind{margin-top:10px;font-size:12.5px;line-height:1.45;color:var(--ink-2);
+    font-family:var(--mono);border-top:1px solid var(--line);padding-top:9px}
+  .railFind.busy{color:var(--accent-ink)}
   .railBack{margin-top:7px;padding:12px 14px 11px;border-radius:var(--r-s);
     background:var(--glass);border:1px solid var(--line)}
   .railBackHd{display:flex;align-items:baseline;gap:8px;margin-bottom:9px}
