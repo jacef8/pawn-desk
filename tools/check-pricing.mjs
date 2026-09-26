@@ -1469,8 +1469,12 @@ console.log("\n  a book price says whether somebody paid it");
   ok(/29 asking prices, not sales/i.test(card.ask),
      "the big number says asking-or-sold in its FIRST clause \u2014 " +
      (card.ask.match(/\d+ asking[^,]*, not sales[^.]{0,26}/i) || [""])[0]);
-  ok(/treat \$55 as a ceiling/i.test(card.ask),
-     "  and says what that means for this exact figure");
+  /* "treat $55 as a ceiling, not a price" lost its first two words when the
+     card was cut from 129 words to 65. The figure and the word still have
+     to be there together; the sentence around them is free to shrink. */
+  ok(/\$55 is a ceiling/i.test(card.ask),
+     "  and says what that means for this exact figure \u2014 " +
+     (card.ask.match(/\$55 is a ceiling[^.]*/i) || [""])[0]);
   ok(/12 real sales on eBay/i.test(card.sold),
      "  a sold row leads the same way \u2014 " +
      (card.sold.match(/\d+ real sales on [A-Za-z]+/i) || [""])[0]);

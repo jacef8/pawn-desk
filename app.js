@@ -4301,7 +4301,7 @@ function soldStats(key){
 function ownCompsInner(x){
   if(!CAP.db) return "";
   const k=itemKey(), s=soldStats(k), open=dealsFor(k).filter(d=>d.status==="open").length;
-  if(!s&&!open) return `<div class="cardHint" style="margin-top:9px">No history on this one yet — log the deal and this becomes your own price book.</div>`;
+  if(!s&&!open) return `<div class="cardHint" style="margin-top:9px">No sales of your own yet.</div>`;
   let h=`<div class="tagNote" style="margin-top:10px">`;
   if(s){
     h+=`<b style="color:var(--ink)">Your own sales: ${s.n}</b> — average <b style="color:var(--accent)">${money(s.avg)}</b>`;
@@ -4461,11 +4461,11 @@ function compTargets(x){
   if(guns){
     t.push({id:"gw",name:"GunWatcher",sub:"sold prices, no sign-in",
       url:"https://gunwatcher.com/gun-value-sold-information/market-price?itemName="+encodeURIComponent(gunQuery(x)).replace(/%20/g,"+")});
-    t.push({id:"gb",name:"GunBroker",sub:"then tick Completed &mdash; the real gun comp",
+    t.push({id:"gb",name:"GunBroker",sub:"tick Completed",
       url:"https://www.gunbroker.com/All/search?Keywords="+e});
   }
-  t.push({id:"wc",name:"WatchCount &mdash; eBay sold",
-    sub:guns?"parts &amp; optics only &mdash; eBay bans guns":"real Best Offer prices, no eBay sign-in",
+  t.push({id:"wc",name:"WatchCount",
+    sub:guns?"eBay parts &amp; optics only":"eBay sold, no sign-in",
     url:watchCountUrl(q)});
   /* This used to be the plain sold search, ?LH_Sold=1&LH_Complete=1. It
      reaches back 90 days and no further, so anything that sells a few times
@@ -4474,8 +4474,8 @@ function compTargets(x){
      quarter". Seller Hub research covers a full year and gives an average
      rather than a list to eyeball. It needs a seller sign-in, which the
      desk has; WatchCount above is the no-sign-in lane and is unchanged. */
-  t.push({id:"ebay",name:"eBay Seller Hub \u2014 a year of sold",
-    sub:"sign in as a seller &mdash; 365 days, not 90",
+  t.push({id:"ebay",name:"eBay Seller Hub",
+    sub:"sold, a full year &mdash; sign in",
     url:"https://www.ebay.com/sh/research?marketplace=EBAY-US&keywords="+e
        +"&dayRange=365&categoryId=0&offset=0&limit=50&tabName=SOLD&sorting=-sold"});
 
@@ -4514,14 +4514,14 @@ function compTargets(x){
   /* Not guns: Facebook bans firearms outright, so that search comes back
      empty or full of holsters, and GunWatcher above is the real comp. */
   if(ebayBlind(x)&&!guns){
-    t.push({id:"fbm",name:"Facebook Marketplace",sub:"asking prices &mdash; what one is going for near here",
+    t.push({id:"fbm",name:"Facebook Marketplace",sub:"asking, near here",
       url:FB_MARKETPLACE_SEARCH+e});
-    t.push({id:"cl",name:"Craigslist \u2014 Tallahassee",sub:"asking prices &mdash; the whole panhandle, no sign-in",
+    t.push({id:"cl",name:"Craigslist \u2014 Tallahassee",sub:"asking, the panhandle",
       url:"https://tallahassee.craigslist.org/search/sss?query="+e});
   }
   if(WORTHPOINT_CATS[st.catId])
-    t.push({id:"wp",name:"WorthPoint \u2014 marks &amp; makers",
-      sub:"paid sign-in &mdash; years of sold, not 90 days",
+    t.push({id:"wp",name:"WorthPoint",
+      sub:"marks &amp; makers \u2014 paid sign-in",
       url:WORTHPOINT_SEARCH+encodeURIComponent(q)});
   return t;
 }
@@ -7537,7 +7537,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.0405";
+const APP_BUILD="0926.0414";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -7739,7 +7739,7 @@ const SRC_NAMES={"pricecharting.com":"PriceCharting","swappa.com":"Swappa","gunw
   "axedb.com":"AxeDB","golfcartsearch.com":"GolfCartSearch","underpriced.app":"Underpriced","reverb.com":"Reverb","tractorhouse.com":"TractorHouse",
   "machinerypete.com":"Machinery Pete","machinerytrader.com":"MachineryTrader","ebay.com":"eBay","watchcount.com":"WatchCount","gunbroker.com":"GunBroker"};
 function srcName(u){ try{ const h=new URL(u).hostname.replace(/^(www|used)\./,""); return SRC_NAMES[h]||h; }catch(e){ return "the source"; } }
-function srcLink(u,txt){ return /^https:\/\//.test(u||"")?`<a class="srcLink" href="${esc(u)}" target="_blank" rel="noopener" referrerpolicy="no-referrer">${txt||"Check it yourself"} &#8599;</a>`:""; }
+function srcLink(u,txt){ return /^https:\/\//.test(u||"")?`<a class="srcLink" href="${esc(u)}" target="_blank" rel="noopener" referrerpolicy="no-referrer">${txt||"Check it"} &#8599;</a>`:""; }
 function marketSrcHTML(m){
   if(m.kind==="list"){
     /* ASKED TWICE NOW: "is this eBay sold or for sale?" The rail panel was
@@ -7754,15 +7754,15 @@ function marketSrcHTML(m){
     const lead=ev.kind==="sold"
       ? `<b style="color:var(--accent-ink)">${ev.n?ev.n+" real sales":"Sold prices"}</b> on <b>${esc(srcName(m.src))}</b>`
       : ev.kind==="asking"
-      ? `<b style="color:var(--warn-ink)">${ev.n?ev.n+" asking prices":"Asking prices"}, not sales</b>, on <b>${esc(srcName(m.src))}</b>`
-      : `<b>Researched</b> from <b>${esc(srcName(m.src))}</b>, not counted off a page of sales`;
-    return `${lead} for <b>${esc(m.name)}</b>, checked ${esc(fmtDay(m.date))}. ${srcLink(m.src)}${
+      ? `<b style="color:var(--warn-ink)">${ev.n?ev.n+" asking prices, not sales":"Asking prices, not sales"}</b> on <b>${esc(srcName(m.src))}</b>`
+      : `<b>Researched</b> from <b>${esc(srcName(m.src))}</b>, not counted off sales`;
+    return `${lead}, ${esc(fmtDay(m.date))}. ${srcLink(m.src)}${
       ev.kind==="asking"
-      ? ` <span style="color:var(--warn-ink)">Nobody paid these &mdash; treat ${money(m.mid)} as a ceiling, not a price.</span>`
+      ? ` <span style="color:var(--warn-ink)">${money(m.mid)} is a ceiling, not a price.</span>`
       : m.conf==="l"
-      ? ` <span style="color:var(--warn-ink)">Thin data on this one &mdash; it rests on forum posts or a single listing, so double-check it.</span>`
-      : m.conf==="h" ? ` The data behind this one is good.`
-      : ` The data behind this one is fair &mdash; a starting point, not the last word.`}`;
+      ? ` <span style="color:var(--warn-ink)">Thin \u2014 a forum post or one listing. Double-check it.</span>`
+      : m.conf==="h" ? ` Good data.`
+      : ` Fair data \u2014 a starting point.`}`;
   }
   if(m.kind==="shot"&&m.via==="button")return `From ${m.n} ${m.n===1?"sale":"sales"} on ${esc(m.site||"the sold page")}, read by your Pawn price button today. ${srcLink(m.url,"See those sales")}`;
   if(m.kind==="shot")return `From ${m.n} ${m.n===1?"sale":"sales"} you read off ${esc(m.site||"the screenshot")} today.`;
@@ -7791,10 +7791,10 @@ function step4Inner(x,bare){
       <div class="cardHint" style="font-size:13.5px;color:var(--ink-2)">What one like this actually sells for used, in normal shape. The loan works from this number.</div>`;
   } else if(x.checked){
     h+=`<div class="mkRow"><div><div class="mkBig">${money(m.mid)}</div>${m.lo!=null&&m.hi!=null&&m.lo!==m.hi?`<div class="mkRange">usually ${money(m.lo)} to ${money(m.hi)}</div>`:""}</div><span class="mkOk">&#10003; Checked</span></div>
-      <div class="mkWhat">This is what it <b>resells</b> for, used &mdash; not what you lend or pay. The loan and the buy price are beside this.</div>
+      <div class="mkWhat">Not the loan &mdash; the loan is worked out from it.</div>
       <div class="mkSrc">${marketSrcHTML(m)}</div>
       ${(m.note&&rowEvidence(m.note).kind==="research")?`<div class="cardHint" style="font-size:13.5px;color:var(--ink-2)">What moves it: ${esc(m.note)}.</div>`:""}
-      ${m.kind==="list"?`<div class="cardHint" style="font-size:13.5px;color:var(--ink-2)">Want today's exact number? Open a sold page from the market card and read the screenshot.</div>`:""}
+
       <div class="row2" style="gap:8px;margin-top:10px;flex-wrap:wrap"><button class="ghostBtn" id="valEdit">Type my own number</button>${m.kind!=="list"?`<button class="ghostBtn" id="mkClear">Clear it</button>`:""}</div>`;
   } else {
     /* WHY IT IS ASKING, NOT JUST THAT IT IS.
@@ -7807,7 +7807,7 @@ function step4Inner(x,bare){
     h+=`<div class="mkNo"><b>Not checked yet.</b> ${m&&m.stale?`The price list for ${esc(m.name)} is ${m.age} days old.`:`No measured price for <b>${esc(called)}</b>.`}</div>
       <div class="cardHint" style="font-size:13.5px;color:var(--ink-2);margin-top:6px">${blindWhy
         ? esc(blindWhy)+" So this one is yours to look up."
-        : "This is the figure the loan is worked out FROM \u2014 what one resells for used. Everything you have answered adjusts it."}</div>
+        : "The loan works from this number."}</div>
       ${(function(){
         /* IT POINTED AT BUTTONS THAT WERE NOT THERE.
            "Tap a sold-price button above" - and on a phone there is no such
@@ -7824,12 +7824,12 @@ function step4Inner(x,bare){
         if(!bare||deskRail())return "";
         const t=(typeof compTargets==="function")?compTargets(x):[];
         if(!t.length)return "";
-        return `<div class="label" style="margin-top:12px">Look it up &mdash; these open in a new tab</div>
+        return `<div class="label" style="margin-top:12px">Look it up</div>
           <div class="compGrid">${t.map(z=>
             `<a class="compBtn" data-compsite="${esc(z.id)}" data-url="${esc(z.url)}" data-label="${esc(z.name)}" href="${esc(z.url)}" target="_blank" rel="opener" referrerpolicy="no-referrer"><span>${z.name}</span><span class="cs">${z.sub}</span></a>`
           ).join("")}</div>`;
       })()}
-      <ol class="mkSteps"><li>${pdBridge?"Click one of the sold-price links. The page reads itself and the number lands here.":isTouch()?"Open one, screenshot the sold results, and read the screenshot here.":"Open one, look at what these <b>actually sold for</b>, and type the middle price in."}</li><li><b>Sold, not asking</b> &mdash; what somebody paid, never what a seller wants.${who?"":` Naming the make and model helps too: about ${mpCount()} common ones have prices built in.`}</li></ol>
+      <ol class="mkSteps"><li>${pdBridge?"Click a link. The page reads itself.":isTouch()?"Open one, screenshot the sold results, read it here.":"Open one, type the middle sold price in."}</li><li><b>Sold, not asking.</b>${who?"":` Naming the make and model helps — ${mpCount()} have built-in prices.`}</li></ol>
       <button class="brassBtn" id="valEdit" style="padding:11px 18px">Enter what one sold for</button>
 `;
   }

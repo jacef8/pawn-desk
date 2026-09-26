@@ -1311,6 +1311,52 @@ console.log("\n  the price question carries the links it tells you to open");
      "  no page errors" + (phone.perrs[0] || rail.perrs[0] || ""));
 }
 
+/* "ALSO VERY WORDY." Said of the price question, and said before of the
+   evidence panel, the rail and the answer card. It is the standing
+   complaint about this tool and it comes back every time I explain
+   something on screen instead of showing it.
+   That card was 129 words and 604px for ONE question on a phone - a
+   paragraph restating the heading, a second paragraph restating the
+   paragraph, and link labels that said "sold" three times between the name
+   and the subtitle. 65 words now. This holds the line: it is a budget, not
+   a target, and a rewrite that needs more words than this needs a reason. */
+console.log("\n  the price question stays short enough to read at a counter");
+{
+  const pg = await browser.newPage({ viewport: { width: 412, height: 915 } });
+  await pg.goto(BASE + "/phone.html", { waitUntil: "networkidle" });
+  const r = await pg.evaluate(() => {
+    const at = (mkt) => {
+      const c = CATALOG.find(y => y.items.some(i => i.id === "h4"));
+      st.mode="item"; st.catId=c.id; st.itemId="h4"; st.picked=true;
+      st.brandSet=true; st.brandTyped="Moultrie"; st.model="Edge"; st.mpNone=false;
+      st.condSet=true; st.cond="good"; st.market=mkt;
+      const q = askQueue(calcItem()); st.askAt = q.findIndex(z => z.id === "worth"); render();
+      const card = document.getElementById("askCard");
+      return {words: card.innerText.split(/\s+/).filter(Boolean).length,
+              px: Math.round(card.getBoundingClientRect().height),
+              text: card.innerText.replace(/\s+/g, " ")};
+    };
+    return {blank: at(null),
+            priced: at({kind:"list", key:mkKey(), conf:"m", mid:55, lo:44, hi:67,
+                        name:"Moultrie Edge", date:"2026-09-24",
+                        note:"29 listings, asking prices - no sold data",
+                        src:"https://www.ebay.com/sch/i.html?_nkw=x"})};
+  });
+  await pg.close();
+  ok(r.blank.words <= 80,
+     "asking for a price costs " + r.blank.words + " words on a phone (budget 80)");
+  ok(r.blank.px <= 560,
+     "  and " + r.blank.px + "px of screen (budget 560)");
+  ok(r.priced.words <= 60,
+     "  a priced one costs " + r.priced.words + " words (budget 60)");
+  /* short is only worth having if it still says the thing that matters */
+  ok(/not sales|real sales/i.test(r.priced.text),
+     "  and still says whether anybody paid \u2014 " +
+     (r.priced.text.match(/\d+ (asking prices, not sales|real sales)/i) || [""])[0]);
+  ok(/ceiling/i.test(r.priced.text),
+     "  and what that means for the figure");
+}
+
 ok(!errs.length, "no page errors" + (errs.length ? ": " + errs[0] : ""));
 await browser.close();
 console.log(`\n  ${pass} passed, ${fail} failed\n`);
