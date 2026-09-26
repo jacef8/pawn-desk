@@ -1248,6 +1248,69 @@ console.log("\n  picking something ends the typing");
   await pg.close();
 }
 
+/* REPORTED FROM THE COUNTER, a photograph of the phone with "this doesn't
+   make sense" under it. Three things were wrong on one card.
+
+   It told the counter to "tap a sold-price button above" and there was no
+   such button anywhere on the screen. Those links live in the comps card,
+   which the desk draws beside this question and the phone does not draw at
+   all - so the one instruction this card exists to give named something
+   that did not exist, and on a phone there was no way to look a price up.
+   The same fault as "See the detail", and as eighteen aisles being told to
+   price locally with four eBay buttons.
+
+   And it called the thing "microsoft xbox game console - current gen": the
+   make and model the counter typed, glued to the name of the shelf it
+   landed on, in lower case. Two names for one object. */
+console.log("\n  the price question carries the links it tells you to open");
+{
+  const check = async (w, h, tag) => {
+    const pg = await browser.newPage({ viewport: { width: w, height: h } });
+    const perrs = []; pg.on("pageerror", (e) => perrs.push(String(e)));
+    await pg.goto(BASE + "/index.html", { waitUntil: "networkidle" });
+    const r = await pg.evaluate(() => {
+      const c = CATALOG.find(y => y.items.some(i => i.id === "e5"));
+      st.mode="item"; st.catId=c.id; st.itemId="e5"; st.picked=true;
+      st.brandSet=true; st.brandTyped="Microsoft"; st.model="Xbox";
+      st.mpNone=false; st.market=null; st.condSet=true; st.cond="good";
+      const q = askQueue(calcItem());
+      st.askAt = q.findIndex(z => z.id === "worth"); render();
+      const card = document.getElementById("askCard");
+      return {rail: deskRail(),
+              inCard: card ? card.querySelectorAll("[data-compsite]").length : 0,
+              onPage: document.querySelectorAll("[data-compsite]").length,
+              wired: !!(document.querySelector("[data-compsite]") || {}).onclick,
+              text: card ? card.innerText.replace(/\s+/g, " ") : ""};
+    });
+    await pg.close();
+    return {...r, perrs, tag};
+  };
+  const phone = await check(412, 915, "phone");
+  const rail  = await check(1440, 900, "desk rail");
+
+  ok(phone.inCard >= 2,
+     "on a phone the sold-price links are in the question itself \u2014 " + phone.inCard);
+  ok(phone.wired, "  and they are wired, not just drawn");
+  ok(!/button above/i.test(phone.text),
+     "  and it no longer points at a button that is not there");
+  ok(/open one/i.test(phone.text),
+     "  it points at what is on the screen \u2014 " +
+     (phone.text.match(/Open one[^.]{0,52}/i) || [""])[0]);
+  /* the desk already has them beside the question; a second set here is
+     exactly the duplication the counter keeps having to point out */
+  ok(rail.rail === true && rail.inCard === 0 && rail.onPage >= 2,
+     "  on a desk rail they stay in the card beside it, not both \u2014 in card " +
+     rail.inCard + ", on page " + rail.onPage);
+
+  ok(/no measured price for Microsoft Xbox\./i.test(phone.text),
+     "  and the thing is called ONE name, the one that was typed \u2014 " +
+     (phone.text.match(/no measured price for [^.]{0,40}\./i) || [""])[0]);
+  ok(!/xbox game console/i.test(phone.text),
+     "  not the typed name glued to the shelf name");
+  ok(!phone.perrs.length && !rail.perrs.length,
+     "  no page errors" + (phone.perrs[0] || rail.perrs[0] || ""));
+}
+
 ok(!errs.length, "no page errors" + (errs.length ? ": " + errs[0] : ""));
 await browser.close();
 console.log(`\n  ${pass} passed, ${fail} failed\n`);

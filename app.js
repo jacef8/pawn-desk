@@ -7526,7 +7526,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.0318";
+const APP_BUILD="0926.0331";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -7744,7 +7744,13 @@ function marketSrcHTML(m){
   return "Your number, typed in.";
 }
 function step4Inner(x,bare){
+  /* "no measured price for microsoft xbox game console - current gen" -
+     that is the make and model the counter typed, glued to the name of the
+     SHELF it landed on, in lower case. Two names for one thing, and it
+     reads as though the desk is confused about what is in front of it.
+     When the counter has named it, that is its name. */
   const m=x.market, who=[st.brandTyped,st.model].filter(Boolean).join(" "), name=displayName(x);
+  const called=who||name;
   /* In the one-question run the question IS the heading, and a card that
      announces "4 - Resale value" under "What does one sell for used?" says
      it twice and numbers it wrong: it is question five of six there, not
@@ -7768,11 +7774,32 @@ function step4Inner(x,bare){
        desk normally supplies from its own book or a lookup. When it cannot,
        it should say which of those failed rather than leave him to guess. */
     const blindWhy=(typeof ebayBlind==="function")?ebayBlind(x):"";
-    h+=`<div class="mkNo"><b>Not checked yet.</b> ${m&&m.stale?`The price list for ${esc(m.name)} is ${m.age} days old.`:`The desk has no measured price for ${esc(dedupeMake(who,name))}.`}</div>
+    h+=`<div class="mkNo"><b>Not checked yet.</b> ${m&&m.stale?`The price list for ${esc(m.name)} is ${m.age} days old.`:`The desk has no measured price for <b>${esc(called)}</b>.`}</div>
       <div class="cardHint" style="font-size:13.5px;color:var(--ink-2);margin-top:6px">${blindWhy
         ? esc(blindWhy)+" So this one is yours to look up."
         : "This is the figure the loan is worked out FROM \u2014 what one resells for used. Everything you have answered adjusts it."}</div>
-      <ol class="mkSteps"><li>${pdBridge?"Click a sold-price button above. The sold page reads itself and the price lands here.":isTouch()?"Tap a sold-price button above, screenshot the sold results, and read the screenshot here.":"Open a sold-price button above, look at what these <b>actually sold for</b>, and type the middle price in."}</li><li>${who?"":`Or type the brand and model where it asks for the make &mdash; about ${mpCount()} common models have prices built in. `}Sold, not asking: what somebody paid, never what a seller wants.</li></ol>
+      ${(function(){
+        /* IT POINTED AT BUTTONS THAT WERE NOT THERE.
+           "Tap a sold-price button above" - and on a phone there is no such
+           button anywhere on the screen. The sold-price links live in the
+           comps card, which the desk draws beside this question and the
+           phone does not draw at all, so the one instruction this card
+           exists to give named something that did not exist. The same
+           fault as "See the detail", and as eighteen aisles being told to
+           price locally with four eBay buttons.
+           So the links come INTO the question when nothing else is showing
+           them. On a desk rail the card beside this one already has them
+           and a second copy would be the duplication the counter keeps
+           having to point out. */
+        if(!bare||deskRail())return "";
+        const t=(typeof compTargets==="function")?compTargets(x):[];
+        if(!t.length)return "";
+        return `<div class="label" style="margin-top:12px">Look it up &mdash; these open in a new tab</div>
+          <div class="compGrid">${t.map(z=>
+            `<a class="compBtn" data-compsite="${esc(z.id)}" data-url="${esc(z.url)}" data-label="${esc(z.name)}" href="${esc(z.url)}" target="_blank" rel="opener" referrerpolicy="no-referrer"><span>${z.name}</span><span class="cs">${z.sub}</span></a>`
+          ).join("")}</div>`;
+      })()}
+      <ol class="mkSteps"><li>${pdBridge?"Click one of the sold-price links. The page reads itself and the number lands here.":isTouch()?"Open one, screenshot the sold results, and read the screenshot here.":"Open one, look at what these <b>actually sold for</b>, and type the middle price in."}</li><li><b>Sold, not asking</b> &mdash; what somebody paid, never what a seller wants.${who?"":` Naming the make and model helps too: about ${mpCount()} common ones have prices built in.`}</li></ol>
       <button class="brassBtn" id="valEdit" style="padding:11px 18px">Enter what one sold for</button>
 `;
   }
