@@ -1375,6 +1375,60 @@ console.log("\n  the price says which source it came from, and why not a better 
      "  and a figure with no lookup behind it claims no source at all");
 }
 
+/* ASKED AT THE COUNTER, looking at a PlayStation priced off the book:
+   "is this truly a sold number or a for sale number?" It was a sold number
+   - fourteen completed eBay sales - and nothing on the screen said so. The
+   panel led with "Desk price list", which describes where the figure is
+   STORED rather than what is behind it, and the only clue was a confidence
+   word. The row has always known: its note is written by the harvest and
+   says either "14 eBay sales in the last 90 days" or "11 listings, asking
+   prices - no sold data". */
+console.log("\n  a book price says whether somebody paid it");
+{
+  const r = await page.evaluate(() => {
+    const look = (note, src) => {
+      const c = CATALOG.find(y => y.items.some(i => i.id === "e5"));
+      st.mode="item"; st.catId=c.id; st.itemId="e5"; st.picked=true;
+      st.brandSet=true; st.brandTyped="Sony"; st.model="PlayStation 5 digital"; st.mpNone=false;
+      (SPEC_CHOICES[st.itemId]||[]).forEach((g,gi)=>{ st.specSel[st.itemId+":"+gi]=0; });
+      st.completeSet=true; st.condSet=true; st.cond="good";
+      st.market={kind:"list", key:mkKey(), conf:"h", mid:380, lo:329, hi:430,
+                 name:"PlayStation 5 digital", date:"2026-09-23", note, src};
+      render();
+      const w = document.querySelector(".wCard");
+      const k = w && w.querySelector(".wKind");
+      return {text: w ? w.innerText.replace(/\s+/g, " ") : "",
+              kind: k ? k.className.replace("wKind ", "") : "",
+              px: k ? Math.round(parseFloat(getComputedStyle(k).fontSize)) : 0};
+    };
+    return {
+      /* the real row behind the screenshot */
+      sold: look("14 eBay sales in the last 90 days", "https://www.ebay.com/sch/i.html?_nkw=x&LH_Sold=1"),
+      ask:  look("11 listings, asking prices - no sold data", "https://www.ebay.com/sch/i.html?_nkw=x"),
+      /* one of the 161 rows researched by hand in September - neither, and
+         it must not dress itself as either */
+      hand: look("Super Mag or extra barrels add; rust lowers", "https://gunwatcher.com/x"),
+      classify: [rowEvidence("14 eBay sales in the last 90 days"),
+                 rowEvidence("11 listings, asking prices - no sold data"),
+                 rowEvidence("Bluing and wood; 16, 28 and .410 bring far more")].map(e => e.kind)
+    };
+  });
+  ok(r.classify.join(",") === "sold,asking,research",
+     "the three kinds of row are told apart by their own note \u2014 " + r.classify.join(", "));
+  ok(r.sold.kind === "sold" && /14 real sales/.test(r.sold.text) && /somebody paid these/i.test(r.sold.text),
+     "a sold row leads with the count and says somebody paid \u2014 " + r.sold.text.slice(0, 44));
+  ok(/sold and completed/i.test(r.sold.text),
+     "  and names the source as the sold search, not just the site");
+  ok(r.ask.kind === "asking" && /nobody paid these/i.test(r.ask.text) && /ceiling/i.test(r.ask.text),
+     "an asking row says nobody paid, and to treat it as a ceiling");
+  ok(r.hand.kind === "research" && /researched rather than measured/i.test(r.hand.text),
+     "a hand-researched row admits it has no count behind it");
+  ok(r.sold.px >= 20,
+     "  and the verdict is the headline, not a footnote \u2014 " + r.sold.px + "px");
+  ok(!/desk price list/i.test(r.sold.text),
+     "  \"Desk price list\" is gone \u2014 that said where it is stored, not what is behind it");
+}
+
 ok(!errs.length, "no page errors" + (errs.length ? ": " + errs[0] : ""));
 await browser.close();
 console.log(fails ? "\n  " + fails + " FAILED\n" : "\n  all passed\n");

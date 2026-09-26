@@ -1263,6 +1263,22 @@ function killerHTML(x){
     ${drive?`<div class="killRow go"><b>What sets the price</b><span>${esc(drive)}</span></div>`:""}
   </div>`;
 }
+/* Sale, hope, or hearsay - read off the row's own note.
+   The harvest writes these strings, so the shapes are fixed:
+     "14 eBay sales in the last 90 days"        a measured sale
+     "11 listings, asking prices - no sold data" a measured ask
+   and anything else is one of the 161 rows that were researched by hand in
+   September, which are neither and should not pretend to be either. */
+function rowEvidence(note){
+  const t=String(note||"");
+  const sold=t.match(/(\d+)\s+[^.]*\bsales?\b[^.]*\blast\b/i);
+  if(sold)return {kind:"sold", n:Number(sold[1])||0};
+  if(/asking price|no sold data|listings,\s*asking/i.test(t)){
+    const n=t.match(/(\d+)\s+listing/i);
+    return {kind:"asking", n:n?Number(n[1]):0};
+  }
+  return {kind:"research", n:0};
+}
 function weightHTML(x){
   const m=x.market;
   const CONF={h:[100,"","good data"],m:[62,"warn","fair data"],l:[28,"warn","thin - check it"]};
@@ -1334,13 +1350,39 @@ function weightHTML(x){
        had not happened was this device re-checking it today. The sentence
        said "nothing" about work that is the entire reason the row has a
        number. It says which day the figure is from and leaves it there. */
-    return card("Desk price list",c[2],bar(c[0],c[1]),
-      /* "<source> prices for X" reads as "Underpriced prices" when the
-         source is a site called Underpriced. The source is a clause,
-         not an adjective. */
-      (m.mine?"Your own figure off the master sheet for <b>"+esc(m.name||"this model")+"</b>, "
-             :"From <b>"+esc(srcName(m.src))+"</b>, for <b>"+esc(m.name||"this model")+"</b>, ")
-      +"as of "+esc(fmtDay(m.date))+". Not re-checked since.");
+    /* WAS IT A SALE OR A HOPE? THE ONE THING IT DID NOT SAY.
+       Asked at the counter looking at a PlayStation: "is this truly a sold
+       number or a for sale number?" It was a sold number - fourteen
+       completed eBay sales - and nothing on the screen said so. The panel
+       led with "Desk price list", which describes where the figure is
+       STORED rather than what is behind it, and the only clue was a
+       confidence word.
+       The row has always known. Its note is written by the harvest and
+       says either "14 eBay sales in the last 90 days" or "11 listings,
+       asking prices - no sold data". So the panel leads with that, in the
+       slot where every other branch of this function puts a verdict. */
+    const ev=rowEvidence(m.note);
+    const head=ev.kind==="sold" ? (ev.n?ev.n+" real sales":"Sold prices")
+             : ev.kind==="asking" ? "Asking prices"
+             : "Researched";
+    const right=ev.kind==="sold" ? "somebody paid these"
+              : ev.kind==="asking" ? "nobody paid these"
+              : c[2];
+    const pct=ev.kind==="sold"?c[0]:ev.kind==="asking"?26:52;
+    const tone=ev.kind==="sold"?c[1]:"warn";
+    const via=ev.kind==="sold" ? esc(srcName(m.src))+" \u2014 sold and completed"
+            : ev.kind==="asking" ? esc(srcName(m.src))+" \u2014 what was up for sale"
+            : esc(srcName(m.src))+" \u2014 looked up by hand, not measured";
+    return card(`<span class="wKind ${ev.kind}">${head}</span>`,right,bar(pct,tone),
+      (m.mine?`<div class="wVia"><span>Source</span><b>Your own master sheet</b></div>`
+             :`<div class="wVia"><span>Source</span><b>${via}</b></div>`)
+      +(m.note?`<div class="wFrom">${esc(m.note)}</div>`:"")
+      +(ev.kind==="asking"
+        ?`<b>Nobody paid these.</b> They are what sellers were hoping for, and they run high \u2014 treat the figure as a ceiling. `
+        :ev.kind==="research"
+        ?`<b>No count behind this one.</b> It was researched rather than measured off a page of sales. `
+        :"")
+      +"For <b>"+esc(m.name||"this model")+"</b>, checked "+esc(fmtDay(m.date))+". Not re-checked since.");
   }
 
   if(m.kind==="shot")
@@ -7432,7 +7474,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.0207";
+const APP_BUILD="0926.0303";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
