@@ -4123,6 +4123,15 @@ function refreshDealViews(){
 function isCustom(){ return String(st.itemId||"").indexOf("cust-")===0; }
 function itemKey(){ return st.itemId + (isCustom()&&st.bookName ? "|"+st.bookName : ""); }
 function displayName(x){ return (isCustom()&&st.bookName) ? st.bookName : x.item.name; }
+/* "Microsoft microsoft surface book". The make is prefixed to the item's
+   name, which is right for "Microsoft laptop" and wrong the moment the name
+   is the counter's own words - because those words are where the make was
+   read FROM. Say it once. */
+function dedupeMake(make,name){
+  const n=String(name||"").toLowerCase().trim(), m=String(make||"").toLowerCase().trim();
+  if(!m)return n;
+  return n.indexOf(m)>=0 ? n : m+" "+n;
+}
 function dealsFor(key){ return DEALS.filter(d=>(d.key||d.itemId)===key); }
 function soldStats(key){
   const sold=dealsFor(key).filter(d=>d.status==="sold"&&Number(d.soldPrice)>0).map(d=>Number(d.soldPrice));
@@ -7336,7 +7345,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0925.2318";
+const APP_BUILD="0926.0114";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -7578,7 +7587,7 @@ function step4Inner(x,bare){
        desk normally supplies from its own book or a lookup. When it cannot,
        it should say which of those failed rather than leave him to guess. */
     const blindWhy=(typeof ebayBlind==="function")?ebayBlind(x):"";
-    h+=`<div class="mkNo"><b>Not checked yet.</b> ${m&&m.stale?`The price list for ${esc(m.name)} is ${m.age} days old.`:`The desk has no measured price for ${esc(who?who+" ":"")}${esc(name.toLowerCase())}.`}</div>
+    h+=`<div class="mkNo"><b>Not checked yet.</b> ${m&&m.stale?`The price list for ${esc(m.name)} is ${m.age} days old.`:`The desk has no measured price for ${esc(dedupeMake(who,name))}.`}</div>
       <div class="cardHint" style="font-size:13.5px;color:var(--ink-2);margin-top:6px">${blindWhy
         ? esc(blindWhy)+" So this one is yours to look up."
         : "This is the figure the loan is worked out FROM \u2014 what one resells for used. Everything you have answered adjusts it."}</div>

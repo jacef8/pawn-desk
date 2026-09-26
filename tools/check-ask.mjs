@@ -955,6 +955,9 @@ console.log("\n  the make the counter typed is not thrown away");
     out.cat = st.catId; out.item = st.itemId; out.needKind = st.needKind;
     out.brand = st.brandTyped; out.tier = st.brand; out.set = st.brandSet;
     out.kept = st.bookName;
+    out.dedupe = [dedupeMake("Microsoft", "laptop"),
+                  dedupeMake("Microsoft", "microsoft surface book"),
+                  dedupeMake("", "surface book")];
     const q = askQueue(calcItem());
     const bi = q.findIndex(z => z.id === "brand");
     st.askAt = bi; render();
@@ -962,6 +965,7 @@ console.log("\n  the make the counter typed is not thrown away");
     out.says = card ? card.innerText.replace(/\s+/g, " ").slice(0, 120) : "";
     return out;
   });
+  const dedupe = r.dedupe || [];
   ok(r.reads && r.notAGun,
      "the desk reads Microsoft out of those words for electronics, and not for guns");
   ok(r.guess === "elec", "  so the aisle can be read off them too \u2014 got " + r.guess);
@@ -978,6 +982,10 @@ console.log("\n  the make the counter typed is not thrown away");
      "  so the make step names it instead of claiming ignorance \u2014 " + r.says.slice(0, 80));
   ok(r.kept === "microsoft surface book",
      "  and the counter's own words are still what the card is called \u2014 " + JSON.stringify(r.kept));
+  /* "no measured price for Microsoft microsoft surface book" - the make
+     prefixed to a name it was read out of. */
+  ok(dedupe.join("|") === "microsoft laptop|microsoft surface book|surface book",
+     "  and a make already in the name is not said twice \u2014 " + dedupe.join(" / "));
 }
 
 /* When the words say nothing, the desk has to ASK - and it was asking in a
