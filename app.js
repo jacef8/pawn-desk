@@ -1225,7 +1225,7 @@ function railHTML(x){
       <div class="rbDay60">Day 60 it is <b>ours</b> &mdash; no notice, no letter.</div>
     </div>`}
     <div class="wRow"><i><svg viewBox="0 0 24 24" aria-hidden="true">${I.math}</svg></i>
-      <div class="t"><b>Your cushion</b><span>fee ${money(x.charge)} \u00b7 loan \u00f7 resale ${x.ltv}%</span></div>
+      <div class="t"><b>Your cushion</b><span>fee ${money(x.charge)} \u00b7 lending ${x.ltv}% of resale</span></div>
       <div class="v">${money(x.margin)}</div></div>
     <div class="pinNote railNote">${x.checked?"":`<b style="color:var(--warn-ink)">Estimate \u2014 nothing looked up yet.</b> `}${thin
       ? `Not worth buying, and not worth lending on either.`
@@ -7537,7 +7537,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.0414";
+const APP_BUILD="0926.1046";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

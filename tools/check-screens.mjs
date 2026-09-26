@@ -785,10 +785,17 @@ console.log("\n  the rail says what he pays back, not just what he gets");
    answer your question.
    It has no name on screen now. Where a subject was needed the sentence
    was turned around instead. This keeps it out. */
-{
-  const jp = await browser.newPage({viewport:{width:1280, height:900}});
+/* AND ON THE PHONE, WHICH IS ITS OWN FILE AND ITS OWN COPY OF EVERY PANEL.
+   This check passed while the phone's rail still read "Desk price list /
+   eBay, as of Sep 24" - because it only ever loaded index.html. Three
+   surfaces say where a price came from: the desk's rail, the price card,
+   and phone.js's own rail. I fixed them one at a time across three
+   reports, and each time the fix looked complete because the test only
+   watched the surface I had just touched. It watches all of them now. */
+for (const [file, w, h] of [["index.html", 1280, 900], ["phone.html", 412, 915]]) {
+  const jp = await browser.newPage({viewport:{width:w, height:h}});
   const seen = [];
-  await jp.goto(BASE + "/index.html", {waitUntil:"networkidle"});
+  await jp.goto(BASE + "/" + file, {waitUntil:"networkidle"});
   for (const mode of ["item", "metal", "device", "setup", "log"]) {
     const t = await jp.evaluate((m) => { st.mode = m; render();
       return document.body.innerText; }, mode);
@@ -803,9 +810,40 @@ console.log("\n  the rail says what he pays back, not just what he gets");
     return document.body.innerText;
   });
   if (/\bthe desk\b/i.test(t2)) seen.push("priced run: " + (t2.match(/.{0,40}the desk.{0,40}/i)||[""])[0].trim());
+
+  /* THE OTHER HALF OF THE SAME REPORT: "still says eBay without stating if
+     it is sold prices or for sale prices." Naming the site settles nothing,
+     because eBay publishes both. Wherever a source is named, the kind of
+     price has to be named with it. */
+  const src = await jp.evaluate(() => {
+    const at = (note) => {
+      const c = CATALOG.find(y => y.items.some(i => i.id === "h4"));
+      st.mode="item"; st.catId=c.id; st.itemId="h4"; st.picked=true;
+      st.brandSet=true; st.brandTyped="Moultrie"; st.model="Edge"; st.mpNone=false;
+      (SPEC_CHOICES[st.itemId]||[]).forEach((g,gi)=>{ st.specSel[st.itemId+":"+gi]=0; });
+      st.completeSet=true; st.condSet=true; st.cond="excellent";
+      st.market={kind:"list", key:mkKey(), conf:"h", mid:62, lo:50, hi:75,
+                 name:"Moultrie Edge", date:"2026-09-24", note,
+                 src:"https://www.ebay.com/sch/i.html?_nkw=x"};
+      render();
+      return document.body.innerText.replace(/\s+/g, " ");
+    };
+    at("12 eBay sales in the last 90 days");              /* warm the layout */
+    return {sold: at("12 eBay sales in the last 90 days"),
+            ask:  at("29 listings, asking prices - no sold data")};
+  });
+  if (!/real sales|sold prices/i.test(src.sold))
+    seen.push("a sold row does not say so: " + src.sold.slice(0, 70));
+  if (!/asking prices/i.test(src.ask))
+    seen.push("an asking row does not say so: " + src.ask.slice(0, 70));
+  if (/Desk price list/i.test(src.sold + src.ask))
+    seen.push('still headlines "Desk price list"');
+  if (/loan \u00f7 resale/i.test(src.sold))
+    seen.push("still writes the cushion as an arithmetic expression");
+
   await jp.close();
-  if (seen.length) { bad++; console.log("FAIL the tool calls itself \"the desk\" on screen: " + seen.join(" | ")); }
-  else console.log("ok   the tool never calls itself \"the desk\" where the counter can read it");
+  if (seen.length) { bad++; console.log("FAIL " + file + " says where a price came from badly: " + seen.join(" | ")); }
+  else console.log("ok   " + file + ": no \"the desk\", and a named source always says sold or asking");
 }
 
 await browser.close();

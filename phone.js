@@ -542,14 +542,34 @@ function snapHTML(){
       return {b:"Not looked up",s:"a built-in starting point",pct:0,tone:"none"};
     if(mk==="found"||mk==="harvest"){
       const n=m.n||0,sold=m.sold||0,share=n?sold/n:0;
-      return {b:(m.from?esc(srcName(m.from)):"eBay")+" sold prices",
-              s:sold+" of "+n+" were sales",pct:Math.round(share*100),tone:share>=0.5?"":"warn"};
+      const site=m.from?esc(srcName(m.from)):"eBay";
+      /* It said "<site> sold prices" whatever came back, so a search that
+         found nothing but asks still had the word SOLD in its headline. */
+      return sold===0
+        ? {b:n+" asking prices",s:"nobody paid these \u2014 "+site,pct:3,tone:"warn"}
+        : {b:sold+" real sales",s:sold+" of "+n+" listings \u2014 "+site,
+           pct:Math.round(share*100),tone:share>=0.5?"":"warn"};
     }
-    /* The headline is a verdict, never a hostname - "Underpriced prices"
-       was the same slip as the bare "Swappa", wearing a noun. */
-    if(mk==="list")return {b:"Desk price list",
-                           s:esc(srcName(m.src))+", as of "+esc(fmtDay(m.date))+" \u00b7 not re-checked",
-                           pct:m.conf==="h"?100:m.conf==="l"?28:62,tone:m.conf==="h"?"":"warn"};
+    /* THE THIRD SURFACE, AND THE THIRD TIME. "Still says desk and still
+       says eBay without stating if it is sold prices or for sale prices."
+       The desk's panel was fixed, then the price card was fixed, and this
+       one - the phone's own copy, in its own file - went on saying "Desk
+       price list / eBay, as of Sep 24". eBay answers both questions, so
+       the hostname settles nothing, and "Desk price list" is my name for
+       the tool wearing a noun.
+       The row's note says which it is; rowEvidence reads it. */
+    if(mk==="list"){
+      const ev=(typeof rowEvidence==="function")?rowEvidence(m.note):{kind:"research",n:0};
+      const site=esc(srcName(m.src)), when=esc(fmtDay(m.date));
+      if(ev.kind==="sold")
+        return {b:(ev.n?ev.n+" real sales":"Sold prices"),s:site+", "+when,
+                pct:m.conf==="h"?100:62,tone:m.conf==="h"?"":"warn"};
+      if(ev.kind==="asking")
+        return {b:(ev.n?ev.n+" asking prices":"Asking prices"),
+                s:"nobody paid these \u2014 "+site+", "+when,pct:26,tone:"warn"};
+      return {b:"Researched",s:"not counted off sales \u2014 "+site+", "+when,
+              pct:m.conf==="h"?70:45,tone:"warn"};
+    }
     return {b:"Checked",s:esc(checkedNote(x)),pct:100,tone:""};
   })();
 
@@ -572,7 +592,7 @@ function snapHTML(){
       <div class="t"><b>Lend him</b><span>60-day pawn loan</span></div>
       <div class="v">${x.buyTooThin?"&mdash;":money(x.target)}</div></div>
     <div class="wRow"><i><svg viewBox="0 0 24 24" aria-hidden="true">${ICON.math}</svg></i>
-      <div class="t"><b>Your cushion</b><span>fee ${money(x.charge)} \u00b7 loan \u00f7 resale ${x.ltv}%</span></div>
+      <div class="t"><b>Your cushion</b><span>fee ${money(x.charge)} \u00b7 lending ${x.ltv}% of resale</span></div>
       <div class="v">${money(x.margin)}</div></div>` : "";
 
   return `<div class="snapWrap${ready?" ready":""}">${cam}
