@@ -111,14 +111,24 @@ console.log("\n  the meter behind the number");
   ok(w.none && /not checked/i.test(w.none.text), "an unchecked item says so — " + (w.none && w.none.text.slice(0, 44)));
   ok(w.none && w.none.tone.includes("none"), "and its bar is drawn empty, not full");
 
-  ok(w.sold && /12 listings/.test(w.sold.text), "counts the listings — " + (w.sold && w.sold.text.slice(0, 40)));
-  ok(w.sold && /9 sold/.test(w.sold.text) && /3 asking/.test(w.sold.text), "splits sold from asking");
-  ok(w.sold && /eBay 9/.test(w.sold.text), "names the sites they came from");
+  /* The headline used to be "12 listings / 9 sold - 3 asking", and the card
+     then said "mostly asking prices" or its opposite underneath, and named
+     the sites, and named the source, and gave the reason - five wordings of
+     one fact. The counter asked for it tighter, so the headline is the
+     verdict and each thing is said once. The counts are still there; they
+     are no longer the first thing, because "12 listings" does not tell you
+     whether anybody paid. */
+  ok(w.sold && /9 real sales/.test(w.sold.text),
+     "the headline is the verdict, with its count — " + (w.sold && w.sold.text.slice(0, 40)));
+  ok(w.sold && /somebody paid these/i.test(w.sold.text), "  and says somebody paid them");
+  ok(w.sold && /eBay 9/.test(w.sold.text), "names where they came from");
   ok(w.sold && !w.sold.tone.includes("warn"), "mostly-sold is NOT flagged");
   ok(w.sold && parseInt(w.sold.width) === 75, "the bar is the sold share — 9 of 12 = 75%, got " + (w.sold && w.sold.width));
 
   ok(w.asks && w.asks.tone.includes("warn"), "mostly-asking IS flagged");
-  ok(w.asks && /mostly asking/i.test(w.asks.text), "and says so in words, not just colour");
+  ok(w.asks && /listings/i.test(w.asks.text) && /1 sold/.test(w.asks.text),
+     "a mixed row still counts the sold against the asking — " + (w.asks && w.asks.text.slice(0, 40)));
+  ok(w.asks && /hoping for/i.test(w.asks.text), "and says what they are, in words, not just colour");
   ok(w.asks && /ceiling/i.test(w.asks.text), "and says what to do about it");
   ok(w.asks && parseInt(w.asks.width) === 10, "its bar is 1 of 10 = 10%, got " + (w.asks && w.asks.width));
 
@@ -474,9 +484,12 @@ console.log("\n  an empty confidence meter looks empty");
      "nothing looked up draws no fill at all — width " + r.empty.w + "%, " + r.empty.paint);
   ok(/Not checked/.test(r.empty.txt) && /not a price anybody paid/.test(r.empty.txt),
      "  and says why in words as well as shape");
-  ok(r.full.w > 70 && /7 sold/.test(r.full.txt),
+  ok(r.full.w > 70 && /7 real sales/.test(r.full.txt),
      "  seven sales in nine listings fills it — " + r.full.w + "%");
-  ok(r.asks.w < 30 && /warn/.test(r.asks.cls) && /Mostly asking prices/.test(r.asks.txt),
+  /* The words moved into the headline when the card was tightened - it says
+     "9 listings / 2 sold - 7 asking" up top and what that means underneath,
+     rather than repeating "mostly asking prices" a third time. */
+  ok(r.asks.w < 30 && /warn/.test(r.asks.cls) && /hoping for/i.test(r.asks.txt),
      "  two sales in nine drops it and warns — " + r.asks.w + "%");
   ok(r.empty.w < r.asks.w && r.asks.w < r.full.w,
      "  the three states read in the right order: none < thin < solid");
@@ -1366,13 +1379,16 @@ console.log("\n  the price says which source it came from, and why not a better 
      (r.spent.match(/SOURCE [^|]{0,44}/i) || [""])[0].trim());
   ok(/quota spent for the month/i.test(r.spent),
      "  and why it is not the better one");
-  ok(/mostly asking prices/i.test(r.spent),
+  ok(/hoping for/i.test(r.spent) && /ceiling/i.test(r.spent),
      "  while still saying what that means for the number");
   ok(/SoldComps/i.test(r.sold) && !/quota spent/i.test(r.sold),
      "  a real sold lookup says so instead \u2014 " +
      (r.sold.match(/SOURCE [^|]{0,44}/i) || [""])[0].trim());
-  ok(!/source/i.test(r.quiet),
-     "  and a figure with no lookup behind it claims no source at all");
+  /* With no `via` recorded the card falls back to naming the sites the
+     listings came from, which is where they came from and all it knows. It
+     must not claim a service it never reached. */
+  ok(!/SoldComps|sold and completed|listings, not sales/i.test(r.quiet),
+     "  and a figure with no lookup behind it claims no service it never reached");
 }
 
 /* ASKED AT THE COUNTER, looking at a PlayStation priced off the book:

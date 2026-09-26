@@ -1314,19 +1314,38 @@ function weightHTML(x){
        from sales, from asking prices, or from the built-in list.
        It is named here now, on the price itself, in the order the service
        tries them. */
-    const VIA={soldcomps:"SoldComps — completed sales",
-               marketplace_insights:"eBay sold prices",
-               browse:"eBay listings — what is for sale right now"};
-    const via=VIA[m.via]||"";
-    const why=String(m.viaWhy||"").trim();
-    return card(n+" listing"+(n===1?"":"s"), sold+" sold · "+asks+" asking",
+    /* FOUR WAYS OF SAYING THE SAME THING.
+       This card read: "34 listings / 0 sold - 34 asking", then "eBay
+       listings - what is for sale right now", then "sold-price quota spent
+       for the month, fell back to asking prices", then "eBay 34", then
+       "Mostly asking prices. Nobody paid these..." Every one of those is
+       the sentence "these are asks", and a counter reading the same fact
+       five times in five wordings starts skimming - which is how the one
+       line that is NOT a repeat gets missed.
+       One statement each: what they are, where from, why not better, and
+       what it means for the number. */
+    const askOnly=sold===0;
+    const head=askOnly ? n+" asking price"+(n===1?"":"s")
+             : share>=0.5 ? sold+" real sale"+(sold===1?"":"s")
+             : n+" listings";
+    const right=askOnly ? "nobody paid these"
+              : share>=0.5 ? "somebody paid these"
+              : sold+" sold \u00b7 "+asks+" asking";
+    const VIA={soldcomps:"SoldComps \u2014 completed sales",
+               marketplace_insights:"eBay \u2014 sold and completed",
+               browse:"eBay listings, not sales"};
+    const via=VIA[m.via]||(m.from?esc(m.from):"");
+    /* The service's own sentence carries "fell back to asking prices" on
+       the end, which the headline has already said. Keep the half that is
+       news - WHY there is no sold data this time. */
+    const why=String(m.viaWhy||"").replace(/,?\s*fell back to asking prices\.?$/i,"").trim();
+    return card(`<span class="wKind ${askOnly?"asking":share>=0.5?"sold":""}">${head}</span>`, right,
       bar(n?share*100:3,share>=0.5?"":"warn"),
       (via?`<div class="wVia"><span>Source</span><b>${esc(via)}</b></div>`:"")
       +(why?`<div class="wWhy">${esc(why.charAt(0).toUpperCase()+why.slice(1))}.</div>`:"")
-      +(m.from?`<div class="wFrom">${esc(m.from)}</div>`:"")
       +(share>=0.5
-        ?"Most of these are prices somebody actually paid."
-        :"<b>Mostly asking prices.</b> Nobody paid these - they are what sellers hope for, and they run high. Treat the figure as a ceiling."))
+        ? "Prices somebody actually paid, in the last 90 days."
+        : "What sellers are hoping for. They run high, so treat this as a ceiling rather than a price."))
       +thumbStripCard(compsMatch(x));
   }
 
@@ -6105,8 +6124,27 @@ function startOver(){
   render();
   const o=document.getElementById("omniIn"); if(o)o.focus();
 }
+/* PICKING SOMETHING ENDS THE TYPING.
+   Reported from the counter: "when I'm typing in the top text box then
+   select something from the drop down or hit enter, it should no longer
+   let me type in that text box - it should complete the typing unless I
+   click back into it."
+   The box gives up the focus here, and the list closes with it. That half
+   is easy. The half that actually mattered is below, on the document-wide
+   "start typing anywhere" handler - letting go of the focus achieves
+   nothing while the next keystroke hands it straight back, which is why
+   the state looked right and the keyboard still did the wrong thing.
+   I had a guard in render() here too, on the theory that its focus-restore
+   would undo this. It would not: this blur runs BEFORE that render, so the
+   restore sees an unfocused box and does nothing. Taking the fix out one
+   piece at a time is what showed it was dead, and dead code with a comment
+   claiming it matters is worse than none. Clicking back into the box works
+   exactly as before. */
 function omniPick(r){
   if(!r||r.kind==="sold")return;
+  { const i=document.getElementById("omniIn"), l=document.getElementById("omniList");
+    if(i){ try{ i.blur(); }catch(e){} i.setAttribute("aria-expanded","false"); }
+    if(l)l.hidden=true; }
   if(r.kind==="own"){
     /* Before anything else: if the words name a make the desk knows, and
        only one aisle carries it, that is the aisle. */
@@ -6214,7 +6252,20 @@ function wireOmni(){
   if(clr){ clr.onmousedown=e=>e.preventDefault();
     clr.onclick=()=>{ st.omniQ=""; inp.value=""; if(st.picked)startOver(); else { inp.focus(); omniShow(); } }; }
 }
-/* on a computer: start typing anywhere on the item page and it lands in the search bar */
+/* on a computer: start typing anywhere on the START page and it lands in
+   the search bar.
+   ONLY the start page. It used to be the whole item page, and that is the
+   real reason the box went on taking letters after a pick: releasing the
+   focus was not enough, because the next keystroke handed it straight
+   back. Reported from the counter - "it should no longer let me type in
+   that text box, it should complete the typing unless I click back into
+   it" - and the feature only ever made sense on an empty screen, where
+   the box is the single thing to do. With something on the counter the
+   counter is answering questions, and a stray letter belongs nowhere near
+   the search. The screen already says so: "Type here again to price
+   something else."
+   "/" still works either way, because that is a deliberate reach for the
+   search rather than an accident. */
 document.addEventListener("keydown",e=>{
   if(st.mode!=="item"||e.ctrlKey||e.metaKey||e.altKey||e.isComposing)return;
   const a=document.activeElement;
@@ -6222,6 +6273,7 @@ document.addEventListener("keydown",e=>{
   if(document.getElementById("camModal"))return;
   const inp=document.getElementById("omniIn"); if(!inp)return;
   if(e.key==="/"){ e.preventDefault(); inp.focus(); return; }
+  if(st.picked)return;
   if(e.key.length===1&&/\S/.test(e.key)){ inp.focus({preventScroll:true}); try{ const n=inp.value.length; inp.setSelectionRange(n,n); }catch(x){} }
 });
 
@@ -7474,7 +7526,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.0303";
+const APP_BUILD="0926.0318";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

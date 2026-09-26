@@ -1177,6 +1177,77 @@ console.log("\n  the rail stops repeating the middle column");
      (r.finished.text.match(/WHAT KILLS IT[^A-Z]*[^.]*\./i) || [""])[0].slice(0, 70));
 }
 
+/* REPORTED FROM THE COUNTER: "when I'm typing in the top text box then
+   select something from the drop down or hit enter, it should no longer let
+   me type in that text box - it should complete the typing unless I click
+   back into it."
+   Two good behaviours collided. render() restores focus to the search box
+   so a keystroke is never lost mid-word, and a pick goes through render().
+   And a document-wide handler put ANY letter typed on the item page into
+   the search bar - so even after the focus was released, the next keystroke
+   handed it straight back. Both had to change, which is why the first fix
+   looked right in the state and still failed at the keyboard. */
+console.log("\n  picking something ends the typing");
+{
+  const pg = await browser.newPage({ viewport: { width: 1400, height: 900 } });
+  const perrs = [];
+  pg.on("pageerror", (e) => perrs.push(String(e)));
+  await pg.goto(BASE + "/index.html", { waitUntil: "networkidle" });
+
+  const val = () => pg.evaluate(() => document.getElementById("omniIn").value);
+
+  /* picked by clicking a row */
+  await pg.click("#omniIn");
+  await pg.type("#omniIn", "dewalt dcd791", { delay: 8 });
+  await pg.waitForTimeout(350);
+  await pg.click("[data-omni]");
+  await pg.waitForTimeout(300);
+  const after = await pg.evaluate(() => ({
+    focus: document.activeElement.id || document.activeElement.tagName,
+    listHidden: (document.getElementById("omniList") || {}).hidden,
+    picked: st.picked }));
+  const before = await val();
+  await pg.keyboard.type("zzz");
+  const afterTyping = await val();
+
+  ok(after.picked === true, "a row click prices the item");
+  ok(after.focus !== "omniIn", "  and the box gives up the focus \u2014 " + after.focus);
+  ok(after.listHidden === true, "  the list closes with it");
+  ok(afterTyping === before,
+     "  and stray typing no longer lands in it \u2014 " + JSON.stringify(afterTyping.slice(-24)));
+
+  /* clicking back in still works, and selects so the next item types over */
+  await pg.click("#omniIn");
+  await pg.keyboard.type("ipad");
+  ok((await val()) === "ipad",
+     "  clicking back in works, and types over the last one \u2014 " + JSON.stringify(await val()));
+
+  /* picked with the keyboard */
+  await pg.evaluate(() => { st.picked = false; st.omniDone = ""; render(); });
+  await pg.click("#omniIn");
+  await pg.evaluate(() => { const i = document.getElementById("omniIn");
+    i.value = ""; i.dispatchEvent(new Event("input", { bubbles: true })); });
+  await pg.type("#omniIn", "playstation 5", { delay: 8 });
+  await pg.waitForTimeout(350);
+  await pg.keyboard.press("Enter"); await pg.waitForTimeout(100);
+  await pg.keyboard.press("Enter"); await pg.waitForTimeout(300);
+  const kBefore = await val();
+  await pg.keyboard.type("qqq");
+  ok((await val()) === kBefore && await pg.evaluate(() => st.picked),
+     "  Enter behaves the same as a click \u2014 " + JSON.stringify(kBefore.slice(0, 26)));
+
+  /* but on an empty screen, typing anywhere still reaches the box - that
+     feature is the whole front page and must survive the fix */
+  await pg.evaluate(() => { st.picked = false; st.omniDone = ""; st.omniQ = ""; render();
+    const i = document.getElementById("omniIn"); i.value = ""; i.blur(); document.body.focus(); });
+  await pg.keyboard.type("sti");
+  await pg.waitForTimeout(150);
+  ok((await val()) === "sti",
+     "  and on the start page typing anywhere still reaches it \u2014 " + JSON.stringify(await val()));
+  ok(!perrs.length, "  no page errors" + (perrs.length ? ": " + perrs[0] : ""));
+  await pg.close();
+}
+
 ok(!errs.length, "no page errors" + (errs.length ? ": " + errs[0] : ""));
 await browser.close();
 console.log(`\n  ${pass} passed, ${fail} failed\n`);
