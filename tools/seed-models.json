@@ -4,6 +4,114 @@
  "rows": [
   {
    "ref": "p1",
+   "name": "Craftsman S165",
+   "alias": "s-165 s165"
+  },
+  {
+   "ref": "p1",
+   "name": "DeWalt DCCS670",
+   "alias": "dccs-670 dccs670"
+  },
+  {
+   "ref": "p1",
+   "name": "Echo CS-310",
+   "alias": "cs-310 cs310"
+  },
+  {
+   "ref": "p1",
+   "name": "Echo CS-352",
+   "alias": "cs-352 cs352"
+  },
+  {
+   "ref": "p1",
+   "name": "Echo CS-400",
+   "alias": "cs-400 cs400"
+  },
+  {
+   "ref": "p1",
+   "name": "Echo CS-490",
+   "alias": "cs-490 cs490"
+  },
+  {
+   "ref": "p1",
+   "name": "Echo CS-590",
+   "alias": "cs-590 cs590"
+  },
+  {
+   "ref": "p1",
+   "name": "Ego CS1804",
+   "alias": "cs-1804 cs1804"
+  },
+  {
+   "ref": "p1",
+   "name": "Greenworks 80V 18in chainsaw"
+  },
+  {
+   "ref": "p1",
+   "name": "Husqvarna 120"
+  },
+  {
+   "ref": "p1",
+   "name": "Husqvarna 130"
+  },
+  {
+   "ref": "p1",
+   "name": "Husqvarna 135"
+  },
+  {
+   "ref": "p1",
+   "name": "Husqvarna 240"
+  },
+  {
+   "ref": "p1",
+   "name": "Husqvarna 435"
+  },
+  {
+   "ref": "p1",
+   "name": "Husqvarna 440"
+  },
+  {
+   "ref": "p1",
+   "name": "Husqvarna 445"
+  },
+  {
+   "ref": "p1",
+   "name": "Husqvarna 450 Rancher"
+  },
+  {
+   "ref": "p1",
+   "name": "Husqvarna 455 Rancher"
+  },
+  {
+   "ref": "p1",
+   "name": "Husqvarna 460 Rancher"
+  },
+  {
+   "ref": "p1",
+   "name": "Husqvarna 562 XP"
+  },
+  {
+   "ref": "p1",
+   "name": "Makita EA4300F",
+   "alias": "ea-4300f ea4300f"
+  },
+  {
+   "ref": "p1",
+   "name": "Milwaukee M18 Fuel 16in chainsaw",
+   "alias": "fuel-16in fuel16in m-18 m18"
+  },
+  {
+   "ref": "p1",
+   "name": "Poulan Pro PR5020",
+   "alias": "pr-5020 pr5020"
+  },
+  {
+   "ref": "p1",
+   "name": "Ryobi RY3716",
+   "alias": "ry-3716 ry3716"
+  },
+  {
+   "ref": "p1",
    "name": "Stihl MS 170",
    "alias": "ms-170 ms170"
   },
@@ -63,112 +171,50 @@
    "alias": "ms-462 ms462"
   },
   {
-   "ref": "p1",
-   "name": "Husqvarna 120"
+   "ref": "p2",
+   "name": "DeWalt DCST920",
+   "alias": "dcst-920 dcst920"
   },
   {
-   "ref": "p1",
-   "name": "Husqvarna 130"
+   "ref": "p2",
+   "name": "Echo SRM-225",
+   "alias": "srm-225 srm225"
   },
   {
-   "ref": "p1",
-   "name": "Husqvarna 135"
+   "ref": "p2",
+   "name": "Echo SRM-2620",
+   "alias": "srm-2620 srm2620"
   },
   {
-   "ref": "p1",
-   "name": "Husqvarna 240"
+   "ref": "p2",
+   "name": "Ego ST1500",
+   "alias": "st-1500 st1500"
   },
   {
-   "ref": "p1",
-   "name": "Husqvarna 435"
+   "ref": "p2",
+   "name": "Husqvarna 128LD"
   },
   {
-   "ref": "p1",
-   "name": "Husqvarna 440"
+   "ref": "p2",
+   "name": "Husqvarna 129L"
   },
   {
-   "ref": "p1",
-   "name": "Husqvarna 445"
+   "ref": "p2",
+   "name": "Husqvarna 320iL"
   },
   {
-   "ref": "p1",
-   "name": "Husqvarna 450 Rancher"
+   "ref": "p2",
+   "name": "Milwaukee M18 Fuel string trimmer",
+   "alias": "m-18 m18"
   },
   {
-   "ref": "p1",
-   "name": "Husqvarna 455 Rancher"
+   "ref": "p2",
+   "name": "Ryobi 40V string trimmer"
   },
   {
-   "ref": "p1",
-   "name": "Husqvarna 460 Rancher"
-  },
-  {
-   "ref": "p1",
-   "name": "Husqvarna 562 XP"
-  },
-  {
-   "ref": "p1",
-   "name": "Echo CS-310",
-   "alias": "cs-310 cs310"
-  },
-  {
-   "ref": "p1",
-   "name": "Echo CS-352",
-   "alias": "cs-352 cs352"
-  },
-  {
-   "ref": "p1",
-   "name": "Echo CS-400",
-   "alias": "cs-400 cs400"
-  },
-  {
-   "ref": "p1",
-   "name": "Echo CS-490",
-   "alias": "cs-490 cs490"
-  },
-  {
-   "ref": "p1",
-   "name": "Echo CS-590",
-   "alias": "cs-590 cs590"
-  },
-  {
-   "ref": "p1",
-   "name": "Poulan Pro PR5020",
-   "alias": "pr-5020 pr5020"
-  },
-  {
-   "ref": "p1",
-   "name": "Craftsman S165",
-   "alias": "s-165 s165"
-  },
-  {
-   "ref": "p1",
-   "name": "Ryobi RY3716",
-   "alias": "ry-3716 ry3716"
-  },
-  {
-   "ref": "p1",
-   "name": "Makita EA4300F",
-   "alias": "ea-4300f ea4300f"
-  },
-  {
-   "ref": "p1",
-   "name": "Milwaukee M18 Fuel 16in chainsaw",
-   "alias": "fuel-16in fuel16in m-18 m18"
-  },
-  {
-   "ref": "p1",
-   "name": "DeWalt DCCS670",
-   "alias": "dccs-670 dccs670"
-  },
-  {
-   "ref": "p1",
-   "name": "Ego CS1804",
-   "alias": "cs-1804 cs1804"
-  },
-  {
-   "ref": "p1",
-   "name": "Greenworks 80V 18in chainsaw"
+   "ref": "p2",
+   "name": "Stihl FS 131",
+   "alias": "fs-131 fs131"
   },
   {
    "ref": "p2",
@@ -192,54 +238,54 @@
   },
   {
    "ref": "p2",
-   "name": "Stihl FS 131",
-   "alias": "fs-131 fs131"
+   "name": "Troy-Bilt TB22",
+   "alias": "tb-22 tb22"
   },
   {
-   "ref": "p2",
-   "name": "Husqvarna 128LD"
+   "ref": "p3",
+   "name": "Echo PB-580T",
+   "alias": "pb-580t pb580t"
   },
   {
-   "ref": "p2",
-   "name": "Husqvarna 129L"
+   "ref": "p3",
+   "name": "Echo PB-770T",
+   "alias": "pb-770t pb770t"
   },
   {
-   "ref": "p2",
-   "name": "Husqvarna 320iL"
+   "ref": "p3",
+   "name": "Ego LB6504",
+   "alias": "lb-6504 lb6504"
   },
   {
-   "ref": "p2",
-   "name": "Echo SRM-225",
-   "alias": "srm-225 srm225"
+   "ref": "p3",
+   "name": "Husqvarna 350BT"
   },
   {
-   "ref": "p2",
-   "name": "Echo SRM-2620",
-   "alias": "srm-2620 srm2620"
+   "ref": "p3",
+   "name": "Husqvarna 360BT"
   },
   {
-   "ref": "p2",
-   "name": "Ryobi 40V string trimmer"
+   "ref": "p3",
+   "name": "Husqvarna 580BTS"
   },
   {
-   "ref": "p2",
-   "name": "Ego ST1500",
-   "alias": "st-1500 st1500"
-  },
-  {
-   "ref": "p2",
-   "name": "Milwaukee M18 Fuel string trimmer",
+   "ref": "p3",
+   "name": "Milwaukee M18 Fuel blower",
    "alias": "m-18 m18"
   },
   {
-   "ref": "p2",
-   "name": "DeWalt DCST920",
-   "alias": "dcst-920 dcst920"
+   "ref": "p3",
+   "name": "Ryobi 40V backpack blower"
   },
   {
-   "ref": "p2",
-   "name": "Troy-Bilt TB22",
-   "alias": "tb-22 tb22"
+   "ref": "p3",
+   "name": "Stihl BG 50",
+   "alias": "bg-50 bg50"
+  },
+  {
+   "ref": "p3",
+   "name": "Stihl BG 86",
+   "alias": "bg-86 bg86"
   },
   {
    "ref": "p3",
@@ -262,50 +308,24 @@
    "alias": "br-700 br700"
   },
   {
-   "ref": "p3",
-   "name": "Stihl BG 50",
-   "alias": "bg-50 bg50"
+   "ref": "p4",
+   "name": "Craftsman M220",
+   "alias": "m-220 m220"
   },
   {
-   "ref": "p3",
-   "name": "Stihl BG 86",
-   "alias": "bg-86 bg86"
+   "ref": "p4",
+   "name": "Cub Cadet SC100",
+   "alias": "sc-100 sc100"
   },
   {
-   "ref": "p3",
-   "name": "Husqvarna 350BT"
+   "ref": "p4",
+   "name": "Ego LM2135",
+   "alias": "lm-2135 lm2135"
   },
   {
-   "ref": "p3",
-   "name": "Husqvarna 360BT"
-  },
-  {
-   "ref": "p3",
-   "name": "Husqvarna 580BTS"
-  },
-  {
-   "ref": "p3",
-   "name": "Echo PB-580T",
-   "alias": "pb-580t pb580t"
-  },
-  {
-   "ref": "p3",
-   "name": "Echo PB-770T",
-   "alias": "pb-770t pb770t"
-  },
-  {
-   "ref": "p3",
-   "name": "Ryobi 40V backpack blower"
-  },
-  {
-   "ref": "p3",
-   "name": "Ego LB6504",
-   "alias": "lb-6504 lb6504"
-  },
-  {
-   "ref": "p3",
-   "name": "Milwaukee M18 Fuel blower",
-   "alias": "m-18 m18"
+   "ref": "p4",
+   "name": "Honda HRN216",
+   "alias": "hrn-216 hrn216"
   },
   {
    "ref": "p4",
@@ -314,8 +334,12 @@
   },
   {
    "ref": "p4",
-   "name": "Honda HRN216",
-   "alias": "hrn-216 hrn216"
+   "name": "Husqvarna HU700H",
+   "alias": "hu-700h hu700h"
+  },
+  {
+   "ref": "p4",
+   "name": "Ryobi 40V push mower"
   },
   {
    "ref": "p4",
@@ -327,67 +351,27 @@
   },
   {
    "ref": "p4",
-   "name": "Craftsman M220",
-   "alias": "m-220 m220"
-  },
-  {
-   "ref": "p4",
-   "name": "Husqvarna HU700H",
-   "alias": "hu-700h hu700h"
-  },
-  {
-   "ref": "p4",
-   "name": "Ego LM2135",
-   "alias": "lm-2135 lm2135"
-  },
-  {
-   "ref": "p4",
-   "name": "Ryobi 40V push mower"
-  },
-  {
-   "ref": "p4",
    "name": "Troy-Bilt TB110",
    "alias": "tb-110 tb110"
   },
   {
-   "ref": "p4",
-   "name": "Cub Cadet SC100",
-   "alias": "sc-100 sc100"
+   "ref": "p5",
+   "name": "Ariens Zoom 42",
+   "alias": "zoom-42 zoom42"
   },
   {
    "ref": "p5",
-   "name": "John Deere S100",
-   "alias": "s-100 s100"
+   "name": "Bad Boy Maverick"
   },
   {
    "ref": "p5",
-   "name": "John Deere S120",
-   "alias": "s-120 s120"
+   "name": "Craftsman T110",
+   "alias": "t-110 t110"
   },
   {
    "ref": "p5",
-   "name": "John Deere S130",
-   "alias": "s-130 s130"
-  },
-  {
-   "ref": "p5",
-   "name": "John Deere E120",
-   "alias": "e-120 e120"
-  },
-  {
-   "ref": "p5",
-   "name": "John Deere E170",
-   "alias": "e-170 e170"
-  },
-  {
-   "ref": "p5",
-   "name": "John Deere X350",
-   "alias": "x-350 x350"
-  },
-  {
-   "ref": "p5",
-   "name": "John Deere X370",
-   "alias": "x-370 x370"
+   "name": "Craftsman T210",
+   "alias": "t-210 t210"
   },
   {
    "ref": "p5",
@@ -403,6 +387,15 @@
    "ref": "p5",
    "name": "Cub Cadet XT2 LX46",
    "alias": "lx-46 lx46"
+  },
+  {
+   "ref": "p5",
+   "name": "Exmark Lazer Z"
+  },
+  {
+   "ref": "p5",
+   "name": "Gravely ZT HD 48",
+   "alias": "hd-48 hd48"
   },
   {
    "ref": "p5",
@@ -425,34 +418,42 @@
   },
   {
    "ref": "p5",
-   "name": "Toro TimeCutter 42"
-  },
-  {
-   "ref": "p5",
-   "name": "Toro TimeCutter 50"
-  },
-  {
-   "ref": "p5",
-   "name": "Craftsman T110",
-   "alias": "t-110 t110"
-  },
-  {
-   "ref": "p5",
-   "name": "Craftsman T210",
-   "alias": "t-210 t210"
-  },
-  {
-   "ref": "p5",
-   "name": "Ariens Zoom 42",
-   "alias": "zoom-42 zoom42"
-  },
-  {
-   "ref": "p5",
-   "name": "Bad Boy Maverick"
-  },
-  {
-   "ref": "p5",
    "name": "Hustler Raptor SD"
+  },
+  {
+   "ref": "p5",
+   "name": "John Deere E120",
+   "alias": "e-120 e120"
+  },
+  {
+   "ref": "p5",
+   "name": "John Deere E170",
+   "alias": "e-170 e170"
+  },
+  {
+   "ref": "p5",
+   "name": "John Deere S100",
+   "alias": "s-100 s100"
+  },
+  {
+   "ref": "p5",
+   "name": "John Deere S120",
+   "alias": "s-120 s120"
+  },
+  {
+   "ref": "p5",
+   "name": "John Deere S130",
+   "alias": "s-130 s130"
+  },
+  {
+   "ref": "p5",
+   "name": "John Deere X350",
+   "alias": "x-350 x350"
+  },
+  {
+   "ref": "p5",
+   "name": "John Deere X370",
+   "alias": "x-370 x370"
   },
   {
    "ref": "p5",
@@ -460,25 +461,23 @@
   },
   {
    "ref": "p5",
-   "name": "Exmark Lazer Z"
+   "name": "Toro TimeCutter 42"
   },
   {
    "ref": "p5",
-   "name": "Gravely ZT HD 48",
-   "alias": "hd-48 hd48"
+   "name": "Toro TimeCutter 50"
   },
   {
    "ref": "p6",
-   "name": "Simpson MSH3125",
-   "alias": "msh-3125 msh3125"
+   "name": "DeWalt 4200 PSI pressure washer"
   },
   {
    "ref": "p6",
-   "name": "Simpson MegaShot 3200"
+   "name": "Generac 3100 PSI pressure washer"
   },
   {
    "ref": "p6",
-   "name": "Ryobi 3100 PSI pressure washer"
+   "name": "Greenworks 1800 PSI pressure washer"
   },
   {
    "ref": "p6",
@@ -487,7 +486,21 @@
   },
   {
    "ref": "p6",
-   "name": "Generac 3100 PSI pressure washer"
+   "name": "Karcher K1700",
+   "alias": "k-1700 k1700"
+  },
+  {
+   "ref": "p6",
+   "name": "Ryobi 3100 PSI pressure washer"
+  },
+  {
+   "ref": "p6",
+   "name": "Simpson MegaShot 3200"
+  },
+  {
+   "ref": "p6",
+   "name": "Simpson MSH3125",
+   "alias": "msh-3125 msh3125"
   },
   {
    "ref": "p6",
@@ -495,27 +508,22 @@
    "alias": "spx-3000 spx3000"
   },
   {
-   "ref": "p6",
-   "name": "Karcher K1700",
-   "alias": "k-1700 k1700"
-  },
-  {
-   "ref": "p6",
-   "name": "Greenworks 1800 PSI pressure washer"
-  },
-  {
-   "ref": "p6",
-   "name": "DeWalt 4200 PSI pressure washer"
+   "ref": "p7",
+   "name": "Champion 3500 watt generator"
   },
   {
    "ref": "p7",
-   "name": "Honda EU2200i",
-   "alias": "eu-2200i eu2200i"
+   "name": "Champion 4500 watt inverter generator"
   },
   {
    "ref": "p7",
-   "name": "Honda EU3000iS",
-   "alias": "eu-3000is eu3000is"
+   "name": "DuroMax XP12000EH",
+   "alias": "xp-12000eh xp12000eh"
+  },
+  {
+   "ref": "p7",
+   "name": "Firman W03081",
+   "alias": "w-03081 w03081"
   },
   {
    "ref": "p7",
@@ -534,11 +542,13 @@
   },
   {
    "ref": "p7",
-   "name": "Champion 3500 watt generator"
+   "name": "Honda EU2200i",
+   "alias": "eu-2200i eu2200i"
   },
   {
    "ref": "p7",
-   "name": "Champion 4500 watt inverter generator"
+   "name": "Honda EU3000iS",
+   "alias": "eu-3000is eu3000is"
   },
   {
    "ref": "p7",
@@ -550,8 +560,7 @@
   },
   {
    "ref": "p7",
-   "name": "Westinghouse WGen7500",
-   "alias": "wgen-7500 wgen7500"
+   "name": "Ryobi 2300 watt inverter generator"
   },
   {
    "ref": "p7",
@@ -560,17 +569,23 @@
   },
   {
    "ref": "p7",
-   "name": "Ryobi 2300 watt inverter generator"
+   "name": "Westinghouse WGen7500",
+   "alias": "wgen-7500 wgen7500"
   },
   {
-   "ref": "p7",
-   "name": "DuroMax XP12000EH",
-   "alias": "xp-12000eh xp12000eh"
+   "ref": "t1",
+   "name": "Bosch GSR18V-535",
+   "alias": "gsr-18v gsr18v"
   },
   {
-   "ref": "p7",
-   "name": "Firman W03081",
-   "alias": "w-03081 w03081"
+   "ref": "t1",
+   "name": "Bosch GSR18V-535C",
+   "alias": ""
+  },
+  {
+   "ref": "t1",
+   "name": "Craftsman V20 drill",
+   "alias": "v-20 v20"
   },
   {
    "ref": "t1",
@@ -589,13 +604,37 @@
   },
   {
    "ref": "t1",
+   "name": "DeWalt DCD800",
+   "alias": "dcd-800 dcd800"
+  },
+  {
+   "ref": "t1",
    "name": "DeWalt DCD996",
    "alias": "dcd-996 dcd996"
   },
   {
    "ref": "t1",
-   "name": "DeWalt DCD800",
-   "alias": "dcd-800 dcd800"
+   "name": "Kobalt 24V drill"
+  },
+  {
+   "ref": "t1",
+   "name": "Makita XFD10",
+   "alias": "xfd-10 xfd10"
+  },
+  {
+   "ref": "t1",
+   "name": "Makita XFD13",
+   "alias": ""
+  },
+  {
+   "ref": "t1",
+   "name": "Makita XFD131",
+   "alias": "xfd-131 xfd131"
+  },
+  {
+   "ref": "t1",
+   "name": "Makita XPH12",
+   "alias": "xph-12 xph12"
   },
   {
    "ref": "t1",
@@ -611,23 +650,13 @@
   },
   {
    "ref": "t1",
+   "name": "Milwaukee 2904-20",
+   "alias": ""
+  },
+  {
+   "ref": "t1",
    "name": "Milwaukee M12 Fuel 2504",
    "alias": "fuel-2504 fuel2504 m-12 m12"
-  },
-  {
-   "ref": "t1",
-   "name": "Makita XFD10",
-   "alias": "xfd-10 xfd10"
-  },
-  {
-   "ref": "t1",
-   "name": "Makita XFD131",
-   "alias": "xfd-131 xfd131"
-  },
-  {
-   "ref": "t1",
-   "name": "Makita XPH12",
-   "alias": "xph-12 xph12"
   },
   {
    "ref": "t1",
@@ -640,30 +669,9 @@
    "alias": "pcl-206 pcl206"
   },
   {
-   "ref": "t1",
-   "name": "Bosch GSR18V-535",
-   "alias": "gsr-18v gsr18v"
-  },
-  {
-   "ref": "t1",
-   "name": "Craftsman V20 drill",
-   "alias": "v-20 v20"
-  },
-  {
-   "ref": "t1",
-   "name": "Kobalt 24V drill"
-  },
-  {
    "ref": "t2",
-   "name": "Milwaukee 2767-20"
-  },
-  {
-   "ref": "t2",
-   "name": "Milwaukee 2763-20"
-  },
-  {
-   "ref": "t2",
-   "name": "Milwaukee 2861-20"
+   "name": "DeWalt DCF894",
+   "alias": "dcf-894 dcf894"
   },
   {
    "ref": "t2",
@@ -677,8 +685,8 @@
   },
   {
    "ref": "t2",
-   "name": "DeWalt DCF894",
-   "alias": "dcf-894 dcf894"
+   "name": "Earthquake XT impact wrench",
+   "alias": ""
   },
   {
    "ref": "t2",
@@ -691,18 +699,39 @@
   },
   {
    "ref": "t2",
+   "name": "Makita XWT08",
+   "alias": "xwt-08 xwt08"
+  },
+  {
+   "ref": "t2",
+   "name": "Milwaukee 2763-20"
+  },
+  {
+   "ref": "t2",
+   "name": "Milwaukee 2767-20"
+  },
+  {
+   "ref": "t2",
+   "name": "Milwaukee 2861-20"
+  },
+  {
+   "ref": "t2",
+   "name": "Milwaukee 2962-20",
+   "alias": ""
+  },
+  {
+   "ref": "t2",
    "name": "Ryobi P261",
    "alias": "p-261 p261"
   },
   {
    "ref": "t2",
-   "name": "Makita XWT08",
-   "alias": "xwt-08 xwt08"
+   "name": "Snap-on MG725",
+   "alias": ""
   },
   {
    "ref": "t3",
-   "name": "DeWalt DWE402",
-   "alias": "dwe-402 dwe402"
+   "name": "Bosch 1375A"
   },
   {
    "ref": "t3",
@@ -711,11 +740,18 @@
   },
   {
    "ref": "t3",
-   "name": "Milwaukee 2780-20"
+   "name": "DeWalt DWE4011",
+   "alias": ""
   },
   {
    "ref": "t3",
-   "name": "Milwaukee 2980-20"
+   "name": "DeWalt DWE402",
+   "alias": "dwe-402 dwe402"
+  },
+  {
+   "ref": "t3",
+   "name": "Harbor Freight Bauer angle grinder",
+   "alias": ""
   },
   {
    "ref": "t3",
@@ -728,7 +764,21 @@
   },
   {
    "ref": "t3",
-   "name": "Bosch 1375A"
+   "name": "Makita XAG04Z",
+   "alias": ""
+  },
+  {
+   "ref": "t3",
+   "name": "Metabo WEV15-125",
+   "alias": ""
+  },
+  {
+   "ref": "t3",
+   "name": "Milwaukee 2780-20"
+  },
+  {
+   "ref": "t3",
+   "name": "Milwaukee 2980-20"
   },
   {
    "ref": "t3",
@@ -737,8 +787,12 @@
   },
   {
    "ref": "t4",
-   "name": "Porter-Cable C2002",
-   "alias": "c-2002 c2002"
+   "name": "Bostitch BTFP02012",
+   "alias": "btfp-02012 btfp02012"
+  },
+  {
+   "ref": "t4",
+   "name": "California Air Tools 8010"
   },
   {
    "ref": "t4",
@@ -752,12 +806,13 @@
   },
   {
    "ref": "t4",
-   "name": "Bostitch BTFP02012",
-   "alias": "btfp-02012 btfp02012"
+   "name": "Husky 8 gallon air compressor",
+   "alias": ""
   },
   {
    "ref": "t4",
-   "name": "California Air Tools 8010"
+   "name": "Kobalt 8 gallon air compressor",
+   "alias": ""
   },
   {
    "ref": "t4",
@@ -765,13 +820,19 @@
    "alias": "mac-2400 mac2400"
   },
   {
-   "ref": "t5",
-   "name": "Ingersoll Rand SS5L5"
+   "ref": "t4",
+   "name": "Metabo HPT EC914S",
+   "alias": ""
   },
   {
-   "ref": "t5",
-   "name": "Quincy QT-54",
-   "alias": "qt-54 qt54"
+   "ref": "t4",
+   "name": "Porter-Cable C2002",
+   "alias": "c-2002 c2002"
+  },
+  {
+   "ref": "t4",
+   "name": "Ryobi P739",
+   "alias": ""
   },
   {
    "ref": "t5",
@@ -786,6 +847,32 @@
   {
    "ref": "t5",
    "name": "Industrial Air ILA3606056"
+  },
+  {
+   "ref": "t5",
+   "name": "Ingersoll Rand SS5L5"
+  },
+  {
+   "ref": "t5",
+   "name": "Quincy QT-54",
+   "alias": "qt-54 qt54"
+  },
+  {
+   "ref": "t6",
+   "name": "Everlast PowerMIG 200"
+  },
+  {
+   "ref": "t6",
+   "name": "Forney Easy Weld 140",
+   "alias": "weld-140 weld140"
+  },
+  {
+   "ref": "t6",
+   "name": "Hobart Handler 140"
+  },
+  {
+   "ref": "t6",
+   "name": "Hobart Handler 190"
   },
   {
    "ref": "t6",
@@ -803,14 +890,6 @@
   },
   {
    "ref": "t6",
-   "name": "Hobart Handler 140"
-  },
-  {
-   "ref": "t6",
-   "name": "Hobart Handler 190"
-  },
-  {
-   "ref": "t6",
    "name": "Miller Millermatic 141"
   },
   {
@@ -819,21 +898,8 @@
   },
   {
    "ref": "t6",
-   "name": "Forney Easy Weld 140",
-   "alias": "weld-140 weld140"
-  },
-  {
-   "ref": "t6",
-   "name": "Everlast PowerMIG 200"
-  },
-  {
-   "ref": "t6",
    "name": "Titanium Easy-Flux 125",
    "alias": "flux-125 flux125"
-  },
-  {
-   "ref": "t7",
-   "name": "Husky 52in tool chest"
   },
   {
    "ref": "t7",
@@ -841,7 +907,15 @@
   },
   {
    "ref": "t7",
+   "name": "Husky 52in tool chest"
+  },
+  {
+   "ref": "t7",
    "name": "Milwaukee 46in tool chest"
+  },
+  {
+   "ref": "t7",
+   "name": "Snap-on KRA tool box"
   },
   {
    "ref": "t7",
@@ -852,8 +926,9 @@
    "name": "US General 56in tool box"
   },
   {
-   "ref": "t7",
-   "name": "Snap-on KRA tool box"
+   "ref": "t8",
+   "name": "Bostitch F21PL",
+   "alias": "f-21pl f21pl"
   },
   {
    "ref": "t8",
@@ -867,17 +942,13 @@
   },
   {
    "ref": "t8",
-   "name": "Paslode CF325XP",
-   "alias": "cf-325xp cf325xp"
+   "name": "Freeman PFR2190",
+   "alias": ""
   },
   {
    "ref": "t8",
-   "name": "Paslode 900420"
-  },
-  {
-   "ref": "t8",
-   "name": "Bostitch F21PL",
-   "alias": "f-21pl f21pl"
+   "name": "Hitachi NR83A5",
+   "alias": ""
   },
   {
    "ref": "t8",
@@ -888,36 +959,32 @@
    "name": "Milwaukee 2744-20"
   },
   {
-   "ref": "h1",
-   "name": "Vortex Crossfire II 3-9x40"
+   "ref": "t8",
+   "name": "Paslode 900420"
+  },
+  {
+   "ref": "t8",
+   "name": "Paslode CF325XP",
+   "alias": "cf-325xp cf325xp"
+  },
+  {
+   "ref": "t8",
+   "name": "Ridgid R350RHF",
+   "alias": ""
+  },
+  {
+   "ref": "t8",
+   "name": "Senco FramePro 702XP",
+   "alias": ""
   },
   {
    "ref": "h1",
-   "name": "Vortex Diamondback 4-12x40"
+   "name": "Athlon Argos BTR"
   },
   {
    "ref": "h1",
-   "name": "Vortex Viper HS 4-16x44"
-  },
-  {
-   "ref": "h1",
-   "name": "Vortex Strike Eagle 1-6x24"
-  },
-  {
-   "ref": "h1",
-   "name": "Leupold VX-Freedom 3-9x40"
-  },
-  {
-   "ref": "h1",
-   "name": "Leupold VX-3HD"
-  },
-  {
-   "ref": "h1",
-   "name": "Nikon Prostaff 3-9x40"
-  },
-  {
-   "ref": "h1",
-   "name": "Bushnell Banner 3-9x40"
+   "name": "Athlon Argos BTR 6-24x50",
+   "alias": ""
   },
   {
    "ref": "h1",
@@ -925,7 +992,24 @@
   },
   {
    "ref": "h1",
-   "name": "Athlon Argos BTR"
+   "name": "Bushnell Banner 3-9x40"
+  },
+  {
+   "ref": "h1",
+   "name": "Holosun HS507C",
+   "alias": "hs-507c hs507c"
+  },
+  {
+   "ref": "h1",
+   "name": "Leupold VX-3HD"
+  },
+  {
+   "ref": "h1",
+   "name": "Leupold VX-Freedom 3-9x40"
+  },
+  {
+   "ref": "h1",
+   "name": "Nikon Prostaff 3-9x40"
   },
   {
    "ref": "h1",
@@ -937,12 +1021,74 @@
   },
   {
    "ref": "h1",
-   "name": "Holosun HS507C",
-   "alias": "hs-507c hs507c"
+   "name": "Trijicon RMR Type 2"
   },
   {
    "ref": "h1",
-   "name": "Trijicon RMR Type 2"
+   "name": "Vortex Crossfire II 3-9x40"
+  },
+  {
+   "ref": "h1",
+   "name": "Vortex Diamondback 4-12x40"
+  },
+  {
+   "ref": "h1",
+   "name": "Vortex Strike Eagle 1-6x24"
+  },
+  {
+   "ref": "h1",
+   "name": "Vortex Venom 5-25x56",
+   "alias": ""
+  },
+  {
+   "ref": "h1",
+   "name": "Vortex Viper HS 4-16x44"
+  },
+  {
+   "ref": "h2",
+   "name": "Athlon Midas G2 10x42"
+  },
+  {
+   "ref": "h2",
+   "name": "Bushnell H2O 10x42"
+  },
+  {
+   "ref": "h2",
+   "name": "Celestron Nature DX 8x42",
+   "alias": ""
+  },
+  {
+   "ref": "h2",
+   "name": "Leupold BX-2 Alpine"
+  },
+  {
+   "ref": "h2",
+   "name": "Maven C1 10x42",
+   "alias": ""
+  },
+  {
+   "ref": "h2",
+   "name": "Nikon Monarch 5 10x42"
+  },
+  {
+   "ref": "h2",
+   "name": "Nikon Prostaff 3S 10x42",
+   "alias": ""
+  },
+  {
+   "ref": "h2",
+   "name": "Steiner Predator 10x42",
+   "alias": ""
+  },
+  {
+   "ref": "h2",
+   "name": "Swarovski EL 10x42",
+   "alias": ""
+  },
+  {
+   "ref": "h2",
+   "name": "Vortex Crossfire HD 10x42",
+   "alias": ""
   },
   {
    "ref": "h2",
@@ -953,28 +1099,23 @@
    "name": "Vortex Viper HD 10x42"
   },
   {
-   "ref": "h2",
-   "name": "Nikon Monarch 5 10x42"
-  },
-  {
-   "ref": "h2",
-   "name": "Bushnell H2O 10x42"
-  },
-  {
-   "ref": "h2",
-   "name": "Leupold BX-2 Alpine"
-  },
-  {
-   "ref": "h2",
-   "name": "Athlon Midas G2 10x42"
+   "ref": "h3",
+   "name": "Bushnell Bone Collector 850",
+   "alias": ""
   },
   {
    "ref": "h3",
-   "name": "Vortex Ranger 1800"
+   "name": "Bushnell Nitro 1800"
   },
   {
    "ref": "h3",
-   "name": "Vortex Impact 850"
+   "name": "Garmin Xero A1i",
+   "alias": ""
+  },
+  {
+   "ref": "h3",
+   "name": "Halo XL450",
+   "alias": ""
   },
   {
    "ref": "h3",
@@ -983,7 +1124,13 @@
   },
   {
    "ref": "h3",
-   "name": "Bushnell Nitro 1800"
+   "name": "Leupold RX-2800 TBR",
+   "alias": ""
+  },
+  {
+   "ref": "h3",
+   "name": "Nikon Coolshot 20i",
+   "alias": ""
   },
   {
    "ref": "h3",
@@ -995,12 +1142,25 @@
    "name": "TecTecTec ProWild"
   },
   {
-   "ref": "h4",
-   "name": "Browning Strike Force"
+   "ref": "h3",
+   "name": "Vortex Impact 850"
+  },
+  {
+   "ref": "h3",
+   "name": "Vortex Ranger 1800"
+  },
+  {
+   "ref": "h3",
+   "name": "Vortex Razor HD 4000",
+   "alias": ""
   },
   {
    "ref": "h4",
    "name": "Browning Dark Ops"
+  },
+  {
+   "ref": "h4",
+   "name": "Browning Strike Force"
   },
   {
    "ref": "h4",
@@ -1017,20 +1177,8 @@
   },
   {
    "ref": "h4",
-   "name": "Stealth Cam G42NG",
-   "alias": "g-42ng g42ng"
-  },
-  {
-   "ref": "h4",
-   "name": "Stealth Cam Fusion X"
-  },
-  {
-   "ref": "h4",
-   "name": "Tactacam Reveal X"
-  },
-  {
-   "ref": "h4",
-   "name": "Tactacam Reveal SK"
+   "name": "Moultrie Edge 2",
+   "alias": ""
   },
   {
    "ref": "h4",
@@ -1038,31 +1186,51 @@
   },
   {
    "ref": "h4",
+   "name": "Spypoint Flex M",
+   "alias": ""
+  },
+  {
+   "ref": "h4",
    "name": "Spypoint Link Micro"
   },
   {
-   "ref": "h5",
-   "name": "Mathews V3X"
+   "ref": "h4",
+   "name": "Stealth Cam Fusion X"
+  },
+  {
+   "ref": "h4",
+   "name": "Stealth Cam G42NG",
+   "alias": "g-42ng g42ng"
+  },
+  {
+   "ref": "h4",
+   "name": "Tactacam Reveal SK"
+  },
+  {
+   "ref": "h4",
+   "name": "Tactacam Reveal X"
+  },
+  {
+   "ref": "h4",
+   "name": "Tactacam Reveal X Gen 2",
+   "alias": ""
   },
   {
    "ref": "h5",
-   "name": "Mathews Phase4"
+   "name": "Bear Cruzer G2"
   },
   {
    "ref": "h5",
-   "name": "Hoyt RX-7"
+   "name": "Bear Species"
   },
   {
    "ref": "h5",
-   "name": "Hoyt Carbon RX"
+   "name": "Bear Whitetail Legend",
+   "alias": ""
   },
   {
    "ref": "h5",
    "name": "Bowtech Solution"
-  },
-  {
-   "ref": "h5",
-   "name": "PSE Nock On"
   },
   {
    "ref": "h5",
@@ -1075,28 +1243,53 @@
   },
   {
    "ref": "h5",
-   "name": "Bear Species"
-  },
-  {
-   "ref": "h5",
-   "name": "Bear Cruzer G2"
-  },
-  {
-   "ref": "h5",
    "name": "Elite Ember"
   },
   {
-   "ref": "h6",
-   "name": "TenPoint Nitro 505"
+   "ref": "h5",
+   "name": "Hoyt Carbon RX"
+  },
+  {
+   "ref": "h5",
+   "name": "Hoyt RX-7"
+  },
+  {
+   "ref": "h5",
+   "name": "Mathews Phase4"
+  },
+  {
+   "ref": "h5",
+   "name": "Mathews V3X"
+  },
+  {
+   "ref": "h5",
+   "name": "PSE Nock On"
   },
   {
    "ref": "h6",
-   "name": "TenPoint Turbo M1"
+   "name": "Barnett Hyper Raptor"
+  },
+  {
+   "ref": "h6",
+   "name": "Barnett Whitetail Hunter STR"
+  },
+  {
+   "ref": "h6",
+   "name": "CenterPoint Sniper 370"
+  },
+  {
+   "ref": "h6",
+   "name": "Excalibur Matrix"
   },
   {
    "ref": "h6",
    "name": "Ravin R10",
    "alias": "r-10 r10"
+  },
+  {
+   "ref": "h6",
+   "name": "Ravin R18",
+   "alias": ""
   },
   {
    "ref": "h6",
@@ -1110,43 +1303,20 @@
   },
   {
    "ref": "h6",
-   "name": "Barnett Whitetail Hunter STR"
+   "name": "TenPoint Havoc RS440",
+   "alias": ""
   },
   {
    "ref": "h6",
-   "name": "Barnett Hyper Raptor"
+   "name": "TenPoint Nitro 505"
   },
   {
    "ref": "h6",
-   "name": "Excalibur Matrix"
-  },
-  {
-   "ref": "h6",
-   "name": "CenterPoint Sniper 370"
+   "name": "TenPoint Turbo M1"
   },
   {
    "ref": "h6",
    "name": "Wicked Ridge Rampage 360"
-  },
-  {
-   "ref": "h7",
-   "name": "Penn Battle III"
-  },
-  {
-   "ref": "h7",
-   "name": "Penn Slammer III"
-  },
-  {
-   "ref": "h7",
-   "name": "Shimano Stradic"
-  },
-  {
-   "ref": "h7",
-   "name": "Shimano Curado"
-  },
-  {
-   "ref": "h7",
-   "name": "Shimano Sedona"
   },
   {
    "ref": "h7",
@@ -1167,11 +1337,65 @@
   },
   {
    "ref": "h7",
+   "name": "Lew's Mach Crush"
+  },
+  {
+   "ref": "h7",
+   "name": "Okuma Ceymar C-30",
+   "alias": ""
+  },
+  {
+   "ref": "h7",
+   "name": "Penn Battle III"
+  },
+  {
+   "ref": "h7",
+   "name": "Penn Fathom II",
+   "alias": ""
+  },
+  {
+   "ref": "h7",
+   "name": "Penn Slammer III"
+  },
+  {
+   "ref": "h7",
+   "name": "Shimano Calcutta 400",
+   "alias": ""
+  },
+  {
+   "ref": "h7",
+   "name": "Shimano Curado"
+  },
+  {
+   "ref": "h7",
+   "name": "Shimano Sedona"
+  },
+  {
+   "ref": "h7",
+   "name": "Shimano Stradic"
+  },
+  {
+   "ref": "h7",
+   "name": "St. Croix Triumph combo",
+   "alias": ""
+  },
+  {
+   "ref": "h7",
    "name": "Ugly Stik GX2 combo"
   },
   {
    "ref": "h7",
-   "name": "Lew's Mach Crush"
+   "name": "Zebco 33 combo",
+   "alias": ""
+  },
+  {
+   "ref": "h8",
+   "name": "Garmin Force Kraken",
+   "alias": ""
+  },
+  {
+   "ref": "h8",
+   "name": "Garmin Force trolling motor"
   },
   {
    "ref": "h8",
@@ -1183,6 +1407,11 @@
   },
   {
    "ref": "h8",
+   "name": "Minn Kota Riptide Terrova",
+   "alias": ""
+  },
+  {
+   "ref": "h8",
    "name": "Minn Kota Terrova 80"
   },
   {
@@ -1191,15 +1420,11 @@
   },
   {
    "ref": "h8",
-   "name": "MotorGuide Xi3"
-  },
-  {
-   "ref": "h8",
    "name": "MotorGuide X3"
   },
   {
    "ref": "h8",
-   "name": "Garmin Force trolling motor"
+   "name": "MotorGuide Xi3"
   },
   {
    "ref": "h8",
@@ -1207,7 +1432,17 @@
   },
   {
    "ref": "h9",
-   "name": "Mercury 9.9 FourStroke"
+   "name": "Honda BF15",
+   "alias": "bf-15 bf15"
+  },
+  {
+   "ref": "h9",
+   "name": "Honda BF20",
+   "alias": "bf-20 bf20"
+  },
+  {
+   "ref": "h9",
+   "name": "Honda BF9.9"
   },
   {
    "ref": "h9",
@@ -1223,7 +1458,25 @@
   },
   {
    "ref": "h9",
-   "name": "Yamaha F9.9"
+   "name": "Mercury 9.9 FourStroke"
+  },
+  {
+   "ref": "h9",
+   "name": "Suzuki DF20",
+   "alias": "df-20 df20"
+  },
+  {
+   "ref": "h9",
+   "name": "Suzuki DF9.9"
+  },
+  {
+   "ref": "h9",
+   "name": "Tohatsu MFS20",
+   "alias": "mfs-20 mfs20"
+  },
+  {
+   "ref": "h9",
+   "name": "Tohatsu MFS9.9"
   },
   {
    "ref": "h9",
@@ -1242,40 +1495,41 @@
   },
   {
    "ref": "h9",
-   "name": "Honda BF9.9"
-  },
-  {
-   "ref": "h9",
-   "name": "Honda BF15",
-   "alias": "bf-15 bf15"
-  },
-  {
-   "ref": "h9",
-   "name": "Honda BF20",
-   "alias": "bf-20 bf20"
-  },
-  {
-   "ref": "h9",
-   "name": "Tohatsu MFS9.9"
-  },
-  {
-   "ref": "h9",
-   "name": "Tohatsu MFS20",
-   "alias": "mfs-20 mfs20"
-  },
-  {
-   "ref": "h9",
-   "name": "Suzuki DF9.9"
-  },
-  {
-   "ref": "h9",
-   "name": "Suzuki DF20",
-   "alias": "df-20 df20"
+   "name": "Yamaha F9.9"
   },
   {
    "ref": "e1",
-   "name": "Samsung TU7000 55in",
-   "alias": "tu-7000 tu7000"
+   "name": "Hisense U6H 55in"
+  },
+  {
+   "ref": "e1",
+   "name": "Hisense U8K 65in"
+  },
+  {
+   "ref": "e1",
+   "name": "Insignia F30 50in",
+   "alias": "f-30 f30"
+  },
+  {
+   "ref": "e1",
+   "name": "LG B2 65in OLED"
+  },
+  {
+   "ref": "e1",
+   "name": "LG C2 55in OLED"
+  },
+  {
+   "ref": "e1",
+   "name": "LG C3 65in OLED"
+  },
+  {
+   "ref": "e1",
+   "name": "LG UQ7570 55in",
+   "alias": "uq-7570 uq7570"
+  },
+  {
+   "ref": "e1",
+   "name": "Roku Plus Series 55in"
   },
   {
    "ref": "e1",
@@ -1293,20 +1547,18 @@
   },
   {
    "ref": "e1",
-   "name": "LG UQ7570 55in",
-   "alias": "uq-7570 uq7570"
+   "name": "Samsung TU7000 55in",
+   "alias": "tu-7000 tu7000"
   },
   {
    "ref": "e1",
-   "name": "LG C2 55in OLED"
+   "name": "Sony X80K 55in",
+   "alias": "x-80k x80k"
   },
   {
    "ref": "e1",
-   "name": "LG C3 65in OLED"
-  },
-  {
-   "ref": "e1",
-   "name": "LG B2 65in OLED"
+   "name": "Sony X90K 65in",
+   "alias": "x-90k x90k"
   },
   {
    "ref": "e1",
@@ -1329,31 +1581,80 @@
    "name": "Vizio V-Series 65in"
   },
   {
-   "ref": "e1",
-   "name": "Hisense U6H 55in"
+   "ref": "e2",
+   "name": "Acer Aspire 5"
   },
   {
-   "ref": "e1",
-   "name": "Hisense U8K 65in"
+   "ref": "e2",
+   "name": "Acer Swift 3"
   },
   {
-   "ref": "e1",
-   "name": "Sony X80K 55in",
-   "alias": "x-80k x80k"
+   "ref": "e2",
+   "name": "Asus Vivobook 15"
   },
   {
-   "ref": "e1",
-   "name": "Sony X90K 65in",
-   "alias": "x-90k x90k"
+   "ref": "e2",
+   "name": "Asus ZenBook 14"
   },
   {
-   "ref": "e1",
-   "name": "Roku Plus Series 55in"
+   "ref": "e2",
+   "name": "Dell Inspiron 15 3520"
   },
   {
-   "ref": "e1",
-   "name": "Insignia F30 50in",
-   "alias": "f-30 f30"
+   "ref": "e2",
+   "name": "Dell Latitude 7420"
+  },
+  {
+   "ref": "e2",
+   "name": "Dell XPS 13 9310",
+   "alias": "xps-13 xps13"
+  },
+  {
+   "ref": "e2",
+   "name": "Dell XPS 15 9520"
+  },
+  {
+   "ref": "e2",
+   "name": "HP Chromebook 14"
+  },
+  {
+   "ref": "e2",
+   "name": "HP EliteBook 840 G8"
+  },
+  {
+   "ref": "e2",
+   "name": "HP Envy x360 15",
+   "alias": "x-360 x360"
+  },
+  {
+   "ref": "e2",
+   "name": "HP Pavilion 15"
+  },
+  {
+   "ref": "e2",
+   "name": "HP Spectre x360 14",
+   "alias": "x-360 x360"
+  },
+  {
+   "ref": "e2",
+   "name": "Lenovo Chromebook Flex 5"
+  },
+  {
+   "ref": "e2",
+   "name": "Lenovo IdeaPad 3 15"
+  },
+  {
+   "ref": "e2",
+   "name": "Lenovo ThinkPad T14",
+   "alias": "t-14 t14"
+  },
+  {
+   "ref": "e2",
+   "name": "Lenovo X1 Carbon Gen 9"
+  },
+  {
+   "ref": "e2",
+   "name": "Lenovo Yoga 7i"
   },
   {
    "ref": "e2",
@@ -1362,6 +1663,10 @@
   {
    "ref": "e2",
    "name": "MacBook Air M2 13in"
+  },
+  {
+   "ref": "e2",
+   "name": "MacBook Air M3 13in"
   },
   {
    "ref": "e2",
@@ -1375,78 +1680,12 @@
   },
   {
    "ref": "e2",
+   "name": "MacBook Pro 14in M3"
+  },
+  {
+   "ref": "e2",
    "name": "MacBook Pro 16in M1 Pro",
    "alias": "pro-16in pro16in"
-  },
-  {
-   "ref": "e2",
-   "name": "Dell XPS 13 9310",
-   "alias": "xps-13 xps13"
-  },
-  {
-   "ref": "e2",
-   "name": "Dell Inspiron 15 3520"
-  },
-  {
-   "ref": "e2",
-   "name": "Dell Latitude 7420"
-  },
-  {
-   "ref": "e2",
-   "name": "HP Pavilion 15"
-  },
-  {
-   "ref": "e2",
-   "name": "HP Envy x360 15",
-   "alias": "x-360 x360"
-  },
-  {
-   "ref": "e2",
-   "name": "HP EliteBook 840 G8"
-  },
-  {
-   "ref": "e2",
-   "name": "HP Spectre x360 14",
-   "alias": "x-360 x360"
-  },
-  {
-   "ref": "e2",
-   "name": "Lenovo ThinkPad T14",
-   "alias": "t-14 t14"
-  },
-  {
-   "ref": "e2",
-   "name": "Lenovo X1 Carbon Gen 9"
-  },
-  {
-   "ref": "e2",
-   "name": "Lenovo IdeaPad 3 15"
-  },
-  {
-   "ref": "Gaming laptop",
-   "name": "Lenovo Legion 5 15"
-  },
-  {
-   "ref": "e2",
-   "name": "Asus ZenBook 14"
-  },
-  {
-   "ref": "Gaming laptop",
-   "name": "Asus TUF Gaming A15",
-   "alias": "a-15 a15"
-  },
-  {
-   "ref": "Gaming laptop",
-   "name": "Asus ROG Zephyrus G14",
-   "alias": "g-14 g14"
-  },
-  {
-   "ref": "e2",
-   "name": "Acer Aspire 5"
-  },
-  {
-   "ref": "Gaming laptop",
-   "name": "Acer Nitro 5"
   },
   {
    "ref": "e2",
@@ -1454,24 +1693,45 @@
   },
   {
    "ref": "e2",
+   "name": "Microsoft Surface Laptop 5"
+  },
+  {
+   "ref": "e2",
    "name": "Microsoft Surface Pro 8"
   },
   {
    "ref": "e2",
-   "name": "HP Chromebook 14"
-  },
-  {
-   "ref": "e2",
-   "name": "Lenovo Chromebook Flex 5"
+   "name": "Samsung Galaxy Book3"
   },
   {
    "ref": "e3",
-   "name": "iPad 9th generation"
+   "name": "Amazon Fire HD 10",
+   "alias": "hd-10 hd10"
+  },
+  {
+   "ref": "e3",
+   "name": "Amazon Fire HD 7"
+  },
+  {
+   "ref": "e3",
+   "name": "Amazon Fire HD 8"
   },
   {
    "ref": "e3",
    "name": "iPad 10th generation",
    "alias": "ipad-10th ipad10th"
+  },
+  {
+   "ref": "e3",
+   "name": "iPad 7th generation"
+  },
+  {
+   "ref": "e3",
+   "name": "iPad 8th generation"
+  },
+  {
+   "ref": "e3",
+   "name": "iPad 9th generation"
   },
   {
    "ref": "e3",
@@ -1483,12 +1743,45 @@
   },
   {
    "ref": "e3",
+   "name": "iPad Air M2"
+  },
+  {
+   "ref": "e3",
+   "name": "iPad mini 6"
+  },
+  {
+   "ref": "e3",
    "name": "iPad Pro 11 M1",
    "alias": "pro-11 pro11"
   },
   {
    "ref": "e3",
-   "name": "iPad mini 6"
+   "name": "iPad Pro 12.9 M2"
+  },
+  {
+   "ref": "e3",
+   "name": "Lenovo Tab M10",
+   "alias": "m-10 m10"
+  },
+  {
+   "ref": "e3",
+   "name": "Lenovo Tab P11"
+  },
+  {
+   "ref": "e3",
+   "name": "Microsoft Surface Go 3"
+  },
+  {
+   "ref": "e3",
+   "name": "Microsoft Surface Pro 9"
+  },
+  {
+   "ref": "e3",
+   "name": "onn. 10 Tablet Pro"
+  },
+  {
+   "ref": "e3",
+   "name": "Samsung Galaxy Tab A7 Lite"
   },
   {
    "ref": "e3",
@@ -1508,21 +1801,39 @@
   },
   {
    "ref": "e3",
-   "name": "Amazon Fire HD 10",
-   "alias": "hd-10 hd10"
+   "name": "Samsung Galaxy Tab S8 Ultra"
   },
   {
    "ref": "e3",
-   "name": "Amazon Fire HD 8"
+   "name": "Samsung Galaxy Tab S9"
   },
   {
    "ref": "e3",
-   "name": "Lenovo Tab M10",
-   "alias": "m-10 m10"
+   "name": "Samsung Galaxy Tab S9 FE"
   },
   {
    "ref": "e3",
-   "name": "Microsoft Surface Go 3"
+   "name": "Samsung Galaxy Tab S9 Ultra"
+  },
+  {
+   "ref": "e4",
+   "name": "Google Pixel 6"
+  },
+  {
+   "ref": "e4",
+   "name": "Google Pixel 6a"
+  },
+  {
+   "ref": "e4",
+   "name": "Google Pixel 7"
+  },
+  {
+   "ref": "e4",
+   "name": "Google Pixel 7a"
+  },
+  {
+   "ref": "e4",
+   "name": "Google Pixel 8"
   },
   {
    "ref": "e4",
@@ -1568,28 +1879,19 @@
   },
   {
    "ref": "e4",
-   "name": "Samsung Galaxy S21",
-   "alias": "s-21 s21"
+   "name": "Motorola Moto G Power"
   },
   {
    "ref": "e4",
-   "name": "Samsung Galaxy S22",
-   "alias": "s-22 s22"
+   "name": "Motorola Moto G Stylus"
   },
   {
    "ref": "e4",
-   "name": "Samsung Galaxy S23",
-   "alias": "s-23 s23"
+   "name": "OnePlus 10T"
   },
   {
    "ref": "e4",
-   "name": "Samsung Galaxy S21 Ultra",
-   "alias": "s-21 s21"
-  },
-  {
-   "ref": "e4",
-   "name": "Samsung Galaxy S23 Ultra",
-   "alias": "s-23 s23"
+   "name": "OnePlus 9"
   },
   {
    "ref": "e4",
@@ -1608,84 +1910,53 @@
   },
   {
    "ref": "e4",
-   "name": "Samsung Galaxy Z Flip 4"
-  },
-  {
-   "ref": "e4",
    "name": "Samsung Galaxy Note 20",
    "alias": "note-20 note20"
   },
   {
    "ref": "e4",
-   "name": "Google Pixel 6"
+   "name": "Samsung Galaxy S21",
+   "alias": "s-21 s21"
   },
   {
    "ref": "e4",
-   "name": "Google Pixel 6a"
+   "name": "Samsung Galaxy S21 Ultra",
+   "alias": "s-21 s21"
   },
   {
    "ref": "e4",
-   "name": "Google Pixel 7"
+   "name": "Samsung Galaxy S22",
+   "alias": "s-22 s22"
   },
   {
    "ref": "e4",
-   "name": "Google Pixel 7a"
+   "name": "Samsung Galaxy S23",
+   "alias": "s-23 s23"
   },
   {
    "ref": "e4",
-   "name": "Google Pixel 8"
+   "name": "Samsung Galaxy S23 Ultra",
+   "alias": "s-23 s23"
   },
   {
    "ref": "e4",
-   "name": "Motorola Moto G Power"
-  },
-  {
-   "ref": "e4",
-   "name": "Motorola Moto G Stylus"
-  },
-  {
-   "ref": "e4",
-   "name": "OnePlus 9"
-  },
-  {
-   "ref": "e4",
-   "name": "OnePlus 10T"
+   "name": "Samsung Galaxy Z Flip 4"
   },
   {
    "ref": "e5",
-   "name": "PlayStation 5 disc"
+   "name": "Meta Quest 2"
   },
   {
    "ref": "e5",
-   "name": "PlayStation 5 digital"
+   "name": "Meta Quest 3"
   },
   {
    "ref": "e5",
-   "name": "PlayStation 5 Slim"
+   "name": "Nintendo Switch 2"
   },
   {
    "ref": "e5",
-   "name": "PlayStation 4 Pro"
-  },
-  {
-   "ref": "e5",
-   "name": "PlayStation 4 Slim"
-  },
-  {
-   "ref": "e5",
-   "name": "Xbox Series X"
-  },
-  {
-   "ref": "e5",
-   "name": "Xbox Series S"
-  },
-  {
-   "ref": "e5",
-   "name": "Xbox One X"
-  },
-  {
-   "ref": "e5",
-   "name": "Xbox One S"
+   "name": "Nintendo Switch Lite"
   },
   {
    "ref": "e5",
@@ -1697,7 +1968,35 @@
   },
   {
    "ref": "e5",
-   "name": "Nintendo Switch Lite"
+   "name": "Nintendo Wii"
+  },
+  {
+   "ref": "e5",
+   "name": "Nintendo Wii U"
+  },
+  {
+   "ref": "e5",
+   "name": "PlayStation 3"
+  },
+  {
+   "ref": "e5",
+   "name": "PlayStation 4 Pro"
+  },
+  {
+   "ref": "e5",
+   "name": "PlayStation 4 Slim"
+  },
+  {
+   "ref": "e5",
+   "name": "PlayStation 5 digital"
+  },
+  {
+   "ref": "e5",
+   "name": "PlayStation 5 disc"
+  },
+  {
+   "ref": "e5",
+   "name": "PlayStation 5 Slim"
   },
   {
    "ref": "e5",
@@ -1710,19 +2009,59 @@
   },
   {
    "ref": "e5",
-   "name": "Meta Quest 2"
+   "name": "Xbox 360"
   },
   {
    "ref": "e5",
-   "name": "Meta Quest 3"
+   "name": "Xbox One"
+  },
+  {
+   "ref": "e5",
+   "name": "Xbox One S"
+  },
+  {
+   "ref": "e5",
+   "name": "Xbox One X"
+  },
+  {
+   "ref": "e5",
+   "name": "Xbox Series S"
+  },
+  {
+   "ref": "e5",
+   "name": "Xbox Series X"
+  },
+  {
+   "ref": "e5",
+   "name": "Xbox Series X Digital"
   },
   {
    "ref": "e6",
-   "name": "JBL Flip 5"
+   "name": "Anker Soundcore 3"
   },
   {
    "ref": "e6",
-   "name": "JBL Flip 6"
+   "name": "Anker Soundcore Flare 2"
+  },
+  {
+   "ref": "e6",
+   "name": "Anker Soundcore Motion Boom"
+  },
+  {
+   "ref": "e6",
+   "name": "Bose SoundLink Flex"
+  },
+  {
+   "ref": "e6",
+   "name": "Bose SoundLink Micro"
+  },
+  {
+   "ref": "e6",
+   "name": "Bose SoundLink Revolve"
+  },
+  {
+   "ref": "e6",
+   "name": "JBL Boombox 3"
   },
   {
    "ref": "e6",
@@ -1734,7 +2073,19 @@
   },
   {
    "ref": "e6",
-   "name": "JBL Xtreme 3"
+   "name": "JBL Clip 4"
+  },
+  {
+   "ref": "e6",
+   "name": "JBL Flip 5"
+  },
+  {
+   "ref": "e6",
+   "name": "JBL Flip 6"
+  },
+  {
+   "ref": "e6",
+   "name": "JBL Go 3"
   },
   {
    "ref": "e6",
@@ -1746,19 +2097,25 @@
   },
   {
    "ref": "e6",
-   "name": "Bose SoundLink Flex"
+   "name": "JBL Xtreme 3"
   },
   {
    "ref": "e6",
-   "name": "Bose SoundLink Revolve"
+   "name": "Marshall Emberton"
   },
   {
    "ref": "e6",
-   "name": "Ultimate Ears Boom 3"
+   "name": "Marshall Emberton II",
+   "alias": ""
   },
   {
    "ref": "e6",
-   "name": "Ultimate Ears Megaboom 3"
+   "name": "Marshall Willen"
+  },
+  {
+   "ref": "e6",
+   "name": "Sonos Roam",
+   "alias": ""
   },
   {
    "ref": "e6",
@@ -1772,32 +2129,24 @@
   },
   {
    "ref": "e6",
-   "name": "Anker Soundcore Motion Boom"
+   "name": "Sony SRS-XG300"
   },
   {
    "ref": "e6",
-   "name": "Anker Soundcore Flare 2"
+   "name": "Ultimate Ears Boom 3"
   },
   {
    "ref": "e6",
-   "name": "Marshall Emberton"
+   "name": "Ultimate Ears Megaboom 3"
   },
   {
    "ref": "e7",
-   "name": "Rockford Fosgate P300-12",
-   "alias": "p-300 p300"
+   "name": "Alpine S-W12D4"
   },
   {
    "ref": "e7",
-   "name": "Rockford Fosgate R500X1D"
-  },
-  {
-   "ref": "e7",
-   "name": "Kicker CompR 12"
-  },
-  {
-   "ref": "e7",
-   "name": "Kicker 46CXA8001"
+   "name": "JL Audio 10W6v3",
+   "alias": ""
   },
   {
    "ref": "e7",
@@ -1810,7 +2159,21 @@
   },
   {
    "ref": "e7",
-   "name": "Alpine S-W12D4"
+   "name": "Kicker 44KXA8001",
+   "alias": ""
+  },
+  {
+   "ref": "e7",
+   "name": "Kicker 46CXA8001"
+  },
+  {
+   "ref": "e7",
+   "name": "Kicker CompR 12"
+  },
+  {
+   "ref": "e7",
+   "name": "Memphis Audio PRXA1000.1",
+   "alias": ""
   },
   {
    "ref": "e7",
@@ -1819,20 +2182,27 @@
   },
   {
    "ref": "e7",
+   "name": "Rockford Fosgate P300-12",
+   "alias": "p-300 p300"
+  },
+  {
+   "ref": "e7",
+   "name": "Rockford Fosgate R500X1D"
+  },
+  {
+   "ref": "e7",
+   "name": "Rockford Fosgate T1500-1bdCP",
+   "alias": ""
+  },
+  {
+   "ref": "e7",
+   "name": "Skar Audio RP-2000.1D",
+   "alias": ""
+  },
+  {
+   "ref": "e7",
    "name": "Sundown SA-12",
    "alias": "sa-12 sa12"
-  },
-  {
-   "ref": "a1",
-   "name": "Whirlpool WFE505W0HS range"
-  },
-  {
-   "ref": "a1",
-   "name": "Samsung NE59M4320SS range"
-  },
-  {
-   "ref": "a1",
-   "name": "GE JB645RKSS range"
   },
   {
    "ref": "a1",
@@ -1840,12 +2210,25 @@
    "alias": "ffef-3054ts ffef3054ts"
   },
   {
-   "ref": "a2",
-   "name": "Whirlpool WRS325SDHZ refrigerator"
+   "ref": "a1",
+   "name": "GE JB645RKSS range"
+  },
+  {
+   "ref": "a1",
+   "name": "Samsung NE59M4320SS range"
+  },
+  {
+   "ref": "a1",
+   "name": "Whirlpool WFE505W0HS range"
   },
   {
    "ref": "a2",
-   "name": "Samsung RF263BEAESR refrigerator"
+   "name": "Frigidaire FFTR1835VS refrigerator",
+   "alias": "fftr-1835vs fftr1835vs"
+  },
+  {
+   "ref": "a2",
+   "name": "GE GSS25GSHSS refrigerator"
   },
   {
    "ref": "a2",
@@ -1854,17 +2237,15 @@
   },
   {
    "ref": "a2",
-   "name": "GE GSS25GSHSS refrigerator"
+   "name": "Samsung RF263BEAESR refrigerator"
   },
   {
    "ref": "a2",
-   "name": "Frigidaire FFTR1835VS refrigerator",
-   "alias": "fftr-1835vs fftr1835vs"
+   "name": "Whirlpool WRS325SDHZ refrigerator"
   },
   {
    "ref": "a3",
-   "name": "Whirlpool WTW4816FW washer",
-   "alias": "wtw-4816fw wtw4816fw"
+   "name": "GE GTW465ASNWW washer"
   },
   {
    "ref": "a3",
@@ -1873,21 +2254,21 @@
   },
   {
    "ref": "a3",
-   "name": "Samsung WF45T6000AW washer"
-  },
-  {
-   "ref": "a3",
-   "name": "GE GTW465ASNWW washer"
-  },
-  {
-   "ref": "a3",
    "name": "Maytag MVWC465HW washer",
    "alias": "mvwc-465hw mvwc465hw"
   },
   {
+   "ref": "a3",
+   "name": "Samsung WF45T6000AW washer"
+  },
+  {
+   "ref": "a3",
+   "name": "Whirlpool WTW4816FW washer",
+   "alias": "wtw-4816fw wtw4816fw"
+  },
+  {
    "ref": "a4",
-   "name": "Whirlpool WED4815EW dryer",
-   "alias": "wed-4815ew wed4815ew"
+   "name": "GE GTD42EASJWW dryer"
   },
   {
    "ref": "a4",
@@ -1900,11 +2281,12 @@
   },
   {
    "ref": "a4",
-   "name": "GE GTD42EASJWW dryer"
+   "name": "Whirlpool WED4815EW dryer",
+   "alias": "wed-4815ew wed4815ew"
   },
   {
    "ref": "a6",
-   "name": "Midea MRC070S0AWW chest freezer"
+   "name": "Frigidaire FFFC09M1RW chest freezer"
   },
   {
    "ref": "a6",
@@ -1912,7 +2294,7 @@
   },
   {
    "ref": "a6",
-   "name": "Frigidaire FFFC09M1RW chest freezer"
+   "name": "Midea MRC070S0AWW chest freezer"
   },
   {
    "ref": "a7",
@@ -1920,21 +2302,21 @@
   },
   {
    "ref": "a7",
-   "name": "LG LW8017ERSM window air conditioner"
+   "name": "GE AHEC08AC window air conditioner",
+   "alias": "ahec-08ac ahec08ac"
   },
   {
    "ref": "a7",
-   "name": "GE AHEC08AC window air conditioner",
-   "alias": "ahec-08ac ahec08ac"
+   "name": "LG LW8017ERSM window air conditioner"
+  },
+  {
+   "ref": "a8",
+   "name": "GE JVM3160RFSS microwave"
   },
   {
    "ref": "a8",
    "name": "Whirlpool WMH31017HS microwave",
    "alias": "wmh-31017hs wmh31017hs"
-  },
-  {
-   "ref": "a8",
-   "name": "GE JVM3160RFSS microwave"
   },
   {
    "ref": "a9",
@@ -1943,17 +2325,17 @@
   },
   {
    "ref": "a9",
-   "name": "Singer Heavy Duty 4423",
-   "alias": "duty-4423 duty4423"
-  },
-  {
-   "ref": "a9",
    "name": "Janome HD3000",
    "alias": "hd-3000 hd3000"
   },
   {
+   "ref": "a9",
+   "name": "Singer Heavy Duty 4423",
+   "alias": "duty-4423 duty4423"
+  },
+  {
    "ref": "a10",
-   "name": "Dyson V8"
+   "name": "Bissell CleanView 2486"
   },
   {
    "ref": "a10",
@@ -1972,30 +2354,32 @@
   },
   {
    "ref": "a10",
+   "name": "Dyson V8"
+  },
+  {
+   "ref": "a10",
    "name": "Shark Navigator NV360",
    "alias": "nv-360 nv360"
   },
   {
-   "ref": "a10",
-   "name": "Bissell CleanView 2486"
+   "ref": "m1",
+   "name": "Epiphone DR-100",
+   "alias": "dr-100 dr100"
   },
   {
    "ref": "m1",
-   "name": "Yamaha FG800",
-   "alias": "fg-800 fg800"
+   "name": "Fender CD-60S",
+   "alias": "cd-60s cd60s"
   },
   {
    "ref": "m1",
-   "name": "Yamaha FGX800C",
-   "alias": "fgx-800c fgx800c"
+   "name": "Gibson J-45",
+   "alias": "j-45 j45"
   },
   {
    "ref": "m1",
-   "name": "Taylor GS Mini"
-  },
-  {
-   "ref": "m1",
-   "name": "Taylor 114ce"
+   "name": "Martin D-10E",
+   "alias": "d-10e d10e"
   },
   {
    "ref": "m1",
@@ -2008,11 +2392,6 @@
   },
   {
    "ref": "m1",
-   "name": "Martin D-10E",
-   "alias": "d-10e d10e"
-  },
-  {
-   "ref": "m1",
    "name": "Seagull S6"
   },
   {
@@ -2022,22 +2401,29 @@
   },
   {
    "ref": "m1",
-   "name": "Fender CD-60S",
-   "alias": "cd-60s cd60s"
+   "name": "Taylor 114ce"
   },
   {
    "ref": "m1",
-   "name": "Epiphone DR-100",
-   "alias": "dr-100 dr100"
+   "name": "Taylor GS Mini"
   },
   {
    "ref": "m1",
-   "name": "Gibson J-45",
-   "alias": "j-45 j45"
+   "name": "Yamaha FG800",
+   "alias": "fg-800 fg800"
+  },
+  {
+   "ref": "m1",
+   "name": "Yamaha FGX800C",
+   "alias": "fgx-800c fgx800c"
   },
   {
    "ref": "m2",
-   "name": "Fender Player Stratocaster"
+   "name": "Epiphone Les Paul Standard"
+  },
+  {
+   "ref": "m2",
+   "name": "Epiphone SG Special"
   },
   {
    "ref": "m2",
@@ -2045,12 +2431,7 @@
   },
   {
    "ref": "m2",
-   "name": "Squier Affinity Stratocaster"
-  },
-  {
-   "ref": "m2",
-   "name": "Squier Classic Vibe 60s",
-   "alias": "vibe-60s vibe60s"
+   "name": "Fender Player Stratocaster"
   },
   {
    "ref": "m2",
@@ -2066,21 +2447,13 @@
   },
   {
    "ref": "m2",
-   "name": "Epiphone Les Paul Standard"
-  },
-  {
-   "ref": "m2",
-   "name": "Epiphone SG Special"
+   "name": "Ibanez GRX70QA",
+   "alias": "grx-70qa grx70qa"
   },
   {
    "ref": "m2",
    "name": "Ibanez RG450",
    "alias": "rg-450 rg450"
-  },
-  {
-   "ref": "m2",
-   "name": "Ibanez GRX70QA",
-   "alias": "grx-70qa grx70qa"
   },
   {
    "ref": "m2",
@@ -2092,8 +2465,33 @@
    "name": "Schecter Omen 6"
   },
   {
+   "ref": "m2",
+   "name": "Squier Affinity Stratocaster"
+  },
+  {
+   "ref": "m2",
+   "name": "Squier Classic Vibe 60s",
+   "alias": "vibe-60s vibe60s"
+  },
+  {
+   "ref": "m3",
+   "name": "Boss Katana 100"
+  },
+  {
+   "ref": "m3",
+   "name": "Boss Katana 50"
+  },
+  {
+   "ref": "m3",
+   "name": "Fender Blues Junior IV"
+  },
+  {
    "ref": "m3",
    "name": "Fender Champion 20"
+  },
+  {
+   "ref": "m3",
+   "name": "Fender Hot Rod Deluxe"
   },
   {
    "ref": "m3",
@@ -2102,21 +2500,8 @@
   },
   {
    "ref": "m3",
-   "name": "Fender Blues Junior IV"
-  },
-  {
-   "ref": "m3",
-   "name": "Fender Hot Rod Deluxe"
-  },
-  {
-   "ref": "m3",
-   "name": "Marshall MG30FX",
-   "alias": "mg-30fx mg30fx"
-  },
-  {
-   "ref": "m3",
-   "name": "Marshall DSL40CR",
-   "alias": "dsl-40cr dsl40cr"
+   "name": "Line 6 Spider V 60",
+   "alias": "v-60 v60"
   },
   {
    "ref": "m3",
@@ -2125,20 +2510,21 @@
   },
   {
    "ref": "m3",
-   "name": "Boss Katana 50"
+   "name": "Marshall DSL40CR",
+   "alias": "dsl-40cr dsl40cr"
   },
   {
    "ref": "m3",
-   "name": "Boss Katana 100"
-  },
-  {
-   "ref": "m3",
-   "name": "Line 6 Spider V 60",
-   "alias": "v-60 v60"
+   "name": "Marshall MG30FX",
+   "alias": "mg-30fx mg30fx"
   },
   {
    "ref": "m3",
    "name": "Orange Crush 35RT"
+  },
+  {
+   "ref": "m3",
+   "name": "Peavey Vypyr X2"
   },
   {
    "ref": "m3",
@@ -2150,12 +2536,20 @@
    "name": "Vox Pathfinder 10"
   },
   {
-   "ref": "m3",
-   "name": "Peavey Vypyr X2"
+   "ref": "j1",
+   "name": "Breitling Navitimer"
   },
   {
    "ref": "j1",
-   "name": "Rolex Submariner"
+   "name": "Cartier Tank Must"
+  },
+  {
+   "ref": "j1",
+   "name": "Omega Seamaster 300M"
+  },
+  {
+   "ref": "j1",
+   "name": "Omega Speedmaster Professional"
   },
   {
    "ref": "j1",
@@ -2175,24 +2569,11 @@
   },
   {
    "ref": "j1",
-   "name": "Omega Seamaster 300M"
+   "name": "Rolex Submariner"
   },
   {
    "ref": "j1",
-   "name": "Omega Speedmaster Professional"
-  },
-  {
-   "ref": "j1",
-   "name": "Tudor Black Bay 58",
-   "alias": "bay-58 bay58"
-  },
-  {
-   "ref": "j1",
-   "name": "Cartier Tank Must"
-  },
-  {
-   "ref": "j1",
-   "name": "Breitling Navitimer"
+   "name": "TAG Heuer Aquaracer"
   },
   {
    "ref": "j1",
@@ -2200,52 +2581,12 @@
   },
   {
    "ref": "j1",
-   "name": "TAG Heuer Aquaracer"
+   "name": "Tudor Black Bay 58",
+   "alias": "bay-58 bay58"
   },
   {
    "ref": "j2",
-   "name": "Seiko SKX007",
-   "alias": "skx-007 skx007"
-  },
-  {
-   "ref": "j2",
-   "name": "Seiko 5 Sports SRPD"
-  },
-  {
-   "ref": "j2",
-   "name": "Seiko Prospex Turtle"
-  },
-  {
-   "ref": "j2",
-   "name": "Citizen Eco-Drive Promaster"
-  },
-  {
-   "ref": "j2",
-   "name": "Bulova Marine Star"
-  },
-  {
-   "ref": "j2",
-   "name": "Fossil Grant"
-  },
-  {
-   "ref": "j2",
-   "name": "Tissot PRX"
-  },
-  {
-   "ref": "j2",
-   "name": "Hamilton Khaki Field"
-  },
-  {
-   "ref": "j2",
-   "name": "Invicta Pro Diver 8926"
-  },
-  {
-   "ref": "j2",
-   "name": "Movado Museum"
-  },
-  {
-   "ref": "j2",
-   "name": "Michael Kors Lexington"
+   "name": "Apple Watch SE"
   },
   {
    "ref": "j2",
@@ -2257,7 +2598,15 @@
   },
   {
    "ref": "j2",
-   "name": "Apple Watch SE"
+   "name": "Bulova Marine Star"
+  },
+  {
+   "ref": "j2",
+   "name": "Citizen Eco-Drive Promaster"
+  },
+  {
+   "ref": "j2",
+   "name": "Fossil Grant"
   },
   {
    "ref": "j2",
@@ -2272,12 +2621,37 @@
    "name": "Garmin Forerunner 245"
   },
   {
-   "ref": "j3",
-   "name": "James Avery charm bracelet"
+   "ref": "j2",
+   "name": "Hamilton Khaki Field"
   },
   {
-   "ref": "j3",
-   "name": "Pandora Moments bracelet"
+   "ref": "j2",
+   "name": "Invicta Pro Diver 8926"
+  },
+  {
+   "ref": "j2",
+   "name": "Michael Kors Lexington"
+  },
+  {
+   "ref": "j2",
+   "name": "Movado Museum"
+  },
+  {
+   "ref": "j2",
+   "name": "Seiko 5 Sports SRPD"
+  },
+  {
+   "ref": "j2",
+   "name": "Seiko Prospex Turtle"
+  },
+  {
+   "ref": "j2",
+   "name": "Seiko SKX007",
+   "alias": "skx-007 skx007"
+  },
+  {
+   "ref": "j2",
+   "name": "Tissot PRX"
   },
   {
    "ref": "j3",
@@ -2285,15 +2659,28 @@
   },
   {
    "ref": "j3",
-   "name": "Tiffany Return to Tiffany bracelet"
+   "name": "James Avery charm bracelet"
   },
   {
    "ref": "j3",
    "name": "Kendra Scott Elisa necklace"
   },
   {
+   "ref": "j3",
+   "name": "Pandora Moments bracelet"
+  },
+  {
+   "ref": "j3",
+   "name": "Tiffany Return to Tiffany bracelet"
+  },
+  {
    "ref": "f1",
-   "name": "NordicTrack T 6.5 S"
+   "name": "Bowflex Treadmill 10"
+  },
+  {
+   "ref": "f1",
+   "name": "Horizon T101",
+   "alias": "t-101 t101"
   },
   {
    "ref": "f1",
@@ -2302,6 +2689,14 @@
   {
    "ref": "f1",
    "name": "NordicTrack EXP 7i"
+  },
+  {
+   "ref": "f1",
+   "name": "NordicTrack T 6.5 S"
+  },
+  {
+   "ref": "f1",
+   "name": "Peloton Tread"
   },
   {
    "ref": "f1",
@@ -2323,17 +2718,36 @@
    "alias": "f-80 f80"
   },
   {
-   "ref": "f1",
-   "name": "Horizon T101",
-   "alias": "t-101 t101"
+   "ref": "f2",
+   "name": "Assault AirBike",
+   "alias": ""
   },
   {
-   "ref": "f1",
-   "name": "Bowflex Treadmill 10"
+   "ref": "f2",
+   "name": "Bowflex VeloCore"
   },
   {
-   "ref": "f1",
-   "name": "Peloton Tread"
+   "ref": "f2",
+   "name": "Concept2 Model D",
+   "alias": ""
+  },
+  {
+   "ref": "f2",
+   "name": "Echelon EX-3"
+  },
+  {
+   "ref": "f2",
+   "name": "Keiser M3i"
+  },
+  {
+   "ref": "f2",
+   "name": "NordicTrack S15i",
+   "alias": "s-15i s15i"
+  },
+  {
+   "ref": "f2",
+   "name": "NordicTrack S22i",
+   "alias": "s-22i s22i"
   },
   {
    "ref": "f2",
@@ -2345,13 +2759,7 @@
   },
   {
    "ref": "f2",
-   "name": "NordicTrack S22i",
-   "alias": "s-22i s22i"
-  },
-  {
-   "ref": "f2",
-   "name": "NordicTrack S15i",
-   "alias": "s-15i s15i"
+   "name": "Schwinn 170"
   },
   {
    "ref": "f2",
@@ -2359,11 +2767,8 @@
   },
   {
    "ref": "f2",
-   "name": "Schwinn 170"
-  },
-  {
-   "ref": "f2",
-   "name": "Echelon EX-3"
+   "name": "Stamina 1350 magnetic bike",
+   "alias": ""
   },
   {
    "ref": "f2",
@@ -2371,16 +2776,9 @@
    "alias": "b-1805 b1805"
   },
   {
-   "ref": "f2",
-   "name": "Bowflex VeloCore"
-  },
-  {
-   "ref": "f2",
-   "name": "Keiser M3i"
-  },
-  {
    "ref": "f3",
-   "name": "NordicTrack SpaceSaver SE7i"
+   "name": "Horizon EX-59",
+   "alias": "ex-59 ex59"
   },
   {
    "ref": "f3",
@@ -2389,7 +2787,15 @@
   },
   {
    "ref": "f3",
+   "name": "NordicTrack SpaceSaver SE7i"
+  },
+  {
+   "ref": "f3",
    "name": "ProForm Carbon E7"
+  },
+  {
+   "ref": "f3",
+   "name": "Schwinn 470"
   },
   {
    "ref": "f3",
@@ -2402,26 +2808,12 @@
    "alias": "e-35 e35"
   },
   {
-   "ref": "f3",
-   "name": "Schwinn 470"
-  },
-  {
-   "ref": "f3",
-   "name": "Horizon EX-59",
-   "alias": "ex-59 ex59"
-  },
-  {
-   "ref": "f4",
-   "name": "Rogue Adjustable Bench 3.0"
-  },
-  {
-   "ref": "f4",
-   "name": "Rep Fitness AB-3000",
-   "alias": "ab-3000 ab3000"
-  },
-  {
    "ref": "f4",
    "name": "Bowflex 5.1S bench"
+  },
+  {
+   "ref": "f4",
+   "name": "Fitness Reality 1000"
   },
   {
    "ref": "f4",
@@ -2430,11 +2822,12 @@
   },
   {
    "ref": "f4",
-   "name": "Fitness Reality 1000"
+   "name": "Rep Fitness AB-3000",
+   "alias": "ab-3000 ab3000"
   },
   {
-   "ref": "f5",
-   "name": "Bowflex SelectTech 552"
+   "ref": "f4",
+   "name": "Rogue Adjustable Bench 3.0"
   },
   {
    "ref": "f5",
@@ -2442,7 +2835,12 @@
   },
   {
    "ref": "f5",
-   "name": "PowerBlock Elite"
+   "name": "Bowflex SelectTech 552"
+  },
+  {
+   "ref": "f5",
+   "name": "Bowflex SelectTech 840 kettlebell",
+   "alias": ""
   },
   {
    "ref": "f5",
@@ -2450,25 +2848,39 @@
   },
   {
    "ref": "f5",
+   "name": "NUOBELL 80lb adjustable dumbbells",
+   "alias": ""
+  },
+  {
+   "ref": "f5",
+   "name": "PowerBlock Elite"
+  },
+  {
+   "ref": "f5",
+   "name": "Rep Fitness adjustable bench",
+   "alias": ""
+  },
+  {
+   "ref": "f5",
    "name": "Rogue bumper plate set"
   },
   {
-   "ref": "f6",
-   "name": "Rogue RML-390F",
-   "alias": "rml-390f rml390f"
+   "ref": "f5",
+   "name": "Titan Fitness weight tree",
+   "alias": ""
+  },
+  {
+   "ref": "f5",
+   "name": "York Barbell 300lb Olympic set",
+   "alias": ""
   },
   {
    "ref": "f6",
-   "name": "Rogue R-3 power rack"
+   "name": "Bowflex Xtreme 2SE"
   },
   {
    "ref": "f6",
-   "name": "Rogue Monster Lite"
-  },
-  {
-   "ref": "f6",
-   "name": "Rep PR-4000",
-   "alias": "pr-4000 pr4000"
+   "name": "Force USA G3"
   },
   {
    "ref": "f6",
@@ -2477,19 +2889,29 @@
   },
   {
    "ref": "f6",
+   "name": "Rep PR-4000",
+   "alias": "pr-4000 pr4000"
+  },
+  {
+   "ref": "f6",
+   "name": "Rogue Monster Lite"
+  },
+  {
+   "ref": "f6",
+   "name": "Rogue R-3 power rack"
+  },
+  {
+   "ref": "f6",
+   "name": "Rogue RML-390F",
+   "alias": "rml-390f rml390f"
+  },
+  {
+   "ref": "f6",
    "name": "Titan T-3 power rack"
   },
   {
    "ref": "f6",
-   "name": "Bowflex Xtreme 2SE"
-  },
-  {
-   "ref": "f6",
    "name": "Total Gym XLS"
-  },
-  {
-   "ref": "f6",
-   "name": "Force USA G3"
   },
   {
    "ref": "f7",
@@ -2498,38 +2920,6 @@
   {
    "ref": "f7",
    "name": "Callaway Strata complete set"
-  },
-  {
-   "ref": "f7",
-   "name": "TaylorMade Stealth iron set"
-  },
-  {
-   "ref": "f7",
-   "name": "TaylorMade SIM2 iron set"
-  },
-  {
-   "ref": "f7",
-   "name": "TaylorMade M4 iron set"
-  },
-  {
-   "ref": "f7",
-   "name": "Ping G425 iron set",
-   "alias": "g-425 g425"
-  },
-  {
-   "ref": "f7",
-   "name": "Ping G430 iron set",
-   "alias": "g-430 g430"
-  },
-  {
-   "ref": "f7",
-   "name": "Ping G410 iron set",
-   "alias": "g-410 g410"
-  },
-  {
-   "ref": "f7",
-   "name": "Titleist T300 iron set",
-   "alias": "t-300 t300"
   },
   {
    "ref": "f7",
@@ -2546,15 +2936,107 @@
   },
   {
    "ref": "f7",
+   "name": "Ping G410 iron set",
+   "alias": "g-410 g410"
+  },
+  {
+   "ref": "f7",
+   "name": "Ping G425 iron set",
+   "alias": "g-425 g425"
+  },
+  {
+   "ref": "f7",
+   "name": "Ping G430 iron set",
+   "alias": "g-430 g430"
+  },
+  {
+   "ref": "f7",
+   "name": "TaylorMade M4 iron set"
+  },
+  {
+   "ref": "f7",
+   "name": "TaylorMade SIM2 iron set"
+  },
+  {
+   "ref": "f7",
+   "name": "TaylorMade Stealth driver",
+   "alias": ""
+  },
+  {
+   "ref": "f7",
+   "name": "TaylorMade Stealth iron set"
+  },
+  {
+   "ref": "f7",
+   "name": "Titleist T300 iron set",
+   "alias": "t-300 t300"
+  },
+  {
+   "ref": "f7",
+   "name": "Titleist T350 iron set",
+   "alias": ""
+  },
+  {
+   "ref": "f7",
    "name": "Wilson Profile complete set"
   },
   {
+   "ref": "r1",
+   "name": "Big Tex 35SA trailer",
+   "alias": "tex-35sa tex35sa"
+  },
+  {
+   "ref": "r1",
+   "name": "Big Tex 60PI trailer",
+   "alias": "tex-60pi tex60pi"
+  },
+  {
+   "ref": "r1",
+   "name": "Carry-On 5x8 utility trailer"
+  },
+  {
+   "ref": "r1",
+   "name": "Carry-On 6x12 utility trailer"
+  },
+  {
+   "ref": "r1",
+   "name": "PJ Trailers U7 utility trailer"
+  },
+  {
    "ref": "r2",
-   "name": "Honda Rancher 420"
+   "name": "Arctic Cat Alterra 450"
+  },
+  {
+   "ref": "r2",
+   "name": "Arctic Cat Alterra 570"
+  },
+  {
+   "ref": "r2",
+   "name": "Can-Am Defender HD5"
+  },
+  {
+   "ref": "r2",
+   "name": "Can-Am Maverick X3"
+  },
+  {
+   "ref": "r2",
+   "name": "Can-Am Outlander 450"
+  },
+  {
+   "ref": "r2",
+   "name": "Can-Am Outlander 570"
+  },
+  {
+   "ref": "r2",
+   "name": "Can-Am Outlander 650"
   },
   {
    "ref": "r2",
    "name": "Honda Foreman 520"
+  },
+  {
+   "ref": "r2",
+   "name": "Honda Rancher 420"
   },
   {
    "ref": "r2",
@@ -2566,15 +3048,19 @@
   },
   {
    "ref": "r2",
-   "name": "Polaris Sportsman 450"
+   "name": "Kawasaki Brute Force 300"
   },
   {
    "ref": "r2",
-   "name": "Polaris Sportsman 570"
+   "name": "Kawasaki Brute Force 750"
   },
   {
    "ref": "r2",
-   "name": "Polaris Sportsman 850"
+   "name": "Kawasaki Mule Pro-FXT"
+  },
+  {
+   "ref": "r2",
+   "name": "Kawasaki Mule SX"
   },
   {
    "ref": "r2",
@@ -2597,23 +3083,23 @@
   },
   {
    "ref": "r2",
-   "name": "Can-Am Outlander 450"
+   "name": "Polaris Sportsman 450"
   },
   {
    "ref": "r2",
-   "name": "Can-Am Outlander 570"
+   "name": "Polaris Sportsman 570"
   },
   {
    "ref": "r2",
-   "name": "Can-Am Outlander 650"
+   "name": "Polaris Sportsman 850"
   },
   {
    "ref": "r2",
-   "name": "Can-Am Defender HD5"
+   "name": "Suzuki KingQuad 400"
   },
   {
    "ref": "r2",
-   "name": "Can-Am Maverick X3"
+   "name": "Suzuki KingQuad 750"
   },
   {
    "ref": "r2",
@@ -2628,58 +3114,124 @@
    "name": "Yamaha Wolverine X2"
   },
   {
-   "ref": "r2",
-   "name": "Kawasaki Brute Force 300"
+   "ref": "Wireless earbuds",
+   "name": "Anker Soundcore Liberty 4"
   },
   {
-   "ref": "r2",
-   "name": "Kawasaki Brute Force 750"
+   "ref": "Wireless earbuds",
+   "name": "Anker Soundcore Life P3"
   },
   {
-   "ref": "r2",
-   "name": "Kawasaki Mule SX"
+   "ref": "Wireless earbuds",
+   "name": "Apple AirPods 2nd generation"
   },
   {
-   "ref": "r2",
-   "name": "Kawasaki Mule Pro-FXT"
+   "ref": "Wireless earbuds",
+   "name": "Apple AirPods 3rd generation"
   },
   {
-   "ref": "r2",
-   "name": "Suzuki KingQuad 400"
+   "ref": "Wireless earbuds",
+   "name": "Apple AirPods 4"
   },
   {
-   "ref": "r2",
-   "name": "Suzuki KingQuad 750"
+   "ref": "Wireless earbuds",
+   "name": "Apple AirPods Pro"
   },
   {
-   "ref": "r2",
-   "name": "Arctic Cat Alterra 450"
+   "ref": "Wireless earbuds",
+   "name": "Apple AirPods Pro 2"
   },
   {
-   "ref": "r2",
-   "name": "Arctic Cat Alterra 570"
+   "ref": "Wireless earbuds",
+   "name": "Beats Fit Pro"
   },
   {
-   "ref": "r1",
-   "name": "Carry-On 5x8 utility trailer"
+   "ref": "Wireless earbuds",
+   "name": "Beats Powerbeats Pro"
   },
   {
-   "ref": "r1",
-   "name": "Carry-On 6x12 utility trailer"
+   "ref": "Wireless earbuds",
+   "name": "Beats Studio Buds"
   },
   {
-   "ref": "r1",
-   "name": "Big Tex 35SA trailer",
-   "alias": "tex-35sa tex35sa"
+   "ref": "Wireless earbuds",
+   "name": "Bose QuietComfort Earbuds II"
   },
   {
-   "ref": "r1",
-   "name": "Big Tex 60PI trailer",
-   "alias": "tex-60pi tex60pi"
+   "ref": "Wireless earbuds",
+   "name": "Bose Sport Earbuds"
   },
   {
-   "ref": "r1",
-   "name": "PJ Trailers U7 utility trailer"
+   "ref": "Wireless earbuds",
+   "name": "Google Pixel Buds A-Series"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "Google Pixel Buds Pro"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "Jabra Elite 4"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "Jabra Elite 75t"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "Jabra Elite 85t"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "JBL Tune 230NC"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "JBL Vibe Beam"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "Raycon Everyday"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "Samsung Galaxy Buds FE"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "Samsung Galaxy Buds Live"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "Samsung Galaxy Buds2"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "Samsung Galaxy Buds2 Pro"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "Samsung Galaxy Buds3"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "Skullcandy Indy Evo"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "Sony LinkBuds S"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "Sony WF-1000XM4"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "Sony WF-1000XM5"
+  },
+  {
+   "ref": "Wireless earbuds",
+   "name": "Sony WF-C500"
   },
   {
    "ref": "Wireless earbuds",
@@ -2688,6 +3240,218 @@
   {
    "ref": "DSLR / mirrorless camera",
    "name": "DSLR / mirrorless camera"
+  },
+  {
+   "ref": "Headphones — over-ear",
+   "name": "Apple AirPods Max"
+  },
+  {
+   "ref": "Headphones — over-ear",
+   "name": "Astro A40"
+  },
+  {
+   "ref": "Headphones — over-ear",
+   "name": "Astro A50"
+  },
+  {
+   "ref": "Headphones — over-ear",
+   "name": "Audio-Technica ATH-M20x"
+  },
+  {
+   "ref": "Headphones — over-ear",
+   "name": "Audio-Technica ATH-M50x"
+  },
+  {
+   "ref": "Headphones — over-ear",
+   "name": "Beats Solo 3"
+  },
+  {
+   "ref": "Headphones — over-ear",
+   "name": "Beats Solo 4"
+  },
+  {
+   "ref": "Headphones — over-ear",
+   "name": "Beats Studio Pro"
+  },
+  {
+   "ref": "Headphones — over-ear",
+   "name": "Beats Studio3"
+  },
+  {
+   "ref": "Headphones — over-ear",
+   "name": "Bose 700"
+  },
+  {
+   "ref": "Headphones — over-ear",
+   "name": "Bose QuietComfort 35 II"
+  },
+  {
+   "ref": "Headphones — over-ear",
+   "name": "Bose QuietComfort 45"
+  },
+  {
+   "ref": "Headphones — over-ear",
+   "name": "Bose QuietComfort Ultra"
+  },
+  {
+   "ref": "Headphones — over-ear",
+   "name": "Corsair HS80"
+  },
+  {
+   "ref": "Headphones — over-ear",
+   "name": "HyperX Cloud Alpha"
+  },
+  {
+   "ref": "Headphones — over-ear",
+   "name": "HyperX Cloud II"
+  },
+  {
+   "ref": "Headphones — over-ear",
+   "name": "JBL Live 660NC"
+  },
+  {
+   "ref": "Headphones — over-ear",
+   "name": "JBL Tune 760NC"
+  },
+  {
+   "ref": "Headphones — over-ear",
+   "name": "Logitech G Pro X"
+  },
+  {
+   "ref": "Headphones — over-ear",
+   "name": "Logitech G733"
+  },
+  {
+   "ref": "Headphones — over-ear",
+   "name": "Marshall Major IV"
+  },
+  {
+   "ref": "Headphones — over-ear",
+   "name": "Razer BlackShark V2"
+  },
+  {
+   "ref": "Headphones — over-ear",
+   "name": "Razer Kraken V3"
+  },
+  {
+   "ref": "Headphones — over-ear",
+   "name": "Sennheiser HD 450BT"
+  },
+  {
+   "ref": "Headphones — over-ear",
+   "name": "Sennheiser Momentum 4"
+  },
+  {
+   "ref": "Headphones — over-ear",
+   "name": "Skullcandy Crusher Evo"
+  },
+  {
+   "ref": "Headphones — over-ear",
+   "name": "Sony WH-1000XM4"
+  },
+  {
+   "ref": "Headphones — over-ear",
+   "name": "Sony WH-1000XM5"
+  },
+  {
+   "ref": "Headphones — over-ear",
+   "name": "Sony WH-CH720N"
+  },
+  {
+   "ref": "Headphones — over-ear",
+   "name": "SteelSeries Arctis 7"
+  },
+  {
+   "ref": "Headphones — over-ear",
+   "name": "SteelSeries Arctis Nova 7"
+  },
+  {
+   "ref": "Headphones — over-ear",
+   "name": "Turtle Beach Recon 500"
+  },
+  {
+   "ref": "Headphones — over-ear",
+   "name": "Turtle Beach Stealth 600"
+  },
+  {
+   "ref": "Game controller",
+   "name": "8BitDo Pro 2"
+  },
+  {
+   "ref": "Game controller",
+   "name": "8BitDo Ultimate"
+  },
+  {
+   "ref": "Game controller",
+   "name": "Hori Split Pad Pro"
+  },
+  {
+   "ref": "Game controller",
+   "name": "Logitech G920 racing wheel"
+  },
+  {
+   "ref": "Game controller",
+   "name": "Nintendo Joy-Con pair"
+  },
+  {
+   "ref": "Game controller",
+   "name": "Nintendo Switch 2 Pro Controller"
+  },
+  {
+   "ref": "Game controller",
+   "name": "Nintendo Switch Pro Controller"
+  },
+  {
+   "ref": "Game controller",
+   "name": "PowerA Enhanced Wired"
+  },
+  {
+   "ref": "Game controller",
+   "name": "Razer Wolverine V2"
+  },
+  {
+   "ref": "Game controller",
+   "name": "Scuf Instinct Pro"
+  },
+  {
+   "ref": "Game controller",
+   "name": "Scuf Reflex"
+  },
+  {
+   "ref": "Game controller",
+   "name": "Sony DualSense"
+  },
+  {
+   "ref": "Game controller",
+   "name": "Sony DualSense Edge"
+  },
+  {
+   "ref": "Game controller",
+   "name": "Sony DualShock 4"
+  },
+  {
+   "ref": "Game controller",
+   "name": "Thrustmaster T248"
+  },
+  {
+   "ref": "Game controller",
+   "name": "Turtle Beach Recon Controller"
+  },
+  {
+   "ref": "Game controller",
+   "name": "Xbox Elite Series 2"
+  },
+  {
+   "ref": "Game controller",
+   "name": "Xbox Elite Series 2 Core"
+  },
+  {
+   "ref": "Game controller",
+   "name": "Xbox One Wireless Controller"
+  },
+  {
+   "ref": "Game controller",
+   "name": "Xbox Wireless Controller Series X|S"
   },
   {
    "ref": "Wireless mouse — computer",
@@ -2959,7 +3723,333 @@
   },
   {
    "ref": "Monitor — 27in",
+   "name": "Acer Nitro VG271"
+  },
+  {
+   "ref": "Monitor — 27in",
+   "name": "AOC 24G2"
+  },
+  {
+   "ref": "Monitor — 27in",
+   "name": "Asus TUF VG27AQ"
+  },
+  {
+   "ref": "Monitor — 27in",
+   "name": "BenQ GW2480"
+  },
+  {
+   "ref": "Monitor — 27in",
+   "name": "Dell S2721DGF"
+  },
+  {
+   "ref": "Monitor — 27in",
+   "name": "Dell U2720Q"
+  },
+  {
+   "ref": "Monitor — 27in",
+   "name": "HP 24mh"
+  },
+  {
+   "ref": "Monitor — 27in",
+   "name": "LG 27GL83A-B"
+  },
+  {
+   "ref": "Monitor — 27in",
+   "name": "LG 27GN800"
+  },
+  {
+   "ref": "Monitor — 27in",
    "name": "Monitor — 27in"
+  },
+  {
+   "ref": "Monitor — 27in",
+   "name": "Samsung Odyssey G5"
+  },
+  {
+   "ref": "Monitor — 27in",
+   "name": "Samsung Odyssey G7"
+  },
+  {
+   "ref": "Gaming laptop",
+   "name": "Acer Nitro 5"
+  },
+  {
+   "ref": "Gaming laptop",
+   "name": "Alienware m15 R7"
+  },
+  {
+   "ref": "Gaming laptop",
+   "name": "Asus ROG Zephyrus G14",
+   "alias": "g-14 g14"
+  },
+  {
+   "ref": "Gaming laptop",
+   "name": "Asus TUF Gaming A15",
+   "alias": "a-15 a15"
+  },
+  {
+   "ref": "Gaming laptop",
+   "name": "HP Omen 16"
+  },
+  {
+   "ref": "Gaming laptop",
+   "name": "Lenovo Legion 5 15"
+  },
+  {
+   "ref": "Gaming laptop",
+   "name": "MSI Katana 15"
+  },
+  {
+   "ref": "Gaming laptop",
+   "name": "Razer Blade 15"
+  },
+  {
+   "ref": "Video game — sports title",
+   "name": "EA Sports College Football 25"
+  },
+  {
+   "ref": "Video game — sports title",
+   "name": "EA Sports FC 24"
+  },
+  {
+   "ref": "Video game — sports title",
+   "name": "EA Sports FC 25"
+  },
+  {
+   "ref": "Video game — sports title",
+   "name": "Madden NFL 24"
+  },
+  {
+   "ref": "Video game — sports title",
+   "name": "Madden NFL 25"
+  },
+  {
+   "ref": "Video game — sports title",
+   "name": "NBA 2K24"
+  },
+  {
+   "ref": "Video game — sports title",
+   "name": "NBA 2K25"
+  },
+  {
+   "ref": "Video game — Nintendo title",
+   "name": "Animal Crossing New Horizons"
+  },
+  {
+   "ref": "Video game — Nintendo title",
+   "name": "Mario Kart 8 Deluxe"
+  },
+  {
+   "ref": "Video game — Nintendo title",
+   "name": "Pokemon Scarlet"
+  },
+  {
+   "ref": "Video game — Nintendo title",
+   "name": "Pokemon Violet"
+  },
+  {
+   "ref": "Video game — Nintendo title",
+   "name": "Super Mario Odyssey"
+  },
+  {
+   "ref": "Video game — Nintendo title",
+   "name": "Super Smash Bros Ultimate"
+  },
+  {
+   "ref": "Video game — Nintendo title",
+   "name": "The Legend of Zelda Breath of the Wild"
+  },
+  {
+   "ref": "Video game — Nintendo title",
+   "name": "The Legend of Zelda Tears of the Kingdom"
+  },
+  {
+   "ref": "Smartwatch — Apple / Galaxy",
+   "name": "Apple Watch SE 2nd generation"
+  },
+  {
+   "ref": "Smartwatch — Apple / Galaxy",
+   "name": "Apple Watch Series 10"
+  },
+  {
+   "ref": "Smartwatch — Apple / Galaxy",
+   "name": "Apple Watch Series 7"
+  },
+  {
+   "ref": "Smartwatch — Apple / Galaxy",
+   "name": "Apple Watch Series 8"
+  },
+  {
+   "ref": "Smartwatch — Apple / Galaxy",
+   "name": "Apple Watch Series 9"
+  },
+  {
+   "ref": "Smartwatch — Apple / Galaxy",
+   "name": "Apple Watch Ultra"
+  },
+  {
+   "ref": "Smartwatch — Apple / Galaxy",
+   "name": "Apple Watch Ultra 2"
+  },
+  {
+   "ref": "Smartwatch — Apple / Galaxy",
+   "name": "Fitbit Sense 2"
+  },
+  {
+   "ref": "Smartwatch — Apple / Galaxy",
+   "name": "Fitbit Versa 4"
+  },
+  {
+   "ref": "Smartwatch — Apple / Galaxy",
+   "name": "Garmin Forerunner 265"
+  },
+  {
+   "ref": "Smartwatch — Apple / Galaxy",
+   "name": "Garmin Venu 2"
+  },
+  {
+   "ref": "Smartwatch — Apple / Galaxy",
+   "name": "Samsung Galaxy Watch 4"
+  },
+  {
+   "ref": "Smartwatch — Apple / Galaxy",
+   "name": "Samsung Galaxy Watch 5"
+  },
+  {
+   "ref": "Smartwatch — Apple / Galaxy",
+   "name": "Samsung Galaxy Watch 6"
+  },
+  {
+   "ref": "Smartwatch — Apple / Galaxy",
+   "name": "Samsung Galaxy Watch 7"
+  },
+  {
+   "ref": "VR headset",
+   "name": "HTC Vive Pro 2"
+  },
+  {
+   "ref": "VR headset",
+   "name": "Meta Quest 2"
+  },
+  {
+   "ref": "VR headset",
+   "name": "Meta Quest 3"
+  },
+  {
+   "ref": "VR headset",
+   "name": "Meta Quest 3S"
+  },
+  {
+   "ref": "VR headset",
+   "name": "Meta Quest Pro"
+  },
+  {
+   "ref": "VR headset",
+   "name": "Pico 4"
+  },
+  {
+   "ref": "VR headset",
+   "name": "Sony PlayStation VR"
+  },
+  {
+   "ref": "VR headset",
+   "name": "Sony PlayStation VR2"
+  },
+  {
+   "ref": "VR headset",
+   "name": "Valve Index"
+  },
+  {
+   "ref": "Handheld game console",
+   "name": "Analogue Pocket"
+  },
+  {
+   "ref": "Handheld game console",
+   "name": "Anbernic RG35XX"
+  },
+  {
+   "ref": "Handheld game console",
+   "name": "Asus ROG Ally"
+  },
+  {
+   "ref": "Handheld game console",
+   "name": "Lenovo Legion Go"
+  },
+  {
+   "ref": "Handheld game console",
+   "name": "New Nintendo 2DS XL"
+  },
+  {
+   "ref": "Handheld game console",
+   "name": "Nintendo 3DS XL"
+  },
+  {
+   "ref": "Handheld game console",
+   "name": "Nintendo Switch Lite"
+  },
+  {
+   "ref": "Handheld game console",
+   "name": "Nintendo Switch OLED"
+  },
+  {
+   "ref": "Handheld game console",
+   "name": "Sony PS Vita"
+  },
+  {
+   "ref": "Handheld game console",
+   "name": "Steam Deck 256GB"
+  },
+  {
+   "ref": "Handheld game console",
+   "name": "Steam Deck OLED"
+  },
+  {
+   "ref": "Video game — current title",
+   "name": "Baldur's Gate 3"
+  },
+  {
+   "ref": "Video game — current title",
+   "name": "Call of Duty Black Ops 6"
+  },
+  {
+   "ref": "Video game — current title",
+   "name": "Call of Duty Modern Warfare III"
+  },
+  {
+   "ref": "Video game — current title",
+   "name": "Elden Ring"
+  },
+  {
+   "ref": "Video game — current title",
+   "name": "God of War Ragnarok"
+  },
+  {
+   "ref": "Video game — current title",
+   "name": "Grand Theft Auto V"
+  },
+  {
+   "ref": "Video game — current title",
+   "name": "Helldivers 2"
+  },
+  {
+   "ref": "Video game — current title",
+   "name": "Hogwarts Legacy"
+  },
+  {
+   "ref": "Video game — current title",
+   "name": "Marvel's Spider-Man 2"
+  },
+  {
+   "ref": "Video game — current title",
+   "name": "Minecraft"
+  },
+  {
+   "ref": "Video game — current title",
+   "name": "Mortal Kombat 1"
+  },
+  {
+   "ref": "Video game — current title",
+   "name": "Red Dead Redemption 2"
   },
   {
    "ref": "Video game — current title",
@@ -3340,786 +4430,6 @@
   {
    "ref": "Boat anchor & rode",
    "name": "Boat anchor & rode"
-  },
-  {
-   "ref": "Headphones — over-ear",
-   "name": "Sony WH-1000XM4"
-  },
-  {
-   "ref": "Headphones — over-ear",
-   "name": "Sony WH-1000XM5"
-  },
-  {
-   "ref": "Headphones — over-ear",
-   "name": "Sony WH-CH720N"
-  },
-  {
-   "ref": "Headphones — over-ear",
-   "name": "Bose QuietComfort 45"
-  },
-  {
-   "ref": "Headphones — over-ear",
-   "name": "Bose QuietComfort Ultra"
-  },
-  {
-   "ref": "Headphones — over-ear",
-   "name": "Bose QuietComfort 35 II"
-  },
-  {
-   "ref": "Headphones — over-ear",
-   "name": "Bose 700"
-  },
-  {
-   "ref": "Headphones — over-ear",
-   "name": "Apple AirPods Max"
-  },
-  {
-   "ref": "Headphones — over-ear",
-   "name": "Beats Studio3"
-  },
-  {
-   "ref": "Headphones — over-ear",
-   "name": "Beats Studio Pro"
-  },
-  {
-   "ref": "Headphones — over-ear",
-   "name": "Beats Solo 3"
-  },
-  {
-   "ref": "Headphones — over-ear",
-   "name": "Beats Solo 4"
-  },
-  {
-   "ref": "Headphones — over-ear",
-   "name": "Sennheiser HD 450BT"
-  },
-  {
-   "ref": "Headphones — over-ear",
-   "name": "Sennheiser Momentum 4"
-  },
-  {
-   "ref": "Headphones — over-ear",
-   "name": "Audio-Technica ATH-M50x"
-  },
-  {
-   "ref": "Headphones — over-ear",
-   "name": "Audio-Technica ATH-M20x"
-  },
-  {
-   "ref": "Headphones — over-ear",
-   "name": "JBL Tune 760NC"
-  },
-  {
-   "ref": "Headphones — over-ear",
-   "name": "JBL Live 660NC"
-  },
-  {
-   "ref": "Headphones — over-ear",
-   "name": "Skullcandy Crusher Evo"
-  },
-  {
-   "ref": "Headphones — over-ear",
-   "name": "Marshall Major IV"
-  },
-  {
-   "ref": "Headphones — over-ear",
-   "name": "HyperX Cloud II"
-  },
-  {
-   "ref": "Headphones — over-ear",
-   "name": "HyperX Cloud Alpha"
-  },
-  {
-   "ref": "Headphones — over-ear",
-   "name": "SteelSeries Arctis 7"
-  },
-  {
-   "ref": "Headphones — over-ear",
-   "name": "SteelSeries Arctis Nova 7"
-  },
-  {
-   "ref": "Headphones — over-ear",
-   "name": "Razer BlackShark V2"
-  },
-  {
-   "ref": "Headphones — over-ear",
-   "name": "Razer Kraken V3"
-  },
-  {
-   "ref": "Headphones — over-ear",
-   "name": "Turtle Beach Stealth 600"
-  },
-  {
-   "ref": "Headphones — over-ear",
-   "name": "Turtle Beach Recon 500"
-  },
-  {
-   "ref": "Headphones — over-ear",
-   "name": "Corsair HS80"
-  },
-  {
-   "ref": "Headphones — over-ear",
-   "name": "Logitech G Pro X"
-  },
-  {
-   "ref": "Headphones — over-ear",
-   "name": "Logitech G733"
-  },
-  {
-   "ref": "Headphones — over-ear",
-   "name": "Astro A50"
-  },
-  {
-   "ref": "Headphones — over-ear",
-   "name": "Astro A40"
-  },
-  {
-   "ref": "Wireless earbuds",
-   "name": "Apple AirPods 2nd generation"
-  },
-  {
-   "ref": "Wireless earbuds",
-   "name": "Apple AirPods 3rd generation"
-  },
-  {
-   "ref": "Wireless earbuds",
-   "name": "Apple AirPods 4"
-  },
-  {
-   "ref": "Wireless earbuds",
-   "name": "Apple AirPods Pro"
-  },
-  {
-   "ref": "Wireless earbuds",
-   "name": "Apple AirPods Pro 2"
-  },
-  {
-   "ref": "Wireless earbuds",
-   "name": "Samsung Galaxy Buds2"
-  },
-  {
-   "ref": "Wireless earbuds",
-   "name": "Samsung Galaxy Buds2 Pro"
-  },
-  {
-   "ref": "Wireless earbuds",
-   "name": "Samsung Galaxy Buds FE"
-  },
-  {
-   "ref": "Wireless earbuds",
-   "name": "Samsung Galaxy Buds Live"
-  },
-  {
-   "ref": "Wireless earbuds",
-   "name": "Samsung Galaxy Buds3"
-  },
-  {
-   "ref": "Wireless earbuds",
-   "name": "Sony WF-1000XM4"
-  },
-  {
-   "ref": "Wireless earbuds",
-   "name": "Sony WF-1000XM5"
-  },
-  {
-   "ref": "Wireless earbuds",
-   "name": "Sony WF-C500"
-  },
-  {
-   "ref": "Wireless earbuds",
-   "name": "Sony LinkBuds S"
-  },
-  {
-   "ref": "Wireless earbuds",
-   "name": "Bose QuietComfort Earbuds II"
-  },
-  {
-   "ref": "Wireless earbuds",
-   "name": "Bose Sport Earbuds"
-  },
-  {
-   "ref": "Wireless earbuds",
-   "name": "Beats Fit Pro"
-  },
-  {
-   "ref": "Wireless earbuds",
-   "name": "Beats Studio Buds"
-  },
-  {
-   "ref": "Wireless earbuds",
-   "name": "Beats Powerbeats Pro"
-  },
-  {
-   "ref": "Wireless earbuds",
-   "name": "Jabra Elite 75t"
-  },
-  {
-   "ref": "Wireless earbuds",
-   "name": "Jabra Elite 85t"
-  },
-  {
-   "ref": "Wireless earbuds",
-   "name": "Jabra Elite 4"
-  },
-  {
-   "ref": "Wireless earbuds",
-   "name": "Google Pixel Buds Pro"
-  },
-  {
-   "ref": "Wireless earbuds",
-   "name": "Google Pixel Buds A-Series"
-  },
-  {
-   "ref": "Wireless earbuds",
-   "name": "JBL Tune 230NC"
-  },
-  {
-   "ref": "Wireless earbuds",
-   "name": "JBL Vibe Beam"
-  },
-  {
-   "ref": "Wireless earbuds",
-   "name": "Anker Soundcore Liberty 4"
-  },
-  {
-   "ref": "Wireless earbuds",
-   "name": "Anker Soundcore Life P3"
-  },
-  {
-   "ref": "Wireless earbuds",
-   "name": "Skullcandy Indy Evo"
-  },
-  {
-   "ref": "Wireless earbuds",
-   "name": "Raycon Everyday"
-  },
-  {
-   "ref": "Game controller",
-   "name": "Xbox Wireless Controller Series X|S"
-  },
-  {
-   "ref": "Game controller",
-   "name": "Xbox Elite Series 2"
-  },
-  {
-   "ref": "Game controller",
-   "name": "Xbox Elite Series 2 Core"
-  },
-  {
-   "ref": "Game controller",
-   "name": "Xbox One Wireless Controller"
-  },
-  {
-   "ref": "Game controller",
-   "name": "Sony DualSense"
-  },
-  {
-   "ref": "Game controller",
-   "name": "Sony DualSense Edge"
-  },
-  {
-   "ref": "Game controller",
-   "name": "Sony DualShock 4"
-  },
-  {
-   "ref": "Game controller",
-   "name": "Nintendo Switch Pro Controller"
-  },
-  {
-   "ref": "Game controller",
-   "name": "Nintendo Joy-Con pair"
-  },
-  {
-   "ref": "Game controller",
-   "name": "Nintendo Switch 2 Pro Controller"
-  },
-  {
-   "ref": "Game controller",
-   "name": "8BitDo Pro 2"
-  },
-  {
-   "ref": "Game controller",
-   "name": "8BitDo Ultimate"
-  },
-  {
-   "ref": "Game controller",
-   "name": "Scuf Instinct Pro"
-  },
-  {
-   "ref": "Game controller",
-   "name": "Scuf Reflex"
-  },
-  {
-   "ref": "Game controller",
-   "name": "Razer Wolverine V2"
-  },
-  {
-   "ref": "Game controller",
-   "name": "PowerA Enhanced Wired"
-  },
-  {
-   "ref": "Game controller",
-   "name": "Turtle Beach Recon Controller"
-  },
-  {
-   "ref": "Game controller",
-   "name": "Logitech G920 racing wheel"
-  },
-  {
-   "ref": "Game controller",
-   "name": "Thrustmaster T248"
-  },
-  {
-   "ref": "Game controller",
-   "name": "Hori Split Pad Pro"
-  },
-  {
-   "ref": "Video game — current title",
-   "name": "Call of Duty Modern Warfare III"
-  },
-  {
-   "ref": "Video game — current title",
-   "name": "Call of Duty Black Ops 6"
-  },
-  {
-   "ref": "Video game — sports title",
-   "name": "Madden NFL 25"
-  },
-  {
-   "ref": "Video game — sports title",
-   "name": "Madden NFL 24"
-  },
-  {
-   "ref": "Video game — sports title",
-   "name": "NBA 2K25"
-  },
-  {
-   "ref": "Video game — sports title",
-   "name": "NBA 2K24"
-  },
-  {
-   "ref": "Video game — sports title",
-   "name": "EA Sports FC 25"
-  },
-  {
-   "ref": "Video game — sports title",
-   "name": "EA Sports FC 24"
-  },
-  {
-   "ref": "Video game — Nintendo title",
-   "name": "The Legend of Zelda Tears of the Kingdom"
-  },
-  {
-   "ref": "Video game — Nintendo title",
-   "name": "The Legend of Zelda Breath of the Wild"
-  },
-  {
-   "ref": "Video game — Nintendo title",
-   "name": "Mario Kart 8 Deluxe"
-  },
-  {
-   "ref": "Video game — Nintendo title",
-   "name": "Super Mario Odyssey"
-  },
-  {
-   "ref": "Video game — Nintendo title",
-   "name": "Super Smash Bros Ultimate"
-  },
-  {
-   "ref": "Video game — Nintendo title",
-   "name": "Pokemon Scarlet"
-  },
-  {
-   "ref": "Video game — Nintendo title",
-   "name": "Pokemon Violet"
-  },
-  {
-   "ref": "Video game — Nintendo title",
-   "name": "Animal Crossing New Horizons"
-  },
-  {
-   "ref": "Video game — current title",
-   "name": "Elden Ring"
-  },
-  {
-   "ref": "Video game — current title",
-   "name": "Red Dead Redemption 2"
-  },
-  {
-   "ref": "Video game — current title",
-   "name": "Grand Theft Auto V"
-  },
-  {
-   "ref": "Video game — current title",
-   "name": "Marvel's Spider-Man 2"
-  },
-  {
-   "ref": "Video game — current title",
-   "name": "God of War Ragnarok"
-  },
-  {
-   "ref": "Video game — current title",
-   "name": "Hogwarts Legacy"
-  },
-  {
-   "ref": "Video game — current title",
-   "name": "Minecraft"
-  },
-  {
-   "ref": "Video game — current title",
-   "name": "Mortal Kombat 1"
-  },
-  {
-   "ref": "Video game — sports title",
-   "name": "EA Sports College Football 25"
-  },
-  {
-   "ref": "Video game — current title",
-   "name": "Helldivers 2"
-  },
-  {
-   "ref": "Video game — current title",
-   "name": "Baldur's Gate 3"
-  },
-  {
-   "ref": "VR headset",
-   "name": "Meta Quest 2"
-  },
-  {
-   "ref": "VR headset",
-   "name": "Meta Quest 3"
-  },
-  {
-   "ref": "VR headset",
-   "name": "Meta Quest 3S"
-  },
-  {
-   "ref": "VR headset",
-   "name": "Meta Quest Pro"
-  },
-  {
-   "ref": "VR headset",
-   "name": "Sony PlayStation VR2"
-  },
-  {
-   "ref": "VR headset",
-   "name": "Sony PlayStation VR"
-  },
-  {
-   "ref": "VR headset",
-   "name": "Valve Index"
-  },
-  {
-   "ref": "VR headset",
-   "name": "HTC Vive Pro 2"
-  },
-  {
-   "ref": "VR headset",
-   "name": "Pico 4"
-  },
-  {
-   "ref": "Handheld game console",
-   "name": "Nintendo Switch Lite"
-  },
-  {
-   "ref": "Handheld game console",
-   "name": "Nintendo Switch OLED"
-  },
-  {
-   "ref": "Handheld game console",
-   "name": "Steam Deck 256GB"
-  },
-  {
-   "ref": "Handheld game console",
-   "name": "Steam Deck OLED"
-  },
-  {
-   "ref": "Handheld game console",
-   "name": "Nintendo 3DS XL"
-  },
-  {
-   "ref": "Handheld game console",
-   "name": "New Nintendo 2DS XL"
-  },
-  {
-   "ref": "Handheld game console",
-   "name": "Sony PS Vita"
-  },
-  {
-   "ref": "Handheld game console",
-   "name": "Asus ROG Ally"
-  },
-  {
-   "ref": "Handheld game console",
-   "name": "Lenovo Legion Go"
-  },
-  {
-   "ref": "Handheld game console",
-   "name": "Anbernic RG35XX"
-  },
-  {
-   "ref": "Handheld game console",
-   "name": "Analogue Pocket"
-  },
-  {
-   "ref": "Monitor — 27in",
-   "name": "Dell S2721DGF"
-  },
-  {
-   "ref": "Monitor — 27in",
-   "name": "Dell U2720Q"
-  },
-  {
-   "ref": "Monitor — 27in",
-   "name": "LG 27GL83A-B"
-  },
-  {
-   "ref": "Monitor — 27in",
-   "name": "LG 27GN800"
-  },
-  {
-   "ref": "Monitor — 27in",
-   "name": "Samsung Odyssey G5"
-  },
-  {
-   "ref": "Monitor — 27in",
-   "name": "Samsung Odyssey G7"
-  },
-  {
-   "ref": "Monitor — 27in",
-   "name": "Asus TUF VG27AQ"
-  },
-  {
-   "ref": "Monitor — 27in",
-   "name": "Acer Nitro VG271"
-  },
-  {
-   "ref": "Monitor — 27in",
-   "name": "AOC 24G2"
-  },
-  {
-   "ref": "Monitor — 27in",
-   "name": "HP 24mh"
-  },
-  {
-   "ref": "Monitor — 27in",
-   "name": "BenQ GW2480"
-  },
-  {
-   "ref": "Smartwatch — Apple / Galaxy",
-   "name": "Apple Watch SE 2nd generation"
-  },
-  {
-   "ref": "Smartwatch — Apple / Galaxy",
-   "name": "Apple Watch Series 7"
-  },
-  {
-   "ref": "Smartwatch — Apple / Galaxy",
-   "name": "Apple Watch Series 8"
-  },
-  {
-   "ref": "Smartwatch — Apple / Galaxy",
-   "name": "Apple Watch Series 9"
-  },
-  {
-   "ref": "Smartwatch — Apple / Galaxy",
-   "name": "Apple Watch Series 10"
-  },
-  {
-   "ref": "Smartwatch — Apple / Galaxy",
-   "name": "Apple Watch Ultra"
-  },
-  {
-   "ref": "Smartwatch — Apple / Galaxy",
-   "name": "Apple Watch Ultra 2"
-  },
-  {
-   "ref": "Smartwatch — Apple / Galaxy",
-   "name": "Samsung Galaxy Watch 4"
-  },
-  {
-   "ref": "Smartwatch — Apple / Galaxy",
-   "name": "Samsung Galaxy Watch 5"
-  },
-  {
-   "ref": "Smartwatch — Apple / Galaxy",
-   "name": "Samsung Galaxy Watch 6"
-  },
-  {
-   "ref": "Smartwatch — Apple / Galaxy",
-   "name": "Samsung Galaxy Watch 7"
-  },
-  {
-   "ref": "Smartwatch — Apple / Galaxy",
-   "name": "Fitbit Versa 4"
-  },
-  {
-   "ref": "Smartwatch — Apple / Galaxy",
-   "name": "Fitbit Sense 2"
-  },
-  {
-   "ref": "Smartwatch — Apple / Galaxy",
-   "name": "Garmin Forerunner 265"
-  },
-  {
-   "ref": "Smartwatch — Apple / Galaxy",
-   "name": "Garmin Venu 2"
-  },
-  {
-   "ref": "e5",
-   "name": "Xbox One"
-  },
-  {
-   "ref": "e5",
-   "name": "Xbox 360"
-  },
-  {
-   "ref": "e5",
-   "name": "PlayStation 3"
-  },
-  {
-   "ref": "e5",
-   "name": "Nintendo Wii U"
-  },
-  {
-   "ref": "e5",
-   "name": "Nintendo Wii"
-  },
-  {
-   "ref": "e5",
-   "name": "Nintendo Switch 2"
-  },
-  {
-   "ref": "e5",
-   "name": "Xbox Series X Digital"
-  },
-  {
-   "ref": "e2",
-   "name": "MacBook Air M3 13in"
-  },
-  {
-   "ref": "e2",
-   "name": "MacBook Pro 14in M3"
-  },
-  {
-   "ref": "e2",
-   "name": "Dell XPS 15 9520"
-  },
-  {
-   "ref": "Gaming laptop",
-   "name": "HP Omen 16"
-  },
-  {
-   "ref": "e2",
-   "name": "Lenovo Yoga 7i"
-  },
-  {
-   "ref": "e2",
-   "name": "Acer Swift 3"
-  },
-  {
-   "ref": "e2",
-   "name": "Asus Vivobook 15"
-  },
-  {
-   "ref": "e2",
-   "name": "Samsung Galaxy Book3"
-  },
-  {
-   "ref": "Gaming laptop",
-   "name": "Alienware m15 R7"
-  },
-  {
-   "ref": "Gaming laptop",
-   "name": "MSI Katana 15"
-  },
-  {
-   "ref": "Gaming laptop",
-   "name": "Razer Blade 15"
-  },
-  {
-   "ref": "e2",
-   "name": "Microsoft Surface Laptop 5"
-  },
-  {
-   "ref": "e3",
-   "name": "iPad Pro 12.9 M2"
-  },
-  {
-   "ref": "e3",
-   "name": "iPad Air M2"
-  },
-  {
-   "ref": "e3",
-   "name": "iPad 7th generation"
-  },
-  {
-   "ref": "e3",
-   "name": "iPad 8th generation"
-  },
-  {
-   "ref": "e3",
-   "name": "Samsung Galaxy Tab S9"
-  },
-  {
-   "ref": "e3",
-   "name": "Samsung Galaxy Tab S9 FE"
-  },
-  {
-   "ref": "e3",
-   "name": "Samsung Galaxy Tab S9 Ultra"
-  },
-  {
-   "ref": "e3",
-   "name": "Samsung Galaxy Tab A7 Lite"
-  },
-  {
-   "ref": "e3",
-   "name": "Samsung Galaxy Tab S8 Ultra"
-  },
-  {
-   "ref": "e3",
-   "name": "Lenovo Tab P11"
-  },
-  {
-   "ref": "e3",
-   "name": "Microsoft Surface Pro 9"
-  },
-  {
-   "ref": "e3",
-   "name": "Amazon Fire HD 7"
-  },
-  {
-   "ref": "e3",
-   "name": "onn. 10 Tablet Pro"
-  },
-  {
-   "ref": "e6",
-   "name": "JBL Clip 4"
-  },
-  {
-   "ref": "e6",
-   "name": "JBL Go 3"
-  },
-  {
-   "ref": "e6",
-   "name": "JBL Boombox 3"
-  },
-  {
-   "ref": "e6",
-   "name": "Bose SoundLink Micro"
-  },
-  {
-   "ref": "e6",
-   "name": "Sony SRS-XG300"
-  },
-  {
-   "ref": "e6",
-   "name": "Anker Soundcore 3"
-  },
-  {
-   "ref": "e6",
-   "name": "Marshall Willen"
   }
  ]
 }

@@ -135,6 +135,35 @@ the list. `node tools/gaps.mjs` ranks every shelf by how few models are
 written down for it, which is where adding names buys the most. It costs no
 lookups.
 
+### Growing the list is part of the job, every run
+
+Jace, 26 Sep: *"make sure we are constantly adding electronics, outdoor
+gear, sporting goods, hunting and fishing equipment, tools, antiques to the
+new search list to build the database with those type of items."*
+
+So **every harvest run ends by adding models**, not only by pricing them.
+Run `node tools/gaps.mjs`, take the thinnest shelf in one of those
+categories, and write 6&ndash;10 more makes and models onto it:
+
+    node tools/add-models.mjs h2 "Vortex Crossfire HD 10x42" "Maven C1 10x42"
+    node tools/add-models.mjs --file batch.txt        # "ref<TAB>name" a line
+
+The tool refuses a shelf the desk will not search, refuses a ref that is not
+a shelf, drops duplicates and keeps the file sorted, so this is cheap and
+hard to get wrong. It costs no lookups: the new rows are never-priced, and
+never-priced runs **after** everything due a re-check.
+
+**A name is a SEARCH, not a label.** "Vortex Diamondback HD 10x42" is a
+search; "Vortex binoculars" is a mixture, and the median of a mixture is the
+price of nothing. Use the model number wherever that is how people say it.
+
+Two categories to leave alone unless asked. **Outdoor power** &mdash; saws,
+mowers, trimmers, blowers, pressure washers, generators &mdash; is retired;
+models added there would spend lookups measuring carburettors. **Antiques**
+has no shelf in the catalog at all, and eBay is the wrong source for one
+anyway: an antique's identity is a mark or a pattern, not a model number,
+and that is WorthPoint's ground. It needs a decision before it needs rows.
+
 
 ## The allowance, and the shelves
 
