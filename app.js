@@ -730,6 +730,12 @@ const ladder = (p,c) => [
    buyMult - and 25% is where the slider stops, with the statute quoted
    underneath so nobody has to remember where the line is.
 
+   26 Sep: asked for, and set to, 25% - the ceiling. That is Lamar's call
+   and it is legal; what changed here is that it is now a NUMBER SOMEBODY
+   CHOSE rather than a constant nobody could see or move, which was the
+   whole complaint. Everything still follows the setting, so dropping it
+   to 20 is one drag of a slider.
+
    The $5 floor stays: the same subsection allows it outright, and on a $40
    loan the percentage alone does not cover writing the ticket. */
 const PAWN_CAP=25;
@@ -739,7 +745,7 @@ function pawnCharge(p){ return Math.max(5,Math.round((Number(p)||0)*pawnPct())/1
 /* ---------------- state ---------------- */
 const KEY="pawndesk:web:v1";
 let st={mode:"item",catId:"guns",itemId:"g1",picked:false,cond:"good",brand:"mid",complete:true,completeSet:false,struck:"",struckKind:"loan",liq:null,brandTyped:"",model:"",detail:"",specSel:{},
-        overrides:{},bookVals:{},modelVals:{},ltvs:{},buys:{},buyFloor:25,buyMult:2,pawnPct:10,payPct:70,payTouched:false,loanPct:48,loanTouched:false,editing:false,
+        overrides:{},bookVals:{},modelVals:{},ltvs:{},buys:{},buyFloor:25,buyMult:2,pawnPct:25,pawnSet:false,payPct:70,payTouched:false,loanPct:48,loanTouched:false,editing:false,
         manual:null, /* {date, spot:{gold,silver}, avg90:{gold,silver}} — a same-day hand edit beats the feed */
         deal:"buy",metal:"gold",karat:"14k",grams:"",whyOpen:false,photoRead:null,bookQ:"",bookName:""};
 try{
@@ -748,8 +754,16 @@ try{
     st.bookVals=s.bookVals||{}; st.modelVals=s.modelVals||{};
     if(s.buyFloor!=null)st.buyFloor=Math.max(0,Number(s.buyFloor)||0);
     if(s.buyMult!=null)st.buyMult=Math.max(1,Number(s.buyMult)||1);
-    /* Shop policy, not a daily figure - it does not expire with the feed. */
-    if(s.pawnPct!=null)st.pawnPct=Math.min(PAWN_CAP,Math.max(0,Number(s.pawnPct)||0));
+    /* Shop policy, not a daily figure - it does not expire with the feed.
+       But a stored number only outranks the code's default once somebody
+       has actually MOVED the control. Without that flag, every device that
+       had quietly saved the old default would have gone on using it, and
+       changing the shipped rate would have reached only brand-new devices
+       - the tablet and the phone quoting different repayments on the same
+       loan, with nothing on either screen to say why. */
+    st.pawnSet=!!s.pawnSet;
+    if(s.pawnSet && s.pawnPct!=null)
+      st.pawnPct=Math.min(PAWN_CAP,Math.max(0,Number(s.pawnPct)||0));
          /* A hand-set pay rate wins only for the day it was set — tomorrow's
             feed brings new numbers, so the rate goes back to following them. */
          if(s.payDate===FEED.date && typeof s.payPct==="number"){ st.payPct=s.payPct; st.payTouched=!!s.payTouched; }
@@ -768,7 +782,7 @@ function persist(){
   try{
     localStorage.setItem(KEY,JSON.stringify({overrides:st.overrides,ltvs:st.ltvs,buys:st.buys,
       bookVals:st.bookVals,modelVals:st.modelVals,
-      buyFloor:st.buyFloor,buyMult:st.buyMult,pawnPct:st.pawnPct,payPct:st.payPct,flow:st.flow,
+      buyFloor:st.buyFloor,buyMult:st.buyMult,pawnPct:st.pawnPct,pawnSet:st.pawnSet,payPct:st.payPct,flow:st.flow,
       payTouched:st.payTouched,loanPct:st.loanPct,loanTouched:st.loanTouched,payDate:FEED.date,manual:st.manual}));
     flashSave("Saved");
   }catch(e){ flashSave("Couldn't save"); }
@@ -1416,7 +1430,7 @@ function pawnRateHTML(){
       <input id="pawnNum" class="numIn rateNum" type="number" inputmode="numeric" min="0" max="${PAWN_CAP}" step="1" value="${p}"></div>
     <input type="range" min="0" max="${PAWN_CAP}" step="1" value="${p}" id="pawnSlider">
     <div class="sliderScale"><span>0% — no charge</span><span>${PAWN_CAP}% — the legal ceiling</span></div>
-    ${p>=PAWN_CAP?`<div class="tagWarn" style="margin-top:9px"><b>That is the statutory maximum.</b> It is legal to charge it. It is also the number a customer does the arithmetic on and walks out — ${money(100)} lent comes back as ${money(125)}. Set this to what the shop actually charges, not to what the law allows.</div>`:""}`;
+    ${p>=PAWN_CAP?`<div class="tagWarn" style="margin-top:9px"><b>${PAWN_CAP}% is the ceiling &sect; 539.001(11) allows.</b> ${money(100)} lent comes back as ${money(125)} by day 30. This is the shop’s rate, set here on purpose — and there is no room above it: overcharging voids the transaction and forfeits twice the charge.</div>`:""}`;
 }
 function paybackHTML(x){
   return `<details class="card foldCard"${st.openPayback?" open":""} id="paybackFold">
@@ -7345,7 +7359,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.0114";
+const APP_BUILD="0926.0128";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -8728,7 +8742,7 @@ function wireBuy(){
    the rail) and the release does the real render and the save. */
 function wirePawnRate(){
   const sl=document.getElementById("pawnSlider"), n=document.getElementById("pawnNum");
-  const set=v=>{ st.pawnPct=Math.min(PAWN_CAP,Math.max(0,Number(v)||0));
+  const set=v=>{ st.pawnPct=Math.min(PAWN_CAP,Math.max(0,Number(v)||0)); st.pawnSet=true;
     const lad=document.getElementById("payLadder");
     if(lad){ const c=(st.mode==="metal")?(()=>{const m=calcMetal();return m?[m.loan,pawnCharge(m.loan)]:null;})()
                                        :(()=>{const x=calcItem();return [x.target,x.charge];})();

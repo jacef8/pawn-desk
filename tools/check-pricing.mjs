@@ -1196,6 +1196,11 @@ console.log("\n  the pawn charge is the shop's rate, not the statute's ceiling")
       return {loan: Math.round(x.target), charge: Math.round(x.charge),
               day30: Math.round(ladder(x.target, x.charge)[0].due)}; };
     out.ten = at(10); out.max = at(25); out.zero = at(0);
+    /* A device that saved the OLD default must not go on using it. Only a
+       stored value somebody actually set outranks the shipped rate. */
+    out.fresh = (() => { const raw = localStorage.getItem("pawndesk:web:v1");
+      try { const j = JSON.parse(raw||"{}"); return {saved: j.pawnPct, flagged: !!j.pawnSet}; }
+      catch(e){ return null; } })();
     /* the cap is a cap, not a suggestion, and it cannot be argued past */
     st.pawnPct = 40; out.over = pawnPct();
     st.pawnPct = -5; out.under = pawnPct();
@@ -1209,22 +1214,57 @@ console.log("\n  the pawn charge is the shop's rate, not the statute's ceiling")
     return out;
   });
   ok(r.cap === 25, "the statutory ceiling is still known \u2014 " + r.cap + "%");
-  ok(r.def < r.cap, "  but the desk does not open at it \u2014 default is " + r.def + "%");
+  /* This used to require the default to sit BELOW the ceiling, back when
+     the shipped rate was my placeholder. Lamar's answer on 26 Sep was 25 -
+     the ceiling, deliberately - so the rule the suite holds is the one that
+     actually matters: the rate is a setting that everything follows, and
+     the ceiling clamps it. Not what number was chosen. */
+  ok(r.def === 25, "  and it ships at the rate the shop chose \u2014 " + r.def + "%");
   ok(r.ten.charge === Math.round(r.ten.loan * 0.10),
      "  at 10% a " + r.ten.loan + " loan carries a " + r.ten.charge + " charge");
   ok(r.max.charge === Math.round(r.max.loan * 0.25),
      "  at the ceiling it carries " + r.max.charge + " \u2014 the old hardcoded number");
   ok(r.ten.day30 < r.max.day30,
-     "  so day 30 is " + r.ten.day30 + " rather than " + r.max.day30);
+     "  so day 30 follows it: " + r.ten.day30 + " at 10%, " + r.max.day30 + " at 25%");
   ok(r.zero.charge === 5,
      "  and the $5 minimum the statute allows survives a 0% rate \u2014 " + r.zero.charge);
   ok(r.over === 25 && r.under === 0,
      "  the rate cannot be pushed past the ceiling or below nothing \u2014 " + r.over + " / " + r.under);
   ok(r.hasControl, "  the rate is set where the repayment is read, not in a menu");
   ok(/not 10% again every month/i.test(r.prose) && !/not 25% again/i.test(r.prose),
-     "  and the explanation quotes the shop's rate, not a frozen 25");
+     "  and the explanation quotes whatever the rate is, not a frozen 25");
   ok(/caps the charge at 25%/i.test(r.prose),
      "  while the fine print still names the statutory cap");
+
+  /* THE CHANGE HAS TO REACH THE TABLETS THAT ARE ALREADY OUT.
+     Every device that had run the tool once already had the OLD shipped
+     rate sitting in its browser storage. A plain "stored value wins" load
+     would have meant a new rate reached only brand-new devices, and the
+     tablet and the phone would quote different repayments on the same loan
+     with nothing on either screen to say why. So a stored number only
+     outranks the shipped one once somebody has actually moved the control. */
+  const mig = await page.evaluate(async () => {
+    const KEY = "pawndesk:web:v1";
+    const reload = async (saved) => {
+      localStorage.setItem(KEY, JSON.stringify(saved));
+      const f = document.createElement("iframe");
+      f.src = "./index.html"; document.body.appendChild(f);
+      await new Promise(r => { f.onload = r; });
+      const v = f.contentWindow.pawnPct(); f.remove(); return v;
+    };
+    const out = {};
+    out.staleDefault = await reload({pawnPct: 10});                 /* old shipped value */
+    out.deliberate   = await reload({pawnPct: 18, pawnSet: true});  /* somebody set 18 */
+    out.nothingSaved = await reload({});
+    localStorage.removeItem(KEY);
+    return out;
+  });
+  ok(mig.staleDefault === 25,
+     "a device still carrying the old shipped 10% picks up the new rate \u2014 " + mig.staleDefault + "%");
+  ok(mig.deliberate === 18,
+     "  but a rate somebody actually set is left alone \u2014 " + mig.deliberate + "%");
+  ok(mig.nothingSaved === 25,
+     "  and a fresh device opens at the shipped rate \u2014 " + mig.nothingSaved + "%");
 }
 
 /* THE BOOK WAS QUOTING PRICES ON AISLES THE DESK SAYS IT CANNOT PRICE.
