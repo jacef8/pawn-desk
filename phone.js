@@ -539,7 +539,7 @@ function snapHTML(){
   const m=x.market, mk=m&&m.kind;
   const evid=(()=>{
     if(!m||!x.checked)
-      return {b:"Not looked up",s:"the desk's own starting point",pct:0,tone:"none"};
+      return {b:"Not looked up",s:"a built-in starting point",pct:0,tone:"none"};
     if(mk==="found"||mk==="harvest"){
       const n=m.n||0,sold=m.sold||0,share=n?sold/n:0;
       return {b:(m.from?esc(srcName(m.from)):"eBay")+" sold prices",

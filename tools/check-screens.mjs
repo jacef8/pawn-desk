@@ -775,6 +775,39 @@ console.log("\n  the rail says what he pays back, not just what he gets");
   await dk.close();
 }
 
+/* MY NAME FOR THE TOOL IS NOT ANYBODY ELSE'S.
+   Asked at the counter, plainly: "what is 'the desk'?" It is what I have
+   called this thing to myself since the first commit, and it had leaked
+   into seventeen strings the counter actually reads - "the desk has no
+   measured price for", "the desk will not look this one up", "the desk
+   fills in its resale value". A tool that refers to itself by a name
+   nobody taught you is asking you to learn its vocabulary before it will
+   answer your question.
+   It has no name on screen now. Where a subject was needed the sentence
+   was turned around instead. This keeps it out. */
+{
+  const jp = await browser.newPage({viewport:{width:1280, height:900}});
+  const seen = [];
+  await jp.goto(BASE + "/index.html", {waitUntil:"networkidle"});
+  for (const mode of ["item", "metal", "device", "setup", "log"]) {
+    const t = await jp.evaluate((m) => { st.mode = m; render();
+      return document.body.innerText; }, mode);
+    if (/\bthe desk\b/i.test(t)) seen.push(mode + ": " + (t.match(/.{0,40}the desk.{0,40}/i)||[""])[0].trim());
+  }
+  /* and the one card that carries the most of it - a priced item mid-run */
+  const t2 = await jp.evaluate(() => {
+    const c = CATALOG.find(y => y.items.some(i => i.id === "e5"));
+    st.mode="item"; st.catId=c.id; st.itemId="e5"; st.picked=true;
+    st.brandSet=true; st.brandTyped="Microsoft"; st.model="Xbox"; st.market=null;
+    const q = askQueue(calcItem()); st.askAt = q.findIndex(z => z.id === "worth"); render();
+    return document.body.innerText;
+  });
+  if (/\bthe desk\b/i.test(t2)) seen.push("priced run: " + (t2.match(/.{0,40}the desk.{0,40}/i)||[""])[0].trim());
+  await jp.close();
+  if (seen.length) { bad++; console.log("FAIL the tool calls itself \"the desk\" on screen: " + seen.join(" | ")); }
+  else console.log("ok   the tool never calls itself \"the desk\" where the counter can read it");
+}
+
 await browser.close();
 console.log(bad ? `FAILED (${bad})` : "all screens draw themselves, every id once");
 process.exit(bad ? 1 : 0);

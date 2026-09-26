@@ -656,7 +656,7 @@ function photoBook(txt){
 function brandVerdictHTML(){
   if(!st.brandTyped)return "";
   const hit=brandLookup(st.catId,st.brandTyped);
-  if(!hit)return `<span style="color:var(--warn)">Not in the book — pick the tier below yourself.</span>`;
+  if(!hit)return `<span style="color:var(--warn)">Not in the book — pick the tier yourself.</span>`;
   const words={hi:"top tier here — worth ~40% over standard",mid:"standard tier — the baseline number",lo:"budget tier — worth about half of standard"};
   return `<b style="color:var(--accent)">${hit.name}</b> — ${words[hit.tier]}.`;
 }
@@ -1295,7 +1295,7 @@ function weightHTML(x){
      same shape as the sentence underneath it. */
   if(!m||!x.checked)
     return card("Not checked","nothing looked up",bar(0,"none"),
-      "No sale behind this yet. The figure is the desk's own starting point, not a price anybody paid. Look one up and this bar fills with what it found.");
+      "No sale behind this yet. The figure is a built-in starting point, not a price anybody paid. Look one up and this bar fills with what it found.");
 
   if(m.kind==="found"||m.kind==="harvest"){
     const n=m.n||0, sold=m.sold||0, share=n?sold/n:0;
@@ -1473,7 +1473,7 @@ function ticketHTML(x){
   </div>${paybackHTML(x)}`;
   return `<div class="card${x.checked?"":" unchecked"}">
     <span class="label">7 &middot; Pawn loan &mdash; the cash you lend him</span>
-    ${x.checked?"":`<div class="mkNo" style="margin-bottom:6px"><b>Nothing looked up yet.</b> This is the desk's own figure for a typical one, not a sale anybody made. Check the sold prices and it will change.</div>`}
+    ${x.checked?"":`<div class="mkNo" style="margin-bottom:6px"><b>Nothing looked up yet.</b> This is a built-in figure for a typical one, not a sale anybody made. Check the sold prices and it will change.</div>`}
     ${gauge(x.ltv/100,"Lend him",money(x.target),x.checked?"pawn loan":"estimate","gi")}
     ${(st.model||st.detail)?`<div class="cardHint" style="text-align:center;margin-top:2px">Pricing: <b style="color:var(--ink)">${[st.model,st.detail].filter(Boolean).map(esc).join(" · ")}</b></div>`:""}
     ${x.spec&&x.spec.stop?`<div class="tagWarn" style="border-left-color:var(--bad);background:var(--bad-wash);color:var(--bad-ink)"><b>NO TITLE — NO DEAL.</b> Don't negotiate around a missing title, at any price.</div>`:""}
@@ -1540,7 +1540,7 @@ const SPECBOOK={
   {re:/inverter/i,mult:1.6,note:"inverter — quiet tech runs ~60% over open-frame at the same watts"},
   {re:/(2[0-9])\s*(in|\")\s*bar/i,mult:1.15,note:"pro-length bar: +15%, slower buyer"}],
  hunt:[
-  {re:/cellular/i,mult:1.25,note:"cellular model: +25% — IF it activates on a current plan"}],
+  {re:/cellular/i,mult:.6,note:"cellular: −40% — priced with no plan on it, because the plan leaves with the customer"}],
  tools:[
   {re:/\b12\s*v/i,mult:.6,note:"12V platform — worth ~40% less than 18/20V"},
   {re:/\b(36|40|56|60)\s*v/i,mult:1.2,note:"high-voltage platform: +20%"}],
@@ -1720,7 +1720,18 @@ const SPEC_CHOICES={
      {label:"Features",options:[{t:"Standard",m:1},{t:"Illuminated / FFP",m:1.1,note:"premium features: +10%"}]}],
  h2:[{label:"Size",options:[{t:"Full-size (8/10x42)",m:1},{t:"Compact",m:.8,note:"compacts: −20%"}]}],
  h3:[{label:"Type",options:[{t:"Hunting (600–1000 yd)",m:1},{t:"Golf model",m:.85,note:"golf unit — wrong buyer here: −15%"}]}],
- h4:[{label:"Type",options:[{t:"SD card",m:1},{t:"Cellular — live plan",m:1.25,note:"cellular on a current plan: +25%"},{t:"Cellular — dead plan",m:.6,note:"discontinued plan — SD-card money: −40%"}]}],
+ /* A LIVE PLAN IS THE CUSTOMER'S, NOT OURS.
+    This asked whether the cam was on a current plan and paid +25% when it
+    was. Jace, 26 Sep: "someone else's live plan is of no use to me. All
+    cellular devices need to be assumed no active plan."
+    Exactly right, and the old option was worse than useless - it was a
+    trap. The plan sits on the previous owner's account and their card. It
+    is not transferable, it stops the day they stop paying, and on a pawn
+    it stops the day they decide not to come back. So the one state that
+    matters for a loan is the state it will be in when it becomes ours:
+    no plan, needing one activated before it sends a picture.
+    One cellular option now, priced where the dead-plan one was. */
+ h4:[{label:"Type",options:[{t:"SD card",m:1},{t:"Cellular",m:.6,note:"assume no plan — SD-card money: −40%"}]}],
  /* Bare bow checked 22 Sep against 329 compound-bow listings. Only 8 said
     bare, which is thin, but they ran 0.88 of the packages - so 0.85 stands.
     Adding up what the accessories fetch on their own (sight $79, rest $25,
@@ -1810,9 +1821,9 @@ function genWatts(itemName,txt){
   return {abs,note:`${kw}kW → about $${abs} used, open-frame ($85 per 1,000W; the inverter pick stacks on top)`};
 }
 const ITEM_OVERRIDES={
- h4:{driver:"Cellular vs SD first, then brand — a cam on a live plan is worth double a dead-plan one.",killer:"Discontinued cellular plan, corroded battery tray.",tiers:{hi:"Reconyx / Tactacam / Browning",mid:"Spypoint / Moultrie / Bushnell",lo:"Wildgame / Stealth Cam / no name"},
+ h4:{driver:"Brand, then megapixels. A cellular cam is priced with NO plan on it — the plan is the customer's account and it leaves with them.",killer:"Corroded battery tray. A cellular cam nobody can activate.",tiers:{hi:"Reconyx / Tactacam / Browning",mid:"Spypoint / Moultrie / Bushnell",lo:"Wildgame / Stealth Cam / no name"},
      brands:{hi:["Reconyx","Tactacam","Browning"],mid:["Spypoint","Moultrie","Bushnell","Muddy Pro"],lo:["Wildgame Innovations","Stealth Cam","Muddy","Vikeri","Campark"]},
-     detail:{ph:"cellular or SD / megapixels — cellular, 32MP",hint:"Cellular cams only bring money if they activate on a CURRENT plan — discontinued-plan models are SD-card money."}},
+     detail:{ph:"cellular or SD / megapixels — cellular, 32MP",hint:"Price a cellular cam as if it has no plan. The one on it belongs to the customer's account and stops when they do."}},
  h5:{driver:"Brand and draw specs — the bow has to FIT a local buyer.",killer:"Dry-fired or cracked limbs — walk away.",tiers:{hi:"Mathews / Hoyt / Bowtech",mid:"Bear / PSE / Diamond / Elite",lo:"Box-store / no name"},
      brands:{hi:["Mathews","Hoyt","Bowtech","Elite"],mid:["Bear Archery","PSE","Diamond","Mission","Prime"],lo:["Barnett bow","Genesis","no name"]},
      detail:{ph:"draw weight & length — 70lb, 29in",hint:"The bow must FIT a local buyer — odd draw lengths sit for months."}},
@@ -1993,7 +2004,7 @@ function askQueue(x){
      rest of the questions. */
   if(st.needKind){
     q.push({id:"kind", title:"What kind of thing is it?",
-      hint:"Nothing is priced until this is answered \u2014 it decides where the desk looks for a price and what share of new to work from.",
+      hint:"Nothing is priced until this is answered \u2014 it decides where to look for a price, and what share of new to work from.",
       opts:CATALOG.map(c=>({t:c.label, on:false, set:"kind", v:c.id})),
       answered:false});
   }
@@ -2381,7 +2392,7 @@ function askHTML(x){
        </div>`
     : cur.kind==="model"
     ? `<div class="askWorth">
-         ${mods.length?`<span class="label">${esc(st.brandTyped||"Known")} models the desk has measured</span>
+         ${mods.length?`<span class="label">${esc(st.brandTyped||"Known")} models with measured prices</span>
            <div class="askOpts askHits">${mods.map(r=>
              `<button class="askOpt${(st.model||"")===String(r[2])?" on":""}" data-modelpick="${esc(r[0])}"><span class="askT">${esc(r[2])}</span><span class="askS">${money(r[3])}&ndash;${money(r[4])} resale</span></button>`
            ).join("")}</div>
@@ -2396,7 +2407,7 @@ function askHTML(x){
               then asks you to go do the research yourself - is the tool
               wasting your time and then blaming you for it. */
             const b=(typeof ebayBlind==="function")?ebayBlind(x):"";
-            return b?`<div class="cardHint" style="margin-top:8px;border-left:2px solid var(--warn);padding-left:9px;color:var(--ink-2)"><b style="color:var(--warn-ink)">The desk will not look this one up.</b> ${esc(b)} Put the model in anyway &mdash; it sharpens the sold-price buttons, and you type the figure in at the next step.</div>`:"";
+            return b?`<div class="cardHint" style="margin-top:8px;border-left:2px solid var(--warn);padding-left:9px;color:var(--ink-2)"><b style="color:var(--warn-ink)">This one cannot be looked up.</b> ${esc(b)} Put the model in anyway &mdash; it sharpens the sold-price buttons, and you type the figure in at the next step.</div>`:"";
           })()}
          ${cov?`<div class="cardHint" style="margin-top:6px">${esc(cov)}</div>`:""}
          <div class="cardHint" id="specVerdict">${specVerdictHTML(x)}</div>
@@ -2673,7 +2684,7 @@ function renderItem(){
     <span class="label" style="margin-top:12px">Details — ${_ov?"specs for this item":cat.id==="guns"?"caliber & barrel":cat.id==="power"?"size & wattage":cat.id==="elec"?"size & year":"specs"} (optional)</span>
     <input id="detailIn" type="text" autocomplete="off" placeholder="${dh.ph}" value="${esc(st.detail)}" class="numIn" style="font-family:var(--sans);font-size:15px">
     <div class="cardHint" id="specVerdict">${specVerdictHTML(x)}</div>
-    ${_sc&&!x.checked?`<div class="cardHint" style="opacity:.8">This item prices from the pickers above — the text boxes are for the ticket record${/gener/i.test(x.item.name)?" (watts typed here still compute a value)":""}.</div>`:""}
+    ${_sc&&!x.checked?`<div class="cardHint" style="opacity:.8">This item prices from the pickers, not the text boxes — those are for the ticket record${/gener/i.test(x.item.name)?" (watts typed here still compute a value)":""}.</div>`:""}
     <div class="cardHint">${dh.hint?dh.hint+" ":""}The exact model and specs can move money more than anything else on this page — when they matter, check sold listings and put the real number in step 4.</div>
     </details>
   ${ST?"</details>":"</div>"}
@@ -3330,7 +3341,7 @@ function renderMetal(){
       Your lending rate, kept separate from the buy rate. When ${st.metal} sits above its 90-day average the peak
       guard trims it, so the money out the door today is <b style="color:var(--accent)">${loanPctOfMelt()}% of melt</b>.
       </div>`:`<div class="cardHint" style="border-top:1px solid rgba(255,255,255,.08);margin-top:10px;padding-top:9px">
-      Your buy rate. The lending rate is set separately &mdash; switch to <b style="color:var(--ink)">Pawn loan</b> above to change it.</div>`}
+      Your buy rate. The lending rate is set separately &mdash; switch to <b style="color:var(--ink)">Pawn loan</b> to change it.</div>`}
   </div>`;
   const extra=()=>`<div id="metalExtra">${metalExtraInner()}</div>`;
 
@@ -4057,7 +4068,7 @@ function pdConnectHTML(){
     '<input id="pdTokIn" class="numIn" type="text" autocomplete="off" spellcheck="false" '+
       'style="font-family:var(--mono);font-size:14px" placeholder="the PAWN_TOKEN you set in Railway" value="'+esc(pdToken()||"")+'">'+
     '<div class="cardHint" style="font-size:12.5px">Switch tabs to copy &mdash; what you typed stays put.'+
-      (window.PHONE?" Both are under <b style=\"color:var(--ink)\">Setup</b> on the desk computer.":"")+'</div>'+
+      (window.PHONE?" Both are under <b style=\"color:var(--ink)\">Setup</b> on the counter computer.":"")+'</div>'+
     '<div class="row2" style="margin-top:8px"><button class="brassBtn" id="pdConnBtn" style="padding:10px 18px">'+
       (on?"Save and reconnect":"Switch it on")+'</button>'+
       '<button class="ghostBtn" id="pdConnTest">Test the connection</button>'+
@@ -4290,7 +4301,7 @@ function soldStats(key){
 function ownCompsInner(x){
   if(!CAP.db) return "";
   const k=itemKey(), s=soldStats(k), open=dealsFor(k).filter(d=>d.status==="open").length;
-  if(!s&&!open) return `<div class="cardHint" style="margin-top:9px">No history on this one yet — log the deal below and this becomes your own price book.</div>`;
+  if(!s&&!open) return `<div class="cardHint" style="margin-top:9px">No history on this one yet — log the deal and this becomes your own price book.</div>`;
   let h=`<div class="tagNote" style="margin-top:10px">`;
   if(s){
     h+=`<b style="color:var(--ink)">Your own sales: ${s.n}</b> — average <b style="color:var(--accent)">${money(s.avg)}</b>`;
@@ -5143,7 +5154,7 @@ function logCardInner(x){
     <div class="row2" style="margin:9px 0"><input id="logTicket" class="numIn" type="text" inputmode="numeric"
       autocomplete="off" placeholder="Ticket # (optional)" value="${esc(st.ticket||"")}"
       style="flex:1;min-width:0;font-family:var(--mono);font-size:14px"></div>
-    <button id="logDeal" class="brassBtn" title="Saves the item, your estimate, the offer and the ticket number. Mark it Sold later and the desk prices the next one from what it actually brought." style="width:100%;padding:11px 0">Log this deal</button>
+    <button id="logDeal" class="brassBtn" title="Saves the item, your estimate, the offer and the ticket number. Mark it Sold later and the next one is priced from what this one actually brought." style="width:100%;padding:11px 0">Log this deal</button>
     <div class="cardHint" id="logMsg">Records the item, your estimate, the offer and the ticket number &mdash; nothing else off the ticket. No name, no address, no ID. Mark it sold later and it teaches the next appraisal.${s?` You've sold ${s.n} of these.`:""}</div>
   </div>`;
 }
@@ -5248,7 +5259,7 @@ function renderLog(){
     ${open.length?`<div class="card" style="padding:12px 15px"><span class="label" style="margin:0">Not settled yet &mdash; ${open.length}</span>
       <div class="cardHint" style="margin-top:4px;font-size:12.5px">Logged, and nothing has happened since. On a pawn that means your money is still out; on a buy it means the item has not sold. Close it with <b style="color:var(--ink)">Sold</b> or <b style="color:var(--ink)">Redeemed</b> and it starts teaching the next appraisal.</div></div>${open.map(row).join("")}`:""}
     ${done.length?`<div class="card" style="padding:12px 15px"><span class="label" style="margin:0">Settled &mdash; ${done.length}</span>
-      <div class="cardHint" style="margin-top:4px;font-size:12.5px">Sold, or redeemed by the customer. These are what the desk prices from next time.</div></div>${done.map(row).join("")}`:""}
+      <div class="cardHint" style="margin-top:4px;font-size:12.5px">Sold, or redeemed by the customer. These are what the next price is built from.</div></div>${done.map(row).join("")}`:""}
   `);
 }
 function wireLog(){
@@ -5692,8 +5703,8 @@ const MODELBOOK=[
  MB(/\b(garmin\s*)?(striker(\s*(plus|vivid|cast))?|echomap\w*|livescope|panoptix)\b/,"Garmin","Fish finder"),
  MB(/\b(humminbird\s*)?(helix(\s*\d+)?|solix|piranhamax)\b/,"Humminbird","Fish finder"),
  MB(/\blowrance\s*(hook\w*(\s*reveal)?|elite\w*|hds\w*)\b|\bhook\s*reveal\b/,"Lowrance","Fish finder"),
- MB(/\b(tactacam\s*)?reveal(\s*(x|xb|pro|sk|ultra|x\s*pro))?\b/,"Tactacam","h4",{spec:{Type:"Cellular — live plan"}}),
- MB(/\bspypoint\s*(link\w*|flex\w*|force\w*)\b/,"Spypoint","h4",{spec:{Type:"Cellular — live plan"}}),
+ MB(/\b(tactacam\s*)?reveal(\s*(x|xb|pro|sk|ultra|x\s*pro))?\b/,"Tactacam","h4",{spec:{Type:"Cellular"}}),
+ MB(/\bspypoint\s*(link\w*|flex\w*|force\w*)\b/,"Spypoint","h4",{spec:{Type:"Cellular"}}),
  MB(/\bmathews\s*(v3x?|phase\s*4|lift(\s*\d+)?|halon(\s*\d+)?|vxr(\s*\d+)?|triax|traverse|z7|dxt|switchback|creed|chill|avail|vertix)\b|\b(v3x|halon|triax|traverse|switchback|vxr)\b/,"Mathews","h5"),
  MB(/\b(hoyt\s*)?(rx\s*-?\s*\d|carbon\s*rx|ventum|torrex|axius|hyperforce)\b/,"Hoyt","h5"),
  MB(/\b(ravin\s*)?r\s*-?\s*(10|15|20|26|29|500)x?\b/,"Ravin","h6",{loose:true}),
@@ -5756,7 +5767,7 @@ const SPEC_AUTO=[
  {g:"Battery platform",re:/\b(36|40|56|60|80)\s*v\b|\bflexvolt\b|\bxgt\b/,o:"36V+"},
  {g:"Type",re:/\binverter\b/,o:"Inverter"},{g:"Drive",re:/\bself\s*-?\s*propelled\b/,o:"Self-propelled"},
  {g:"Type",re:/\btube\b/,o:"Tube amp"},{g:"Orientation",re:/\b(left\s*-?\s*handed|lefty)\b/,o:"Left-handed"},
- {g:"Type",re:/\bcellular\b/,o:"Cellular — live plan"},{g:"Cocking",re:/\bcrank\b/,o:"Crank-cocking"},
+ {g:"Type",re:/\bcellular\b/,o:"Cellular"},{g:"Cocking",re:/\bcrank\b/,o:"Crank-cocking"},
  {g:"Title",re:/\bno\s*title\b/,o:"NO title"},{g:"Stroke",re:/\b2\s*-?\s*stroke\b/,o:"2-stroke"},
  {g:"Stage",re:/\btwo\s*-?\s*stage\b/,o:"Two-stage"},{g:"Mount",re:/\bbow\s*mount\b/,o:"Bow mount"},
  {g:"Pressure",re:/\b(3,?[2-9]\d{2}|[4-9],?\d{3})\s*psi\b/,o:"3,200 PSI +"},{g:"Pressure",re:/\b(1,?\d{3}|2,?[0-4]\d{2}|\d{3})\s*psi\b/,o:"Under 2,500 PSI"},
@@ -7526,7 +7537,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.0331";
+const APP_BUILD="0926.0405";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -7593,7 +7604,7 @@ async function forceUpdate(say){
     tell("The site is still serving "+APP_BUILD+". Nothing to fetch yet \u2014 a new copy can take a few minutes to reach every device. Try again shortly.");
     return;
   }
-  tell("Could not reach the site to check. If you are offline the desk keeps working on what it has.");
+  tell("Could not reach the site to check. If you are offline it keeps working on what it already has.");
 }
 const MP_STALE_DAYS=45;
 /* A measured row is pinned to the item so the counter gets a real price
@@ -7730,10 +7741,29 @@ const SRC_NAMES={"pricecharting.com":"PriceCharting","swappa.com":"Swappa","gunw
 function srcName(u){ try{ const h=new URL(u).hostname.replace(/^(www|used)\./,""); return SRC_NAMES[h]||h; }catch(e){ return "the source"; } }
 function srcLink(u,txt){ return /^https:\/\//.test(u||"")?`<a class="srcLink" href="${esc(u)}" target="_blank" rel="noopener" referrerpolicy="no-referrer">${txt||"Check it yourself"} &#8599;</a>`:""; }
 function marketSrcHTML(m){
-  if(m.kind==="list")return `Resale value from <b>${esc(srcName(m.src))}</b> for <b>${esc(m.name)}</b>, checked ${esc(fmtDay(m.date))}. ${srcLink(m.src)}${m.conf==="l"
-    ?` <span style="color:var(--warn-ink)">Thin data on this one &mdash; it rests on forum posts or a single listing, so double-check it.</span>`
-    :m.conf==="h"?` The data behind this one is good.`
-    :` The data behind this one is fair &mdash; a starting point, not the last word.`}`;
+  if(m.kind==="list"){
+    /* ASKED TWICE NOW: "is this eBay sold or for sale?" The rail panel was
+       fixed to say; this line, which is the one under the big number and
+       therefore the one actually read, was still saying "Resale value from
+       eBay" - and eBay answers both questions, so naming the site names
+       nothing. The evidence was on the card, four lines down, wearing the
+       label "What moves it:" - which is for a note like "hours; electric
+       start working", not for the count the price rests on.
+       It leads now, in the first clause, before the site. */
+    const ev=rowEvidence(m.note);
+    const lead=ev.kind==="sold"
+      ? `<b style="color:var(--accent-ink)">${ev.n?ev.n+" real sales":"Sold prices"}</b> on <b>${esc(srcName(m.src))}</b>`
+      : ev.kind==="asking"
+      ? `<b style="color:var(--warn-ink)">${ev.n?ev.n+" asking prices":"Asking prices"}, not sales</b>, on <b>${esc(srcName(m.src))}</b>`
+      : `<b>Researched</b> from <b>${esc(srcName(m.src))}</b>, not counted off a page of sales`;
+    return `${lead} for <b>${esc(m.name)}</b>, checked ${esc(fmtDay(m.date))}. ${srcLink(m.src)}${
+      ev.kind==="asking"
+      ? ` <span style="color:var(--warn-ink)">Nobody paid these &mdash; treat ${money(m.mid)} as a ceiling, not a price.</span>`
+      : m.conf==="l"
+      ? ` <span style="color:var(--warn-ink)">Thin data on this one &mdash; it rests on forum posts or a single listing, so double-check it.</span>`
+      : m.conf==="h" ? ` The data behind this one is good.`
+      : ` The data behind this one is fair &mdash; a starting point, not the last word.`}`;
+  }
   if(m.kind==="shot"&&m.via==="button")return `From ${m.n} ${m.n===1?"sale":"sales"} on ${esc(m.site||"the sold page")}, read by your Pawn price button today. ${srcLink(m.url,"See those sales")}`;
   if(m.kind==="shot")return `From ${m.n} ${m.n===1?"sale":"sales"} you read off ${esc(m.site||"the screenshot")} today.`;
   if(m.kind==="own")return `From your own ${m.n} ${m.n===1?"sale":"sales"} of this item.`;
@@ -7763,8 +7793,8 @@ function step4Inner(x,bare){
     h+=`<div class="mkRow"><div><div class="mkBig">${money(m.mid)}</div>${m.lo!=null&&m.hi!=null&&m.lo!==m.hi?`<div class="mkRange">usually ${money(m.lo)} to ${money(m.hi)}</div>`:""}</div><span class="mkOk">&#10003; Checked</span></div>
       <div class="mkWhat">This is what it <b>resells</b> for, used &mdash; not what you lend or pay. The loan and the buy price are beside this.</div>
       <div class="mkSrc">${marketSrcHTML(m)}</div>
-      ${m.note?`<div class="cardHint" style="font-size:13.5px;color:var(--ink-2)">What moves it: ${esc(m.note)}.</div>`:""}
-      ${m.kind==="list"?`<div class="cardHint" style="font-size:13.5px;color:var(--ink-2)">Want today's exact number? Pull the sold prices above and read the screenshot.</div>`:""}
+      ${(m.note&&rowEvidence(m.note).kind==="research")?`<div class="cardHint" style="font-size:13.5px;color:var(--ink-2)">What moves it: ${esc(m.note)}.</div>`:""}
+      ${m.kind==="list"?`<div class="cardHint" style="font-size:13.5px;color:var(--ink-2)">Want today's exact number? Open a sold page from the market card and read the screenshot.</div>`:""}
       <div class="row2" style="gap:8px;margin-top:10px;flex-wrap:wrap"><button class="ghostBtn" id="valEdit">Type my own number</button>${m.kind!=="list"?`<button class="ghostBtn" id="mkClear">Clear it</button>`:""}</div>`;
   } else {
     /* WHY IT IS ASKING, NOT JUST THAT IT IS.
@@ -7774,7 +7804,7 @@ function step4Inner(x,bare){
        desk normally supplies from its own book or a lookup. When it cannot,
        it should say which of those failed rather than leave him to guess. */
     const blindWhy=(typeof ebayBlind==="function")?ebayBlind(x):"";
-    h+=`<div class="mkNo"><b>Not checked yet.</b> ${m&&m.stale?`The price list for ${esc(m.name)} is ${m.age} days old.`:`The desk has no measured price for <b>${esc(called)}</b>.`}</div>
+    h+=`<div class="mkNo"><b>Not checked yet.</b> ${m&&m.stale?`The price list for ${esc(m.name)} is ${m.age} days old.`:`No measured price for <b>${esc(called)}</b>.`}</div>
       <div class="cardHint" style="font-size:13.5px;color:var(--ink-2);margin-top:6px">${blindWhy
         ? esc(blindWhy)+" So this one is yours to look up."
         : "This is the figure the loan is worked out FROM \u2014 what one resells for used. Everything you have answered adjusts it."}</div>
@@ -8718,11 +8748,11 @@ function nextStepHTML(x){
   let h="",sub="",act="";
   if(cur===1&&!started){
     h=`What are you looking at?`;
-    sub=`Search above and tap what it is &mdash; the desk fills in its <b>resale value</b> from there.`;
+    sub=`Search above and tap what it is &mdash; the <b>resale value</b> fills in from there.`;
     act="";
   } else if(cur===1){
     h=`Which ${esc(what)} is it?`;
-    sub=`Pick one and the desk fills in its <b>resale value</b> &mdash; what it sells for used. Each one comes from a real sales source you can open and check.`;
+    sub=`Pick one and the <b>resale value</b> fills in &mdash; what it sells for used. Each one comes from a real sales source you can open and check.`;
     act=cands.map(r=>`<button class="nsBtn" data-mp="${esc(r[0])}"><span>${esc(r[2])}</span><b>${money(r[3])}&ndash;${money(r[4])}</b><i>resale</i></button>`).join("")
        +`<button class="nsBtn ghost" id="nsNone"><span>Not one of these</span></button>`;
   } else if(st.needKind&&!window.PHONE){
@@ -8730,7 +8760,7 @@ function nextStepHTML(x){
        sources, the percentages and the buy rate all belong to the wrong kind
        of thing - a recliner was being offered GunBroker. */
     h=`What kind of thing is <b>${esc(st.bookName||"it")}</b>?`;
-    sub=`Pick one and the desk knows where to look for prices and what share of new to work from. Nothing is priced until it does.`;
+    sub=`Pick one so the price comes from the right kind of source, at the right share of new. Nothing is priced until it does.`;
     act=CATALOG.map(c=>`<button class="nsBtn" data-cat="${c.id}"><span>${esc(c.label)}</span></button>`).join("");
   } else if(cur===2){
     h=m&&m.stale?`The price list for ${esc(m.name)} is ${m.age} days old. Check what it sells for now.`:`Check what it actually sold for.`;
@@ -8748,7 +8778,7 @@ function nextStepHTML(x){
     const rest=altSourcesHTML(x)
        +`<div class="label" style="margin-top:14px;flex-basis:100%">No sold prices? Use what it costs new</div>`
        +(CAP.sample?`<button class="nsBtn on" id="pdRetGo"><span>${retailBusy?"Looking it up&hellip;":"Look up the new price"}</span></button><div class="cardHint" id="pdRetMsg"></div>`:retailTargets(compQuery(x)).map(t=>`<a class="nsBtn nsRetail" title="Opens ${esc(t.name)} to find what it costs NEW. Use this only when there are no sold prices." data-label="${esc(t.name)}" href="${esc(t.url)}" target="_blank" rel="opener" referrerpolicy="no-referrer"><span>${esc(t.name)}</span><b>&#8599;</b></a>`).join(""))
-       +`<div class="row2" style="margin-top:8px;flex-basis:100%"><input id="nsRet" class="numIn" title="What it costs NEW today. The desk takes it down to a used price using the share for this category \u2014 a last resort when the sold pages come up empty." type="number" inputmode="decimal" placeholder="What it costs new" style="flex:1;min-width:0"><button class="ghostBtn" id="nsRetGo" title="Take the new price down to a used estimate" style="padding:10px 15px">Use it</button></div>`
+       +`<div class="row2" style="margin-top:8px;flex-basis:100%"><input id="nsRet" class="numIn" title="What it costs NEW today. It is taken down to a used price using the share for this category \u2014 a last resort when the sold pages come up empty." type="number" inputmode="decimal" placeholder="What it costs new" style="flex:1;min-width:0"><button class="ghostBtn" id="nsRetGo" title="Take the new price down to a used estimate" style="padding:10px 15px">Use it</button></div>`
        +`<div class="cardHint">In ${esc(x.cat.label.toLowerCase())}, a used one books at about <b>${retailPct(x)}%</b> of new here &mdash; $100 new lands at ${money(Math.round(retailPct(x)))}. A real sold price beats this every time, so use this only when the sold pages come up empty.</div>`;
     /* When the service can do the looking, a row of buttons that only open a
        tab sits beside the one that does the work and looks exactly like it -

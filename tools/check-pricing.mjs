@@ -1443,6 +1443,41 @@ console.log("\n  a book price says whether somebody paid it");
      "  and the verdict is the headline, not a footnote \u2014 " + r.sold.px + "px");
   ok(!/desk price list/i.test(r.sold.text),
      "  \"Desk price list\" is gone \u2014 that said where it is stored, not what is behind it");
+
+  /* ASKED A SECOND TIME, of a Moultrie Edge at $55: "again, is this eBay
+     sold or for sale?" The rail panel had been fixed. The line under the
+     BIG NUMBER - the one actually read - still said "Resale value from
+     eBay", and eBay answers both questions, so naming the site names
+     nothing. The count was on the card, four lines down, under the label
+     "What moves it:" - which is for a note like "hours; electric start
+     working", not for the evidence a price rests on. */
+  const card = await page.evaluate(() => {
+    const look = (note) => {
+      const c = CATALOG.find(y => y.items.some(i => i.id === "h4"));
+      st.mode="item"; st.catId=c.id; st.itemId="h4"; st.picked=true;
+      st.brandSet=true; st.brandTyped="Moultrie"; st.model="Edge"; st.mpNone=false;
+      st.condSet=true; st.cond="good";
+      st.market={kind:"list", key:mkKey(), conf:"m", mid:55, lo:44, hi:67,
+                 name:"Moultrie Edge", date:"2026-09-24", note,
+                 src:"https://www.ebay.com/sch/i.html?_nkw=x"};
+      const q = askQueue(calcItem()); st.askAt = q.findIndex(z => z.id === "worth"); render();
+      return document.getElementById("askCard").innerText.replace(/\s+/g, " ");
+    };
+    return {ask: look("29 listings, asking prices - no sold data"),
+            sold: look("12 eBay sales in the last 90 days")};
+  });
+  ok(/29 asking prices, not sales/i.test(card.ask),
+     "the big number says asking-or-sold in its FIRST clause \u2014 " +
+     (card.ask.match(/\d+ asking[^,]*, not sales[^.]{0,26}/i) || [""])[0]);
+  ok(/treat \$55 as a ceiling/i.test(card.ask),
+     "  and says what that means for this exact figure");
+  ok(/12 real sales on eBay/i.test(card.sold),
+     "  a sold row leads the same way \u2014 " +
+     (card.sold.match(/\d+ real sales on [A-Za-z]+/i) || [""])[0]);
+  ok(!/resale value from/i.test(card.ask) && !/resale value from/i.test(card.sold),
+     "  \"Resale value from eBay\" is gone \u2014 eBay answers both questions");
+  ok(!/what moves it/i.test(card.ask),
+     "  and the count is no longer filed under \"What moves it\"");
 }
 
 ok(!errs.length, "no page errors" + (errs.length ? ": " + errs[0] : ""));
