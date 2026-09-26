@@ -121,12 +121,23 @@ it most.
 
 ## The allowance, and the shelves
 
-**The harvest may spend 900 lookups a month and no more.** SoldComps counts
-every lookup the same whether the harvest made it or the counter did with a
-customer waiting, so there is no way to reserve half the plan at their end -
-the reserve has to be a ceiling at ours. The harvest stops at 900 and says
-so; the rest of the plan is the counter's, by construction rather than by
-hoping. `--cap N` raises it for one deliberate run.
+**The harvest may spend 1,900 lookups a month and no more.** SoldComps
+counts every lookup the same whether the harvest made it or the counter did
+with a customer waiting, so there is no way to reserve half the plan at
+their end - the reserve has to be a ceiling at ours. The harvest stops at
+the cap and says so; the rest of the plan is the counter's, by construction
+rather than by hoping. `--cap N` changes it for one run.
+
+> **1,900 is the SHOP-CLOSED figure**, set 26 Sep: "my store is not open so
+> I don't need any usage really right now." Nobody is at the counter, and
+> 205 of the 970 targets have never been priced at all, so the allowance
+> goes to the backlog.
+>
+> **Put it back to 900 the week the doors open.** At 1,900 the counter has
+> 100 lookups left in a month the harvest fills - about three days of
+> walk-ins. A normal month of re-checks is ~600 at the shelf intervals
+> below, so 900 leaves the counter 1,400 and the cap only bites on a
+> catch-up. The Routine's prompt is where to change it.
 
 The ledger lives in `tools/harvest.json` under `spend`, by calendar month,
 and counts every REQUEST rather than every success - a failed lookup costs

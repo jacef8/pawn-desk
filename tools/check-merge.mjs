@@ -467,8 +467,13 @@ console.log("\n  the harvest lives inside an allowance, and prices by shelf");
 {
   const harv = readFileSync(join(ROOT, "tools/harvest.js"), "utf8");
 
-  ok(/MONTH_CAP/.test(harv) && /arg\("cap", 900\)/.test(harv),
-     "the harvest has a monthly ceiling, not the whole plan");
+  /* The NUMBER is a business decision and moves - 900 while the shop is
+     open, 1,900 on 26 Sep while it is not and there are 205 targets that
+     have never been priced. What must not move is that there IS a ceiling
+     and that it leaves something behind for the counter. */
+  const cap = Number((harv.match(/arg\("cap",\s*(\d+)\)/) || [])[1]);
+  ok(/MONTH_CAP/.test(harv) && cap > 0 && cap < 2000,
+     "the harvest has a monthly ceiling, not the whole plan \u2014 " + cap + " of 2,000");
   ok(/process\.exit\(4\)/.test(harv),
      "  and stops on it with its own exit code");
   ok(/spentThisRun\+\+/.test(harv),

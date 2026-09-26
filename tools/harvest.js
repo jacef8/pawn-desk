@@ -263,9 +263,23 @@ if (existsSync(OUT)) { try {
    the plan for the counter at their end - so the reserve has to be a
    CEILING at ours. The harvest gets a monthly allowance and stops; the
    rest is Jace's, by construction rather than by hoping.
-   900 of 2000 on the $9 plan. At the shelf intervals above a normal month
-   needs well under that, so the cap only ever bites on a catch-up. */
-const MONTH_CAP = Math.max(0, Number(arg("cap", 900)) || 0);
+   1,900 of 2,000 on the $9 plan, set 26 Sep at Jace's direction: "my store
+   is not open so I don't need any usage really right now." With nobody at
+   the counter there is nothing to reserve FOR, and there are 205 targets
+   that have never been priced at all - so the allowance goes to the
+   backlog while it is free to.
+
+   THIS IS THE ONE NUMBER TO PUT BACK WHEN THE DOORS OPEN. At 1,900 the
+   counter has 100 lookups left in a month the harvest fills, which is
+   about three days of walk-ins. 900 was the open-for-business figure and
+   it is the right one again the week trading starts:
+
+       node tools/harvest.js --cap 900 ...
+
+   A normal month of re-checks is about 600 lookups at the shelf intervals
+   below, so 900 leaves the counter 1,400 and the cap only bites on a
+   catch-up. */
+const MONTH_CAP = Math.max(0, Number(arg("cap", 1900)) || 0);
 const monthKey = () => new Date().toISOString().slice(0, 7);
 let spentThisRun = 0;
 const spentThisMonth = () => (Number(spend[monthKey()]) || 0) + spentThisRun;

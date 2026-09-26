@@ -334,7 +334,18 @@ function split(comps) {
 }
 
 export { ELEC_PART };
-export async function ebayComps({ q, limit, kind, env, signal }) {
+/* `via` forces ONE rung of the ladder instead of walking it.
+ *
+ *   undefined  the normal ladder: SoldComps, then Insights, then Browse
+ *   "soldcomps" only the paid sold-price service; no fallback
+ *   "browse"    only eBay's active listings; spends no SoldComps quota
+ *
+ * Nothing in the desk passes it. It exists for tools/calibrate-asks.mjs,
+ * which has to price the SAME query both ways in the same hour to measure
+ * what an asking price is worth against a sale - and the ladder, by
+ * design, will not give it the worse answer when it can give the better
+ * one. A measurement needs both. */
+export async function ebayComps({ q, limit, kind, env, signal, via }) {
   const query = String(q || "").trim().slice(0, 120);
   const kinds = kindWords(kind);
   if (!query) return { ok: false, code: "bad_request" };
@@ -349,7 +360,9 @@ export async function ebayComps({ q, limit, kind, env, signal }) {
      price on every item, every time. If it is not configured, or it fails,
      or it comes back too thin to mean anything, the ladder carries on down
      to the asking prices that were there before. Nothing gets worse. */
-  if (soldCompsReady(env).configured) {
+  const only = via === "soldcomps" || via === "browse" ? via : "";
+
+  if (soldCompsReady(env).configured && only !== "browse") {
     try {
       const got = await soldCompsFetch({ q: query, limit: n, kind, env, signal });
       const usable = got.comps.filter((c) => c.fit !== "part" && c.fit !== "lot" && c.fit !== "wrong");
@@ -370,10 +383,15 @@ export async function ebayComps({ q, limit, kind, env, signal }) {
       note = e.code === "soldcomps_quota" ? "sold-price quota spent for the month, fell back to asking prices"
            : e.code === "soldcomps_auth" ? "sold-price key rejected, fell back to asking prices"
            : "sold lookup failed (" + (e.code || "error") + "), fell back to asking prices";
+      if (only === "soldcomps") return { ok: false, code: e.code || "soldcomps_error" };
     }
+    /* Asked for sold data and there is not enough of it: say so rather than
+       quietly handing back asking prices the caller did not ask for. */
+    if (only === "soldcomps") return { ok: false, code: "soldcomps_thin", note };
   }
+  if (only === "soldcomps") return { ok: false, code: "no_soldcomps_key" };
 
-  if (!insightsDenied) {
+  if (!insightsDenied && only !== "browse") {
     try {
       const all = await soldComps(query, n, env, signal, kinds);
       return withBands({ ok: true, basis: "sold", source: "marketplace_insights", q: query }, all);
@@ -400,7 +418,7 @@ export async function ebayComps({ q, limit, kind, env, signal }) {
         note = "sold lookup failed (" + e.code + "), fell back to asking prices";
       }
     }
-  } else if (!note) {
+  } else if (!note && only !== "browse") {
     note = "sold data unavailable: this keyset is not granted Marketplace Insights";
   }
 
