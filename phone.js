@@ -620,11 +620,49 @@ function snapHTML(){
           asked there. Once priced it comes back as its own strip: it is
           the one thing you change again and again as you look the thing
           over. */""}
-    ${ready?`<div class="wSect">Shape it is in</div>
+    ${/* WHAT KILLS IT, ON THE PHONE. The phone is the yard-sale and
+          clearance-rack screen: he is standing over the thing deciding
+          whether to hand over cash, and the one thing that turns a $115
+          buy into a $0 paperweight is the killer - an activation lock, a
+          board that will not post, a missing proprietary battery. That
+          check belongs where the buying happens, so it goes above the
+          condition strip: you look for the killer before you rate the
+          shape. app.css already carries .killCard/.killRow and phone.html
+          already loads app.js, so this is the desk's own component, not a
+          second copy to drift. */""}
+    ${ready?`${(typeof phKillHTML==="function")?phKillHTML(x):`<div class="wSect">Shape it is in</div>`}
       <div class="snapCond">${CONDITIONS.map(c=>`<button class="${st.condSet&&c.id===st.cond?"on":""}" data-cond="${c.id}">${c.label.replace("New in box","New")}</button>`).join("")}</div>`:""}
     ${evRow}${rows}
     ${camOff}
   </div>`;
+}
+/* THE KILLER, ON A SCREEN WITH NO SPARE HEIGHT.
+   The desk's killerHTML is two blocks of prose in a card of its own, and
+   the phone cannot afford it. check-screens measured the cost: 73px of
+   overflow on a 430x932 handset and 218px on a 360x780 one. Shrinking it
+   to a closed fold still cost 19px and 75px. The priced phone screen is
+   full, and "the phone fits its own screen" is not a rule to relax for a
+   card I wanted to add.
+   So it costs nothing. The screen already spends a line on the words
+   "Shape it is in", and looking for the killer is the same job as rating
+   the shape - an account lock, a board that will not post, a missing
+   proprietary battery ARE the condition. That line becomes the tap
+   target. Closed, the screen is the height it was. Opened, it scrolls,
+   which is fine: he asked for it.
+   The desk keeps the full card. It has the room, and nobody there is
+   standing over a stranger's tailgate deciding in ten seconds. */
+function phKillHTML(x){
+  const ov=(typeof itemOv==="function"?itemOv():null)||{}, cat=x.cat||{};
+  const kill=ov.killer||cat.killer||"", drive=ov.driver||cat.driver||"";
+  const head=`<div class="wSect">Shape it is in</div>`;
+  if(!kill&&!drive)return head;
+  return `<details class="fold phKill">
+    <summary class="wSect phKillSum">Shape it is in<span>\u26a0 what kills it</span></summary>
+    <div class="phKillIn">
+      ${kill?`<div class="killRow no"><b>What kills it</b><span>${esc(kill)}</span></div>`:""}
+      ${drive?`<div class="killRow go"><b>What sets the price</b><span>${esc(drive)}</span></div>`:""}
+    </div>
+  </details>`;
 }
 function snapFootHTML(){
   return `<div class="snapFoot">

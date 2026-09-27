@@ -24,6 +24,14 @@ const restoreReport = () => {
   if (reportBefore === null) { if (existsSync(REPORT)) unlinkSync(REPORT); }
   else writeFileSync(REPORT, reportBefore);
 };
+/* AND RESTORE IT NO MATTER HOW THIS ENDS. There were three restoreReport()
+   calls, placed after the three blocks that were known to merge, and a
+   block added later merged again and restored nothing - so running the
+   suite left tools/price-changes.md overwritten with a fixture and the
+   real 24 Sep record gone from the working tree. It showed up as 226
+   deleted lines in an unrelated commit. A test does not get to edit a
+   record the shop keeps; on exit, by any path, the file goes back. */
+process.on("exit", restoreReport);
 
 let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) { pass++; console.log("  ok    " + m); } else { fail++; console.log("  FAIL  " + m); } };

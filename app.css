@@ -1262,3 +1262,15 @@
        cut off. In the rail it is one column, like everything else there. */
     .startRail .startCol{grid-template-columns:minmax(0,1fr)}
   }
+  /* THE PHONE'S KILLER LINE. The desk shows the full card; the phone has
+     no spare height at all on a 360x780 handset, so the killer hangs off
+     the line the screen already spends on "Shape it is in". Closed it adds
+     nothing, which is the only budget there was. check-screens holds it. */
+  .phKill{margin:0}
+  .phKillSum{display:flex;align-items:baseline;justify-content:space-between;
+    gap:10px;cursor:pointer;list-style:none}
+  .phKillSum::-webkit-details-marker{display:none}
+  .phKillSum span{color:var(--bad);font-family:var(--mono);font-size:11px;
+    letter-spacing:.06em;white-space:nowrap}
+  .phKillIn{padding-bottom:2px}
+  .phKillIn .killRow:first-child{margin-top:7px}
