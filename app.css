@@ -287,7 +287,10 @@
   /* No rule meant the browser's own placeholder grey - near-invisible on a
      well this dark, and that grey "95" in the log box is a real number the
      counter is being asked to accept or overtype. */
-  .numIn::placeholder{color:var(--ink-3);opacity:1}
+  /* --ink-3 was still reading as "this box is empty and disabled", and the
+     number in it is not decoration: it is the amount that gets logged if
+     nothing is typed. It has to look like a number. */
+  .numIn::placeholder{color:var(--ink-2);opacity:1}
   .roOut{width:100%;background:transparent;border:1px dashed var(--line);border-radius:var(--r-xs);
     color:var(--ink-3);font-family:var(--mono);padding:10px 12px;box-shadow:none;cursor:default}
   input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:7px;

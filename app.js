@@ -7589,7 +7589,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0926.1552";
+const APP_BUILD="0927.0914";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -8451,7 +8451,7 @@ async function priceFind(signal,all){
   /* A pass may want the name put differently - GunWatcher by model alone.
      What comes back is still filed under the item's own search text. */
   const ENOUGH=8;
-  const out=[], tally=[];
+  const out=[], runs=[];
   const got=[]; let failed=0;
   for(let i=0;i<passes.length;i++){
     const P=passes[i];
@@ -8462,7 +8462,11 @@ async function priceFind(signal,all){
          the thing doing the saving. */
       try{
         const j=await pdEbayComps(P.q||q,signal);
-        r={status:"fulfilled",value:{comps:(j.comps||[])}};
+        /* The basis comes back once for the whole answer, not per listing.
+           Stamp it on each one, because the line the counter reads counts
+           sold against asking across everything that came back. */
+        const b=j.basis==="sold"?"sold":"asking";
+        r={status:"fulfilled",value:{comps:(j.comps||[]).map(c=>Object.assign({basis:b},c))}};
         /* Say which kind of number came back. Without the Marketplace
            Insights grant eBay can only serve active listings, and the
            counter should see that on the tally rather than assume a sale. */
@@ -8473,11 +8477,11 @@ async function priceFind(signal,all){
       catch(e){ r={status:"rejected"}; }
     }
     out.push(r);
-    if(r.status!=="fulfilled"){ failed++; tally.push(P.name+" failed"); continue; }
+    if(r.status!=="fulfilled"){ failed++; runs.push({name:P.name,ok:false}); continue; }
     const cs=((r.value&&r.value.comps)||[]).filter(c=>c&&Number(c.price)>0);
     cs.forEach(c=>got.push(Object.assign({},c,{where:String(c.where||P.where).slice(0,24)})));
-    tally.push(P.name+note+" "+cs.length);
-    if(!all&&got.length>=ENOUGH){ if(i<passes.length-1)tally.push("enough \u2014 "+(passes.length-1-i)+" search saved"); break; }
+    runs.push({name:P.name,ok:true,n:cs.length});
+    if(!all&&got.length>=ENOUGH){ break; }
   }
   /* What a new one costs, gathered in the same sweep. It is the weakest
      number here and it is never chosen over a sale, but it is the one that
@@ -8486,7 +8490,7 @@ async function priceFind(signal,all){
   if(all&&!(signal&&signal.aborted)){
     say("Checking what it costs new\u2026");
     retail=await retailFetch(q,signal);
-    tally.push(retail?"new "+money(retail.price):"new none");
+    /* kept as a number, said in words below */
   }
   findBusy=false;
   /* The same listing can surface in more than one pass; count it once. */
@@ -8501,12 +8505,49 @@ async function priceFind(signal,all){
   if(!added&&!t){
     /* Nothing sold anywhere. A new price is still an answer, and before the
        sweep it was sitting behind a second button nobody pressed. */
-    if(retail){ useEvidence("retail"); say(tally.join(" \u00b7 ")+" \u2014 no sales found, priced off new."); return; }
+    if(retail){ useEvidence("retail"); say("Nothing used came back anywhere. Priced off what a new one costs \u2014 "+money(retail.price)+" \u2014 which is the weakest number here."+failNote(runs)); return; }
     render(); say(failed&&failed===out.length?"Every search failed. Try the sold pages.":"No listings found. Try the sold pages.");
     return;
   }
   if(t)useComps(t); else if(retail)useEvidence("retail");
-  say(tally.join(" \u00b7 ")+" \u2014 "+added+" new"+(t?", "+t.n+" on file":"")+(got.length-uniq.length?", "+(got.length-uniq.length)+" duplicate dropped":""));
+  say(findSaid(uniq,added,t,runs));
+}
+/* WHAT THE LOOKUP FOUND, IN WORDS A COUNTER READS ONCE.
+   What this used to print was the engine talking to itself:
+
+     eBay asks 35 · Searched, used failed · Shopping, used failed ·
+     new none — 21 new, 44 on file, 14 duplicate dropped
+
+   Reported from the counter: "I have no idea what the circled section
+   means." Fair - it is a tally of passes, written for whoever was
+   debugging the passes. Nobody pricing a PlayStation needs to know that a
+   duplicate was dropped.
+
+   What he does need is the thing he has asked about more than anything
+   else on this tool: are these SOLD prices or ASKING prices? Every comp
+   carries its own basis, so that is countable, and it leads. */
+function findSaid(fresh,added,t,runs){
+  const sold=fresh.filter(c=>String(c.basis||"").toLowerCase()==="sold").length;
+  const asks=fresh.length-sold;
+  const where=[...new Set(fresh.map(c=>String(c.where||"").trim()).filter(Boolean))];
+  const on=where.length?" on "+where.slice(0,2).join(" and ")+(where.length>2?" and others":""):"";
+  let lead;
+  if(!added)           lead="Nothing new came back"+(t?" \u2014 pricing off the "+t.n+" already on file.":".");
+  else if(sold&&!asks) lead=sold+" sold price"+(sold===1?"":"s")+on+" \u2014 what people actually paid.";
+  else if(asks&&!sold) lead=asks+" asking price"+(asks===1?"":"s")+on+" \u2014 nobody paid these. "+
+                            "It is what sellers want, not what one sold for.";
+  else                 lead=sold+" sold and "+asks+" asking"+on+". The price leans on the sold ones.";
+  const onFile=(added&&t)?" "+t.n+" on file now.":"";
+  return lead+onFile+failNote(runs);
+}
+/* A source that did not answer is worth one short clause: it is why the
+   answer is thinner than it should be. It is not worth naming three of
+   them in full. */
+function failNote(runs){
+  const bad=(runs||[]).filter(r=>!r.ok);
+  if(!bad.length)return "";
+  return bad.length===1 ? " "+bad[0].name+" did not answer."
+                        : " "+bad.length+" other searches did not answer.";
 }
 /* Every number the sweep turned up, kept side by side. The card below lists
    them all and marks the one in use, so nothing found is lost behind the

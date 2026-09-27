@@ -95,7 +95,11 @@ async function run(mode) {
 console.log("\n  eBay answers with sales");
 {
   const {out, hits, errs} = await run("sold");
-  ok(/eBay sold 10/.test(out.msg), 'tally says "eBay sold 10" — got: ' + out.msg);
+  /* The tally used to read "eBay sold 10". It reports in English now, so
+     the assertion follows the FACTS rather than the old phrasing: ten of
+     them, called sold, off eBay. */
+  ok(/\b10 sold prices?\b/i.test(out.msg) && /eBay/.test(out.msg),
+     'says 10 sold prices on eBay — got: ' + out.msg);
   ok(hits.includes("/ebay"), "eBay was asked");
   ok(!hits.includes("/json"), "NO paid search was fired (" + hits.filter(h=>h==="/json").length + " seen)");
   ok(out.sold === 10, "all 10 comps stored as sold, got " + out.sold);
@@ -106,7 +110,10 @@ console.log("\n  eBay answers with sales");
 console.log("\n  eBay answers, but with asking prices (no Insights grant)");
 {
   const {out, hits, errs} = await run("asks");
-  ok(/eBay asks 10/.test(out.msg), 'tally says "eBay asks 10" — got: ' + out.msg);
+  ok(/\b10 asking prices?\b/i.test(out.msg) && /eBay/.test(out.msg),
+     'says 10 asking prices on eBay — got: ' + out.msg);
+  ok(/nobody paid/i.test(out.msg),
+     'and spells out that nobody paid them — got: ' + out.msg);
   ok(out.sold === 0, "NOTHING was stored as sold, got " + out.sold);
   ok(out.mostlyAsks === true, "the card flags it as mostly asks");
   ok(!errs.length, "no page errors" + (errs.length ? ": " + errs[0] : ""));
@@ -118,7 +125,7 @@ console.log("\n  eBay refuses (no keyset on the service)");
   ok(hits.includes("/ebay"), "eBay was still tried");
   ok(hits.includes("/json"), "it fell through to the paid searches");
   ok(out.n >= 3, "a price was still produced from " + out.n + " listings");
-  ok(/eBay failed/.test(out.msg), 'the tally says eBay failed — got: ' + out.msg);
+  ok(/eBay did not answer/i.test(out.msg), 'it says eBay did not answer — got: ' + out.msg);
   ok(!errs.length, "no page errors" + (errs.length ? ": " + errs[0] : ""));
 }
 

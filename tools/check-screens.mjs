@@ -1011,6 +1011,51 @@ console.log("\n  and the Look up button says what it is doing");
   await p.close();
 }
 
+/* WHAT THE LOOKUP SAYS WHEN IT LANDS HAS TO BE ENGLISH.
+   It used to print the engine's own tally - "eBay asks 35 · Searched, used
+   failed · Shopping, used failed · new none — 21 new, 44 on file, 14
+   duplicate dropped" - which was fine while it was buried on a card nobody
+   opened, and became the most prominent line in the rail the moment the
+   rail started showing it. Reported from the counter: "I have no idea what
+   the circled section means."
+   The one thing that must always be in it is the answer to the question
+   asked more than any other here: sold, or asking? */
+console.log("\n  the lookup reports in English");
+{
+  const p = await browser.newPage({viewport:{width:1400,height:900}});
+  await p.goto(BASE + "/index.html", {waitUntil:"networkidle"});
+  const lines = await p.evaluate(() => {
+    const mk = (n, basis, where) => Array.from({length:n}, (_, i) => ({price:100+i, basis, where}));
+    return {
+      asks:  findSaid(mk(35, "asking", "eBay"), 21, {n:44},
+                      [{name:"Searched, used", ok:false}, {name:"Shopping, used", ok:false}]),
+      sold:  findSaid(mk(12, "sold", "eBay"), 12, {n:12}, []),
+      mixed: findSaid(mk(9, "sold", "eBay").concat(mk(26, "asking", "Shopping")), 35, {n:44}, []),
+      none:  findSaid([], 0, {n:44}, []),
+    };
+  });
+  const all = Object.values(lines).join(" | ");
+  const want = [
+    ["asking prices are called asking", /asking/i.test(lines.asks) && /nobody paid/i.test(lines.asks)],
+    ["sold prices are called sold", /sold/i.test(lines.sold) && /actually paid/i.test(lines.sold)],
+    ["a mixed answer counts both", /\b9 sold\b/.test(lines.mixed) && /\b26 asking\b/.test(lines.mixed)],
+    ["nothing new says so plainly", /nothing new/i.test(lines.none)],
+    /* the tells of the old tally, none of which mean anything at a counter */
+    ["no 'duplicate dropped'", !/duplicate/i.test(all)],
+    ["no bare 'failed'", !/\bfailed\b/i.test(all)],
+    ["no 'new none'", !/new none/i.test(all)],
+    ["no dot-separated pass list", !/·.*·/.test(all)],
+    /* and it has to stay short enough to read while somebody waits */
+    ["every line is 30 words or fewer",
+     Object.values(lines).every(l => l.trim().split(/\s+/).length <= 30)],
+  ];
+  for (const [what, ok] of want) {
+    if (ok) console.log("ok   " + what);
+    else { bad++; console.log("FAIL " + what); }
+  }
+  await p.close();
+}
+
 /* THE ICONS ARE THE ONE PART OF THE TOOL SEEN WITH THE TOOL SHUT.
    A manifest naming a 512 that is really a 180, or a favicon link pointing
    at a file nobody generated, fails silently: the browser drops back to a
