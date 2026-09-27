@@ -1717,6 +1717,28 @@ const CH_AGE={label:"Age",options:[
   {t:"Under 3 yr",m:1},
   {t:"3–6 yr",m:.6,note:"3-6 years old: −40%"},
   {t:"6 yr +",m:.4,note:"aged electronics — accessory money"}]};
+/* DOES IT RUN? The aisle's killer line has always said "Won't start. Then
+   it's parts, not a tool" - and the run never asked. An outside reviewer
+   pointed at the same gap from the other side: a gas engine that starts
+   today often will not after sitting sixty days with pump gas in the
+   carburettor, which is exactly the hold a pawn loan puts it through.
+
+   I have not encoded a figure for how often that happens - I have no
+   measurement of it and would not put somebody else's statistic in the
+   arithmetic. What IS certain is that a small engine which will not start
+   sells for parts, and the desk should ask rather than assume. The 0.35 is
+   a shop judgement, not a measurement, and it says so on the option.
+
+   Pull the cord before you price it; drain the tank before you shelve it. */
+const CH_RUNS={label:"Does it start?",options:[
+  {t:"Starts and runs",m:1},
+  /* .4 and not the .35 first written: spec.mult is clamped to a floor of
+     .4 in calcItem, so .35 would have printed "about a third" on the card
+     while the arithmetic did 40%. The number shown has to be the number
+     used. */
+  {t:"Won't start, or didn't try",m:.4,
+   note:"not proven to run \u2014 priced as parts, 40% of a running one. A shop judgement, not a measured figure",
+   q:"for parts not working"}]};
 const CH_GRADE={label:"Grade",options:[
   {t:"Homeowner",m:1},
   {t:"Farm / ranch",m:1.1,note:"farm grade: +10%"},
@@ -1742,8 +1764,8 @@ const SPEC_CHOICES={
  g8:[CH_CALIBER,{label:"Barrel",options:[{t:"3–6 in",m:1},{t:"Snub 2 in",m:1},{t:"7 in + hunter",m:.9,note:"long hunter barrel — narrower market: −10%"}]}],
  g9:[{label:"Type",options:[{t:"In-line (modern)",m:1},{t:"Sidelock / traditional",m:.8,note:"traditional — thin buyer pool: −20%"}]},CH_OPTIC],
  g10:[CH_CALIBER,CH_OPTIC],
- p1:[{label:"Bar length",options:[{t:"Under 16 in",m:.85,note:"short bar — homeowner saw: −15%"},{t:"16–18 in",m:1},{t:"19 in +",m:1.15,note:"pro-length bar: +15%, slower buyer"}]},CH_GRADE],
- p2:[CH_PWR,CH_GRADE],p3:[CH_PWR,CH_GRADE],
+ p1:[CH_RUNS,{label:"Bar length",options:[{t:"Under 16 in",m:.85,note:"short bar — homeowner saw: −15%"},{t:"16–18 in",m:1},{t:"19 in +",m:1.15,note:"pro-length bar: +15%, slower buyer"}]},CH_GRADE],
+ p2:[CH_RUNS,CH_PWR,CH_GRADE],p3:[CH_RUNS,CH_PWR,CH_GRADE],
  /* No "battery mower, no battery" option, and that is deliberate. eBay
     cannot price a mower at all: 0 of 10 push mowers in the harvest came
     back usable, and the share gate marked four of them local-only outright
@@ -1753,13 +1775,13 @@ const SPEC_CHOICES={
     market. A mower without its battery is a real thing that walks in; it is
     just not a thing eBay can put a number on. Price it off the shelf record
     and your own sales, and do not invent a multiplier here. */
- p4:[{label:"Drive",options:[{t:"Gas push",m:1},{t:"Self-propelled",m:1.15,note:"self-propelled: +15%"},{t:"Battery — with battery",m:.9,note:"battery mower: −10%"},{t:"Corded electric",m:.5,note:"corded: about half"}]},
+ p4:[CH_RUNS,{label:"Drive",options:[{t:"Gas push",m:1},{t:"Self-propelled",m:1.15,note:"self-propelled: +15%"},{t:"Battery — with battery",m:.9,note:"battery mower: −10%"},{t:"Corded electric",m:.5,note:"corded: about half"}]},
      {label:"Deck",options:[{t:"Standard 20–22 in",m:1},{t:"Wide-area 26 in +",m:1.2,note:"wide-area: +20%"}]}],
  p5:[{label:"Deck",options:[{t:"Under 42 in",m:.85,note:"small deck: −15%"},{t:"42–45 in",m:1},{t:"46 in +",m:1.15,note:"bigger deck: +15%"}]},
      {label:"Hours",options:[{t:"Under 300",m:1},{t:"300–800",m:.85,note:"mid-life hours: −15%"},{t:"High / unknown",m:.7,note:"high or unknown hours: −30%"}]}],
- p6:[{label:"Power",options:[{t:"Gas",m:1},{t:"Electric",m:.6,note:"electric washer: −40%"}]},
+ p6:[CH_RUNS,{label:"Power",options:[{t:"Gas",m:1},{t:"Electric",m:.6,note:"electric washer: −40%"}]},
      {label:"Pressure",options:[{t:"Under 2,500 PSI",m:.8,note:"light duty: −20%"},{t:"2,500–3,200 PSI",m:1},{t:"3,200 PSI +",m:1.2,note:"commercial PSI: +20%"}]}],
- p7:[{label:"Type",options:[{t:"Open-frame",m:1},{t:"Inverter",m:1.6,note:"inverter — ~60% over open-frame at the same watts"}]},
+ p7:[CH_RUNS,{label:"Type",options:[{t:"Open-frame",m:1},{t:"Inverter",m:1.6,note:"inverter — ~60% over open-frame at the same watts"}]},
      {label:"Start",options:[{t:"Pull start",m:1},{t:"Electric start",m:1.1,note:"electric start: +10%"}]}],
  /* Measured 22 Sep off 1,057 eBay listings across 30 drill models.
     One battery against two, same model, single tool only: 0.87 - so the
@@ -3520,12 +3542,27 @@ function metalTrend(metal){
             short:`${s2.aboveLong?"Above":"Below"} its 200-day average, moving at an ordinary pace.`,
             head:"Nothing unusual in the trend",
             detail:`${metal==="gold"?"Gold":"Silver"} is ${s2.aboveLong?"above":"below"} its 200-day average and moving at an ordinary pace. No trend reason to change your rate.`};
+  /* VOLATILITY IS PRICED ONCE, AND IT IS PRICED IN THE GUARD.
+     An outside review caught this and the arithmetic backed it up: the
+     guard took 12.1% off the per-ounce figure for a violent market, and
+     then this took another 5 points off the rate for the same violence.
+     Total 17.5% against a measured 60-day tail of 12.1% - five and a half
+     points of the same fear, charged twice.
+
+     So the volatility bands no longer move the rate. They still appear in
+     the warning, because the counter should know the market is moving; the
+     guard below is what answers for it.
+
+     What still moves the rate is DIRECTION. The guard's bands are
+     volatility and price-against-90-day-average; neither sees a metal 21%
+     off its peak and under its 200-day. A falling market is a different
+     fact from a violent one, and it is the only one left here. */
   let cut=0; const bits=[];
   if(falling){ cut+=3;
     bits.push(`it is ${Math.abs(Math.round(s2.dd*100))}% off its 12-month peak and under its 200-day average — the direction has been down, not sideways`); }
-  if(unsettled){ cut+=2;
-    bits.push(`it is swinging ${Math.round(s2.vol*100)}% a year, the top fifth of its own history — a bad two months is about twice as likely as in a calm stretch`); }
-  else if(busy){ cut+=1;
+  if(unsettled){
+    bits.push(`it is swinging ${Math.round(s2.vol*100)}% a year, the top fifth of its own history — the guard price below already carries that`); }
+  else if(busy){
     bits.push(`it is moving faster than usual, though not wildly`); }
   if(m30<-0.05)bits.push(`and it is down ${Math.abs(Math.round(m30*100))}% in the last month alone`);
   const head=falling&&unsettled ? `${metal==="gold"?"Gold":"Silver"} is falling, and moving fast`
@@ -3632,8 +3669,8 @@ function metalGuardHTML(metal){
       ${(()=>{ const S=suggestRate();
         if(!(T.cut>0&&S))return "";
         const on=curRate()===S.pay;
-        return `<div class="ask">Suggested ${lending?"lending":"buy"} rate <b>${S.pay}%</b>, not <b>${S.bare}%</b>.
-          Separate from the guard's cut below &mdash; not the same one twice.
+        return `<div class="ask">Suggested ${lending?"lending":"buy"} rate <b>${S.pay}%</b>, not <b>${S.bare}%</b>, for the direction.
+          How hard it is moving is priced in the guard below, not here &mdash; not the same one twice.
           ${on?`<span class="ison">You're on it.</span>`:`<button class="ghostBtn" id="useTrend">Use ${S.pay}%</button>`}
           <span class="no">A suggestion, not a rule &mdash; work off ${S.bare}% if you read it differently.</span></div>`;
       })()}
@@ -8098,7 +8135,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0928.0251";
+const APP_BUILD="0928.0419";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

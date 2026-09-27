@@ -128,6 +128,7 @@ The code follows. It is the core of the tool: the catalog and its data, the
 question run, the offer arithmetic, the search and matching, the lookup
 ladder, and the guards. Ask me for any other part and I will paste it.
 
+
 ```javascript
 
 /* ===== CATALOG — the aisles and their items (app.js) ===== */
@@ -427,8 +428,8 @@ const SPEC_CHOICES={
  g8:[CH_CALIBER,{label:"Barrel",options:[{t:"3–6 in",m:1},{t:"Snub 2 in",m:1},{t:"7 in + hunter",m:.9,note:"long hunter barrel — narrower market: −10%"}]}],
  g9:[{label:"Type",options:[{t:"In-line (modern)",m:1},{t:"Sidelock / traditional",m:.8,note:"traditional — thin buyer pool: −20%"}]},CH_OPTIC],
  g10:[CH_CALIBER,CH_OPTIC],
- p1:[{label:"Bar length",options:[{t:"Under 16 in",m:.85,note:"short bar — homeowner saw: −15%"},{t:"16–18 in",m:1},{t:"19 in +",m:1.15,note:"pro-length bar: +15%, slower buyer"}]},CH_GRADE],
- p2:[CH_PWR,CH_GRADE],p3:[CH_PWR,CH_GRADE],
+ p1:[CH_RUNS,{label:"Bar length",options:[{t:"Under 16 in",m:.85,note:"short bar — homeowner saw: −15%"},{t:"16–18 in",m:1},{t:"19 in +",m:1.15,note:"pro-length bar: +15%, slower buyer"}]},CH_GRADE],
+ p2:[CH_RUNS,CH_PWR,CH_GRADE],p3:[CH_RUNS,CH_PWR,CH_GRADE],
  /* No "battery mower, no battery" option, and that is deliberate. eBay
     cannot price a mower at all: 0 of 10 push mowers in the harvest came
     back usable, and the share gate marked four of them local-only outright
@@ -438,13 +439,13 @@ const SPEC_CHOICES={
     market. A mower without its battery is a real thing that walks in; it is
     just not a thing eBay can put a number on. Price it off the shelf record
     and your own sales, and do not invent a multiplier here. */
- p4:[{label:"Drive",options:[{t:"Gas push",m:1},{t:"Self-propelled",m:1.15,note:"self-propelled: +15%"},{t:"Battery — with battery",m:.9,note:"battery mower: −10%"},{t:"Corded electric",m:.5,note:"corded: about half"}]},
+ p4:[CH_RUNS,{label:"Drive",options:[{t:"Gas push",m:1},{t:"Self-propelled",m:1.15,note:"self-propelled: +15%"},{t:"Battery — with battery",m:.9,note:"battery mower: −10%"},{t:"Corded electric",m:.5,note:"corded: about half"}]},
      {label:"Deck",options:[{t:"Standard 20–22 in",m:1},{t:"Wide-area 26 in +",m:1.2,note:"wide-area: +20%"}]}],
  p5:[{label:"Deck",options:[{t:"Under 42 in",m:.85,note:"small deck: −15%"},{t:"42–45 in",m:1},{t:"46 in +",m:1.15,note:"bigger deck: +15%"}]},
      {label:"Hours",options:[{t:"Under 300",m:1},{t:"300–800",m:.85,note:"mid-life hours: −15%"},{t:"High / unknown",m:.7,note:"high or unknown hours: −30%"}]}],
- p6:[{label:"Power",options:[{t:"Gas",m:1},{t:"Electric",m:.6,note:"electric washer: −40%"}]},
+ p6:[CH_RUNS,{label:"Power",options:[{t:"Gas",m:1},{t:"Electric",m:.6,note:"electric washer: −40%"}]},
      {label:"Pressure",options:[{t:"Under 2,500 PSI",m:.8,note:"light duty: −20%"},{t:"2,500–3,200 PSI",m:1},{t:"3,200 PSI +",m:1.2,note:"commercial PSI: +20%"}]}],
- p7:[{label:"Type",options:[{t:"Open-frame",m:1},{t:"Inverter",m:1.6,note:"inverter — ~60% over open-frame at the same watts"}]},
+ p7:[CH_RUNS,{label:"Type",options:[{t:"Open-frame",m:1},{t:"Inverter",m:1.6,note:"inverter — ~60% over open-frame at the same watts"}]},
      {label:"Start",options:[{t:"Pull start",m:1},{t:"Electric start",m:1.1,note:"electric start: +10%"}]}],
  /* Measured 22 Sep off 1,057 eBay listings across 30 drill models.
     One battery against two, same model, single tool only: 0.87 - so the
@@ -623,74 +624,6 @@ const SPEC_CHOICES={
      {label:"Size",options:[{t:"Practice (under 30W)",m:1},{t:"30–50W",m:1.1,note:"mid-size: +10%"},{t:"Gigging (50W +)",m:1.2,note:"gig-size: +20%"}]}],
  r1:[CH_TITLE,{label:"Condition to tow",options:[{t:"Ready to tow",m:1},{t:"Needs lights / wiring",m:.85,note:"wiring work: −15%"}]}],
  r2:[CH_TITLE,{label:"Class",options:[{t:"Full-size (400cc +)",m:1},{t:"Youth quad",m:.7,note:"youth quad — smaller market: −30%"}]}]};
-/* generator wattage from the details text — kept even with choices, since watts
-   are a number, not a pick */
-function genWatts(itemName,txt){
-  if(!/gener/i.test(itemName))return null;
-  let t=String(txt||"").replace(/[-\/]/g," ").replace(/\bkilowatts?\b/gi,"kw").replace(/\bwatts?\b/gi,"w");
-  let kw=null,mm;
-  if(mm=t.match(/(\d+(?:\.\d+)?)\s*k\s*w/i))kw=parseFloat(mm[1]);
-  else if(mm=t.match(/(\d{3,5})\s*w\b/i))kw=parseFloat(mm[1])/1000;
-  if(!kw||kw<=0.5||kw>=20)return null;
-  const abs=Math.round(kw*85/5)*5;
-  return {abs,note:`${kw}kW → about $${abs} used, open-frame ($85 per 1,000W; the inverter pick stacks on top)`};
-}
-const ITEM_OVERRIDES={
- h4:{driver:"Brand, then megapixels. A cellular cam is priced with NO plan on it — the plan is the customer's account and it leaves with them.",killer:"Corroded battery tray. A cellular cam nobody can activate.",tiers:{hi:"Reconyx / Tactacam / Browning",mid:"Spypoint / Moultrie / Bushnell",lo:"Wildgame / Stealth Cam / no name"},
-     brands:{hi:["Reconyx","Tactacam","Browning"],mid:["Spypoint","Moultrie","Bushnell","Muddy Pro"],lo:["Wildgame Innovations","Stealth Cam","Muddy","Vikeri","Campark"]},
-     detail:{ph:"cellular or SD / megapixels — cellular, 32MP",hint:"Price a cellular cam as if it has no plan. The one on it belongs to the customer's account and stops when they do."}},
- h5:{driver:"Brand and draw specs — the bow has to FIT a local buyer.",killer:"Dry-fired or cracked limbs — walk away.",tiers:{hi:"Mathews / Hoyt / Bowtech",mid:"Bear / PSE / Diamond / Elite",lo:"Box-store / no name"},
-     brands:{hi:["Mathews","Hoyt","Bowtech","Elite"],mid:["Bear Archery","PSE","Diamond","Mission","Prime"],lo:["Barnett bow","Genesis","no name"]},
-     detail:{ph:"draw weight & length — 70lb, 29in",hint:"The bow must FIT a local buyer — odd draw lengths sit for months."}},
- h6:{driver:"Brand tier and speed; crank-cocking models sell to older hunters.",killer:"Cracked limbs or a frayed string on a budget unit.",tiers:{hi:"Ravin / TenPoint",mid:"Excalibur / Barnett / Killer Instinct",lo:"CenterPoint / no name"},
-     brands:{hi:["Ravin","TenPoint"],mid:["Excalibur","Barnett","Killer Instinct","Wicked Ridge"],lo:["CenterPoint","Bear X","no name"]},
-     detail:{ph:"speed & cocking — 400fps, crank cocker",hint:"Crank-cocking models sell to older hunters — worth real money here."}},
- h7:{driver:"Brand on the REEL — the rod mostly rides along.",killer:"Gritty retrieve or a bent spool.",tiers:{hi:"Shimano / St. Croix / G Loomis",mid:"Abu Garcia / Penn / Lew's / Ugly Stik",lo:"Zebco / Shakespeare"},
-     brands:{hi:["Shimano","St. Croix","G Loomis","Daiwa Tatula"],mid:["Abu Garcia","Penn","Lew's","13 Fishing","Ugly Stik","Daiwa"],lo:["Zebco","Shakespeare","South Bend"]},
-     detail:{ph:"type & size — baitcaster, 7ft medium",hint:"Combos sell; oddball specialty rods sit."}},
- h8:{driver:"Thrust, voltage, and whether it has spot-lock.",killer:"Bent shaft or water in the head.",tiers:{hi:"Minn Kota Terrova+ / Garmin",mid:"Minn Kota base / MotorGuide",lo:"Newport / no name"},
-     brands:{hi:["Garmin Force","Minn Kota Terrova","Minn Kota Ulterra"],mid:["Minn Kota","MotorGuide"],lo:["Newport","Watersnake","no name"]},
-     detail:{ph:"thrust & shaft — 55lb, 54in, 24V",hint:"Thrust and voltage drive the price; spot-lock models are the premium."}},
- h9:{driver:"Hours and brand; 4-stroke over 2-stroke.",killer:"Low or no compression — then it is parts, not a motor.",tiers:{hi:"Yamaha / Honda / Suzuki",mid:"Mercury / Tohatsu",lo:"Off-brand import"},
-     brands:{hi:["Yamaha","Honda","Suzuki"],mid:["Mercury","Tohatsu","Evinrude","Johnson"],lo:["Hangkai","Coleman outboard","no name"]},
-     detail:{ph:"HP, shaft length, 2- or 4-stroke — 9.9HP, short shaft, 4-stroke",hint:"4-strokes bring more; a seized or no-compression motor is parts, not a motor."}},
- p7:{driver:"Watts, and inverter or open-frame — value tracks watts almost linearly.",killer:"Will not start, or surges under load.",tiers:{hi:"Honda / Yamaha",mid:"Generac / Champion / Westinghouse",lo:"Predator / no name"},
-     brands:{hi:["Honda","Yamaha"],mid:["Generac","Champion","Westinghouse","DeWalt generator","Firman"],lo:["Predator","PowerSmart","Pulsar","no name"]},
-     detail:{ph:"wattage & type — 6,500W, inverter",hint:"Value tracks watts — about $85 per 1,000 running watts open-frame; inverters run ~60% over that."}},
- p5:{driver:"Deck size, hours, and brand tier.",killer:"Blown spindles or a bent deck.",tiers:{hi:"John Deere / Kubota / Toro comm.",mid:"Cub Cadet / Troy-Bilt / Husqvarna",lo:"Murray / MTD / no name"},
-     brands:{hi:["John Deere","Kubota","Toro Commercial","Exmark","Gravely"],mid:["Cub Cadet","Troy-Bilt","Husqvarna rider","Snapper","Ariens"],lo:["Murray","MTD","Yard Machines","no name"]},
-     detail:{ph:"deck size & hours — 42in, ~300hrs",hint:"Deck size and hours are the price; a straight deck and clean cut matter more than paint."}},
- /* Every item in the electronics and tools aisles says its own line. The
-    aisle line is the fallback, and a fallback that names a phone is wrong
-    on five of the seven things filed under it. */
- e2:{driver:"Age first, then processor and memory. Five years old is parts money whatever it cost new.",
-     killer:"No charger. A swollen battery, a BIOS or activation password nobody can clear, or a machine that will not boot past the maker's logo."},
- e3:{driver:"Model year and storage. Brand carries more of the price here than anywhere else in the aisle \u2014 an iPad holds money, the rest mostly does not.",
-     killer:"Activation lock \u2014 an iCloud or Google account still signed in makes it a brick. Cracked glass costs more to fix than the tablet is worth."},
- e4:{driver:"Model year, storage and whether it is carrier-locked. Two years old is half price.",
-     killer:"Activation lock. A locked phone is a brick. See the Devices tab before you lend a dollar."},
- e5:{driver:"Which generation, and disc drive or digital-only. A current-gen machine holds its money; the one before it falls off a cliff.",
-     killer:"No controller and no power or HDMI lead \u2014 that is a paperweight until you source them. Run a game before you call it working: a noisy fan or a drive that will not read is the end of it."},
- e6:{driver:"Brand and size. A JBL or a Bose moves; everything else sits on the shelf.",
-     killer:"Won't hold a charge, a driver you can hear buzzing, or a proprietary charger that is not with it."},
- e7:{driver:"Brand and RMS watts \u2014 the RMS figure, never the number printed on the box.",
-     killer:"Burnt voice coil, a torn surround, or no wiring harness. Installed gear pulled out of a car is often somebody else's \u2014 ask."},
- t3:{driver:"Brand, and whether it is cordless with a battery. A corded grinder is $20 money.",
-     killer:"Seized spindle, or a burnt smell out of the vents. No guard."},
- t4:{driver:"Brand and tank size, and whether the pump still builds pressure.",
-     killer:"Won't build pressure, or leaks down overnight. A rusted or cracked tank is scrap \u2014 never lend on one."},
- t5:{driver:"Motor horsepower and voltage \u2014 a 240v unit narrows the buyers a lot. Tank condition is the rest.",
-     killer:"Rusted tank bottom, or a pump that will not build. And you have to get it back out the door: this is a two-man load and slow money."},
- t6:{driver:"Brand and amperage, and whether the gun, leads and regulator came with it.",
-     killer:"No gun or ground clamp, or a dead transformer. The gas bottle is not his to pawn \u2014 those are leased from the gas supplier."},
- t7:{driver:"Brand and size. An empty box is furniture \u2014 the money is the steel and the name on it.",
-     killer:"Bent drawers, dead casters, rust. Slow money even when it is clean."},
- t8:{driver:"Brand, and pneumatic or cordless \u2014 a cordless one needs its battery to be worth anything.",
-     killer:"Dry-fired to death: leaking o-rings, a bent driver blade. No case and no fittings."},
- e1:{driver:"Size and model year are nearly the whole price.",killer:"Any panel line or burn-in — then it is worthless.",tiers:{hi:"Sony / Samsung / LG OLED",mid:"TCL / Hisense / Vizio",lo:"Onn / RCA / Sceptre"},
-     brands:{hi:["Sony","Samsung","LG OLED","LG"],mid:["TCL","Hisense","Vizio"],lo:["Onn","RCA","Sceptre","Element","Westinghouse"]},
-     detail:{ph:"size & year — 65in, 2024",hint:"Size and model year ARE the price — two model years old is half of new."}}
-};
 
 /* ===== askQueue — the question run (app.js) ===== */
 function askQueue(x){
@@ -1349,6 +1282,27 @@ function marketNow(){
           date:mine?todayStr():r[6],src:r[7],note:r[8],mine:!!mine,stale:mine?false:age>MP_STALE_DAYS,age};
 }
 
+/* ===== compQuery — the words a lookup actually searches (app.js) ===== */
+function compQuery(x){
+  /* THE ROW'S OWN NAME WAS WRECKING THE SEARCH.
+     Once the make and the model are known, the kind of thing is already
+     implied by them, and tacking the catalog row's description on the end
+     turns a good search into a different product. Measured on the live
+     service: "DJI Osmo Action 4" returns seven real SOLD listings with
+     the Action 4 itself at $165 and $181; "DJI Osmo Action 4 Gimbal /
+     pocket camera" falls off sold prices altogether and comes back with
+     Osmo POCKETS, a different camera, at asking prices. Nobody searching
+     eBay by hand would type the category after the model.
+     With no model, the row name is the only description there is, so it
+     stays. */
+  const named=!!(String(st.brandTyped||"").trim()&&String(st.model||"").trim());
+  const bits=named
+    ? [st.brandTyped, st.model, st.detail||"", specQuery()]
+    : [st.brandTyped||"", st.model||"", displayName(x).replace(/\s*—.*$/,""),
+       st.detail||"", specQuery()];
+  return bits.map(s=>String(s).trim()).filter(Boolean).join(" ").slice(0,120);
+}
+
 /* ===== itemFromBrand — the make names the item (app.js) ===== */
 function itemFromBrand(catId,txt){
   const cat=CATALOG.find(c=>c.id===catId); if(!cat)return null;
@@ -1467,12 +1421,27 @@ function metalTrend(metal){
             short:`${s2.aboveLong?"Above":"Below"} its 200-day average, moving at an ordinary pace.`,
             head:"Nothing unusual in the trend",
             detail:`${metal==="gold"?"Gold":"Silver"} is ${s2.aboveLong?"above":"below"} its 200-day average and moving at an ordinary pace. No trend reason to change your rate.`};
+  /* VOLATILITY IS PRICED ONCE, AND IT IS PRICED IN THE GUARD.
+     An outside review caught this and the arithmetic backed it up: the
+     guard took 12.1% off the per-ounce figure for a violent market, and
+     then this took another 5 points off the rate for the same violence.
+     Total 17.5% against a measured 60-day tail of 12.1% - five and a half
+     points of the same fear, charged twice.
+
+     So the volatility bands no longer move the rate. They still appear in
+     the warning, because the counter should know the market is moving; the
+     guard below is what answers for it.
+
+     What still moves the rate is DIRECTION. The guard's bands are
+     volatility and price-against-90-day-average; neither sees a metal 21%
+     off its peak and under its 200-day. A falling market is a different
+     fact from a violent one, and it is the only one left here. */
   let cut=0; const bits=[];
   if(falling){ cut+=3;
     bits.push(`it is ${Math.abs(Math.round(s2.dd*100))}% off its 12-month peak and under its 200-day average — the direction has been down, not sideways`); }
-  if(unsettled){ cut+=2;
-    bits.push(`it is swinging ${Math.round(s2.vol*100)}% a year, the top fifth of its own history — a bad two months is about twice as likely as in a calm stretch`); }
-  else if(busy){ cut+=1;
+  if(unsettled){
+    bits.push(`it is swinging ${Math.round(s2.vol*100)}% a year, the top fifth of its own history — the guard price below already carries that`); }
+  else if(busy){
     bits.push(`it is moving faster than usual, though not wildly`); }
   if(m30<-0.05)bits.push(`and it is down ${Math.abs(Math.round(m30*100))}% in the last month alone`);
   const head=falling&&unsettled ? `${metal==="gold"?"Gold":"Silver"} is falling, and moving fast`
@@ -1677,7 +1646,7 @@ async function priceFind(signal,all){
   say(findSaid(uniq,added,t,runs));
 }
 
-/* ===== itemsByUse / ordering by what came in (app.js) ===== */
+/* ===== itemsByUse — ordering by what came in (app.js) ===== */
 function itemsByUse(cat){
   const items=(cat&&cat.items)||[];
   const n=itemCounts(cat&&cat.id);
@@ -1686,7 +1655,7 @@ function itemsByUse(cat){
               .sort((a,b)=>b.seen-a.seen||a.i-b.i);
 }
 
-/* ===== catsByUse (app.js) ===== */
+/* ===== catsByUse — the same for aisles (app.js) ===== */
 function catsByUse(){
   const n=itemCounts(null), per={};
   if(typeof DEALS!=="undefined")for(const d of DEALS){
@@ -1697,4 +1666,5 @@ function catsByUse(){
   return CATALOG.map((c,i)=>({c,seen:per[c.id]||0,i}))
                 .sort((a,b)=>b.seen-a.seen||a.i-b.i);
 }
+
 ```

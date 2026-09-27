@@ -1944,6 +1944,77 @@ console.log("\n  the aisles order themselves by what has come through the door")
   await pg.close();
 }
 
+/* ================= THE SAME FEAR MUST NOT BE CHARGED TWICE ==============
+   An outside reviewer caught this and the arithmetic backed it up. The
+   guard took 12.1% off the per-ounce figure because gold was moving
+   violently; the trend read then took another 5 points off the RATE for
+   the same violence. Total 17.5% against a measured 60-day tail of 12.1%.
+
+   Volatility is now priced once, in the guard. What is left in the rate is
+   DIRECTION — a metal off its peak and under its 200-day — which the
+   guard's bands genuinely do not see. This test holds the split: a market
+   that is violent but RISING must not move the rate at all. */
+console.log("\n  volatility is priced in the guard, not twice");
+{
+  const pg = await browser.newPage({viewport:{width:1500,height:1000}});
+  const errs = [];
+  pg.on("pageerror", e => errs.push(String(e)));
+  await pg.goto(BASE + "/index.html", {waitUntil:"networkidle"});
+  await pg.waitForTimeout(1200);
+  const r = await pg.evaluate(() => {
+    const real = MHIST.days.gold, saveManual = st.manual;
+    const series = (fn) => {
+      const out = [];
+      for (let i = 0; i < 520; i++)
+        out.push([new Date(Date.UTC(2024, 8, 25) + i * 864e5).toISOString().slice(0, 10), fn(i)]);
+      return out;
+    };
+    /* The spot must be the series' OWN last value, or the fixture is not
+       the market it claims to be. The first version forced a lower number
+       and produced a "rising" series sitting 18% under its own peak, which
+       the code correctly called falling. The fixture was wrong, not the
+       code — so the fixture reads its last point instead of asserting one. */
+    const read = (days) => {
+      const spot = days[days.length - 1][1];
+      MHIST.days.gold = days;
+      st.manual = {date: "x", spot: {gold: spot, silver: 66}, avg90: {gold: spot, silver: 66}};
+      const S = metalState("gold"), T = metalTrend("gold");
+      return {band: S.band, dd: +(S.dd * 100).toFixed(1), above200: S.aboveLong,
+              cut: T.cut, warn: T.warn, dir: T.dir};
+    };
+    const out = {};
+    /* violent AND rising: a steep climb that swamps a 2.5% daily chop, so
+       the last point IS the peak and sits well above the 200-day */
+    out.violentRising = read(series(i => 2000 * Math.pow(1.004, i) * (1 + (i % 2 ? 0.025 : -0.025))));
+    /* calm AND falling: a steady slide with almost no daily movement */
+    out.calmFalling   = read(series(i => 5000 * (1 - i * 0.0006)));
+    /* flat and calm: nothing at all */
+    out.flatCalm      = read(series(i => 4000 + Math.sin(i / 9) * 6));
+    /* and today's real market, for the record */
+    MHIST.days.gold = real; st.manual = saveManual;
+    const G = metalGuard("gold"), S2 = suggestRate();
+    out.today = {guardCut: G.lendCut, tail: Math.abs(G.ev.p5),
+                 total: +(100 * (1 - (1 - G.lendCut / 100) * (S2.pay / S2.bare))).toFixed(1)};
+    return out;
+  });
+  const t = [
+    ["the fixture really is violent and rising",
+     r.violentRising.band === "violent" && r.violentRising.above200 === true && r.violentRising.dd > -3,
+     `band ${r.violentRising.band}, ${r.violentRising.dd}% off peak, above200 ${r.violentRising.above200}`],
+    ["  it is still called out as moving fast", r.violentRising.warn === true],
+    ["  but it does not move the rate — the guard has it", r.violentRising.cut === 0],
+    ["a falling market DOES move the rate", r.calmFalling.cut > 0],
+    ["  because direction is not what the guard measures", r.calmFalling.dir === "falling"],
+    ["a flat calm market moves nothing", r.flatCalm.cut === 0 && r.flatCalm.warn === false],
+    ["and the total taken never runs far past the measured tail",
+     r.today.total <= r.today.tail + 5,
+     `${r.today.total}% taken against a ${r.today.tail}% measured tail`],
+  ];
+  for (const [what, pass, extra] of t) ok(pass, what + (extra ? " — " + extra : ""));
+  ok(!errs.length, "  no page errors" + (errs.length ? ": " + errs[0] : ""));
+  await pg.close();
+}
+
 await browser.close();
 console.log(fails ? "\n  " + fails + " FAILED\n" : "\n  all passed\n");
 process.exit(fails ? 1 : 0);
