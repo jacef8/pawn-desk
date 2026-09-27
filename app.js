@@ -6851,7 +6851,41 @@ function omniRows(q){
   const inBrand=e=>P.brandCats.some(c=>c.cat===e.catId&&(!c.items||c.items.indexOf(e.kind==="item"?e.itemId:e.name)>=0));
   if(P.words.length){
     let sc=[];
-    const score=(e,and)=>{ let s=0; for(const w of P.words){ const h=wordHit(w,e.words); if(!h&&and)return 0; s+=h; } return s; };
+    /* THE SAME UNIT AT TEN TIMES THE SIZE IS A DIFFERENT PRODUCT.
+       "dewalt compressor dwfp55126 6 gal" put "Air compressor - 60 gal
+       upright" above "Air compressor - pancake", and priced a $150 ticket
+       at $280. Both rows score the same, because "gal" matches both
+       exactly and the "6" matches neither: wordHit needs three characters
+       before it will prefix-match, so a one-digit token can only hit an
+       identical one. Nothing was wrong, nothing was preferred, and the
+       tie fell to whichever row came first.
+       A measurement the counter typed is one of the strongest things they
+       can tell you, and a row carrying a DIFFERENT figure in the same unit
+       is telling you it is the wrong product. So a magnitude that matches
+       is worth as much as a word, and one that conflicts costs more than
+       any word can win back. This reads the pair out of both strings
+       rather than knowing anything about compressors, so it works the
+       same on a 50 inch television, a 24 ft ladder and a 60 gal tank. */
+    const UNITS=/(\d+(?:\.\d+)?)\s*(gal|gallon|in|inch|ft|foot|feet|cc|hp|amp|a|v|w|watt|lb|ton|qt|l)\b/g;
+    const sizesOf=t=>{ const m={}; let x; const str=" "+String(t||"").toLowerCase()+" ";
+      UNITS.lastIndex=0;
+      while((x=UNITS.exec(str))){ const u=x[2].replace(/^(gallon|inch|foot|feet|watt)$/,
+        v=>({gallon:"gal",inch:"in",foot:"ft",feet:"ft",watt:"w"}[v]));
+        (m[u]=m[u]||new Set()).add(Number(x[1])); }
+      return m; };
+    const qSize=sizesOf(P.q||q);
+    const sizeFit=e=>{
+      if(!Object.keys(qSize).length)return 0;
+      const es=sizesOf(e.name||"");
+      let fit=0;
+      for(const [u,want] of Object.entries(qSize)){
+        const have=es[u]; if(!have||!have.size)continue;
+        if([...want].some(v=>have.has(v)))fit+=4;          /* it says the same figure */
+        else fit-=9;                                        /* it says a different one */
+      }
+      return fit;
+    };
+    const score=(e,and)=>{ let s=0; for(const w of P.words){ const h=wordHit(w,e.words); if(!h&&and)return 0; s+=h; } return s+sizeFit(e); };
     /* The maker is taken out of the words before scoring, so on "seiko watch"
        only "watch" is left and the two watch rows tie - and the tie-break,
        shorter name first, handed a Seiko to the luxury row. An entry that
@@ -8703,7 +8737,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0928.1836";
+const APP_BUILD="0928.1918";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
