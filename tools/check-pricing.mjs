@@ -1585,6 +1585,11 @@ console.log("\n  the trend warns, suggests, and can be ignored");
     out.rate = S && {pay: S.pay, bare: S.bare};
     const strip = document.querySelector(".mWarn");
     out.strip = strip ? strip.innerText.replace(/\s+/g, " ") : null;
+    const card = document.querySelector(".mGuard");
+    out.faceWords = card ? card.innerText.replace(/\s+/g, " ").trim().split(/\s+/).length : 0;
+    if (card) card.querySelectorAll("details").forEach(d => d.open = true);
+    out.fullLen = card ? card.innerText.length : 0;
+    out.faceLen = card ? out.faceWords : 0;
     out.lit = !!document.querySelector(".mWarn.on");
     out.button = !!document.getElementById("useTrend");
     /* pressing it sets the rate, and nothing else moves */
@@ -1619,11 +1624,14 @@ console.log("\n  the trend warns, suggests, and can be ignored");
     ["and it SHOWS that other rate, so ignoring it is a real choice",
      !!(r.strip && r.strip.includes(r.rate.bare + "%"))],
     ["it says the guard has not already charged this",
-     !!(r.strip && /not that cut charged twice/i.test(r.strip))],
+     !!(r.strip && /not the same one twice/i.test(r.strip))],
     ["it calls itself a suggestion, not a rule", !!(r.strip && /not a rule/i.test(r.strip))],
     ["there is a button to take it", r.button === true],
     ["and pressing it moves the rate to the suggestion", r.took && r.took.after === r.rate.pay],
     ["the trim is small — never more than 5 points", !!(r.now && r.now.cut <= 5)],
+    /* 270 words before the counter said so. Chart labels and stat tiles are
+       counted in here too, so the prose budget is tighter than it looks. */
+    ["the card's face is 120 words or fewer", r.faceWords > 0 && r.faceWords <= 120],
     ["a flat market raises no warning at all", !!(r.calm && r.calm.warn === false && r.calm.cut === 0)],
     ["and asks for no trim there", !!(r.calmRate && r.calmRate.pay === r.calmRate.bare)],
   ];
@@ -1660,10 +1668,17 @@ console.log("\n  the item number is guarded by how good it is, and claims no tre
       st.market = Object.assign({key: mkKey()}, mk);
       render();
       const x = calcItem();
+      const card = document.querySelector(".iGuard");
+      /* The background lives in a fold now. It still has to be THERE and
+         reachable, so the test opens it - but the face is measured shut,
+         which is how the counter meets it. */
+      const face = card ? card.innerText.replace(/\s+/g, " ").trim() : "";
+      if (card) card.querySelectorAll("details").forEach(d => d.open = true);
+      const full = card ? card.innerText.replace(/\s+/g, " ").trim() : "";
       return {cut: x.guard && x.guard.cut, warn: x.guard && x.guard.warn,
               resale: Math.round(x.resale), guarded: Math.round(x.guardResale),
-              target: x.target, buy: x.buy,
-              text: (document.querySelector(".iGuard") || {}).innerText || ""};
+              target: x.target, buy: x.buy, face, text: full,
+              faceWords: face ? face.split(/\s+/).length : 0};
     };
     const out = {loaded: !!INOISE};
     out.sold  = set({kind:"found", mid:400, lo:360, hi:440, n:21, sold:21,
@@ -1695,10 +1710,16 @@ console.log("\n  the item number is guarded by how good it is, and claims no tre
     /* a number the counter typed is about the thing, not a sample */
     ["a hand-typed resale is never guarded", r.hand && (r.hand.cut === 0 || r.hand.cut == null)],
     ["and shows no card at all", r.hand && r.hand.text === ""],
+    /* WORDY. Reported from the counter about this exact card, which ran to
+       190 words. The reasoning is worth keeping and worth folding away. */
+    ["the face is 45 words or fewer", r.ask && r.ask.faceWords > 0 && r.ask.faceWords <= 45],
+    ["a good number's face is shorter still", r.sold && r.sold.faceWords <= 30],
+    ["and the background is still reachable, just folded",
+     !!(r.ask && r.ask.text.length > r.ask.face.length * 2)],
     /* the honesty that is the whole point of this one */
     ["the item history is NOT claimed to be trend-ready", r.noise && r.noise.trendReady === false],
     ["the card says so in as many words", !!(r.ask && /No trend read on items yet/i.test(r.ask.text))],
-    ["it names how little history there is", !!(r.ask && /days of re-checks/i.test(r.ask.text))],
+    ["it names how little history there is", !!(r.ask && /usable pairs/i.test(r.ask.text))],
     ["and that a whole run was thrown out as a source change",
      !!(r.ask && /price source changing/i.test(r.ask.text)) && r.noise.steps >= 1],
     ["nothing on the card calls it a market trend",

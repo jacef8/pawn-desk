@@ -1002,31 +1002,25 @@ function itemGuard(x){
   const decay=FAST_DECAY[x.cat&&x.cat.id]||0;
   const why=[];
   let cut=0;
-  /* Asking prices are not sold prices, and the gap between them was measured
-     in September and came back unusable - 4.3x on one aisle, 0.83x on
-     another, pointing opposite ways. So this does NOT convert an ask into a
-     sale with a multiplier. It widens the guard and says why. */
+  /* Short phrases, not sentences: they are read at a counter with somebody
+     waiting, and they get stacked into one line. */
   if(ev.kind==="asking"){ cut+=INOISE.noiseMid/2;
-    why.push(`these are <b>${ev.n||"a few"} asking prices</b>, not sales &mdash; what sellers wanted, and nobody has paid it`); }
-  else if(ev.kind==="research"){ cut+=8;
-    why.push(`this row was <b>researched, never measured</b> against live listings`); }
-  else if(ev.n&&ev.n<5){ cut+=5;
-    why.push(`only <b>${ev.n} sale${ev.n===1?"":"s"}</b> behind it &mdash; a thin sample moves a lot`); }
+    why.push(`${ev.n||"a few"} asking prices, not sales`); }
+  else if(ev.kind==="research"){ cut+=8; why.push("researched, never measured"); }
+  else if(ev.n&&ev.n<5){ cut+=5; why.push(`only ${ev.n} sale${ev.n===1?"":"s"}`); }
   if(spread>(INOISE.spread75||51)/100){ cut+=5;
-    why.push(`the listings ran <b>${money(lo)}&ndash;${money(hi)}</b>, a ${Math.round(spread*100)}% spread &mdash; the middle of that is not a precise number`); }
+    why.push(`${money(lo)}\u2013${money(hi)}, a ${Math.round(spread*100)}% spread`); }
   if(decay&&age>30){ cut+=Math.min(8,Math.round(decay*age/10));
-    why.push(`it is <b>${age} days old</b> and this aisle loses value while it sits`); }
-  else if(age>90){ cut+=4; why.push(`the number is <b>${age} days old</b>`); }
+    why.push(`${age} days old, and this aisle fades`); }
+  else if(age>90){ cut+=4; why.push(`${age} days old`); }
   cut=Math.min(25,Math.round(cut));
   return {kind:ev.kind,n:ev.n,mid,lo,hi,spread,age,cut,
           guard:Math.max(1,mid*(1-cut/100)),
           noise:INOISE.noiseMid,
           band:[mid*(1-INOISE.noiseMid/100),mid*(1+INOISE.noiseMid/100)],
           warn:cut>=8, why,
-          head:cut>=8?"This number is softer than it looks"
-              :cut>0?"Reasonable number, small guard on it"
-              :"Solid number — real sales, tight range, fresh",
-          detail:""};
+          head:(cut>=8?"Soft":cut>0?"Fair":"Solid")+" — "
+              +(why.length?why.join(", "):(ev.n?ev.n+" real sales, tight range":"real sales, tight range"))};
 }
 /* The same strip the metals page carries, saying the item version of the
    same thing: here is how good this number is, here is what it does to the
@@ -1034,35 +1028,25 @@ function itemGuard(x){
 function itemGuardHTML(x){
   const G=x&&x.guard;
   if(!G||G.kind==="hand")return "";
-  const noTrend=INOISE&&!INOISE.trendReady;
+  const m0=n=>money(Math.round(n));
+  /* WORDY. Reported from the counter, and it was: 190 words on a card that
+     answers one question. What he needs while somebody is waiting is whether
+     the number is good and what the loan comes off. The rest - the
+     repeatability band, why items have no trend read - is background, and
+     background goes in a fold. */
   return `<div class="card iGuard">
     <span class="label">How good is this number?</span>
-    <div class="mWarn ${G.warn?"on":"off"}">
-      <div class="h">${G.warn?"⚠ ":""}${esc(G.head)}</div>
-      ${G.why.length?`<div class="p">Because ${G.why.join("; ")}.</div>`:
-        `<div class="p">Real sales, a tight range and a fresh reading. The offer uses it as it stands.</div>`}
-      ${G.cut>0?`<div class="ask">So the loan is sized off <b>${money(Math.round(G.guard))}</b> instead of ${money(Math.round(G.mid))}
-        &mdash; ${G.cut}% back. The buy price keeps the full ${money(Math.round(G.mid))}, because you can price a buy and move it;
-        a pawn is a 60-day bet on a number that came out of a sample.
-        <span class="no">Know better than the sample? Type your own resale in and the guard steps aside &mdash; your number is about the thing in your hands.</span></div>`:""}
-    </div>
-    <div class="iBand">
-      <span class="k">What the same search would likely say tomorrow</span>
-      <b>${money(Math.round(G.band[0]))} &ndash; ${money(Math.round(G.band[1]))}</b>
-      <span class="s">Re-running the same lookup days apart moved the answer a median of ${G.noise}% in testing.
-        That is the tool's own repeatability, not the market.</span>
-    </div>
-    ${noTrend?`<div class="mEvid">
-      <b>No trend read on items yet.</b> Gold has 25 years of daily prices behind its guard.
-      The item book has <b>${INOISE.spanDays} day${INOISE.spanDays===1?"":"s"}</b> of re-checks and
-      ${INOISE.usable} usable before-and-after pairs, and they scatter both ways
-      (${INOISE.upShare}% up) rather than leaning. That is noise, not a market.
-      ${INOISE.stepChanges&&INOISE.stepChanges.length?`One run was thrown out entirely:
-        ${INOISE.stepChanges[0].up} of ${INOISE.stepChanges[0].n} rows moved the same way on the same day,
-        which is the price source changing, not chainsaws gaining ${INOISE.stepChanges[0].median}%.`:""}
-      Once the rechecks cover a few months and start leaning, this becomes a trend read
-      and says so. Until then it only tells you how firm the number is.
-    </div>`:""}
+    <div class="iHead ${G.warn?"warn":G.cut?"":"good"}">${G.warn?"⚠ ":""}${esc(G.head)}</div>
+    ${G.cut>0
+      ? `<div class="iLine">Loan off <b>${m0(G.guard)}</b>, not ${m0(G.mid)}. Buy keeps ${m0(G.mid)}.</div>`
+      : `<div class="iLine">Used as it stands.</div>`}
+    <details class="fold iFold"><summary class="foldLine">Why, and why items have no trend read</summary>
+      <div class="iMore">
+        ${G.cut>0?`<p>A buy you can price and move. A pawn is 60 days on a number that came out of a sample, so the loan takes the ${G.cut}%. Type your own resale in and the guard steps aside.</p>`:""}
+        <p><b>${m0(G.band[0])}–${m0(G.band[1])}</b> is what the same search would likely say tomorrow. Re-running it days apart moved the answer ${G.noise}% in testing — the tool's own repeatability, not the market.</p>
+        ${INOISE&&!INOISE.trendReady?`<p><b>No trend read on items yet.</b> Gold's guard has 25 years of daily prices. This has ${INOISE.spanDays} day${INOISE.spanDays===1?"":"s"} and ${INOISE.usable} usable pairs, scattering both ways (${INOISE.upShare}% up)${INOISE.stepChanges&&INOISE.stepChanges.length?`, after throwing out a run where ${INOISE.stepChanges[0].up} of ${INOISE.stepChanges[0].n} rows moved together — the price source changing, not the market`:""}. Months of re-checks that lean one way would make it a trend. This is not that.</p>`:""}
+      </div>
+    </details>
   </div>`;
 }
 function calcItem(){
@@ -3484,6 +3468,7 @@ function metalTrend(metal){
   const busy=s2.band==="busy";
   if(!falling&&!unsettled&&!busy)
     return {dir:"steady",warn:false,cut:0,
+            short:`${s2.aboveLong?"Above":"Below"} its 200-day average, moving at an ordinary pace.`,
             head:"Nothing unusual in the trend",
             detail:`${metal==="gold"?"Gold":"Silver"} is ${s2.aboveLong?"above":"below"} its 200-day average and moving at an ordinary pace. No trend reason to change your rate.`};
   let cut=0; const bits=[];
@@ -3497,8 +3482,15 @@ function metalTrend(metal){
   const head=falling&&unsettled ? `${metal==="gold"?"Gold":"Silver"} is falling, and moving fast`
            : falling ? `${metal==="gold"?"Gold":"Silver"} has been trending down`
            : `${metal==="gold"?"Gold":"Silver"} is moving fast right now`;
+  /* One line for the face; the stat tiles under the chart carry the rest,
+     so repeating them in prose was 40 words saying what was already there. */
+  const short=[
+    falling?`${Math.abs(Math.round(s2.dd*100))}% off its 12-month peak, under its 200-day average`:null,
+    (unsettled||busy)?`swinging ${Math.round(s2.vol*100)}% a year`:null,
+    m30<-0.05?`down ${Math.abs(Math.round(m30*100))}% this month`:null
+  ].filter(Boolean).join(", ")+".";
   return {dir:falling?"falling":"unsettled", warn:true, cut:Math.min(5,cut), head,
-          detail:bits.join("; ")+".", m30, dd:s2.dd, vol:s2.vol};
+          short, detail:bits.join("; ")+".", m30, dd:s2.dd, vol:s2.vol};
 }
 const PREM_BAND=p => p< -0.05?"under" : p<0.05?"at" : p<0.10?"warm" : p<0.15?"hot" : "spike";
 /* The two guard prices, and the evidence for each. */
@@ -3580,20 +3572,21 @@ function metalGuardHTML(metal){
   const pc=n=>(n>=0?"+":"−")+Math.abs(n).toFixed(1)+"%";
   const BAND={calm:["Calm","good"],normal:["Normal",""],busy:["Busy","warn"],violent:["Moving fast","bad"]}[G.band]||["",""];
   const lending=st.deal!=="buy";
+  /* WORDY, and it was: 270 words. The face now carries the reading, the
+     number and the button. The reasoning behind the number is true and
+     worth having, and it is worth having in a fold. */
   return `<div class="card mGuard">
     <span class="label">${metal==="gold"?"Gold":"Silver"} &mdash; what the market has been doing</span>
     ${T?`<div class="mWarn ${T.warn?"on":"off"}">
-      <div class="h">${T.warn?"\u26a0 ":""}${esc(T.head)}</div>
-      <div class="p">${esc(T.detail)}</div>
+      <div class="h">${T.warn?"⚠ ":""}${esc(T.head)}</div>
+      <div class="p">${esc(T.short)}</div>
       ${(()=>{ const S=suggestRate();
         if(!(T.cut>0&&S))return "";
         const on=curRate()===S.pay;
-        return `<div class="ask">Because of that, today's suggested ${st.deal==="buy"?"buy":"lending"} rate is
-          <b>${S.pay}%</b> instead of <b>${S.bare}%</b> &mdash; ${S.pay<S.bare?`that is ${S.bare-S.pay} point${S.bare-S.pay===1?"":"s"} of extra margin for the risk of sitting on it`:"unchanged"}.
-          The guard price below has already taken its own cut off the per-ounce figure; this is not that cut charged twice.
-          ${on?`<span class="ison">You're on it. Drag the slider to set your own.</span>`
-              :`<button class="ghostBtn" id="useTrend">Use ${S.pay}%</button>`}
-          <span class="no">Ignore it and work off ${S.bare}% if you read the market differently &mdash; it is a suggestion, not a rule.</span></div>`;
+        return `<div class="ask">Suggested ${lending?"lending":"buy"} rate <b>${S.pay}%</b>, not <b>${S.bare}%</b>.
+          Separate from the guard's cut below &mdash; not the same one twice.
+          ${on?`<span class="ison">You're on it.</span>`:`<button class="ghostBtn" id="useTrend">Use ${S.pay}%</button>`}
+          <span class="no">A suggestion, not a rule &mdash; work off ${S.bare}% if you read it differently.</span></div>`;
       })()}
     </div>`:""}
     ${metalChartHTML(metal)}
@@ -3605,20 +3598,17 @@ function metalGuardHTML(metal){
     <div class="mVerdict ${lending?"lend":"buy"}">
       <div class="k">${lending?"Lend against":"Buy against"}</div>
       <div class="d">${money0(lending?G.lend:G.buy)}<small>/oz</small></div>
-      <div class="s">not today's ${money0(s2.spot)} &mdash; that is ${(lending?G.lendCut:G.buyCut).toFixed(1)}% off</div>
+      <div class="s">${(lending?G.lendCut:G.buyCut).toFixed(1)}% off today's ${money0(s2.spot)}</div>
     </div>
-    <div class="mWhy">
-      <b>Why.</b> ${lending
-        ? `A pawn is a 60-day position: 30 days to maturity and 30 more you must hold it. Sorting every 60-day stretch since 2000 by how it ended, one in twenty lost more than <b>${Math.abs(ev.p5).toFixed(1)}%</b> when ${metal} was ${G.band==="violent"?"moving this hard":G.band==="busy"?"this busy":G.band==="calm"?"this calm":"moving normally"}. Lend under that and a bad two months still leaves you whole.`
-        : `A buy ships in the next refiner lot, so the exposure is days rather than months. Over a 10-day hold in conditions like today's, one in twenty lost more than <b>${Math.abs(ev.q5).toFixed(1)}%</b> &mdash; which is why the buy price sits much closer to spot than the loan does.`}
-    </div>
-    <div class="mEvid">
-      Measured from <b>${(G.fixings||0).toLocaleString("en-US")}</b> London fixings, ${G.from_}&ndash;${G.to}.
-      This reading matches <b>${ev.n.toLocaleString("en-US")}</b> days (about ${ev.indep} independent ${lending?"60":"10"}-day windows);
-      ${ev.down}% of them ended lower, the median ${pc(ev.mid)}, the worst ${pc(ev.worst)}.
-      Chosen on <b>${G.from}</b>.
-      ${ev.indep<20?`<b class="thin">Thin band &mdash; only about ${ev.indep} independent windows. Treat it as a hint, not a rule.</b>`:""}
-    </div>
+    <details class="fold iFold"><summary class="foldLine">Where that ${(lending?G.lendCut:G.buyCut).toFixed(1)}% comes from</summary>
+      <div class="iMore">
+        <p>${lending
+          ? `A pawn is 60 days: 30 to maturity, 30 more you must hold it. Across every 60-day stretch since 2000, one in twenty lost more than <b>${Math.abs(ev.p5).toFixed(1)}%</b> when ${metal} was ${G.band==="violent"?"moving this hard":G.band==="busy"?"this busy":G.band==="calm"?"this calm":"moving normally"}. Lend under that and a bad two months still leaves you whole.`
+          : `A buy ships in the next refiner lot, so the exposure is days. Over a 10-day hold in conditions like today's, one in twenty lost more than <b>${Math.abs(ev.q5).toFixed(1)}%</b> &mdash; which is why a buy sits closer to spot than a loan.`}</p>
+        <p>From <b>${(G.fixings||0).toLocaleString("en-US")}</b> London fixings, ${G.from_}&ndash;${G.to}. This band matches ${ev.n.toLocaleString("en-US")} days (about ${ev.indep} independent windows); ${ev.down}% ended lower, median ${pc(ev.mid)}, worst ${pc(ev.worst)}. Chosen on ${G.from}.
+        ${ev.indep<20?`<b class="thin">Thin band &mdash; about ${ev.indep} windows. A hint, not a rule.</b>`:""}</p>
+      </div>
+    </details>
   </div>`;
 }
 function calcMetal(){
@@ -8007,7 +7997,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0927.1932";
+const APP_BUILD="0927.2107";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
