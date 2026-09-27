@@ -450,7 +450,12 @@ console.log("\n  the book remembers what a thing used to be worth");
   /* the app must not be made to download it */
   const idx = readFileSync(join(ROOT, "index.html"), "utf8");
   const sw  = readFileSync(join(ROOT, "sw.js"), "utf8");
-  ok(!/-history\.json/.test(idx) && !/-history\.json/.test(sw),
+  /* Names the file rather than matching any "-history.json": the rule is
+     about the HARVEST history, which is megabytes of item prices and has no
+     business on a phone. metals-history.json is a different thing - 22KB of
+     daily gold and silver fixings that the gold page's guard reads - and it
+     is shipped on purpose. A loose regex quietly claimed both. */
+  ok(!/harvest-history\.json/.test(idx) && !/harvest-history\.json/.test(sw),
      "  and the counter never downloads it — it lives in tools/, not the app");
 }
 

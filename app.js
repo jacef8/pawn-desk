@@ -3232,17 +3232,222 @@ function loanPctOfMelt(){
   const prem=avg>0?(spot-avg)/avg:0;
   return Math.round((guardOz/spot)*(st.loanPct/100)*(prem>PEAK_OVER?0.9:1)*100);
 }
+/* ================= WHAT THE MARKET HAS ACTUALLY DONE =================
+   The counter's question, in his words: don't just lend off today's rate.
+   He is right, and the reason is arithmetic rather than opinion. A buy is
+   over in days - the lot ships, the money comes back. A pawn is a 60-day
+   position in the metal whether you wanted one or not: thirty days to
+   maturity, then thirty more the statute makes you hold it. Those are two
+   different exposures and they should not be priced off the same number.
+
+   The old guard was `min(spot, 90-day average)` plus a 10% trim when spot
+   ran hot. Honest, and blind in one eye: it only ever looked at the LEVEL.
+   In September 2026 gold sat within 0.1% of its 90-day average, so the
+   guard did nothing at all - while the metal was swinging at the 85th
+   percentile of its own 25-year history and sitting 21% below January's
+   peak. Calm price, violent market.
+
+   metals-risk.json is what tools/build-metal-risk.mjs measured off 6,700
+   LBMA fixings back to 2000: for every day, what a 60-day hold was worth
+   when it ended. The fifth percentile of that - one hold in twenty went at
+   least this far against you - IS the haircut. It is not a forecast. It is
+   what the last quarter-century did, sorted.
+
+   Re-run the tool whenever you want the table to learn from more months. */
+let MRISK=null, MHIST=null;
+async function loadMetalRisk(){
+  try{
+    const [a,b]=await Promise.all([
+      fetch("metals-risk.json",{cache:"no-store"}).then(r=>r.ok?r.json():null).catch(()=>null),
+      fetch("metals-history.json",{cache:"no-store"}).then(r=>r.ok?r.json():null).catch(()=>null)]);
+    if(a&&a.metals)MRISK=a;
+    if(b&&b.days)MHIST=b;
+    if(MRISK||MHIST){ try{ render(); }catch(e){} }
+  }catch(e){}
+}
+/* THE PART THAT KEEPS BUILDING.
+   Every price the morning feed brings in is written down here, so the
+   series the desk reasons from grows by a day, every day, without anybody
+   re-running anything. The shipped history is the seed; this is the log. */
+const SPOTLOG="pawnDeskSpotLog";
+function spotLogRead(){ try{ return JSON.parse(localStorage.getItem(SPOTLOG)||"{}")||{}; }catch(e){ return {}; } }
+function spotLogWrite(day,gold,silver){
+  if(!day||!(gold>0)||!(silver>0))return;
+  try{
+    const L=spotLogRead();
+    if(L[day]&&L[day][0]===gold&&L[day][1]===silver)return;
+    L[day]=[gold,silver];
+    /* three years is plenty to hold on a device; the table behind the
+       haircut lives in the shipped file, not here */
+    const keys=Object.keys(L).sort();
+    while(keys.length>1100)delete L[keys.shift()];
+    localStorage.setItem(SPOTLOG,JSON.stringify(L));
+  }catch(e){}
+}
+/* shipped history + everything logged since, one series, newest last */
+function metalSeries(metal){
+  const out={};
+  if(MHIST&&MHIST.days&&MHIST.days[metal])for(const [d,v] of MHIST.days[metal])out[d]=v;
+  const L=spotLogRead(), i=metal==="silver"?1:0;
+  for(const d in L){ const v=L[d]&&L[d][i]; if(v>0)out[d]=v; }
+  return Object.keys(out).sort().map(d=>[d,out[d]]);
+}
+/* Today's reading of the market, from that series. Everything here is
+   arithmetic on prices - no judgement is applied until metalGuard(). */
+function metalState(metal){
+  const S=metalSeries(metal);
+  if(S.length<80)return null;
+  const v=S.map(r=>r[1]), n=v.length;
+  const live=spotOf(metal);
+  /* the counter's own typed number wins for today, same as everywhere else */
+  const spot=(live>0)?live:v[n-1];
+  const mean=a=>a.reduce((x,y)=>x+y,0)/a.length;
+  const a90=mean(v.slice(-63)), a200=mean(v.slice(-140));
+  const peak=Math.max.apply(null,v.slice(-252));
+  const lr=[]; for(let i=1;i<n;i++)lr.push(Math.log(v[i]/v[i-1]));
+  const w=lr.slice(-21);
+  if(w.length<15)return null;
+  const m=mean(w);
+  const vol=Math.sqrt(w.reduce((x,y)=>x+(y-m)*(y-m),0)/(w.length-1))*Math.sqrt(252);
+  const R=MRISK&&MRISK.metals&&MRISK.metals[metal];
+  const cuts=(R&&R.volCuts)||null;
+  let band="normal";
+  if(cuts){ const p=vol*100;
+    band = p<cuts[0]?"calm" : p<cuts[1]?"normal" : p<cuts[2]?"busy" : "violent"; }
+  return {spot, a90, a200, peak, days:n, last:S[n-1][0],
+          prem:(spot-a90)/a90, dd:(spot/peak-1), vol, band,
+          aboveLong:spot>=a200, cuts};
+}
+const PREM_BAND=p => p< -0.05?"under" : p<0.05?"at" : p<0.10?"warm" : p<0.15?"hot" : "spike";
+/* The two guard prices, and the evidence for each. */
+function metalGuard(metal){
+  const st2=metalState(metal), R=MRISK&&MRISK.metals&&MRISK.metals[metal];
+  if(!st2||!R)return null;
+  const byVol=R.byVol&&R.byVol[st2.band];
+  const pb=PREM_BAND(st2.prem), byPrem=R.byPrem&&R.byPrem[pb];
+  /* Volatility is the better-sampled of the two and the bigger lever, so it
+     always counts. The level only overrides it when it is WORSE and has
+     enough independent windows behind it to mean anything - gold's "hot"
+     bucket is five independent windows in twenty-five years and is not
+     something to size a loan off. */
+  let use=byVol, from="how hard it is moving";
+  if(byPrem&&byPrem.indep>=20&&byVol&&byPrem.p5<byVol.p5){ use=byPrem; from="where the price sits"; }
+  if(!use)return null;
+  const cap=x=>Math.max(0,Math.min(30,Math.abs(x)));
+  const lendCut=cap(use.p5), buyCut=cap(use.q5);
+  return {st:st2, band:st2.band, premBand:pb, from, ev:use,
+          lendCut, buyCut,
+          lend:st2.spot*(1-lendCut/100),
+          buy:st2.spot*(1-buyCut/100),
+          fixings:R.fixings, from_:R.from, to:R.to};
+}
+/* The two years behind the number, drawn small enough to live in a column.
+   The counter asked for a trend chart on this page; what makes it worth the
+   space is not the line but the two marks on it - where the 90-day average
+   runs, and where the guard price sits under today. You can see the gap you
+   are lending inside. */
+function metalChartHTML(metal){
+  const S=metalSeries(metal);
+  if(S.length<80)return "";
+  const G=metalGuard(metal), st2=G?G.st:metalState(metal);
+  if(!st2)return "";
+  const v=S.map(r=>r[1]);
+  const W=340,H=96,PL=4,PR=54,PT=8,PB=14;
+  const lo=Math.min.apply(null,v)*0.97, hi=Math.max.apply(null,v)*1.03;
+  const X=i=>PL+i/(v.length-1)*(W-PL-PR);
+  const Y=p=>H-PB-(p-lo)/(hi-lo)*(H-PT-PB);
+  let d="";
+  for(let i=0;i<v.length;i++)d+=(i?"L":"M")+X(i).toFixed(1)+" "+Y(v[i]).toFixed(1);
+  /* the 90-day average as a trailing line, so "above or below" is visible
+     rather than asserted */
+  let a="";
+  for(let i=62;i<v.length;i++){
+    let t=0; for(let k=i-62;k<=i;k++)t+=v[k];
+    a+=(a?"L":"M")+X(i).toFixed(1)+" "+Y(t/63).toFixed(1);
+  }
+  const yGuard=G?Y(G.lend):null;
+  const money0=n=>"$"+Math.round(n).toLocaleString("en-US");
+  const yr=(()=>{ const out=[]; let seen="";
+    for(let i=0;i<S.length;i++){ const m=S[i][0].slice(0,7);
+      if(m.slice(5)==="01"&&m!==seen){ seen=m;
+        out.push(`<text class="mcAx" x="${X(i).toFixed(1)}" y="${H-3}" text-anchor="middle">${S[i][0].slice(0,4)}</text>`); } }
+    return out.join(""); })();
+  return `<div class="mChart">
+    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${metal} price, two years, ${money0(v[0])} to ${money0(st2.spot)} per ounce">
+      ${G&&yGuard!=null&&yGuard<H-PB?`<rect x="${PL}" y="${yGuard.toFixed(1)}" width="${(W-PL-PR).toFixed(1)}" height="${(H-PB-yGuard).toFixed(1)}" class="mcSafe"/>`:""}
+      <path d="${d}" class="mcLine"/>
+      <path d="${a}" class="mcAvg"/>
+      ${G&&yGuard!=null?`<line x1="${PL}" y1="${yGuard.toFixed(1)}" x2="${(W-PR).toFixed(1)}" y2="${yGuard.toFixed(1)}" class="mcGuard"/>
+        <text class="mcLab guard" x="${(W-PR+5)}" y="${(yGuard+3.5).toFixed(1)}">${money0(G.lend)}</text>`:""}
+      <circle cx="${X(v.length-1).toFixed(1)}" cy="${Y(st2.spot).toFixed(1)}" r="3.2" class="mcNow"/>
+      <text class="mcLab now" x="${(W-PR+5)}" y="${(Y(st2.spot)+3.5).toFixed(1)}">${money0(st2.spot)}</text>
+      ${yr}
+    </svg>
+    <div class="mcKey"><span><i class="k1"></i>${metal} fix</span><span><i class="k2"></i>90-day average</span>${G?`<span><i class="k3"></i>lend against</span>`:""}</div>
+  </div>`;
+}
+/* The reading, and the number it produces, with the evidence attached. The
+   counter has to be able to argue with it - so it says what it measured,
+   how many windows are behind it, and what it would say instead if the
+   market were calm. */
+function metalGuardHTML(metal){
+  const G=metalGuard(metal);
+  if(!G)return metalChartHTML(metal);
+  const s2=G.st, ev=G.ev;
+  const money0=n=>"$"+Math.round(n).toLocaleString("en-US");
+  const pc=n=>(n>=0?"+":"−")+Math.abs(n).toFixed(1)+"%";
+  const BAND={calm:["Calm","good"],normal:["Normal",""],busy:["Busy","warn"],violent:["Moving fast","bad"]}[G.band]||["",""];
+  const lending=st.deal!=="buy";
+  return `<div class="card mGuard">
+    <span class="label">${metal==="gold"?"Gold":"Silver"} &mdash; what the market has been doing</span>
+    ${metalChartHTML(metal)}
+    <div class="mRead">
+      <div class="mStat"><span class="k">30-day swing</span><b class="${BAND[1]}">${Math.round(s2.vol*100)}%</b><span class="s">${BAND[0]}</span></div>
+      <div class="mStat"><span class="k">Off its 12-month peak</span><b>${pc(s2.dd*100)}</b><span class="s">peak ${money0(s2.peak)}</span></div>
+      <div class="mStat"><span class="k">Against the 90-day</span><b>${pc(s2.prem*100)}</b><span class="s">${s2.aboveLong?"above":"below"} its 200-day</span></div>
+    </div>
+    <div class="mVerdict ${lending?"lend":"buy"}">
+      <div class="k">${lending?"Lend against":"Buy against"}</div>
+      <div class="d">${money0(lending?G.lend:G.buy)}<small>/oz</small></div>
+      <div class="s">not today's ${money0(s2.spot)} &mdash; that is ${(lending?G.lendCut:G.buyCut).toFixed(1)}% off</div>
+    </div>
+    <div class="mWhy">
+      <b>Why.</b> ${lending
+        ? `A pawn is a 60-day position: 30 days to maturity and 30 more you must hold it. Sorting every 60-day stretch since 2000 by how it ended, one in twenty lost more than <b>${Math.abs(ev.p5).toFixed(1)}%</b> when ${metal} was ${G.band==="violent"?"moving this hard":G.band==="busy"?"this busy":G.band==="calm"?"this calm":"moving normally"}. Lend under that and a bad two months still leaves you whole.`
+        : `A buy ships in the next refiner lot, so the exposure is days rather than months. Over a 10-day hold in conditions like today's, one in twenty lost more than <b>${Math.abs(ev.q5).toFixed(1)}%</b> &mdash; which is why the buy price sits much closer to spot than the loan does.`}
+    </div>
+    <div class="mEvid">
+      Measured from <b>${(G.fixings||0).toLocaleString("en-US")}</b> London fixings, ${G.from_}&ndash;${G.to}.
+      This reading matches <b>${ev.n.toLocaleString("en-US")}</b> days (about ${ev.indep} independent ${lending?"60":"10"}-day windows);
+      ${ev.down}% of them ended lower, the median ${pc(ev.mid)}, the worst ${pc(ev.worst)}.
+      Chosen on <b>${G.from}</b>.
+      ${ev.indep<20?`<b class="thin">Thin band &mdash; only about ${ev.indep} independent windows. Treat it as a hint, not a rule.</b>`:""}
+    </div>
+  </div>`;
+}
 function calcMetal(){
   const g=parseFloat(st.grams); if(!g||g<=0)return null;
   const spot=spotOf(st.metal), avg=avgOf(st.metal);
   const purity=st.metal==="gold"?PURITY.find(p=>p.k===st.karat).p:0.925;
   const melt=(spot/31.1035)*purity*g;
-  const guardOz=Math.min(spot,avg||spot);
-  const meltGuard=(guardOz/31.1035)*purity*g;
   const premium=avg>0?(spot-avg)/avg:0;
-  const peakTrim=premium>PEAK_OVER?0.9:1;
-  return {melt,buy:melt*(st.payPct/100),loan:meltGuard*(st.loanPct/100)*peakTrim,
-          premium,guarded:guardOz<spot,trimmed:peakTrim<1};
+  /* THE GUARD PRICE, MEASURED RATHER THAN GUESSED.
+     Was min(spot, 90-day average) with a 10% trim when spot ran hot. That
+     only ever read the LEVEL, so a market that was calm in price and
+     violent in movement got no guard at all. metalGuard() prices the loan
+     off what a 60-day hold has actually cost in conditions like today's,
+     and the buy off what a 10-day hold has cost - because a buy ships and
+     a pawn sits. The old rule stays as the floor: if it is more cautious
+     than the measurement on a given day, it wins. */
+  const G=(typeof metalGuard==="function")?metalGuard(st.metal):null;
+  const oldGuard=Math.min(spot,avg||spot)*(premium>PEAK_OVER?0.9:1);
+  const lendOz=G?Math.min(G.lend,oldGuard):oldGuard;
+  const buyOz=G?Math.min(G.buy,spot):spot;
+  const meltGuard=(lendOz/31.1035)*purity*g;
+  const meltBuy=(buyOz/31.1035)*purity*g;
+  return {melt,buy:meltBuy*(st.payPct/100),loan:meltGuard*(st.loanPct/100),
+          premium,guard:G,lendOz,buyOz,
+          guarded:lendOz<spot,trimmed:buyOz<spot};
 }
 function feedTagHTML(){
   const days=Math.round((Date.now()-new Date(FEED.date+"T12:00:00").getTime())/86400000);
@@ -3398,6 +3603,10 @@ function renderMetal(){
       Your buy rate. The lending rate is set separately &mdash; switch to <b style="color:var(--ink)">Pawn loan</b> to change it.</div>`}
   </div>`;
   const extra=()=>`<div id="metalExtra">${metalExtraInner()}</div>`;
+  /* The trend chart the counter asked for, and the guard price it explains.
+     Empty string until the two data files land, so a cold load or an
+     offline device simply does not show it rather than showing a hole. */
+  const guardCard=()=>(typeof metalGuardHTML==="function")?metalGuardHTML(st.metal):"";
 
   /* THE ANSWER SHOULD NOT BE THE FOURTH SCREEN.
      On the desk these are three columns and the offer is already beside
@@ -3425,13 +3634,13 @@ function renderMetal(){
     if(gates)parts.push(fakeCardHTML(null));
     /* the offer and the rules it carries take the next numbers */
     const res=metalResultHTML(n);
-    parts.push(`<div id="metalResult">${res}</div>`, rateCard(), extra(), spotCard(), avgCard());
+    parts.push(`<div id="metalResult">${res}</div>`, rateCard(), guardCard(), extra(), spotCard(), avgCard());
     if(!gates)parts.push(fakeCardHTML(null));
     return `<div class="colC">${parts.join("")}</div>`;
   }
 
   const left=`<div class="colL">${metalCard()}${dealCard()}${spotCard()}${avgCard()}</div>`;
-  const mid=`<div class="colC">${weightCard()}${fakeCardHTML(null)}${rateCard()}${extra()}</div>`;
+  const mid=`<div class="colC">${weightCard()}${guardCard()}${fakeCardHTML(null)}${rateCard()}${extra()}</div>`;
   const right=`<div class="colR"><div id="metalResult">${metalResultHTML(n)}</div></div>`;
   return left+mid+right;
 }
@@ -7595,7 +7804,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0927.1046";
+const APP_BUILD="0927.1614";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

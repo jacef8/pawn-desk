@@ -36,6 +36,9 @@ async function liveMetals(){
     const d=new Date(), p=n=>String(n).padStart(2,"0");
     FEED.gold=Math.round(g); FEED.silver=Math.round(sv*100)/100;
     FEED.date=d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate()); FEED.source="gold-api.com, live";
+    /* every price that arrives is written down, so the series the guard
+       reasons from grows by a day without anybody re-running anything */
+    try{ spotLogWrite(FEED.date,FEED.gold,FEED.silver); }catch(e){}
     try{ render(); }catch(e){}
   }catch(e){}
 }
@@ -50,6 +53,7 @@ window.standaloneBoot=function(){
   liveMetals();
   try{ refreshPrices(); }catch(e){}
   try{ loadFakes(); }catch(e){}
+  try{ loadMetalRisk(); }catch(e){}
   try{ readBuild(); }catch(e){}
   try{ pdSync(); }catch(e){}
   if("serviceWorker" in navigator&&location.protocol==="https:"){ try{ navigator.serviceWorker.register("sw.js").catch(()=>{}); }catch(e){} }

@@ -1485,6 +1485,76 @@ console.log("\n  a book price says whether somebody paid it");
 }
 
 ok(!errs.length, "no page errors" + (errs.length ? ": " + errs[0] : ""));
+/* ================= THE GUARD PRICE IS MEASURED, NOT GUESSED =================
+   Asked for at the counter: "don't just lend based off today's rate."
+   The loan now prices off what a 60-day hold has actually cost in markets
+   like today's, read from metals-risk.json, which tools/build-metal-risk.mjs
+   measures off 6,700 London fixings.
+
+   Three things can go wrong quietly here and none of them throws:
+     - the two data files stop loading and the page silently reverts to spot
+     - the haircut inverts, so a violent market lends MORE than a calm one
+     - the buy price picks up the loan's 60-day haircut, and every buy comes
+       in 12% light for no reason
+   So each is checked against numbers rather than against the page drawing. */
+console.log("\n  the metal guard prices off what the market has actually done");
+{
+  const pg = await browser.newPage({viewport:{width:1500,height:1000}});
+  const errs = [];
+  pg.on("pageerror", e => errs.push(String(e)));
+  await pg.goto(BASE + "/index.html", {waitUntil:"networkidle"});
+  await pg.waitForTimeout(900);
+  const r = await pg.evaluate(() => {
+    const out = {loaded: !!(MRISK && MHIST)};
+    st.mode = "metal"; st.metal = "gold"; st.deal = "pawn"; st.grams = "10"; render();
+    const G = metalGuard("gold"), S = metalState("gold");
+    out.state = S && {days: S.days, band: S.band, vol: S.vol};
+    out.guard = G && {lend: G.lend, buy: G.buy, lendCut: G.lendCut, buyCut: G.buyCut, spot: G.st.spot};
+    /* the loan must actually USE it, not merely display it */
+    const m = calcMetal();
+    out.lendOz = m && m.lendOz;
+    out.buyOz  = m && m.buyOz;
+    /* every band, both metals: the haircut has to grow with the violence */
+    out.ladder = {};
+    for (const metal of ["gold", "silver"]) {
+      const R = MRISK.metals[metal];
+      out.ladder[metal] = ["calm", "normal", "busy", "violent"]
+        .map(k => R.byVol[k] && {band: k, p5: R.byVol[k].p5, q5: R.byVol[k].q5, indep: R.byVol[k].indep});
+    }
+    /* the log that makes it keep building */
+    out.logged = (() => {
+      try {
+        spotLogWrite("2026-09-26", 4300, 65);
+        const back = metalSeries("gold").filter(x => x[0] === "2026-09-26");
+        return back.length === 1 && back[0][1] === 4300;
+      } catch (e) { return "threw: " + e.message; }
+    })();
+    return out;
+  });
+  const g = r.guard || {}, L = r.ladder || {};
+  const grows = arr => arr && arr.every(Boolean)
+    && Math.abs(arr[3].p5) > Math.abs(arr[0].p5) && Math.abs(arr[3].p5) > Math.abs(arr[1].p5);
+  const t = [
+    ["both data files load", r.loaded === true],
+    ["two years of fixings are on the device", !!(r.state && r.state.days > 400)],
+    ["a guard price comes out", !!(g.lend > 0 && g.buy > 0)],
+    ["it is BELOW today's spot", g.lend < g.spot && g.buy < g.spot],
+    ["and the loan is guarded harder than the buy", g.lendCut > g.buyCut],
+    ["the offer arithmetic actually uses it", Math.abs((r.lendOz || 0) - g.lend) < 1],
+    ["and the buy uses the short-hold price, not the loan's", Math.abs((r.buyOz || 0) - g.buy) < 1],
+    ["gold: a violent market is haircut harder than a calm one", grows(L.gold)],
+    ["silver: the same", grows(L.silver)],
+    ["silver is haircut harder than gold throughout",
+     L.gold && L.silver && L.gold.every((b, i) => Math.abs(L.silver[i].p5) > Math.abs(b.p5))],
+    ["every band says how many independent windows are behind it",
+     L.gold && L.gold.every(b => b.indep > 0)],
+    ["a new day's price is logged and reaches the series", r.logged === true],
+  ];
+  for (const [what, pass] of t) ok(pass, what);
+  ok(!errs.length, "  no page errors" + (errs.length ? ": " + errs[0] : ""));
+  await pg.close();
+}
+
 await browser.close();
 console.log(fails ? "\n  " + fails + " FAILED\n" : "\n  all passed\n");
 process.exit(fails ? 1 : 0);
