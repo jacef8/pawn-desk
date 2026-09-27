@@ -2811,7 +2811,7 @@ function renderItem(){
     </div>
     <div class="card"><span class="label">2 &middot; Item</span>
       <div class="cardHint" style="margin-top:0;font-size:13.5px">Not here? Type it in the search bar at the top. It also searches ${PRICEBOOK.length}+ more items.</div>
-      ${cat.items.map((it,ix)=>`<button class="itemBtn${st.picked&&it.id===st.itemId?" on":""}" data-item="${it.id}"><span class="idx">${String(ix+1).padStart(2,"0")}</span><span style="flex:1">${it.name}</span>${ownAvgTag(it.id)}</button>`).join("")}
+      ${itemsByUse(cat).map(({it,seen},ix)=>`<button class="itemBtn${st.picked&&it.id===st.itemId?" on":""}" data-item="${it.id}"><span class="idx">${String(ix+1).padStart(2,"0")}</span><span style="flex:1">${it.name}</span>${seen?`<span class="seenTag">${seen}\u00d7 taken in</span>`:""}${ownAvgTag(it.id)}</button>`).join("")}
       <button class="itemBtn${st.picked&&st.itemId===custId(cat.id)?" on":""}" data-item="${custId(cat.id)}"><span class="idx">+</span><span style="flex:1">${st.itemId===custId(cat.id)&&st.bookName?esc(st.bookName):"Not on any list — I set the price"}</span></button>
     /* On the phone this column is hidden and the camera card is drawn in the
        visible run instead - drawing it here too would put two of every id on
@@ -2976,9 +2976,9 @@ function renderItem(){
            the tiles below and still names a few in one line of prose. -->
       <div class="startWays">
         <span class="label" style="margin:0">Or pick the kind of thing it is &mdash; ${CATALOG.reduce((a,c)=>a+c.items.length,0)} of them, and ${mpCount()} models by name</span>
-        <div class="startGrid">${CATALOG.map(c=>
+        <div class="startGrid">${catsByUse().map(({c,seen})=>
           `<button class="kindTile" type="button" data-cat="${c.id}"><b>${esc(c.label)}</b>`
-          +`<span>${c.items.length} kind${c.items.length===1?"":"s"}</span></button>`).join("")}</div>
+          +`<span>${seen?seen+"\u00d7 taken in":c.items.length+" kind"+(c.items.length===1?"":"s")}</span></button>`).join("")}</div>
       </div>
     </div>
     <div class="startRail">
@@ -8098,7 +8098,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0928.0134";
+const APP_BUILD="0928.0251";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -8419,6 +8419,54 @@ function refreshStep4(){
 /* uncheckedTicketHTML lived here. The loan card no longer goes blank when
    nothing has been looked up - it shows the desk's own estimate and says
    so - so there is nothing left for it to draw. */
+/* THE ONES THAT WALK IN MOST, FIRST.
+   Asked for at the counter. The catalog's order is the order somebody wrote
+   it in, which is not the order things come through the door - a pawn shop
+   sees ten drills for every welder, and the drill was ninth.
+
+   What it orders BY matters more than that it orders. There is no trade
+   table of "what gets pawned most" worth trusting, and inventing a ranking
+   would be a guess dressed as data. The shop's own deal log is not a guess:
+   every ticket written says what actually walked in. So the list is ordered
+   by that, and by nothing else - items the log has never seen keep the
+   catalog's order underneath, unchanged.
+
+   Which means on day one this does nothing at all, and that is correct. It
+   sharpens with every ticket. */
+function itemCounts(catId){
+  const out={};
+  if(typeof DEALS==="undefined"||!DEALS.length)return out;
+  for(const d of DEALS){
+    const id=String(d.itemId||(d.key||"").split("|")[0]||"");
+    if(!id)continue;
+    if(catId&&d.catId&&d.catId!==catId)continue;
+    out[id]=(out[id]||0)+1;
+  }
+  return out;
+}
+/* Catalog order, with anything the log has seen lifted to the front in the
+   order it has seen it. Stable: two items with the same count keep their
+   shipped order rather than shuffling between renders. */
+function itemsByUse(cat){
+  const items=(cat&&cat.items)||[];
+  const n=itemCounts(cat&&cat.id);
+  if(!Object.keys(n).length)return items.map((it,i)=>({it,seen:0,i}));
+  return items.map((it,i)=>({it,seen:n[it.id]||0,i}))
+              .sort((a,b)=>b.seen-a.seen||a.i-b.i);
+}
+/* The same rule one level up, for the aisles - which IS the list the
+   counter meets, because the item list above it renders only in a flow
+   stepFlow() no longer returns. Same discipline: the log or nothing. */
+function catsByUse(){
+  const n=itemCounts(null), per={};
+  if(typeof DEALS!=="undefined")for(const d of DEALS){
+    const c=d.catId||((CATALOG.find(x=>x.items.some(i=>i.id===d.itemId))||{}).id);
+    if(c)per[c]=(per[c]||0)+1;
+  }
+  if(!Object.keys(per).length)return CATALOG.map((c,i)=>({c,seen:0,i}));
+  return CATALOG.map((c,i)=>({c,seen:per[c.id]||0,i}))
+                .sort((a,b)=>b.seen-a.seen||a.i-b.i);
+}
 function ownAvgTag(id){ const s=CAP.db?soldStats(id):null; return s?`<span class="price mine">you: ${money(s.avg)}</span>`:""; }
 
 /* The Pawn price favorite sends "PAWNDESK:{...}" straight back to the desk tab

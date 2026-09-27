@@ -1894,6 +1894,56 @@ console.log("\n  the make says what the thing is");
   await pg.close();
 }
 
+/* ================= THE ONES THAT WALK IN MOST, FIRST =====================
+   Asked for at the counter. What it orders BY is the whole question: there
+   is no trade table of "what gets pawned most" worth trusting, and
+   inventing a ranking would be a guess dressed as data. The deal log is
+   not a guess — every ticket says what actually came through the door.
+   So: the log, or the shipped order. Nothing else.
+
+   Which means on day one it changes nothing, and that is correct. */
+console.log("\n  the aisles order themselves by what has come through the door");
+{
+  const pg = await browser.newPage({viewport:{width:1500,height:1000}});
+  const errs = [];
+  pg.on("pageerror", e => errs.push(String(e)));
+  await pg.goto(BASE + "/index.html", {waitUntil:"networkidle"});
+  await pg.waitForTimeout(1100);
+  const r = await pg.evaluate(() => {
+    const tiles = () => [...document.querySelectorAll(".kindTile")]
+      .map(t => t.innerText.replace(/\s+/g, " ").trim());
+    st.mode = "item"; st.picked = false; DEALS = []; render();
+    const cold = tiles();
+    DEALS = [{itemId:"t1",catId:"tools"},{itemId:"t2",catId:"tools"},{itemId:"t1",catId:"tools"},
+             {itemId:"e4",catId:"elec"},{itemId:"e4",catId:"elec"}];
+    render();
+    const warm = tiles();
+    /* items inside an aisle follow the same rule */
+    const cat = CATALOG.find(c => c.id === "tools");
+    const itemOrder = itemsByUse(cat).map(o => o.it.id + (o.seen ? ":" + o.seen : ""));
+    DEALS = []; render();
+    const back = tiles();
+    return {cold, warm, back, itemOrder};
+  });
+  const t = [
+    ["the tiles are on the start page", r.cold.length > 5],
+    ["with no log, the shipped order is untouched",
+     r.cold.join("|") === r.back.join("|")],
+    ["and no tile claims a count it has not got", !r.cold.some(x => /taken in/i.test(x))],
+    ["three tool tickets put Tools first", /^Tools/.test(r.warm[0] || "")],
+    ["two phone tickets put Electronics second", /^Electronics/.test(r.warm[1] || "")],
+    ["and the tile says how many, so the order is explainable",
+     /3.*taken in/i.test(r.warm[0] || "")],
+    ["everything unseen keeps its shipped order underneath",
+     r.warm.slice(2).join("|") === r.cold.filter(c => !/^Tools|^Electronics/.test(c)).join("|")],
+    ["items inside an aisle follow the same rule",
+     r.itemOrder[0] === "t1:2" && r.itemOrder[1] === "t2:1"],
+  ];
+  for (const [what, pass] of t) ok(pass, what);
+  ok(!errs.length, "  no page errors" + (errs.length ? ": " + errs[0] : ""));
+  await pg.close();
+}
+
 await browser.close();
 console.log(fails ? "\n  " + fails + " FAILED\n" : "\n  all passed\n");
 process.exit(fails ? 1 : 0);
