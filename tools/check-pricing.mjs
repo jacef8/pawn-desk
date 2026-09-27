@@ -1830,6 +1830,70 @@ console.log("\n  a maker and its own product line are not rival brands");
   await pg.close();
 }
 
+/* ================= THE MAKE OFTEN SAYS WHAT THE THING IS ==================
+   Reported from the counter with a Tactacam Reveal SK on the glass: the
+   make question offered "Leupold / Vortex / Zeiss", "Bushnell / Nikon" and
+   "Tasco / no name" — the hunting aisle's OPTICS tiers — for a game
+   camera. Leupold and Zeiss do not make one.
+
+   The words had a typo, so no book row matched, so the search offered "use
+   what I typed", which makes a CUSTOM item. A custom item has no
+   overrides, so it inherits the aisle's tiers, and the hunting aisle's
+   tiers are about glass. Meanwhile h4, the trail camera, lists Tactacam in
+   its own top tier — the aisle knew, and nothing asked it.
+
+   NOTE ON THE TEST ITSELF: each query gets a FRESH PAGE. Picking several
+   in a loop carries state between them, and the first version of this
+   reported two false failures because of it. */
+console.log("\n  the make says what the thing is");
+{
+  const want = [
+    ["tactacam real sk", "Trail camera",     /Tactacam/],
+    ["mathews v3 bow",   "Compound bow",     /Mathews/],
+    ["shimano reel",     "Rod & reel combo", /Shimano/],
+    ["minn kota 55",     "Trolling motor",   /Minn Kota/],
+    ["spypoint cam",     "Trail camera",     /Tactacam/],
+  ];
+  for (const [q, item, hiRe] of want) {
+    const pg = await browser.newPage({viewport:{width:1400,height:900}});
+    await pg.goto(BASE + "/index.html", {waitUntil:"networkidle"});
+    await pg.waitForTimeout(1100);
+    const r = await pg.evaluate((qq) => {
+      const R = omniRows(qq) || {rows: []};
+      const own = (R.rows || []).find(x => x.kind === "own");
+      if (!own) return {none: true};
+      omniPick(own);
+      const x = calcItem();
+      return {item: x.item && x.item.name, hi: tierLabel(x, "hi"),
+              mid: tierLabel(x, "mid"), make: st.brandTyped};
+    }, q);
+    ok(!r.none && r.item === item,
+       `"${q}" lands on ${item} — got ${r.none ? "no row" : r.item}`);
+    ok(!r.none && hiRe.test(r.hi || ""),
+       `  and offers its own makes, not the aisle's — ${r.hi}`);
+    /* the specific wrong thing that was on screen */
+    ok(!r.none && !/Leupold|Zeiss/i.test(r.hi + " " + r.mid) || item === "Rifle scope",
+       "  no optics tiers on a thing that is not optics");
+    await pg.close();
+  }
+  /* AND THE REFUSALS. A make two items both claim says nothing, and an
+     aisle whose headline product IS the optics must keep its tiers. */
+  const pg = await browser.newPage({viewport:{width:1400,height:900}});
+  await pg.goto(BASE + "/index.html", {waitUntil:"networkidle"});
+  await pg.waitForTimeout(1100);
+  const r2 = await pg.evaluate(() => ({
+    ambiguous: itemFromBrand("hunt", "bushnell"),     /* h4 mid AND the aisle's glass */
+    unknown:   itemFromBrand("hunt", "widgetcorp"),
+    tactacam:  itemFromBrand("hunt", "tactacam real sk"),
+    substring: itemFromBrand("hunt", "bearing")       /* must not fire on "Bear" */
+  }));
+  ok(r2.ambiguous === null, "a make two items both claim names neither — " + r2.ambiguous);
+  ok(r2.unknown === null, "an unknown make names nothing");
+  ok(r2.tactacam === "h4", "a make only one item claims names it");
+  ok(r2.substring === null, "and it matches whole words — \"bearing\" is not Bear");
+  await pg.close();
+}
+
 await browser.close();
 console.log(fails ? "\n  " + fails + " FAILED\n" : "\n  all passed\n");
 process.exit(fails ? 1 : 0);

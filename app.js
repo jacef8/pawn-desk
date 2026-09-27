@@ -2007,6 +2007,55 @@ const ITEM_OVERRIDES={
      detail:{ph:"size & year — 65in, 2024",hint:"Size and model year ARE the price — two model years old is half of new."}}
 };
 function itemOv(){return ITEM_OVERRIDES[st.itemId]||null;}
+/* THE MAKE OFTEN SAYS WHAT THE THING IS.
+   Reported from the counter, with a Tactacam Reveal SK on the glass: the
+   make question offered "Leupold / Vortex / Zeiss", "Bushnell / Nikon" and
+   "Tasco / no name" - the hunting aisle's OPTICS tiers - for a game
+   camera. Leupold and Zeiss do not make one. And it never asked what kind
+   of thing a Tactacam is before deciding.
+
+   What happened: the words did not match the book row (a Reveal SK typed
+   as "real sk"), so the search offered "use what I typed", which makes a
+   CUSTOM item in the aisle. A custom item has no overrides, so it inherits
+   the AISLE's brand tiers - and the hunting aisle's tiers are about glass.
+
+   But the aisle already knows the answer. h4, the trail camera, lists
+   Reconyx, Tactacam and Browning as its own top tier. A make that appears
+   in exactly one item's brand list in that aisle names that item. Nothing
+   consulted it, so the desk had Tactacam written down as a make and still
+   did not know it was looking at a camera. */
+function itemFromBrand(catId,txt){
+  const cat=CATALOG.find(c=>c.id===catId); if(!cat)return null;
+  /* Scans the ITEMS' own brand lists rather than asking the aisle's brand
+     book what the make is. The aisle book is about the aisle's headline
+     product - the hunting one is full of glass - so it never heard of
+     Mathews or Minn Kota, and leaning on it found Tactacam and missed the
+     rest. These lists are the thing that actually knows. */
+  const t=" "+omniNorm(txt)+" ";
+  /* A MAKE THE AISLE ITSELF NAMES IS NOT DECISIVE.
+     The aisle's brand book is a flat union of every product in it, so it
+     says nothing. But the aisle's TIER LABELS name the makes of its
+     headline product - hunting reads "Leupold / Vortex / Zeiss",
+     "Bushnell / Nikon", "Tasco / no name", which is glass. Bushnell is in
+     the trail camera's list too, and Bushnell is at least as much a scope
+     maker, so "bushnell" must not land on a camera. Tactacam, Mathews,
+     Shimano and Minn Kota appear in no label and stay decisive. */
+  const labels=" "+omniNorm(["hi","mid","lo"].map(k=>(cat.brand&&cat.brand[k])||"").join(" "))+" ";
+  let found=null;
+  for(const it of cat.items){
+    const ov=ITEM_OVERRIDES[it.id]; if(!ov||!ov.brands)continue;
+    const mine=["hi","mid","lo"].some(tier=>(ov.brands[tier]||[]).some(b=>{
+      const n=omniNorm(b);
+      /* whole words only: "bear" must not fire on "bearing" */
+      if(!(n.length>=3&&t.indexOf(" "+n+" ")>=0))return false;
+      return labels.indexOf(" "+n+" ")<0;   /* the aisle claims it: says nothing */
+    }));
+    if(!mine)continue;
+    if(found&&found!==it.id)return null;   /* two items claim it - it says nothing */
+    found=it.id;
+  }
+  return found;
+}
 function specRead(catId,itemName,txt){
   const out={mult:1,notes:[],stop:false,absSuggest:null};
   let t=String(txt||""); if(!t.trim())return out;
@@ -6660,14 +6709,23 @@ function omniPick(r){
        only one aisle carries it, that is the aisle. */
     const g=guessCat(r.q);
     if(g)st.catId=g;
-    st.omniQ=r.q; st.omniHl=0; st.mode="item"; st.itemId=custId(st.catId); st.bookName=r.q;
+    st.omniQ=r.q; st.omniHl=0; st.mode="item";
+    /* Before settling for a custom row, see whether the make names the
+       thing: a Tactacam is a trail camera, a Mathews is a compound bow, a
+       Minn Kota is a trolling motor. Landing on the real item brings its
+       own brand tiers, its own detail hint and the book rows filed under
+       it - all of which a custom row has none of. */
+    const kindFromMake=g?itemFromBrand(g,r.q):null;
+    st.itemId=kindFromMake||custId(st.catId);
+    st.bookName=kindFromMake?"":r.q;
+    st.mpNone=!kindFromMake;
     const bh=g?brandFromName(g,r.q):null;
     st.brandTyped=bh?bh.name:""; st.brandQ=st.brandTyped; st.brand=bh?bh.tier:"mid"; st.brandSet=!!bh;
     st.model=""; st.detail=""; st.liq=null; st.market=null;
     /* The lookup's last word belongs to the item it was about. Left set, the
        rail told the counter about listings on file for the thing before. */
     findMsg="";
-    st.mpPin=null; st.mpNone=true; st.condSet=false; st.phKindsOpen=true; st.omniDone=r.q;
+    st.mpPin=null; st.condSet=false; st.phKindsOpen=true; st.omniDone=r.q;
     /* A guess that came off a make the desk actually carries is not a
        silent one - the aisle shows in the breadcrumb and the make step
        shows the maker it was read from, which is the evidence for it. Only
@@ -8040,7 +8098,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0928.0012";
+const APP_BUILD="0928.0134";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
