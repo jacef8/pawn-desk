@@ -1,15 +1,245 @@
 {
-  "source": "Outdoor Analytics, Top Selling Firearms by Month, Tableau Public 5RMJPZ22G",
-  "market": "GunBroker.com",
-  "month": "2026-08",
-  "condition": "used",
-  "note": "median sell price per model FAMILY, with market share of units. A family pools variants, so the median is the centre of gravity for the name and not the price of the plain one.",
-  "bolt_action_rifles": {
-    "brands": {"Remington":[17.6,890],"Ruger":[9.1,851],"Winchester":[8.5,911],"Savage":[7.9,444],"Mauser":[4.3,582],"Browning":[3.8,1042],"Weatherby":[2.8,1045],"CZ-USA":[2.8,919]},
-    "families": {"Remington 700":[9.8,1024],"Winchester Model 70":[4.6,1010],"Ruger M77 Hawkeye":[2.8,922],"Ruger Mark II":[1.7,1005],"Browning A-Bolt":[1.6,829],"Tikka T3":[1.6,853],"Weatherby Mark V":[1.4,1388],"Browning X-Bolt":[1.3,1028]}
+ "source": "Outdoor Analytics, Top Selling Firearms by Month, Tableau Public 5RMJPZ22G",
+ "market": "GunBroker.com",
+ "month": "2026-08",
+ "condition": "used",
+ "note": "median sell price per model FAMILY, with market share of units. A family pools variants, so the median is the centre of gravity for the name and not the price of the plain one.",
+ "bolt_action_rifles": {
+  "brands": {
+   "Remington": [
+    17.6,
+    890
+   ],
+   "Ruger": [
+    9.1,
+    851
+   ],
+   "Winchester": [
+    8.5,
+    911
+   ],
+   "Savage": [
+    7.9,
+    444
+   ],
+   "Mauser": [
+    4.3,
+    582
+   ],
+   "Browning": [
+    3.8,
+    1042
+   ],
+   "Weatherby": [
+    2.8,
+    1045
+   ],
+   "CZ-USA": [
+    2.8,
+    919
+   ]
   },
-  "semi_auto_pistols": {
-    "brands": {"Glock":[11.1,464],"Sig Sauer":[10.6,737],"Smith & Wesson":[9.0,450],"Ruger":[5.6,304],"Beretta":[4.9,550],"Colt":[4.4,1184],"Springfield":[4.2,524],"Taurus":[3.5,188],"Walther":[3.4,608],"CZ-USA":[3.0,688],"Heckler & Koch":[2.8,1135],"Kimber":[2.7,771],"FNH":[1.8,650],"Browning":[1.5,781],"Canik":[1.3,438]},
-    "families": {"Sig Sauer P320":[2.5,469],"Sig Sauer P365":[1.7,563],"Beretta Model 90":[1.6,676],"Sig Sauer P226":[1.1,1189],"Glock G19":[1.0,455],"S&W Shield":[0.9,296],"Taurus G2":[0.9,124],"Sig Sauer P229":[0.8,667],"H&K USP":[0.8,1033],"Colt Government":[0.7,1306],"Glock G17":[0.7,450],"Taurus PT":[0.7,196],"Walther PPK":[0.7,750],"Sig Sauer P220":[0.7,827],"CZ-USA CZ 75":[0.7,797]}
+  "families": {
+   "Remington 700": [
+    9.8,
+    1024
+   ],
+   "Winchester Model 70": [
+    4.6,
+    1010
+   ],
+   "Ruger M77 Hawkeye": [
+    2.8,
+    922
+   ],
+   "Ruger Mark II": [
+    1.7,
+    1005
+   ],
+   "Browning A-Bolt": [
+    1.6,
+    829
+   ],
+   "Tikka T3": [
+    1.6,
+    853
+   ],
+   "Weatherby Mark V": [
+    1.4,
+    1388
+   ],
+   "Browning X-Bolt": [
+    1.3,
+    1028
+   ]
+  },
+  "brands_new": {
+   "Ruger": [
+    23.4,
+    774
+   ],
+   "Savage": [
+    12.2,
+    602
+   ],
+   "Tikka": [
+    7.5,
+    1049
+   ],
+   "Browning": [
+    6.6,
+    1281
+   ],
+   "Winchester": [
+    5.7,
+    1078
+   ],
+   "Weatherby": [
+    5.6,
+    1372
+   ],
+   "Remington": [
+    4.9,
+    841
+   ],
+   "Bergara": [
+    4.2,
+    1062
+   ],
+   "CZ-USA": [
+    3.7,
+    793
+   ],
+   "Christensen": [
+    2.9,
+    1481
+   ]
   }
+ },
+ "semi_auto_pistols": {
+  "brands": {
+   "Glock": [
+    11.1,
+    464
+   ],
+   "Sig Sauer": [
+    10.6,
+    737
+   ],
+   "Smith & Wesson": [
+    9.0,
+    450
+   ],
+   "Ruger": [
+    5.6,
+    304
+   ],
+   "Beretta": [
+    4.9,
+    550
+   ],
+   "Colt": [
+    4.4,
+    1184
+   ],
+   "Springfield": [
+    4.2,
+    524
+   ],
+   "Taurus": [
+    3.5,
+    188
+   ],
+   "Walther": [
+    3.4,
+    608
+   ],
+   "CZ-USA": [
+    3.0,
+    688
+   ],
+   "Heckler & Koch": [
+    2.8,
+    1135
+   ],
+   "Kimber": [
+    2.7,
+    771
+   ],
+   "FNH": [
+    1.8,
+    650
+   ],
+   "Browning": [
+    1.5,
+    781
+   ],
+   "Canik": [
+    1.3,
+    438
+   ]
+  },
+  "families": {
+   "Sig Sauer P320": [
+    2.5,
+    469
+   ],
+   "Sig Sauer P365": [
+    1.7,
+    563
+   ],
+   "Beretta Model 90": [
+    1.6,
+    676
+   ],
+   "Sig Sauer P226": [
+    1.1,
+    1189
+   ],
+   "Glock G19": [
+    1.0,
+    455
+   ],
+   "S&W Shield": [
+    0.9,
+    296
+   ],
+   "Taurus G2": [
+    0.9,
+    124
+   ],
+   "Sig Sauer P229": [
+    0.8,
+    667
+   ],
+   "H&K USP": [
+    0.8,
+    1033
+   ],
+   "Colt Government": [
+    0.7,
+    1306
+   ],
+   "Glock G17": [
+    0.7,
+    450
+   ],
+   "Taurus PT": [
+    0.7,
+    196
+   ],
+   "Walther PPK": [
+    0.7,
+    750
+   ],
+   "Sig Sauer P220": [
+    0.7,
+    827
+   ],
+   "CZ-USA CZ 75": [
+    0.7,
+    797
+   ]
+  }
+ }
 }
