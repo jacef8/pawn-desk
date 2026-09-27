@@ -37,6 +37,34 @@
    "CZ-USA": [
     2.8,
     919
+   ],
+   "Sako": [
+    2.4,
+    1291
+   ],
+   "Marlin": [
+    2.2,
+    307
+   ],
+   "Mossberg": [
+    2.1,
+    296
+   ],
+   "Enfield": [
+    1.9,
+    601
+   ],
+   "Springfield": [
+    1.9,
+    817
+   ],
+   "Tikka": [
+    1.9,
+    828
+   ],
+   "Mosin Nagant": [
+    1.6,
+    457
    ]
   },
   "families": {
@@ -71,6 +99,34 @@
    "Browning X-Bolt": [
     1.3,
     1028
+   ],
+   "Weatherby Vanguard": [
+    1.2,
+    561
+   ],
+   "Mauser Mauser 98": [
+    1,
+    577
+   ],
+   "Ruger Ruger 77": [
+    1,
+    1018
+   ],
+   "Savage 11/111 Rifles": [
+    0.6,
+    366
+   ],
+   "Mossberg Patriot": [
+    0.6,
+    342
+   ],
+   "Bergara B-14 Rifles": [
+    0.5,
+    755
+   ],
+   "Remington Model 7 Rifles": [
+    0.5,
+    648
    ]
   },
   "brands_new": {
@@ -113,6 +169,510 @@
    "Christensen": [
     2.9,
     1481
+   ]
+  }
+ },
+ "lever_action_rifles": {
+  "brands": {
+   "Winchester": [
+    37.6,
+    1063
+   ],
+   "Marlin": [
+    29,
+    948
+   ],
+   "Savage": [
+    6.1,
+    891
+   ],
+   "Browning": [
+    4.9,
+    1156
+   ],
+   "I.O. INC.": [
+    3.5,
+    611
+   ],
+   "Rossi": [
+    2.5,
+    592
+   ],
+   "Uberti": [
+    1.8,
+    1023
+   ],
+   "American Tactical (ATI)": [
+    1.7,
+    842
+   ],
+   "Ithaca GUN CO.": [
+    0.8,
+    311
+   ],
+   "Colt": [
+    0.8,
+    693
+   ],
+   "Ruger": [
+    0.8,
+    1352
+   ],
+   "Henry": [
+    0.7,
+    664
+   ],
+   "Remington": [
+    0.7,
+    1106
+   ],
+   "Rohm Gesellschaft (RG)": [
+    0.4,
+    792
+   ],
+   "Glenfield": [
+    0.4,
+    608
+   ]
+  },
+  "families": {
+   "Winchester Model 94 Rifles": [
+    14.2,
+    833
+   ],
+   "Marlin Model 336 Rifles": [
+    8.5,
+    843
+   ],
+   "Marlin Model 1894 Rifles": [
+    4,
+    1049
+   ],
+   "Winchester Model 1892 Rifles": [
+    3.5,
+    1309
+   ],
+   "Savage Model 99 Rifles": [
+    3,
+    920
+   ],
+   "Winchester Model 9422 Rifles": [
+    2.9,
+    1023
+   ],
+   "Marlin Model 39 Rifles": [
+    2.6,
+    758
+   ],
+   "Browning BLR": [
+    2.3,
+    1127
+   ],
+   "Marlin Model 1895 Rifles": [
+    2.2,
+    1333
+   ],
+   "Winchester Model 88 Rifles": [
+    1.6,
+    1227
+   ],
+   "Rossi R92": [
+    1.2,
+    595
+   ],
+   "Winchester Model 1873 Rifles": [
+    1.2,
+    1816
+   ],
+   "Marlin Model 30 Rifles": [
+    1.1,
+    768
+   ],
+   "Winchester Model 1895 Rifles": [
+    1.1,
+    2001
+   ],
+   "Winchester Ranger": [
+    1,
+    511
+   ]
+  }
+ },
+ "over_under_shotguns": {
+  "brands": {
+   "Browning": [
+    26.2,
+    1854
+   ],
+   "Beretta": [
+    13.8,
+    2273
+   ],
+   "Winchester": [
+    5.4,
+    1614
+   ],
+   "Ruger": [
+    3.7,
+    1491
+   ],
+   "Franchi": [
+    3.2,
+    1342
+   ],
+   "Stoeger": [
+    3.1,
+    321
+   ],
+   "Weatherby": [
+    2.4,
+    1325
+   ],
+   "CZ-USA": [
+    1.9,
+    615
+   ],
+   "Ithaca GUN CO.": [
+    1.8,
+    1068
+   ],
+   "SKB Shotguns": [
+    1.8,
+    1237
+   ],
+   "Remington": [
+    1.7,
+    1883
+   ],
+   "Tristar": [
+    1.5,
+    451
+   ],
+   "Miroku Firearms": [
+    1.4,
+    937
+   ],
+   "Rizzini USA": [
+    1.4,
+    1913
+   ],
+   "Savage": [
+    1.4,
+    482
+   ]
+  },
+  "families": {
+   "Browning Citori": [
+    14.9,
+    1680
+   ],
+   "Browning Superposed": [
+    5.1,
+    2268
+   ],
+   "Beretta Model 680 Shotguns": [
+    4.6,
+    2365
+   ],
+   "Winchester Model 101 Shotguns": [
+    4.1,
+    1740
+   ],
+   "Ruger RED Label": [
+    3.7,
+    1491
+   ],
+   "Stoeger Condor": [
+    2.7,
+    320
+   ],
+   "Franchi Instinct": [
+    1.9,
+    1388
+   ],
+   "Weatherby Athena": [
+    1.4,
+    1647
+   ],
+   "Browning Citori 725": [
+    1.3,
+    2682
+   ],
+   "Browning Cynergy": [
+    1,
+    1614
+   ],
+   "Pointer Acrius": [
+    1,
+    355
+   ],
+   "Remington 3200": [
+    1,
+    2754
+   ],
+   "Weatherby Orion": [
+    0.8,
+    842
+   ],
+   "Beretta Model 690 Shotguns": [
+    0.6,
+    3747
+   ],
+   "American Tactical (ATI) Cavalry": [
+    0.5,
+    431
+   ]
+  }
+ },
+ "pump_action_shotguns": {
+  "brands": {
+   "Remington": [
+    32.9,
+    530
+   ],
+   "Winchester": [
+    20.3,
+    622
+   ],
+   "Mossberg": [
+    16.7,
+    272
+   ],
+   "Ithaca GUN CO.": [
+    5.9,
+    521
+   ],
+   "Browning": [
+    3.8,
+    810
+   ],
+   "J. Stevens": [
+    1.9,
+    235
+   ],
+   "Keltec": [
+    1.7,
+    447
+   ],
+   "Benelli": [
+    1.4,
+    313
+   ],
+   "Savage": [
+    1.2,
+    184
+   ],
+   "Marlin": [
+    1.2,
+    338
+   ],
+   "Sears Roebuck": [
+    0.9,
+    203
+   ],
+   "Smith & Wesson": [
+    0.9,
+    421
+   ],
+   "Maverick Arms": [
+    0.9,
+    150
+   ],
+   "Western Field": [
+    0.6,
+    216
+   ],
+   "JC Higgins": [
+    0.6,
+    178
+   ]
+  },
+  "families": {
+   "Remington 870": [
+    29.5,
+    532
+   ],
+   "Winchester Model 12 Shotguns": [
+    8,
+    617
+   ],
+   "Ithaca GUN CO. Model 37": [
+    5.1,
+    509
+   ],
+   "Mossberg Model 500 Shotguns": [
+    4.9,
+    263
+   ],
+   "Mossberg Model 590 Shotguns": [
+    3.5,
+    397
+   ],
+   "Browning BPS": [
+    3.3,
+    714
+   ],
+   "Winchester Model 1897 Shotguns": [
+    2.7,
+    698
+   ],
+   "Winchester Model 1300 Shotguns": [
+    2.2,
+    290
+   ],
+   "Mossberg Maverick 88 Shotguns": [
+    1.7,
+    159
+   ],
+   "Benelli Nova": [
+    1.4,
+    313
+   ],
+   "Keltec KSG": [
+    1.4,
+    478
+   ],
+   "Winchester Model 1200 Shotguns": [
+    1.4,
+    270
+   ],
+   "Winchester Model 42 Shotguns": [
+    1.2,
+    2142
+   ],
+   "Maverick Arms Maverick 88": [
+    0.9,
+    150
+   ],
+   "Winchester SXP": [
+    0.9,
+    206
+   ]
+  }
+ },
+ "revolvers": {
+  "brands": {
+   "Smith & Wesson": [
+    35.5,
+    818
+   ],
+   "Ruger": [
+    18,
+    666
+   ],
+   "Colt": [
+    14.4,
+    1404
+   ],
+   "Taurus": [
+    5.8,
+    391
+   ],
+   "H&R 1871": [
+    3,
+    210
+   ],
+   "Charter Arms": [
+    1.5,
+    266
+   ],
+   "Rohm Gesellschaft (RG)": [
+    1.3,
+    176
+   ],
+   "LVE": [
+    1.3,
+    577
+   ],
+   "Uberti": [
+    1.3,
+    601
+   ],
+   "Heritage": [
+    1.2,
+    124
+   ],
+   "Iver Johnson": [
+    1.2,
+    165
+   ],
+   "DAN Wesson": [
+    1,
+    981
+   ],
+   "High Standard": [
+    1,
+    316
+   ],
+   "Rossi": [
+    1,
+    268
+   ],
+   "I.O. INC.": [
+    0.9,
+    742
+   ]
+  },
+  "families": {
+   "Ruger Blackhawk": [
+    4,
+    727
+   ],
+   "Colt Python": [
+    2.5,
+    2138
+   ],
+   "Ruger SINGLE-SIX": [
+    2.2,
+    455
+   ],
+   "Smith & Wesson Model 686 Pistols": [
+    2,
+    796
+   ],
+   "Smith & Wesson Model 19 Pistols": [
+    1.8,
+    847
+   ],
+   "Smith & Wesson Model 10 Pistols": [
+    1.7,
+    495
+   ],
+   "Ruger Vaquero": [
+    1.7,
+    849
+   ],
+   "Smith & Wesson Model 629 Pistols": [
+    1.7,
+    1015
+   ],
+   "Smith & Wesson Model 29 Pistols": [
+    1.7,
+    1338
+   ],
+   "Colt Single Action Army": [
+    1.6,
+    2487
+   ],
+   "Smith & Wesson Model 36 Pistols": [
+    1.4,
+    497
+   ],
+   "Smith & Wesson Model 66 Pistols": [
+    1.1,
+    836
+   ],
+   "H&R 1871 Revolver Pistols": [
+    1.1,
+    181
+   ],
+   "Colt Police Positive": [
+    1.1,
+    403
+   ],
+   "Ruger LCR": [
+    1.1,
+    447
    ]
   }
  },
@@ -239,6 +799,258 @@
    "CZ-USA CZ 75": [
     0.7,
     797
+   ]
+  }
+ },
+ "semi_auto_rifles": {
+  "brands": {
+   "Ruger": [
+    10.3,
+    587
+   ],
+   "Remington": [
+    6.7,
+    515
+   ],
+   "Springfield": [
+    5,
+    1426
+   ],
+   "Winchester": [
+    3.5,
+    743
+   ],
+   "Colt": [
+    3.5,
+    1092
+   ],
+   "Norinco": [
+    3.2,
+    847
+   ],
+   "Browning": [
+    3,
+    1134
+   ],
+   "Marlin": [
+    2.9,
+    288
+   ],
+   "Smith & Wesson": [
+    2.5,
+    540
+   ],
+   "FNH": [
+    2.3,
+    2335
+   ],
+   "SIG Sauer": [
+    2.2,
+    1430
+   ],
+   "Palmetto State Armory (PSA)": [
+    1.9,
+    582
+   ],
+   "Bushmaster": [
+    1.9,
+    576
+   ],
+   "Heckler & Koch": [
+    1.6,
+    2253
+   ],
+   "Century Arms": [
+    1.6,
+    818
+   ]
+  },
+  "families": {
+   "Ruger 10/22": [
+    2.6,
+    376
+   ],
+   "Springfield M1 Garand": [
+    1.9,
+    1584
+   ],
+   "Browning BAR Rifles": [
+    1.7,
+    1187
+   ],
+   "Springfield M1A": [
+    1.7,
+    1541
+   ],
+   "Ruger MINI-14": [
+    1.6,
+    865
+   ],
+   "Ruger 10/22 Carbine": [
+    1.5,
+    293
+   ],
+   "Marlin Model 60 Rifles": [
+    1.4,
+    218
+   ],
+   "Remington Model 742 Rifles": [
+    1.2,
+    539
+   ],
+   "Remington Nylon 66": [
+    1,
+    477
+   ],
+   "Anderson Manufacturing AM-15 Rifles": [
+    0.9,
+    384
+   ],
+   "Colt Carbine": [
+    0.8,
+    1066
+   ],
+   "Colt M4 Carbine": [
+    0.7,
+    708
+   ],
+   "Winchester M1": [
+    0.7,
+    1485
+   ],
+   "Keltec SUB-2000": [
+    0.7,
+    317
+   ],
+   "Browning SA-22": [
+    0.7,
+    851
+   ]
+  }
+ },
+ "semi_auto_shotguns": {
+  "brands": {
+   "Remington": [
+    29.1,
+    888
+   ],
+   "Browning": [
+    15.6,
+    1142
+   ],
+   "Benelli": [
+    9.2,
+    1237
+   ],
+   "Beretta": [
+    8.8,
+    1009
+   ],
+   "Winchester": [
+    5.5,
+    419
+   ],
+   "Mossberg": [
+    2.9,
+    494
+   ],
+   "Franchi": [
+    2.8,
+    1054
+   ],
+   "Silver Eagle": [
+    1.7,
+    170
+   ],
+   "Stoeger": [
+    1.7,
+    377
+   ],
+   "FNH": [
+    1.5,
+    916
+   ],
+   "Ithaca GUN CO.": [
+    1.1,
+    766
+   ],
+   "ARMSCOR/RIA": [
+    0.9,
+    293
+   ],
+   "Gforce Arms": [
+    0.9,
+    219
+   ],
+   "Izhmash": [
+    0.9,
+    763
+   ],
+   "Tristar": [
+    0.9,
+    377
+   ]
+  },
+  "families": {
+   "Remington 1100": [
+    13.2,
+    1057
+   ],
+   "Browning A5": [
+    7.6,
+    1248
+   ],
+   "Remington 11-87": [
+    5.1,
+    741
+   ],
+   "Benelli Super Black Eagle": [
+    2.5,
+    1396
+   ],
+   "Remington Model 11 Shotguns": [
+    2.4,
+    485
+   ],
+   "Beretta A300": [
+    1.6,
+    701
+   ],
+   "Beretta A400": [
+    1.6,
+    1476
+   ],
+   "Browning Gold": [
+    1.5,
+    1152
+   ],
+   "Remington Model 11-48 Shotguns": [
+    1.5,
+    675
+   ],
+   "Beretta Model 390 Shotguns": [
+    1.3,
+    1143
+   ],
+   "Remington Model 58 Shotguns": [
+    1.3,
+    491
+   ],
+   "Benelli M1": [
+    1.3,
+    1034
+   ],
+   "Winchester Model 50 Shotguns": [
+    1.1,
+    327
+   ],
+   "Benelli M2": [
+    1.1,
+    897
+   ],
+   "Benelli M4": [
+    1,
+    1453
    ]
   }
  }

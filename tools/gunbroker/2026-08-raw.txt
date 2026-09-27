@@ -1,0 +1,240 @@
+Bolt Action Rifles|Used|Brands|REMINGTON|17.6%|$890
+Bolt Action Rifles|Used|Brands|RUGER|9.1%|$851
+Bolt Action Rifles|Used|Brands|WINCHESTER|8.5%|$911
+Bolt Action Rifles|Used|Brands|SAVAGE|7.9%|$444
+Bolt Action Rifles|Used|Brands|MAUSER|4.3%|$582
+Bolt Action Rifles|Used|Brands|BROWNING|3.8%|$1,042
+Bolt Action Rifles|Used|Brands|WEATHERBY|2.8%|$1,045
+Bolt Action Rifles|Used|Brands|CZ-USA|2.8%|$919
+Bolt Action Rifles|Used|Brands|SAKO|2.4%|$1,291
+Bolt Action Rifles|Used|Brands|MARLIN|2.2%|$307
+Bolt Action Rifles|Used|Brands|MOSSBERG|2.1%|$296
+Bolt Action Rifles|Used|Brands|ENFIELD|1.9%|$601
+Bolt Action Rifles|Used|Brands|SPRINGFIELD|1.9%|$817
+Bolt Action Rifles|Used|Brands|TIKKA|1.9%|$828
+Bolt Action Rifles|Used|Brands|MOSIN NAGANT|1.6%|$457
+Bolt Action Rifles|Used|Families|REMINGTON 700|9.8%|$1,024
+Bolt Action Rifles|Used|Families|WINCHESTER MODEL 70 RIFLES|4.6%|$1,010
+Bolt Action Rifles|Used|Families|RUGER M77 HAWKEYE|2.8%|$922
+Bolt Action Rifles|Used|Families|RUGER MARK II|1.7%|$1,005
+Bolt Action Rifles|Used|Families|BROWNING A-BOLT RIFLES|1.6%|$829
+Bolt Action Rifles|Used|Families|TIKKA T3|1.6%|$853
+Bolt Action Rifles|Used|Families|WEATHERBY MARK V|1.4%|$1,388
+Bolt Action Rifles|Used|Families|BROWNING X-BOLT|1.3%|$1,028
+Bolt Action Rifles|Used|Families|WEATHERBY VANGUARD|1.2%|$561
+Bolt Action Rifles|Used|Families|MAUSER MAUSER 98|1.0%|$577
+Bolt Action Rifles|Used|Families|RUGER RUGER 77|1.0%|$1,018
+Bolt Action Rifles|Used|Families|SAVAGE 11/111 RIFLES|0.6%|$366
+Bolt Action Rifles|Used|Families|MOSSBERG PATRIOT|0.6%|$342
+Bolt Action Rifles|Used|Families|BERGARA B-14 RIFLES|0.5%|$755
+Bolt Action Rifles|Used|Families|REMINGTON MODEL 7 RIFLES|0.5%|$648
+Lever Action Rifles|Used|Brands|WINCHESTER|37.6%|$1,063
+Lever Action Rifles|Used|Brands|MARLIN|29.0%|$948
+Lever Action Rifles|Used|Brands|SAVAGE|6.1%|$891
+Lever Action Rifles|Used|Brands|BROWNING|4.9%|$1,156
+Lever Action Rifles|Used|Brands|I.O. INC.|3.5%|$611
+Lever Action Rifles|Used|Brands|ROSSI|2.5%|$592
+Lever Action Rifles|Used|Brands|UBERTI|1.8%|$1,023
+Lever Action Rifles|Used|Brands|AMERICAN TACTICAL (ATI)|1.7%|$842
+Lever Action Rifles|Used|Brands|ITHACA GUN CO.|0.8%|$311
+Lever Action Rifles|Used|Brands|COLT|0.8%|$693
+Lever Action Rifles|Used|Brands|RUGER|0.8%|$1,352
+Lever Action Rifles|Used|Brands|HENRY|0.7%|$664
+Lever Action Rifles|Used|Brands|REMINGTON|0.7%|$1,106
+Lever Action Rifles|Used|Brands|ROHM GESELLSCHAFT (RG)|0.4%|$792
+Lever Action Rifles|Used|Brands|GLENFIELD|0.4%|$608
+Lever Action Rifles|Used|Families|WINCHESTER MODEL 94 RIFLES|14.2%|$833
+Lever Action Rifles|Used|Families|MARLIN MODEL 336 RIFLES|8.5%|$843
+Lever Action Rifles|Used|Families|MARLIN MODEL 1894 RIFLES|4.0%|$1,049
+Lever Action Rifles|Used|Families|WINCHESTER MODEL 1892 RIFLES|3.5%|$1,309
+Lever Action Rifles|Used|Families|SAVAGE MODEL 99 RIFLES|3.0%|$920
+Lever Action Rifles|Used|Families|WINCHESTER MODEL 9422 RIFLES|2.9%|$1,023
+Lever Action Rifles|Used|Families|MARLIN MODEL 39 RIFLES|2.6%|$758
+Lever Action Rifles|Used|Families|BROWNING BLR|2.3%|$1,127
+Lever Action Rifles|Used|Families|MARLIN MODEL 1895 RIFLES|2.2%|$1,333
+Lever Action Rifles|Used|Families|WINCHESTER MODEL 88 RIFLES|1.6%|$1,227
+Lever Action Rifles|Used|Families|ROSSI R92|1.2%|$595
+Lever Action Rifles|Used|Families|WINCHESTER MODEL 1873 RIFLES|1.2%|$1,816
+Lever Action Rifles|Used|Families|MARLIN MODEL 30 RIFLES|1.1%|$768
+Lever Action Rifles|Used|Families|WINCHESTER MODEL 1895 RIFLES|1.1%|$2,001
+Lever Action Rifles|Used|Families|WINCHESTER RANGER|1.0%|$511
+Over Under Shotguns|Used|Brands|BROWNING|26.2%|$1,854
+Over Under Shotguns|Used|Brands|BERETTA|13.8%|$2,273
+Over Under Shotguns|Used|Brands|WINCHESTER|5.4%|$1,614
+Over Under Shotguns|Used|Brands|RUGER|3.7%|$1,491
+Over Under Shotguns|Used|Brands|FRANCHI|3.2%|$1,342
+Over Under Shotguns|Used|Brands|STOEGER|3.1%|$321
+Over Under Shotguns|Used|Brands|WEATHERBY|2.4%|$1,325
+Over Under Shotguns|Used|Brands|CZ-USA|1.9%|$615
+Over Under Shotguns|Used|Brands|ITHACA GUN CO.|1.8%|$1,068
+Over Under Shotguns|Used|Brands|SKB SHOTGUNS|1.8%|$1,237
+Over Under Shotguns|Used|Brands|REMINGTON|1.7%|$1,883
+Over Under Shotguns|Used|Brands|TRISTAR|1.5%|$451
+Over Under Shotguns|Used|Brands|MIROKU FIREARMS|1.4%|$937
+Over Under Shotguns|Used|Brands|RIZZINI USA|1.4%|$1,913
+Over Under Shotguns|Used|Brands|SAVAGE|1.4%|$482
+Over Under Shotguns|Used|Families|BROWNING CITORI|14.9%|$1,680
+Over Under Shotguns|Used|Families|BROWNING SUPERPOSED|5.1%|$2,268
+Over Under Shotguns|Used|Families|BERETTA MODEL 680 SHOTGUNS|4.6%|$2,365
+Over Under Shotguns|Used|Families|WINCHESTER MODEL 101 SHOTGUNS|4.1%|$1,740
+Over Under Shotguns|Used|Families|RUGER RED LABEL|3.7%|$1,491
+Over Under Shotguns|Used|Families|STOEGER CONDOR|2.7%|$320
+Over Under Shotguns|Used|Families|FRANCHI INSTINCT|1.9%|$1,388
+Over Under Shotguns|Used|Families|WEATHERBY ATHENA|1.4%|$1,647
+Over Under Shotguns|Used|Families|BROWNING CITORI 725|1.3%|$2,682
+Over Under Shotguns|Used|Families|BROWNING CYNERGY|1.0%|$1,614
+Over Under Shotguns|Used|Families|POINTER ACRIUS|1.0%|$355
+Over Under Shotguns|Used|Families|REMINGTON 3200|1.0%|$2,754
+Over Under Shotguns|Used|Families|WEATHERBY ORION|0.8%|$842
+Over Under Shotguns|Used|Families|BERETTA MODEL 690 SHOTGUNS|0.6%|$3,747
+Over Under Shotguns|Used|Families|AMERICAN TACTICAL (ATI) CAVALRY|0.5%|$431
+Pump Action Shotguns|Used|Brands|REMINGTON|32.9%|$530
+Pump Action Shotguns|Used|Brands|WINCHESTER|20.3%|$622
+Pump Action Shotguns|Used|Brands|MOSSBERG|16.7%|$272
+Pump Action Shotguns|Used|Brands|ITHACA GUN CO.|5.9%|$521
+Pump Action Shotguns|Used|Brands|BROWNING|3.8%|$810
+Pump Action Shotguns|Used|Brands|J. STEVENS|1.9%|$235
+Pump Action Shotguns|Used|Brands|KELTEC|1.7%|$447
+Pump Action Shotguns|Used|Brands|BENELLI|1.4%|$313
+Pump Action Shotguns|Used|Brands|SAVAGE|1.2%|$184
+Pump Action Shotguns|Used|Brands|MARLIN|1.2%|$338
+Pump Action Shotguns|Used|Brands|SEARS ROEBUCK|0.9%|$203
+Pump Action Shotguns|Used|Brands|SMITH & WESSON|0.9%|$421
+Pump Action Shotguns|Used|Brands|MAVERICK ARMS|0.9%|$150
+Pump Action Shotguns|Used|Brands|WESTERN FIELD|0.6%|$216
+Pump Action Shotguns|Used|Brands|JC HIGGINS|0.6%|$178
+Pump Action Shotguns|Used|Families|REMINGTON 870|29.5%|$532
+Pump Action Shotguns|Used|Families|WINCHESTER MODEL 12 SHOTGUNS|8.0%|$617
+Pump Action Shotguns|Used|Families|ITHACA GUN CO. MODEL 37|5.1%|$509
+Pump Action Shotguns|Used|Families|MOSSBERG MODEL 500 SHOTGUNS|4.9%|$263
+Pump Action Shotguns|Used|Families|MOSSBERG MODEL 590 SHOTGUNS|3.5%|$397
+Pump Action Shotguns|Used|Families|BROWNING BPS|3.3%|$714
+Pump Action Shotguns|Used|Families|WINCHESTER MODEL 1897 SHOTGUNS|2.7%|$698
+Pump Action Shotguns|Used|Families|WINCHESTER MODEL 1300 SHOTGUNS|2.2%|$290
+Pump Action Shotguns|Used|Families|MOSSBERG MAVERICK 88 SHOTGUNS|1.7%|$159
+Pump Action Shotguns|Used|Families|BENELLI NOVA|1.4%|$313
+Pump Action Shotguns|Used|Families|KELTEC KSG|1.4%|$478
+Pump Action Shotguns|Used|Families|WINCHESTER MODEL 1200 SHOTGUNS|1.4%|$270
+Pump Action Shotguns|Used|Families|WINCHESTER MODEL 42 SHOTGUNS|1.2%|$2,142
+Pump Action Shotguns|Used|Families|MAVERICK ARMS MAVERICK 88|0.9%|$150
+Pump Action Shotguns|Used|Families|WINCHESTER SXP|0.9%|$206
+Revolvers|Used|Brands|SMITH & WESSON|35.5%|$818
+Revolvers|Used|Brands|RUGER|18.0%|$666
+Revolvers|Used|Brands|COLT|14.4%|$1,404
+Revolvers|Used|Brands|TAURUS|5.8%|$391
+Revolvers|Used|Brands|H&R 1871|3.0%|$210
+Revolvers|Used|Brands|CHARTER ARMS|1.5%|$266
+Revolvers|Used|Brands|ROHM GESELLSCHAFT (RG)|1.3%|$176
+Revolvers|Used|Brands|LVE|1.3%|$577
+Revolvers|Used|Brands|UBERTI|1.3%|$601
+Revolvers|Used|Brands|HERITAGE|1.2%|$124
+Revolvers|Used|Brands|IVER JOHNSON|1.2%|$165
+Revolvers|Used|Brands|DAN WESSON|1.0%|$981
+Revolvers|Used|Brands|HIGH STANDARD|1.0%|$316
+Revolvers|Used|Brands|ROSSI|1.0%|$268
+Revolvers|Used|Brands|I.O. INC.|0.9%|$742
+Revolvers|Used|Families|RUGER BLACKHAWK|4.0%|$727
+Revolvers|Used|Families|COLT PYTHON|2.5%|$2,138
+Revolvers|Used|Families|RUGER SINGLE-SIX|2.2%|$455
+Revolvers|Used|Families|SMITH & WESSON MODEL 686 PISTOLS|2.0%|$796
+Revolvers|Used|Families|SMITH & WESSON MODEL 19 PISTOLS|1.8%|$847
+Revolvers|Used|Families|SMITH & WESSON MODEL 10 PISTOLS|1.7%|$495
+Revolvers|Used|Families|RUGER VAQUERO|1.7%|$849
+Revolvers|Used|Families|SMITH & WESSON MODEL 629 PISTOLS|1.7%|$1,015
+Revolvers|Used|Families|SMITH & WESSON MODEL 29 PISTOLS|1.7%|$1,338
+Revolvers|Used|Families|COLT SINGLE ACTION ARMY|1.6%|$2,487
+Revolvers|Used|Families|SMITH & WESSON MODEL 36 PISTOLS|1.4%|$497
+Revolvers|Used|Families|SMITH & WESSON MODEL 66 PISTOLS|1.1%|$836
+Revolvers|Used|Families|H&R 1871 REVOLVER PISTOLS|1.1%|$181
+Revolvers|Used|Families|COLT POLICE POSITIVE|1.1%|$403
+Revolvers|Used|Families|RUGER LCR|1.1%|$447
+Semi Auto Pistols|Used|Brands|GLOCK|11.1%|$464
+Semi Auto Pistols|Used|Brands|SIG SAUER|10.6%|$737
+Semi Auto Pistols|Used|Brands|SMITH & WESSON|9.0%|$450
+Semi Auto Pistols|Used|Brands|RUGER|5.6%|$304
+Semi Auto Pistols|Used|Brands|BERETTA|4.9%|$550
+Semi Auto Pistols|Used|Brands|COLT|4.4%|$1,184
+Semi Auto Pistols|Used|Brands|SPRINGFIELD|4.2%|$524
+Semi Auto Pistols|Used|Brands|TAURUS|3.5%|$188
+Semi Auto Pistols|Used|Brands|WALTHER|3.4%|$608
+Semi Auto Pistols|Used|Brands|CZ-USA|3.0%|$688
+Semi Auto Pistols|Used|Brands|HECKLER & KOCH|2.8%|$1,135
+Semi Auto Pistols|Used|Brands|KIMBER|2.7%|$771
+Semi Auto Pistols|Used|Brands|FNH|1.8%|$650
+Semi Auto Pistols|Used|Brands|BROWNING|1.5%|$781
+Semi Auto Pistols|Used|Brands|CANIK|1.3%|$438
+Semi Auto Pistols|Used|Families|SIG SAUER P320|2.5%|$469
+Semi Auto Pistols|Used|Families|SIG SAUER P365|1.7%|$563
+Semi Auto Pistols|Used|Families|BERETTA MODEL 90 PISTOLS|1.6%|$676
+Semi Auto Pistols|Used|Families|SIG SAUER P226|1.1%|$1,189
+Semi Auto Pistols|Used|Families|GLOCK G19|1.0%|$455
+Semi Auto Pistols|Used|Families|SMITH & WESSON SHIELD|0.9%|$296
+Semi Auto Pistols|Used|Families|TAURUS G2|0.9%|$124
+Semi Auto Pistols|Used|Families|SIG SAUER P229|0.8%|$667
+Semi Auto Pistols|Used|Families|HECKLER & KOCH USP|0.8%|$1,033
+Semi Auto Pistols|Used|Families|COLT GOVERNMENT|0.7%|$1,306
+Semi Auto Pistols|Used|Families|GLOCK G17|0.7%|$450
+Semi Auto Pistols|Used|Families|TAURUS PT PISTOLS|0.7%|$196
+Semi Auto Pistols|Used|Families|WALTHER PPK|0.7%|$750
+Semi Auto Pistols|Used|Families|SIG SAUER P220|0.7%|$827
+Semi Auto Pistols|Used|Families|CZ-USA CZ 75|0.7%|$797
+Semi Auto Rifles|Used|Brands|RUGER|10.3%|$587
+Semi Auto Rifles|Used|Brands|REMINGTON|6.7%|$515
+Semi Auto Rifles|Used|Brands|SPRINGFIELD|5.0%|$1,426
+Semi Auto Rifles|Used|Brands|WINCHESTER|3.5%|$743
+Semi Auto Rifles|Used|Brands|COLT|3.5%|$1,092
+Semi Auto Rifles|Used|Brands|NORINCO|3.2%|$847
+Semi Auto Rifles|Used|Brands|BROWNING|3.0%|$1,134
+Semi Auto Rifles|Used|Brands|MARLIN|2.9%|$288
+Semi Auto Rifles|Used|Brands|SMITH & WESSON|2.5%|$540
+Semi Auto Rifles|Used|Brands|FNH|2.3%|$2,335
+Semi Auto Rifles|Used|Brands|SIG SAUER|2.2%|$1,430
+Semi Auto Rifles|Used|Brands|PALMETTO STATE ARMORY (PSA)|1.9%|$582
+Semi Auto Rifles|Used|Brands|BUSHMASTER|1.9%|$576
+Semi Auto Rifles|Used|Brands|HECKLER & KOCH|1.6%|$2,253
+Semi Auto Rifles|Used|Brands|CENTURY ARMS|1.6%|$818
+Semi Auto Rifles|Used|Families|RUGER 10/22|2.6%|$376
+Semi Auto Rifles|Used|Families|SPRINGFIELD M1 GARAND|1.9%|$1,584
+Semi Auto Rifles|Used|Families|BROWNING BAR RIFLES|1.7%|$1,187
+Semi Auto Rifles|Used|Families|SPRINGFIELD M1A|1.7%|$1,541
+Semi Auto Rifles|Used|Families|RUGER MINI-14|1.6%|$865
+Semi Auto Rifles|Used|Families|RUGER 10/22 CARBINE|1.5%|$293
+Semi Auto Rifles|Used|Families|MARLIN MODEL 60 RIFLES|1.4%|$218
+Semi Auto Rifles|Used|Families|REMINGTON MODEL 742 RIFLES|1.2%|$539
+Semi Auto Rifles|Used|Families|REMINGTON NYLON 66|1.0%|$477
+Semi Auto Rifles|Used|Families|ANDERSON MANUFACTURING AM-15 RIFLES|0.9%|$384
+Semi Auto Rifles|Used|Families|COLT CARBINE|0.8%|$1,066
+Semi Auto Rifles|Used|Families|COLT M4 CARBINE|0.7%|$708
+Semi Auto Rifles|Used|Families|WINCHESTER M1|0.7%|$1,485
+Semi Auto Rifles|Used|Families|KELTEC SUB-2000|0.7%|$317
+Semi Auto Rifles|Used|Families|BROWNING SA-22|0.7%|$851
+Semi Auto Shotguns|Used|Brands|REMINGTON|29.1%|$888
+Semi Auto Shotguns|Used|Brands|BROWNING|15.6%|$1,142
+Semi Auto Shotguns|Used|Brands|BENELLI|9.2%|$1,237
+Semi Auto Shotguns|Used|Brands|BERETTA|8.8%|$1,009
+Semi Auto Shotguns|Used|Brands|WINCHESTER|5.5%|$419
+Semi Auto Shotguns|Used|Brands|MOSSBERG|2.9%|$494
+Semi Auto Shotguns|Used|Brands|FRANCHI|2.8%|$1,054
+Semi Auto Shotguns|Used|Brands|SILVER EAGLE|1.7%|$170
+Semi Auto Shotguns|Used|Brands|STOEGER|1.7%|$377
+Semi Auto Shotguns|Used|Brands|FNH|1.5%|$916
+Semi Auto Shotguns|Used|Brands|ITHACA GUN CO.|1.1%|$766
+Semi Auto Shotguns|Used|Brands|ARMSCOR/RIA|0.9%|$293
+Semi Auto Shotguns|Used|Brands|GFORCE ARMS|0.9%|$219
+Semi Auto Shotguns|Used|Brands|IZHMASH|0.9%|$763
+Semi Auto Shotguns|Used|Brands|TRISTAR|0.9%|$377
+Semi Auto Shotguns|Used|Families|REMINGTON 1100|13.2%|$1,057
+Semi Auto Shotguns|Used|Families|BROWNING A5|7.6%|$1,248
+Semi Auto Shotguns|Used|Families|REMINGTON 11-87|5.1%|$741
+Semi Auto Shotguns|Used|Families|BENELLI SUPER BLACK EAGLE|2.5%|$1,396
+Semi Auto Shotguns|Used|Families|REMINGTON MODEL 11 SHOTGUNS|2.4%|$485
+Semi Auto Shotguns|Used|Families|BERETTA A300|1.6%|$701
+Semi Auto Shotguns|Used|Families|BERETTA A400|1.6%|$1,476
+Semi Auto Shotguns|Used|Families|BROWNING GOLD|1.5%|$1,152
+Semi Auto Shotguns|Used|Families|REMINGTON MODEL 11-48 SHOTGUNS|1.5%|$675
+Semi Auto Shotguns|Used|Families|BERETTA MODEL 390 SHOTGUNS|1.3%|$1,143
+Semi Auto Shotguns|Used|Families|REMINGTON MODEL 58 SHOTGUNS|1.3%|$491
+Semi Auto Shotguns|Used|Families|BENELLI M1|1.3%|$1,034
+Semi Auto Shotguns|Used|Families|WINCHESTER MODEL 50 SHOTGUNS|1.1%|$327
+Semi Auto Shotguns|Used|Families|BENELLI M2|1.1%|$897
+Semi Auto Shotguns|Used|Families|BENELLI M4|1.0%|$1,453
