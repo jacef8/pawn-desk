@@ -1127,7 +1127,7 @@ console.log("\n  a television is not a phone, and does not buy like one");
   await page.goto(BASE + "/index.html", {waitUntil:"networkidle"});
   const r = await page.evaluate(() => {
     const out = {};
-    for (const id of ["e1", "e4", "e2"]) {
+    for (const id of ["e1", "e2", "e3", "e4", "e5", "e6", "e7"]) {
       st.mode = "item"; st.catId = "elec"; st.itemId = id; st.picked = true;
       st.buys = {}; st.market = {kind:"hand", key:mkKey(), mid:125};
       render();
@@ -1136,6 +1136,7 @@ console.log("\n  a television is not a phone, and does not buy like one");
                  buy:x.buy, why:x.buyWhy || "", suggest:x.buySuggest};
     }
     /* and a hand-set category rate must still win over the item's */
+    out.cat = BUY_DEFAULT.elec;
     st.itemId = "e1"; st.buys = {elec:55}; render();
     out.override = calcItem().buyBase;
     st.buys = {};
@@ -1149,7 +1150,32 @@ console.log("\n  a television is not a phone, and does not buy like one");
   ok(/bulky|slow/i.test(r.e1.why), "  it gives the TV's");
   ok(r.e4.base === 30 && /locked/i.test(r.e4.why),
      "  a phone keeps 30% and the locked-device reason, which is real there");
-  ok(r.e2.base === 30, "  and so does a laptop — got " + r.e2.base);
+  /* THE TABLE TURNED ROUND ON 28 SEP. "130 on a 425 resell seems low and
+     under our 40-50 percent threshold we set" - it was 30.6%, because the
+     CATEGORY carried the phone's risk rate and every item that was not a
+     phone had to be rescued one at a time, each after somebody noticed a
+     bad offer at the counter. The TV was rescued in September; a console
+     was still paying a handset's rate, and car audio was at 17%.
+     Electronics is 45 now, inside the band, and the things that really do
+     lock hard and crash carry the low rate by name. So a laptop is 40:
+     it can come in with a BIOS or account lock, which the phone's rate was
+     about, but it holds its money far better than a handset does. */
+  ok(r.e2.base === 40, "  a laptop is 40 — locks, but holds its value — got " + r.e2.base);
+  ok(r.e5.base === 45, "  and a console is 45, not the handset rate — got " + r.e5.base);
+  ok(r.e3.base === 30, "  a tablet keeps 30, which locks and crashes like a phone — got " + r.e3.base);
+  /* THE CATEGORY RATE ITSELF, WHICH NOTHING WAS WATCHING.
+     Putting elec back to 30 passed every assertion above, because all of
+     them read items that carry an override. The category is what governs
+     everything WITHOUT one - and those are the items that quietly produce
+     bad offers, because nobody has thought about them individually yet.
+     A bluetooth speaker was at 25% and car audio at 17% - $72 on a $425
+     amp and sub - and no test said a word. */
+  ok(r.cat === 45, "  and the category itself is 45, inside the band — got " + r.cat);
+  ok(r.e6.base === 45 && r.e7.base === 45,
+     "  so an item with no override of its own inherits 45, not the handset rate — got "
+     + r.e6.base + " and " + r.e7.base);
+  ok(r.e7.pct >= 30,
+     "  car audio clears 30% after its liquidity dock, rather than 17% — got " + r.e7.pct + "%");
   ok(r.override === 55,
      "  a rate set by hand for the whole category still beats the item's — got " + r.override);
   ok(!perr.length, "  no page errors" + (perr.length ? ": " + perr[0] : ""));

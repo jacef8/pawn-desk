@@ -1336,7 +1336,7 @@ function dealPanelHTML(x){
     <div class="railBackHd"><b>If he pawns it</b><span>${pawnPct()}% per 30 days</span></div>
     <div class="dealRows">
       <div class="dRow"><span>You hand over</span><b>${money(x.target)}</b></div>
-      <div class="dRow"><span>Interest, one month</span><b>${money(x.charge)}</b></div>
+      <div class="dRow"><span>Interest, per month</span><b>${money(x.charge)}</b></div>
       <div class="dRow tot"><span>Total to clear it \u2014 1 month</span><b>${money(m1)}</b></div>
       <div class="dRow tot"><span>Total to clear it \u2014 2 months</span><b>${money(m2)}</b></div>
     </div>
@@ -8470,7 +8470,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0928.1430";
+const APP_BUILD="0928.1521";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -9979,7 +9979,7 @@ function wireNext(){
 /* ================= BUY OUTRIGHT — you own it, no loan =================
    Starting rates Jace approved 9/19: about 5 points over the lending rate,
    same as the loan for seasonal outdoor power. */
-var BUY_DEFAULT={guns:55,hunt:45,jewel:45,power:45,tools:40,music:40,rolling:40,elec:30,appl:35,fit:28,coll:40};
+var BUY_DEFAULT={guns:55,hunt:45,jewel:45,power:45,tools:40,music:40,rolling:40,elec:45,appl:35,fit:28,coll:40};
 /* WHEN THE CATEGORY RATE WAS WRITTEN FOR A DIFFERENT THING.
    elec is 30% because a phone "loses value fast and can come in locked" -
    a real risk that earns a hard rate. Neither half is true of a
@@ -9996,11 +9996,37 @@ var BUY_DEFAULT={guns:55,hunt:45,jewel:45,power:45,tools:40,music:40,rolling:40,
    liquidity adjustment. Set on 24 Sep from Jace's call.
    A rate the counter has set by hand for the whole category still wins -
    that is a deliberate act, and this only fills the silence. */
-var BUY_ITEM={e1:45};
-var BUY_ITEM_WHY={e1:"a TV does not lock and does not crash in value like a handset \u2014 it is just bulky and slow, which the liquidity band already counts"};
+/* THE CATEGORY WAS DOING THE EXCEPTION'S JOB.
+   "130 on a 425 resell seems low and under our 40-50 percent threshold we
+   set." It was 30.6%, and the rate rule was what bound it - the floor
+   would have allowed $400 and the multiple $213. Electronics sat at 30%
+   because of the note above: a phone "loses value fast and can come in
+   locked."
+   That is true of a phone. It was already known to be false of a
+   television, which is why e1 had an override - and a current-gen console
+   is the same case one item over. It holds its money, and while an account
+   lock exists it is not the iCloud cliff a handset falls off.
+   So the table is the wrong way round: the category carried the
+   exception's rate and the exceptions were being added one at a time, each
+   after somebody noticed a bad offer at the counter. Now the category is
+   45 - inside the 40-50 band, and where eight of the other ten already sat
+   - and the things that really do lock hard and crash carry the low rate
+   by name. The common case is right by default and the exception is
+   explicit, which is the order those two belong in.
+     phone, tablet  30  they lock hard and the value falls off a cliff
+     laptop         40  locks, but holds its money far better
+     TV, console    45  neither locks in a way that kills resale
+   Set 28 Sep from Jace's call. */
+var BUY_ITEM={e1:45,e2:40,e3:30,e4:30,e5:45};
+var BUY_ITEM_WHY={
+  e1:"a TV does not lock and does not crash in value like a handset \u2014 it is just bulky and slow, which the liquidity band already counts",
+  e2:"a laptop can come in with a BIOS or account lock, but it holds its money far better than a phone",
+  e3:"activation lock, and last year's tablet is worth a fraction of this year's",
+  e4:"a phone can come in locked and nobody can clear it, and last year's handset falls off a cliff \u2014 this is the item the old 30% was written for",
+  e5:"a current-gen console holds its money, and an account lock is not the cliff a handset falls off"};
 var BUY_WHY={guns:"guns sell fast here and hold their value",jewel:"a proven one holds its price, but it sits until the right buyer walks in",hunt:"steady seller in season",tools:"steady seller",
   music:"they sell, just slower",rolling:"big dollars, needs a clean title, sells slower",
-  power:"seasonal and often needs a carb cleaned, but it sells and the shelves around here ask real money for it",elec:"loses value fast and can come in locked"};
+  power:"seasonal and often needs a carb cleaned, but it sells and the shelves around here ask real money for it",elec:"it sells fast and it sells all year \u2014 the ones that lock or fall off a cliff carry their own lower rate by name"};
 function buyRateHTML(x){
   const set=st.buys&&st.buys[st.catId]!=null;
   return `<div id="buyRate" style="margin-top:18px">
