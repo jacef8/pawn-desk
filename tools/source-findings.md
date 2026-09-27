@@ -158,3 +158,50 @@ filter. Real BPS shotguns are $611-817 there; those barrels are $261.99.
 Taking the minimum said a new BPS costs $262. The median says $667. The
 ceiling is built from the middle of the listings, which survives a few
 bad ones.
+
+### Outdoor Analytics on Tableau Public — the first real gun comp
+
+https://public.tableau.com/shared/5RMJPZ22G — "Top Selling Firearms by
+Month" by Tim Lafferty, badged Outdoor Analytics. Found by Jace on 28 Sep
+after his own GunBroker account was blocked.
+
+**Top Selling USED Firearms on GunBroker.com**, by month, filtered by
+firearm type (bolt action, lever action, over/under, pump shotgun,
+revolver, semi-auto pistol / rifle / shotgun) and by condition — New or
+Used. Each type lists top brands and top model FAMILIES with market
+share and **median sell price**. Sold prices, used, by model. That is
+exactly what the gun aisle has never had.
+
+August 2026, bolt action rifles, used, against our book:
+
+| model | ours | GunBroker used median | ours |
+|---|---|---|---|
+| Remington 700 | $450-700 | $1,024 | mid is 56% |
+| Browning X-Bolt | $700-900 | $1,028 | 78% |
+| Winchester Model 70 | $750-975 | $1,010 | 85% |
+| Tikka T3 | $650-825 | $853 | 86% |
+
+Four of the top eight are not in our book at all: Ruger M77 Hawkeye
+$922, Ruger Mark II $1,005, Browning A-Bolt $829, Weatherby Mark V
+$1,388.
+
+**Read family medians carefully.** "Remington 700" pools a base ADL with
+custom and tactical builds, which is why its median sits ABOVE the $792
+new-retail figure KYGUNCO gives for the same name. A family median is a
+centre of gravity for the name, not the price of the plain one. Our rows
+are generic, so the right comparison is probably the lower half of each
+family rather than its middle.
+
+Also national rather than north Florida, and one month. Still the best
+gun evidence available to us by a distance: everything else either
+refuses a script or sells new.
+
+Getting it out: the viz carries Tableau's own Download button, which is
+the one-click route to a crosstab CSV. The underlying vizql endpoint
+exists - bootstrapSession answers 405, so it is there and wants a POST
+with a session token - but reaching it needs a rendered page, and this
+container's headless Chromium cannot open external HTTPS at all
+(ERR_CERT_AUTHORITY_INVALID: the proxy re-terminates TLS and certutil is
+not installed to put its CA in the browser's NSS store). curl trusts the
+CA fine, which is why every other source here could be tested. So the
+browser is the blocked part, not the network.
