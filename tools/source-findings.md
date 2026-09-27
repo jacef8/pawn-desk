@@ -112,5 +112,49 @@ complete-in-box / new as separate prices, which maps onto the condition
 question the desk already asks. Not yet measured.
 
 **GunBroker.** eBay does not sell firearms at all, so every gun in the
-catalog is priced off a source that has never seen one. Set aside for now
-at Jace's direction.
+catalog is priced off a source that has never seen one. Set aside in
+September at Jace's direction; picked back up on 28 Sep.
+
+### Firearm sources, tested 28 Sep 2026
+
+Every marketplace worth quoting refuses a script. These are the sites
+themselves blocking bots, not our network - a person in a real browser
+still gets through, which is why the buttons that OPEN a search still
+work. What none of them can do is let the desk fetch a price.
+
+| source | result |
+|---|---|
+| GunBroker | 403, Cloudflare challenge |
+| Armslist | 403, Cloudflare challenge |
+| Guns.com | 403, Cloudflare |
+| GunsAmerica | 403, Cloudflare |
+| TrueGunValue | 403, Cloudflare |
+| GunWatcher (what all 74 rows came from) | 403, Cloudflare captcha |
+| Rock Island Auction | 403, Cloudflare |
+| GunAuction | 403, Cloudflare |
+| Impact Guns, Buds | 404 on the search paths tried |
+| **KYGUNCO** | **200, readable, 48 products a page** |
+
+KYGUNCO is a retailer, so what it gives is NEW retail. That is not a comp
+and no used gun should ever be priced off it. What it IS is a hard
+ceiling that nobody has to grant us access to: a used gun booked above
+what a new one costs is wrong whatever the source, and that is checkable
+today. tools/gun-ceiling.mjs does it.
+
+Two traps, both hit on the first run:
+
+*Parts read as guns.* "REMINGTON 870 Express Shotgun Barrel" at $124.99
+became the price of an 870, side rails became the price of a Maverick 88,
+and a $2.99 magazine plug became the price of an 1100 - the same
+parts-for-machines mistake the app was fixed for in September, repeated
+in the tool checking it. Excluding parts vocabulary outright is wrong
+too: a "MOSSBERG 590 Heat Shield 12Ga 20in 9rd" is a whole shotgun. A
+parts word now only disqualifies a listing carrying no sign of being a
+complete firearm - a capacity, an action, or a gauge-and-length pair.
+
+*The cheapest is not the price.* Browning lists barrels as "SB BPS STK
+98,12-3,24", which carries a gauge and a length and so survives the
+filter. Real BPS shotguns are $611-817 there; those barrels are $261.99.
+Taking the minimum said a new BPS costs $262. The median says $667. The
+ceiling is built from the middle of the listings, which survives a few
+bad ones.
