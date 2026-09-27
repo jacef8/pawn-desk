@@ -2083,6 +2083,64 @@ console.log("\n  missing pieces are priced once, not twice");
   await pg.close();
 }
 
+/* ============ A WEB PRICE IS A MARKET READING, NOT A CATALOG ROW =========
+   Two faults, both found by an outside whole-app review and both measured
+   before anything changed.
+
+   photoWebLookup asks "what does a used one really sell for" and used to
+   put the answer in st.overrides — which is the CATALOG price, what a
+   new-ish one is worth before the desk works it down. So $200 of used
+   resale was multiplied by CATALOG_AT_GOOD (0.8) and then brand and spec
+   on top, and the desk priced off $160.
+
+   And st.overrides was keyed on custId(cat.id) — ONE id shared by every
+   custom item in the aisle, and persisted. Photograph an unlisted chainsaw
+   at $180 and the next hand-typed custom item in outdoor power opened at
+   $180 with nothing on screen saying why. */
+console.log("\n  a price found from a photo is carried as what it is");
+{
+  const pg = await browser.newPage({viewport:{width:1500,height:1000}});
+  const errs = [];
+  pg.on("pageerror", e => errs.push(String(e)));
+  await pg.goto(BASE + "/index.html", {waitUntil:"networkidle"});
+  await pg.waitForTimeout(1200);
+  const r = await pg.evaluate(() => {
+    const cat = CATALOG.find(c => c.id === "power"), id = custId("power");
+    st.catId = "power"; st.itemId = id; st.bookName = "log splitter";
+    st.overrides = {}; st.specSel = {}; st.cond = "good"; st.condSet = true;
+    st.complete = true; st.completeSet = true; st.brandTyped = "Champion";
+    st.brand = "mid"; st.model = ""; st.detail = "";
+    const price = 200, spread = 0.173;
+    st.market = {kind:"web", key:mkKey(), mid:price,
+                 lo:Math.round(price*(1-spread)), hi:Math.round(price*(1+spread)),
+                 n:0, sold:0, date:todayStr(), src:"",
+                 note:"researched from the photo, never measured against live listings"};
+    const x = calcItem();
+    return {price, resale: Math.round(x.resale), checked: x.checked,
+            guardKind: x.guard && x.guard.kind, guardCut: x.guard && x.guard.cut,
+            guarded: Math.round(x.guardResale),
+            nextCustom: custItem(cat).value,
+            /* and a rough one must still take the condition hit */
+            rough: (() => { st.cond = "rough"; const y = calcItem();
+                            st.cond = "good"; return Math.round(y.resale); })()};
+  });
+  const t = [
+    ["the web figure is used as the resale, not shaved by the catalog rate",
+     r.resale === r.price],
+    ["  it counts as a checked price", r.checked === true],
+    ["  and it is graded as the weak evidence it is", r.guardKind === "research"],
+    ["  so the LOAN is guarded even though the resale is not shaved",
+     r.guardCut > 0 && r.guarded < r.resale],
+    ["condition still applies — a rough one is worth less", r.rough < r.resale],
+    /* the leak */
+    ["the next custom item in that aisle is NOT pre-loaded with it",
+     r.nextCustom !== r.price],
+  ];
+  for (const [what, pass] of t) ok(pass, what);
+  ok(!errs.length, "  no page errors" + (errs.length ? ": " + errs[0] : ""));
+  await pg.close();
+}
+
 await browser.close();
 console.log(fails ? "\n  " + fails + " FAILED\n" : "\n  all passed\n");
 process.exit(fails ? 1 : 0);

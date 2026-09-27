@@ -5501,13 +5501,39 @@ async function photoWebLookup(r){
   if(cat&&price>0){
     const id=custId(cat.id), where=String(d.where||"").slice(0,40);
     st.catId=cat.id; st.itemId=id; st.bookName=String(d.what||r.what||"").slice(0,60);
-    st.overrides[id]=price; st.liq="normal"; st.specSel={}; st.editing=false; st.market=null;
+    st.liq="normal"; st.specSel={}; st.editing=false; st.market=null;
     st.model=tidyModel(d.model);
     st.detail=String(d.detail||"").slice(0,80);
     st.brandTyped=String(d.brand||"").slice(0,40);
     const bh=st.brandTyped?brandLookup(st.catId,st.brandTyped):null;
     st.brand=bh?bh.tier:"mid";
     const c2=CONDITIONS.find(c=>c.id===String(d.cond||"")); if(c2)st.cond=c2.id;
+    /* THE WEB'S FIGURE IS A MARKET READING, NOT A CATALOG BASELINE.
+       Two faults, both found by an outside review and both measured.
+
+       It used to land in st.overrides, which is the CATALOG price - what a
+       new-ish one of this kind is worth before the desk works it down. So
+       $200 of "what a used one really sells for" was multiplied by
+       CATALOG_AT_GOOD (0.8) and then by brand and spec on top, and the
+       desk priced off $160. The question asked is "what a used one really
+       sells for"; that is a market mid, and the market path applies
+       condition and completeness and nothing else.
+
+       Worse, st.overrides was keyed on custId(cat.id) - ONE id shared by
+       every custom item in the aisle, and persisted. Photograph an
+       unlisted chainsaw at $180 and the next hand-typed custom item in
+       outdoor power opened at $180 with nothing on screen saying why.
+
+       Carrying it as the market fixes both: no shared key to leak, and the
+       arithmetic stops taking a catalog haircut off a used price. The
+       band is the tool's own measured repeatability, and the note says it
+       is a web figure so itemGuard grades it as the weak evidence it is. */
+    const spread=(INOISE&&INOISE.noiseMid>0?INOISE.noiseMid:17.3)/100;
+    st.market={kind:"web", key:mkKey(), mid:price,
+               lo:Math.max(1,Math.round(price*(1-spread))),
+               hi:Math.round(price*(1+spread)),
+               n:0, sold:0, date:todayStr(), src:String(d.where||""),
+               note:"researched from the photo, never measured against live listings"};
     st.photoRead={webPrice:{price,where},what:String(d.what||"").slice(0,90),confidence:String(d.confidence||"").slice(0,10),
       note:"Not on any list — priced at "+money(price)+" from what used ones sell for"
         +(where?" ("+where+")":"")+". Change it if that is wrong. "+String(d.note||"").slice(0,160),
@@ -8153,7 +8179,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0928.0548";
+const APP_BUILD="0928.0732";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
