@@ -1730,6 +1730,70 @@ console.log("\n  the item number is guarded by how good it is, and claims no tre
   await pg.close();
 }
 
+/* ================= A MAKER AND ITS OWN PRODUCT LINE AGREE ================
+   Reported from the counter: typed "microsoft xbox", got "no measured
+   price", and was never offered a series to pick — with 23 console rows in
+   the book and 8 of them Xbox.
+
+   The cause was a good guard misfiring. A row carrying a maker the counter
+   did not type is a different product, which is what stops "milwaukee
+   drill" answering with a DeWalt. But the electronics brand book carries
+   "Xbox" as a maker in its own right, so the check compared microsoft
+   against xbox, decided they were rival manufacturers, and dropped every
+   Xbox row. MP_FAMILY already knew xbox belongs to microsoft; nothing
+   consulted it.
+
+   The test has to hold BOTH sides: the family must be found, and the guard
+   that made the mistake must still do its job. */
+console.log("\n  a maker and its own product line are not rival brands");
+{
+  const pg = await browser.newPage({viewport:{width:1500,height:1000}});
+  const errs = [];
+  pg.on("pageerror", e => errs.push(String(e)));
+  await pg.goto(BASE + "/index.html", {waitUntil:"networkidle"});
+  await pg.waitForTimeout(1200);
+  const r = await pg.evaluate(() => {
+    const models = q => (omniRows(q) || {rows: []}).rows
+      .filter(x => x.kind === "mp").map(x => x.mp[2]);
+    const out = {};
+    for (const q of ["microsoft xbox", "sony playstation", "nintendo switch",
+                     "apple ipad", "samsung galaxy"]) out[q] = models(q);
+    /* the guard must still drop a genuinely different maker */
+    out.rival = models("milwaukee drill");
+    /* an ambiguous family must NOT silently pick one model - a Series X is
+       $470 and an Xbox One is $71, and guessing between them is the worst
+       outcome available */
+    st.catId = "elec"; st.itemId = "e5";
+    out.ambiguous = mpFor("e5", "Microsoft Xbox");
+    /* and picking a model off the list must actually produce its price */
+    const pick = (omniRows("microsoft xbox") || {rows: []}).rows
+      .find(x => x.kind === "mp" && /Series X$/.test(x.mp[2]));
+    if (pick) { omniPick(pick); st.cond = "good"; st.condSet = true;
+                st.complete = true; st.completeSet = true;
+                const m = marketNow();
+                out.priced = m && {name: m.name, mid: m.mid, sold: /sales/i.test(m.note || "")}; }
+    return out;
+  });
+  const has = (a, re) => Array.isArray(a) && a.some(x => re.test(x));
+  const t = [
+    ["\"microsoft xbox\" offers Xbox models", has(r["microsoft xbox"], /^Xbox/)],
+    ["  and one of them is the current Series X", has(r["microsoft xbox"], /Series X/)],
+    ["\"sony playstation\" offers PlayStations", has(r["sony playstation"], /PlayStation/)],
+    ["\"nintendo switch\" offers Switches", has(r["nintendo switch"], /Switch/)],
+    ["\"apple ipad\" offers iPads", has(r["apple ipad"], /iPad/i)],
+    ["\"samsung galaxy\" offers Galaxys", has(r["samsung galaxy"], /Galaxy/i)],
+    /* the half that must NOT regress */
+    ["a real rival maker is still dropped — no DeWalt for a Milwaukee",
+     Array.isArray(r.rival) && !has(r.rival, /dewalt/i)],
+    ["a bare family name still refuses to guess a model", r.ambiguous === null],
+    ["picking the model off the list prices it", !!(r.priced && r.priced.mid > 0)],
+    ["off real sales, not a guess", !!(r.priced && r.priced.sold)],
+  ];
+  for (const [what, pass] of t) ok(pass, what);
+  ok(!errs.length, "  no page errors" + (errs.length ? ": " + errs[0] : ""));
+  await pg.close();
+}
+
 await browser.close();
 console.log(fails ? "\n  " + fails + " FAILED\n" : "\n  all passed\n");
 process.exit(fails ? 1 : 0);

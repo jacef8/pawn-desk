@@ -6418,7 +6418,7 @@ function omniRows(q){
         const h=e?brandInText(e.catId,r[2]):null; return h?omniNorm(h.name):""; };
       MODEL_PRICES.map(r=>{ const nw=omniWords(r[2]); let s=0; for(const w of keys){ const h=wordHit(w,nw); if(!h)return null; s+=h; } if(omniNorm(r[2]).indexOf(omniNorm(q))>=0)s+=5;
           if(qb){ const rb=rowBrand(r);
-            if(rb&&rb!==qb&&rb.indexOf(qb)<0&&qb.indexOf(rb)<0)return null;
+            if(rb&&!sameMaker(rb,qb))return null;
             if(rb)s+=6; }
           return {r,s}; })
         .filter(Boolean).sort((a,b)=>b.s-a.s||a.r[2].length-b.r[2].length).slice(0,5)
@@ -8023,7 +8023,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0927.2246";
+const APP_BUILD="0927.2338";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -8105,7 +8105,7 @@ function mpFor(cur,text){
   const said=brandInText(st.catId,text);
   const agrees=r=>{ if(!said||!r)return true;
     const h=brandInText(st.catId,r[2]);
-    return !h||omniNorm(h.name)===omniNorm(said.name); };
+    return !h||sameMaker(h.name,said.name); };
   for(const [id,re] of MP_MATCH){
     const r=MP_BY_ID[id]; if(!r)continue;
     if(String(r[1]).split("|").indexOf(cur)<0)continue;
@@ -8424,6 +8424,29 @@ document.addEventListener("paste",e=>{
 const MP_FAMILY={macbook:"apple",imac:"apple",ipad:"apple",iphone:"apple",airpod:"apple",beats:"apple",
   galaxy:"samsung",pixel:"google",thinkpad:"lenovo",inspiron:"dell",latitude:"dell",
   xbox:"microsoft",playstation:"sony",switch:"nintendo",wingmaster:"remington",rancher:"husqvarna"};
+/* MICROSOFT AND XBOX ARE NOT RIVAL MANUFACTURERS.
+   Reported from the counter: typed "microsoft xbox", got "no measured
+   price", and was never offered a series to pick - with twenty-three
+   console rows and eight Xbox rows sitting in the book.
+
+   The guard that did it is a good guard: a row carrying a maker the
+   counter did not type is a different product, which is what stops
+   "milwaukee drill" answering with a DeWalt. But the electronics brand
+   book carries "Xbox" as a maker in its own right, so the check compared
+   microsoft against xbox, found two makers that were not each other, and
+   dropped every Xbox row in the book.
+
+   MP_FAMILY above already knows xbox belongs to microsoft, playstation to
+   sony, galaxy to samsung. Nothing consulted it here. Now both the search
+   and the lookup resolve a name through it before comparing, so a product
+   line and the company that makes it agree. */
+function makerOf(name){ const n=omniNorm(name||""); return MP_FAMILY[n]||n; }
+function sameMaker(a,b){
+  if(!a||!b)return true;
+  const x=makerOf(a), y=makerOf(b);
+  if(!x||!y)return true;
+  return x===y||x.indexOf(y)>=0||y.indexOf(x)>=0;
+}
 function mpBrandOf(text){
   const t=" "+omniNorm(text)+" ";
   for(const k of Object.keys(MP_FAMILY)) if(t.indexOf(k)>=0)return MP_FAMILY[k];
