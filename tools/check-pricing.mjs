@@ -543,9 +543,14 @@ console.log("\n  the loan card does not repeat the rail");
      carry the things that card does not. */
   ok(!/BUY IT FOR/i.test(wide.pin),
      "  wide, the rail no longer restates the buy price the answer card carries");
+  /* The rung ladder became the chosen deal's panel, so the phrase moved -
+     but the rule did not. The sharpest form of it is the SECOND month:
+     the answer card names day 30 and stops, so a two-month total in the
+     rail is proof the rail is carrying what the card does not, rather
+     than repeating it. */
   ok(/what kills it/i.test(wide.pin) && /cushion/i.test(wide.pin)
-     && /to get it back/i.test(wide.pin),
-     "  it carries what that card does not \u2014 the killer, the cushion and the later rungs");
+     && /2 months/i.test(wide.pin),
+     "  it carries what that card does not \u2014 the killer, the cushion and the second month");
   ok(!/LOW LOAN/.test(wide.txt) && !/SUGGESTED LOAN/.test(wide.txt) && !/TOP LOAN/.test(wide.txt),
      "  so the card drops the three range tiles");
   ok(!/OR BUY IT OUTRIGHT/.test(wide.txt), "  and the buy row");

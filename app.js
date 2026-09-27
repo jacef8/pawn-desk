@@ -1286,6 +1286,68 @@ function pinHTML(x){
    Day 30 is the one that matters, so it is the one that is big. The other
    two are what he asks next. The forfeit date is not a footnote either: it
    is the whole deal, and it goes on the card rather than in a fold. */
+/* THE DEAL YOU PICKED, IN FULL.
+   Two things were reported at once and they are the same fault. The pair
+   of deal tiles on the answer card looked like a choice and was not one,
+   and this panel's first rung was drawn with an accent border and an
+   accent fill - the exact treatment every chosen pill on the screen wears
+   - so it read as a selected tab. "It appears that this should be
+   selectable but its not." Both were promising a control and delivering a
+   label.
+   Now the tiles ARE the control, and this panel is what they control. It
+   shows one deal at a time, the one picked, and it says the arithmetic in
+   the words used across the counter rather than as a rung ladder: what
+   the interest is for a month, what he hands over to clear it at one
+   month, and what he hands over at two. That was asked for directly -
+   "monthly interest, total pay back after 1 month and another line for 2
+   months" - and it is better than the ladder was, because DAY 31-60 never
+   said whether $158 was the whole thing or the second month's part.
+   Day 90 came out. The ticket is dead at day 60; a figure past it was
+   arithmetic nobody can collect. */
+function dealPanelHTML(x){
+  const m1=x.target+x.charge, m2=x.target+x.charge*2;
+  if(st.struckKind==="buy") return `<div class="railBack">
+    <div class="railBackHd"><b>If you buy it</b><span>no ticket, no clock</span></div>
+    <div class="dealRows">
+      <div class="dRow"><span>You hand over</span><b>${money(x.buy)}</b></div>
+      <div class="dRow"><span>It resells for</span><b>${money(Math.round(x.resale))}</b></div>
+      <div class="dRow tot"><span>You make, once it sells</span><b>${money(Math.round(x.resale)-x.buy)}</b></div>
+    </div>
+    <div class="rbDay60">Yours the moment you pay. Nothing to hold, nothing
+      to give back \u2014 and nothing coming in until it sells.</div>
+  </div>`;
+  return `<div class="railBack">
+    <div class="railBackHd"><b>If he pawns it</b><span>${pawnPct()}% per 30 days</span></div>
+    <div class="dealRows">
+      <div class="dRow"><span>You hand over</span><b>${money(x.target)}</b></div>
+      <div class="dRow"><span>Interest, one month</span><b>${money(x.charge)}</b></div>
+      <div class="dRow tot"><span>Total to clear it \u2014 1 month</span><b>${money(m1)}</b></div>
+      <div class="dRow tot"><span>Total to clear it \u2014 2 months</span><b>${money(m2)}</b></div>
+    </div>
+    ${/* THE CONSERVATIVE-VS-AGGRESSIVE LIST, PUT BACK.
+          Reported from the counter: "we used to have a conservative vs
+          aggressive offer list." It was not deleted - it is the Low /
+          Suggested / Top row, and it is still there under 1080px wide. The
+          rail layout dropped it, along with the buy-outright row, as
+          duplicates of the rail; the rail kept "Range $55-$130" in grey
+          footnote type, which is the same three numbers with the judgement
+          taken out. On a wide screen - the one the shop actually uses -
+          the list had simply gone.
+          It comes back FLAT: no accent fill, no ring, no tile. The middle
+          figure is marked by weight alone. The rung ladder above this was
+          reported as looking selectable when it was not, and three boxes
+          with one of them lit is exactly how that mistake is made. */""}
+    <div class="offerRow">
+      <div class="oCell"><div class="k">Go low</div><div class="d">${money(x.low)}</div></div>
+      <div class="oCell mid"><div class="k">Suggested</div><div class="d">${money(x.target)}</div></div>
+      <div class="oCell"><div class="k">Go high</div><div class="d">${money(x.high)}</div></div>
+    </div>
+    <div class="oWhy">Low when cash is tight or the deal feels off. High for a
+      regular you want back. Never above the top \u2014 that is your cushion.</div>
+    <div class="rbDay60">Day 30 it matures; day 60 it is <b>ours</b> \u2014 no
+      notice, no letter. Two months is as far as this goes.</div>
+  </div>`;
+}
 function railHTML(x){
   /* THE RAIL ONCE THERE IS AN ANSWER.
      It used to open with a saturated card carrying the offer, the loan and
@@ -1348,13 +1410,7 @@ function railHTML(x){
     </div>
     ${(typeof itemGuardHTML==="function")?itemGuardHTML(x):""}
     ${killerHTML(x)}
-    ${thin?"":`
-    <div class="railBack">
-      <div class="railBackHd"><b>To get it back</b><span>${pawnPct()}% per 30 days \u00b7 $${(x.charge/30).toFixed(2)}/day after day\u00a060</span></div>
-      <div class="railLadder">${ladder(x.target,x.charge).map((r,i)=>
-        `<div class="rbCell${i===0?" now":""}"><div class="k">${r.k}</div><div class="d">${money(r.due)}</div></div>`).join("")}</div>
-      <div class="rbDay60">Day 60 it is <b>ours</b> &mdash; no notice, no letter.</div>
-    </div>`}
+    ${thin?"":dealPanelHTML(x)}
     <div class="wRow"><i><svg viewBox="0 0 24 24" aria-hidden="true">${I.math}</svg></i>
       <div class="t"><b>Your cushion</b><span>fee ${money(x.charge)} \u00b7 lending ${x.ltv}% of resale</span></div>
       <div class="v">${money(x.margin)}</div></div>
@@ -2553,10 +2609,17 @@ function struckHTML(x){
   return `<div class="struck">
     <span class="label" style="margin:0">What you actually did — the number that gets logged</span>
     <div class="struckRow">
-      <div class="struckPick">
-        <button type="button" class="${k.kind==="loan"?"on":""}" data-struckkind="loan">Lent</button>
-        <button type="button" class="${k.kind==="buy"?"on":""}" data-struckkind="buy">Bought</button>
-      </div>
+      ${/* THE SAME DECISION, ASKED TWICE. Reported from the counter:
+            "should we need an additional selector (lent, bought) under the
+            two large buy or pawn buttons... if we pick one of the large
+            buttons it should autopopulate the other parts." It should, and
+            now it does - the tiles ARE this control. Two states for one
+            decision could also disagree: the tiles could say Pawn while the
+            log said Bought, and the log is what the price book is built
+            out of. There is one field now, st.struckKind, and struckAmt
+            already reads the suggested figure, the Use button and the note
+            off it, so pressing a tile fills this strip in. */""}
+      <div class="struckWas">${k.kind==="loan"?"Lent":"Bought"}</div>
       <input class="numIn struckIn" type="number" inputmode="decimal" min="0" step="1" autocomplete="off"
         placeholder="${Math.round(sug)}" value="${esc(st.struck==null?"":String(st.struck))}"
         aria-label="What you actually ${k.kind==="loan"?"lent":"paid"}">
@@ -2590,13 +2653,25 @@ function askDoneHTML(x){
          "He pays back by day 30" came out of this row entirely: it is the
          first rung of the ladder on the rail, in the same typeface, four
          inches away - the duplication the counter asked about, and mine. -->
-    <div class="adPair">
-      <div class="adDeal buy">
+    ${/* THEY LOOKED LIKE A CHOICE AND WERE NOT ONE.
+          Reported from the counter, about the rail: "it appears that this
+          should be selectable but its not." The same is true of this pair,
+          and more so - two deal names, two prices, one of them filled in
+          the accent every other button on the screen uses to mean
+          "chosen". Reading that as a control is not a misreading, it is
+          the only sensible reading. Either the shape stops promising a
+          choice, or the choice becomes real. It is a real choice: which
+          of these two deals you are doing is THE decision at the counter,
+          and the rail has room to show the one you picked in full. */""}
+    <div class="adPair" role="group" aria-label="Which deal are you doing?">
+      <button type="button" class="adDeal buy${st.struckKind==="buy"?" on":""}"
+              data-ideal="buy" aria-pressed="${st.struckKind==="buy"}">
         <div class="k">Buy it outright</div>
         <div class="d">${money(x.buy)}</div>
         <div class="s">Yours. Nothing to pay back, nothing to hold.</div>
-      </div>
-      <div class="adDeal lend">
+      </button>
+      <button type="button" class="adDeal lend${st.struckKind!=="buy"?" on":""}"
+              data-ideal="loan" aria-pressed="${st.struckKind!=="buy"}">
         <div class="k">Pawn loan</div>
         <div class="d">${money(x.target)}</div>
         ${/* "He pays back $131" was read at the counter as $131 of INTEREST
@@ -2606,7 +2681,7 @@ function askDoneHTML(x){
               thing off the shelf - and then splits it, which makes reading it
               as interest impossible. */""}
         <div class="s">To get it back: <b>${money(x.target+x.charge)}</b> by day 30 \u2014 the ${money(x.target)} plus ${money(x.charge)} interest.</div>
-      </div>
+      </button>
     </div>
     <div class="adWhy">${x.checked?"":`<b style="color:var(--warn-ink)">Estimate &mdash; nothing looked up.</b> `}<b>Resells for ${money(Math.round(x.resale))}</b> in this shape &mdash; that is where both numbers come from. Lend anywhere in ${money(x.low)}&ndash;${money(x.high)}, never above the top.</div>
     ${struckHTML(x)}
@@ -3168,6 +3243,13 @@ function wireItem(){
     refreshStep4();
   };
   v.querySelectorAll("[data-cond]").forEach(b=>b.onclick=()=>{st.cond=b.dataset.cond;st.condSet=true;render();});
+  /* Which deal you are doing. It drives the panel on the rail and nothing
+     else - no price moves, so a mis-click costs a click. Kept separate
+     from st.deal, which is the metals run's own buy-or-pawn question:
+     picking "buy" on a PlayStation has no business answering a question
+     on the gold page. */
+  v.querySelectorAll("[data-ideal]").forEach(b=>b.onclick=()=>{
+    st.struckKind=b.dataset.ideal==="buy"?"buy":"loan"; persist(); render(); });
   v.querySelectorAll("[data-comp]").forEach(b=>b.onclick=()=>{st.complete=b.dataset.comp==="1";st.completeSet=true;render();});
   /* Answering IS moving on. A questionnaire that makes you answer and then
      press Next has two actions where the counter's hand expects one. The
@@ -8179,7 +8261,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0928.0811";
+const APP_BUILD="0928.0930";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

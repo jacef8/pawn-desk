@@ -911,8 +911,15 @@ console.log("\n  the number actually agreed can be typed, and it is what gets lo
     out.note = box ? (box.querySelector(".struckNote")||{}).textContent || "" : "";
     /* the two boxes on screen stay in step */
     out.mirrored = [...document.querySelectorAll(".struckIn")].map(e => e.value);
-    /* bought instead of lent */
-    const bb = box && box.querySelector('[data-struckkind="buy"]');
+    /* BOUGHT INSTEAD OF LENT, FROM THE TILE THAT NOW OWNS IT.
+       This used to click a Lent/Bought pill inside the log strip. That
+       pill was a second copy of the decision the two big tiles make, in a
+       second state that could disagree with them - and the log is what the
+       shop's price book is built out of, so a disagreement there is not
+       cosmetic. One field now, st.struckKind, written by the tiles. What
+       this checks is unchanged: press "buy", and the log records a straight
+       buy rather than a loan. */
+    const bb = document.querySelector('#askCard .adDeal[data-ideal="buy"]');
     if (bb) bb.click();
     out.kind = struckAmt(calcItem()).kind;
     const b2 = document.querySelector("#askCard .struck");
@@ -1151,7 +1158,9 @@ console.log("\n  the rail stops repeating the middle column");
                      big: !!rail.querySelector(".heroBig"),
                      kill: !!rail.querySelector(".killCard"),
                      acts: rail.querySelectorAll(".acts .act").length,
-                     ladder: !!rail.querySelector(".railLadder"),
+                     /* the rung ladder became the chosen deal's panel -
+                        same job, said per month instead of per rung */
+                     ladder: !!rail.querySelector(".dealRows"),
                      cushion: /cushion/i.test(rail.innerText),
                      text: rail.innerText.replace(/\s+/g, " ")} : null;
     };
@@ -1181,7 +1190,7 @@ console.log("\n  the rail stops repeating the middle column");
   ok(r.finished.acts === 3,
      "  the three actions stay, because they are actions and not numbers \u2014 " + r.finished.acts);
   ok(r.finished.ladder && r.finished.cushion,
-     "  so do the rungs the middle does not name, and the cushion");
+     "  so does the repayment the middle does not name, and the cushion");
   ok(r.finished.kill && /what kills it/i.test(r.finished.text),
      "  and the space goes to what kills one of these \u2014 " +
      (r.finished.text.match(/WHAT KILLS IT[^A-Z]*[^.]*\./i) || [""])[0].slice(0, 70));

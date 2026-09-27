@@ -695,15 +695,67 @@ console.log("\n  the rail says what it costs him to get it back, not just what h
       render();
       const rail = document.querySelector(".rail");
       const back = rail && rail.querySelector(".railBack");
-      const cells = back ? [...back.querySelectorAll(".rbCell")] : [];
-      const lit = back ? back.querySelector(".rbCell.now") : null;
+      const rows = back ? [...back.querySelectorAll(".dRow")] : [];
       const x = calcItem();
+      const txt = n => (n.querySelector("span") || {}).textContent || "";
+      const amt = n => (n.querySelector("b") || {}).textContent || "";
+      const tot = rows.filter(r => r.classList.contains("tot"));
       return {inRail: !!back,
-              cells: cells.length,
-              amounts: cells.map(c => (c.querySelector(".d") || {}).textContent),
-              litIsFirst: !!(lit && cells[0] === lit),
-              litSize: lit ? parseFloat(getComputedStyle(lit.querySelector(".d")).fontSize) : 0,
-              plainSize: cells[1] ? parseFloat(getComputedStyle(cells[1].querySelector(".d")).fontSize) : 0,
+              rows: rows.length,
+              labels: rows.map(txt),
+              amounts: rows.map(amt),
+              totAmounts: tot.map(amt),
+              /* THE ORIGINAL COMPLAINT, AS AN ASSERTION. "It appears that
+                 this should be selectable but its not." Nothing in this
+                 panel may be a button or carry the chosen-pill treatment,
+                 because nothing in it is a choice. */
+              pressable: rows.some(r => r.tagName === "BUTTON" || r.querySelector("button")
+                                     || r.hasAttribute("data-ideal")),
+              litSize: tot[0] ? parseFloat(getComputedStyle(tot[0].querySelector("b")).fontSize) : 0,
+              plainSize: rows[0] ? parseFloat(getComputedStyle(rows[0].querySelector("b")).fontSize) : 0,
+              /* and the tiles that ARE the choice must really be buttons */
+              tilesArePressable: [...document.querySelectorAll(".adDeal")]
+                .every(b => b.tagName === "BUTTON" && b.hasAttribute("data-ideal")),
+              pawnChosen: !!document.querySelector('.adDeal.lend.on'),
+              /* THE UNCHOSEN TILE STILL HAS TO BE READABLE.
+                 The first cut told the states apart with opacity .52 and
+                 saturate .55, which made the unchosen $130 dark blue ink
+                 on a mid-blue fill. check-contrast reads the CSS tokens,
+                 so it saw nothing wrong - the damage happens between the
+                 token and the glass. This measures what is actually
+                 painted, in both states, which is the only way to catch
+                 it. */
+              tileInk: (() => {
+                const lum = c => { const [r,g,b] = c.match(/[\d.]+/g).map(Number)
+                    .slice(0,3).map(v => { v/=255; return v<=.03928 ? v/12.92
+                      : Math.pow((v+.055)/1.055, 2.4); });
+                  return .2126*r + .7152*g + .0722*b; };
+                /* walk up for the first opaque backdrop, then fold in every
+                   opacity between here and there */
+                const paint = el => { let o = 1, n = el;
+                  while (n && n !== document.documentElement) {
+                    o *= parseFloat(getComputedStyle(n).opacity); n = n.parentElement; }
+                  let bg = "rgb(11,13,19)", m = el;
+                  while (m) { const c = getComputedStyle(m).backgroundColor;
+                    if (c && !/rgba\(0, 0, 0, 0\)|transparent/.test(c)) { bg = c; break; }
+                    m = m.parentElement; }
+                  const fg = getComputedStyle(el).color;
+                  const L1 = lum(fg)*o + lum(bg)*(1-o), L2 = lum(bg);
+                  const hi = Math.max(L1,L2), lo = Math.min(L1,L2);
+                  return Math.round(((hi+.05)/(lo+.05))*100)/100; };
+                return [...document.querySelectorAll(".adDeal")].map(t => ({
+                  deal: t.dataset.ideal, on: t.classList.contains("on"),
+                  /* AND THE MECHANISM ITSELF, not only its result. The
+                     composite ratio below stays healthy for white ink on a
+                     dark well even at .52 opacity, so it would NOT have
+                     caught the original defect, which was dark on-accent
+                     ink on an accent fill, faded. Forbidding the fade
+                     outright is the assertion that actually holds: these
+                     tiles are told apart by which one carries the colour,
+                     never by making one of them dim. */
+                  faded: getComputedStyle(t).opacity !== "1"
+                      || getComputedStyle(t).filter !== "none",
+                  ratio: paint(t.querySelector(".d")) })); })(),
               /* The answer card's two decisions - buy and pawn loan - are the
                  biggest numbers on the screen by the counter's own request,
                  so the rail's day-30 rung has to sit under them. */
@@ -716,10 +768,35 @@ console.log("\n  the rail says what it costs him to get it back, not just what h
     });
     if (!pay.inRail) pay_bad.push("the rail carries no repayment block");
     else {
-      if (pay.cells !== 3) pay_bad.push(`the repayment ladder has ${pay.cells} rungs, expected 3`);
-      if (!pay.litIsFirst) pay_bad.push("day 30 is not the lit rung");
+      /* FOUR ROWS, NOT THREE RUNGS. The ladder this replaced said BY DAY
+         30 / DAY 31-60 / DAY 90, and "DAY 31-60 $158" never said whether
+         $158 was the whole thing or the second month's part - which is the
+         same ambiguity that got $131 read as interest. Asked for directly
+         from the counter: the interest for a month, the total at one
+         month, the total at two. Day 90 came out; the ticket is dead at
+         day 60 and a figure past it is arithmetic nobody can collect. */
+      if (pay.rows !== 4) pay_bad.push(`the pawn panel has ${pay.rows} rows, expected 4`);
+      if (pay.totAmounts.length !== 2) pay_bad.push(
+        `${pay.totAmounts.length} totals, expected 2 - one month and two`);
+      if (!/interest/i.test(pay.labels.join(" "))) pay_bad.push(
+        "the panel never names the interest on its own");
+      if (!pay.labels.some(l => /1 month/i.test(l)) || !pay.labels.some(l => /2 months/i.test(l)))
+        pay_bad.push("the two totals are not labelled by month: " + pay.labels.join(" / "));
+      if (/pays back/i.test(pay.labels.join(" "))) pay_bad.push(
+        "'pays back' is the phrase that got read as interest at the counter");
+      if (pay.pressable) pay_bad.push(
+        "a row in the panel is pressable - that is the thing that was reported");
+      if (!pay.tilesArePressable) pay_bad.push(
+        "the buy/pawn tiles are not real buttons, so the choice is still fake");
+      if (!pay.pawnChosen) pay_bad.push("no deal is shown as chosen");
+      for (const t of pay.tileInk || []) {
+        if (t.faded) pay_bad.push(
+          `the ${t.deal} tile is dimmed when ${t.on ? "chosen" : "not chosen"} - tell the states apart by fill, not by fading the money`);
+        if (!(t.ratio >= 4.5)) pay_bad.push(
+          `the ${t.deal} tile's figure is ${t.ratio}:1 when ${t.on ? "chosen" : "not chosen"} - needs 4.5`);
+      }
       if (!(pay.litSize > pay.plainSize)) pay_bad.push(
-        `day 30 (${pay.litSize}px) is not larger than the others (${pay.plainSize}px)`);
+        `the totals (${pay.litSize}px) are not larger than the parts (${pay.plainSize}px)`);
       /* There is no hero in the rail any more - it was a second copy of the
          answer card beside it and came out at the counter's request - so the
          day-30 rung is now the largest number the rail carries, and what it
@@ -730,13 +807,13 @@ console.log("\n  the rail says what it costs him to get it back, not just what h
       if (pay.leaked) pay_bad.push("a source comment is rendering as text inside the repayment block");
       /* the arithmetic on the card must be the arithmetic in the book */
       const want = ["$" + (pay.target + pay.charge), "$" + (pay.target + pay.charge * 2)];
-      const got = pay.amounts.slice(0, 2).map(a => String(a).replace(/[,\s]/g, ""));
+      const got = pay.totAmounts.map(a => String(a).replace(/[,\s]/g, ""));
       if (got[0] !== want[0] || got[1] !== want[1])
-        pay_bad.push(`the ladder does not match ladder(): showed ${got.join(", ")}, expected ${want.join(", ")}`);
+        pay_bad.push(`the totals are wrong: showed ${got.join(", ")}, expected ${want.join(", ")}`);
     }
   await dk.close();
   if (pay_bad.length) { bad++; console.log("FAIL the repayment on the rail: " + pay_bad.join(" | ")); }
-  else console.log("ok   the rail carries the repayment ladder, day 30 lit, forfeit date on the card");
+  else console.log("ok   the rail shows the chosen deal - interest, one month, two months - and nothing in it pretends to be a control");
 }
 
 /* REPORTED FROM THE COUNTER: "I don't need the separate walk away section,

@@ -804,16 +804,45 @@
      length across a counter two identical boxes of money are two identical
      boxes of money. The buy is filled; the loan is outlined. */
   .adPair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;margin-top:12px}
-  .adDeal{padding:13px 14px 14px;border-radius:var(--r-s);min-width:0}
+  /* THE TILES ARE CONTROLS NOW, SO THEY HAVE TO LOOK LIKE CONTROLS YOU
+     CAN PRESS - and the unchosen one has to look unchosen, or this is the
+     same false promise in a new coat. Unchosen: flattened, desaturated,
+     sitting back. Chosen: lifted, full colour, with a lit top edge. */
+  .adDeal{padding:13px 14px 14px;border-radius:var(--r-s);min-width:0;
+    width:100%;text-align:left;font:inherit;cursor:pointer;border:none;
+    transition:opacity .15s,transform .15s,box-shadow .15s}
+  /* NOT BY DIMMING. The first cut said the unchosen tile apart with
+     opacity .52 and saturate .55, which is how you make a control look
+     unchosen and also how you make $130 unreadable - dark blue ink on a
+     mid-blue fill. check-contrast could not see it, because it reads the
+     tokens and not what opacity does to them on the way to the glass.
+     The difference is the FILL, not the ink: unchosen sits in the same
+     recessed well every other quiet surface uses, chosen takes the colour.
+     Every state keeps full-contrast text. */
+  .adDeal.on{transform:translateY(-1px)}
+  .adDeal:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
   .adDeal .k{font:700 11.5px/1.2 var(--mono);letter-spacing:.11em;text-transform:uppercase}
   .adDeal .d{font:800 clamp(34px,3.4vw,44px)/1 var(--disp);letter-spacing:-.04em;
     margin:6px 0 5px;font-variant-numeric:tabular-nums;overflow-wrap:break-word}
   .adDeal .s{font-size:12.5px;line-height:1.4}
-  .adDeal.buy{background:var(--accent);box-shadow:var(--fill-sh)}
-  .adDeal.buy .k{color:color-mix(in srgb,var(--on-accent) 76%,transparent)}
-  .adDeal.buy .d{color:var(--on-accent)}
-  .adDeal.buy .s{color:color-mix(in srgb,var(--on-accent) 82%,transparent)}
-  .adDeal.lend{background:var(--well);border:1px solid var(--accent)}
+  /* the quiet state both tiles share */
+  .adDeal.buy,.adDeal.lend{background:var(--well);
+    box-shadow:inset 0 0 0 1px var(--line)}
+  .adDeal.buy .k,.adDeal.lend .k{color:var(--ink-3)}
+  .adDeal.buy .d,.adDeal.lend .d{color:var(--ink)}
+  .adDeal.buy .s,.adDeal.lend .s{color:var(--ink-2)}
+  .adDeal.buy .s b,.adDeal.lend .s b{color:var(--ink)}
+  .adDeal.buy:hover,.adDeal.lend:hover{box-shadow:inset 0 0 0 1px var(--accent)}
+  /* chosen: the buy takes the fill, the loan takes the ring - told apart by
+     shape as well as by state, which is why they were drawn differently in
+     the first place */
+  .adDeal.buy.on{background:var(--accent);box-shadow:var(--fill-sh)}
+  .adDeal.buy.on .k{color:color-mix(in srgb,var(--on-accent) 76%,transparent)}
+  .adDeal.buy.on .d{color:var(--on-accent)}
+  .adDeal.buy.on .s{color:color-mix(in srgb,var(--on-accent) 82%,transparent)}
+  .adDeal.lend.on{box-shadow:inset 0 0 0 2px var(--accent),
+    inset 0 1px 0 rgba(255,255,255,.10),0 6px 16px -10px rgba(0,0,0,.9)}
+  .adDeal.lend.on .k{color:var(--accent-ink)}
   .adDeal.lend .k{color:var(--accent-ink)}
   .adDeal.lend .d{color:var(--ink)}
   .adDeal.lend .s{color:var(--ink-2)}
@@ -1274,3 +1303,40 @@
     letter-spacing:.06em;white-space:nowrap}
   .phKillIn{padding-bottom:2px}
   .phKillIn .killRow:first-child{margin-top:7px}
+  /* THE DEAL PANEL. The rung ladder it replaces drew its first cell with
+     an accent border and an accent fill - the same treatment a chosen pill
+     wears - so it read as a selected tab somebody could press. These are
+     rows of money with their names beside them, which is what they always
+     were. Nothing here looks pressable, because nothing here is. */
+  .dealRows{margin-top:9px;display:flex;flex-direction:column;gap:1px;
+    border-radius:var(--r-xs);overflow:hidden}
+  .dRow{display:flex;align-items:baseline;justify-content:space-between;gap:12px;
+    padding:9px 11px;background:var(--well)}
+  .dRow span{font-size:12.5px;line-height:1.35;color:var(--ink-2)}
+  .dRow b{font:800 18px/1 var(--disp);letter-spacing:-.03em;color:var(--ink);
+    font-variant-numeric:tabular-nums;white-space:nowrap}
+  .dRow.tot b{font-size:21px;color:var(--accent-ink)}
+  /* THE OFFER LIST, FLAT ON PURPOSE. Three figures, no fill, no ring, no
+     border - the middle one marked by weight alone. The ladder that used
+     to sit here drew its first cell in the chosen-pill treatment and was
+     reported as looking selectable when it was not; three boxes with one
+     lit is how that is done. These are numbers to read, so they look like
+     numbers to read. */
+  .offerRow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:2px;margin-top:9px;padding-top:9px;border-top:1px solid var(--line)}
+  .oCell{text-align:center;padding:2px 3px}
+  .oCell .k{font:600 9.5px/1.2 var(--mono);letter-spacing:.08em;
+    text-transform:uppercase;color:var(--ink-3)}
+  .oCell .d{font:700 16px/1.1 var(--disp);letter-spacing:-.02em;margin-top:3px;
+    color:var(--ink-2);font-variant-numeric:tabular-nums}
+  .oCell.mid .k{color:var(--ink-2)}
+  .oCell.mid .d{font-weight:800;font-size:18px;color:var(--ink)}
+  .oWhy{margin-top:7px;font-size:12px;line-height:1.45;color:var(--ink-3)}
+  /* WHICH DEAL THIS IS, STATED NOT ASKED. The Lent/Bought pills here were
+     the same decision as the two big tiles above them, held in a second
+     state that could disagree with the first - and the log is what the
+     shop's price book is built out of. The tiles are the control; this
+     just says which way they are set, so the strip reads as a sentence. */
+  .struckWas{font:700 11.5px/1 var(--mono);letter-spacing:.11em;
+    text-transform:uppercase;color:var(--accent-ink);white-space:nowrap;
+    align-self:center;padding:0 2px}
