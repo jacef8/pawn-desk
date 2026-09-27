@@ -1011,6 +1011,72 @@ console.log("\n  and the Look up button says what it is doing");
   await p.close();
 }
 
+/* THE TOOL MUST NOT USE THE TRADE'S WORDS AS IF EVERYBODY KNOWS THEM.
+   Reported from the counter: "I'm still learning the lingo and rational. I
+   don't know what spot vs loan means." The offending line was in a fold
+   whose entire job was explaining something, and it explained it with a
+   word that had never been defined. Same fault as calling the tool "the
+   desk" at the counter, three weeks earlier.
+
+   The rule is not that the word is banned - a dealer on the phone will say
+   "spot" and the counter should know it. The rule is that the screen says
+   "today's price" everywhere it means today's price, and the word is
+   TAUGHT exactly once, in the card that exists to teach it. */
+console.log("\n  the trade's words are taught, not assumed");
+{
+  const p = await browser.newPage({viewport:{width:1500,height:1100}});
+  const errs = [];
+  p.on("pageerror", e => errs.push(String(e)));
+  await p.goto(BASE + "/index.html", {waitUntil:"networkidle"});
+  /* The guard card needs metals-risk.json to have landed. Without the wait
+     the card is simply absent, the page has no "spot" on it, and the test
+     passes by looking at nothing — which is exactly how it passed a revert
+     the first time it was tried. `sawCard` makes that impossible. */
+  await p.waitForTimeout(1200);
+  const r = await p.evaluate(() => {
+    const out = {loose: [], defined: false, words: 0, sawCard: false};
+    for (const deal of ["buy", "pawn"]) for (const metal of ["gold", "silver"]) {
+      st.mode = "metal"; st.metal = metal; st.deal = deal; st.grams = "4";
+      st.openWords = true; render();
+      /* folds open: a word hidden in a fold is still a word he has to read */
+      document.querySelectorAll("#view details").forEach(d => d.open = true);
+      const glossary = document.getElementById("wordsFold");
+      if (glossary) out.words = glossary.innerText.trim().split(/\s+/).length;
+      const gloss = glossary ? glossary.innerText : "";
+      /* EXCLUDE THE GLOSSARY BY LOCATION, NOT BY TEXT.
+         The first version matched a bare "spot" and then skipped any match
+         the glossary's text also contained - and the glossary contains the
+         word "spot", which is its whole job. So it skipped every match and
+         passed a revert. Take the node out of a copy of the page and read
+         what is left. */
+      const copy = document.getElementById("view").cloneNode(true);
+      const g2 = copy.querySelector("#wordsFold"); if (g2) g2.remove();
+      copy.querySelectorAll("details").forEach(d => d.open = true);
+      document.body.appendChild(copy);
+      const page = copy.innerText;
+      copy.remove();
+      for (const m of page.matchAll(/.{0,30}\bspot\b.{0,20}/gis)) {
+        if (/spot-lock/i.test(m[0])) continue;
+        out.loose.push(deal + "/" + metal + ": ..." + m[0].replace(/\s+/g, " ") + "...");
+      }
+      if (/the trade calls it/i.test(gloss)) out.defined = true;
+      if (document.querySelector(".mGuard details")) out.sawCard = true;
+    }
+    return out;
+  });
+  const t = [
+    ["no screen uses \"spot\" undefined — " + (r.loose.length ? r.loose[0] : "none found"),
+     r.loose.length === 0],
+    ["the word IS taught, so a dealer saying it is not new", r.defined === true],
+    ["the glossary is short enough to read once — " + r.words + " words", r.words > 0 && r.words <= 200],
+    ["and the card that carries the prose was actually on the page", r.sawCard === true],
+  ];
+  for (const [what, ok2] of t) { if (ok2) console.log("ok   " + what);
+                                 else { bad++; console.log("FAIL " + what); } }
+  if (errs.length) { bad++; console.log("FAIL glossary — page errors: " + errs.join(" | ")); }
+  await p.close();
+}
+
 /* $131 MUST NOT BE READABLE AS $131 OF INTEREST.
    Reported from the counter, about a $105 loan: "I read it as he was
    paying 131 in interest." The line said "He pays back $131 by day 30",

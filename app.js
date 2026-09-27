@@ -3003,7 +3003,7 @@ function wireItem(){
      causes - otherwise it shuts under the hand that opened it. */
   for(const [id,key] of [["whyFold","openWhy"],["paybackFold","openPayback"],["rateFold","openRates"],
                          ["driverFold","openDriver"],["tierFold","openTier"],["notesFold","openNotes"],
-                         ["s3","openS3"],["s4","openS4"],["s5","openS5"]]){
+                         ["s3","openS3"],["s4","openS4"],["s5","openS5"],["wordsFold","openWords"]]){
     const d=document.getElementById(id); if(d)d.ontoggle=()=>{ st[key]=d.open; };
   }
   /* A worked example is only worth showing if pressing it works. */
@@ -3273,11 +3273,11 @@ function suggestPay(){
   const base=st.metal==="gold"?70:62;
   let cut=0, why;
   const p=Math.round(prem*100);
-  if(prem>0.15){cut=st.metal==="gold"?10:12; why=`spot is ${p}% over the 90-day average — that is a hard spike, and spikes like this usually snap back; the discount is your insurance for the 30-day hold`;}
-  else if(prem>PEAK_OVER){cut=st.metal==="gold"?8:10; why=`spot is ${p}% over the 90-day average — peak conditions; sellers are walking in anyway, you don't have to pay up to win deals`;}
-  else if(prem>0.05){cut=4; why=`spot is ${p}% over the 90-day average — running warm, trim a little`;}
-  else if(prem<-0.05){cut=0; why=`spot is ${Math.abs(p)}% UNDER the average — hold the normal rate and ship on day 31 like always; "it's cheap" is not a reason to buy heavy`;}
-  else {cut=0; why=`spot is close to its 90-day average — nothing unusual happening, so use the normal rate`;}
+  if(prem>0.15){cut=st.metal==="gold"?10:12; why=`today's price is ${p}% over its 90-day average — that is a hard spike, and spikes like this usually snap back; the discount is your insurance for the 30-day hold`;}
+  else if(prem>PEAK_OVER){cut=st.metal==="gold"?8:10; why=`today's price is ${p}% over its 90-day average — peak conditions; sellers are walking in anyway, you don't have to pay up to win deals`;}
+  else if(prem>0.05){cut=4; why=`today's price is ${p}% over its 90-day average — running warm, trim a little`;}
+  else if(prem<-0.05){cut=0; why=`today's price is ${Math.abs(p)}% UNDER its 90-day average — hold the normal rate and ship on day 31 like always; "it's cheap" is not a reason to buy heavy`;}
+  else {cut=0; why=`today's price is close to its 90-day average — nothing unusual happening, so use the normal rate`;}
   /* Trend read: a steady weekly slide raises the odds of more slide during the
      30-day hold — a fast drop trims ON TOP of the level rule. Rising weeks
      add nothing; the level tiers already handle a run-up. */
@@ -3604,7 +3604,7 @@ function metalGuardHTML(metal){
       <div class="iMore">
         <p>${lending
           ? `A pawn is 60 days: 30 to maturity, 30 more you must hold it. Across every 60-day stretch since 2000, one in twenty lost more than <b>${Math.abs(ev.p5).toFixed(1)}%</b> when ${metal} was ${G.band==="violent"?"moving this hard":G.band==="busy"?"this busy":G.band==="calm"?"this calm":"moving normally"}. Lend under that and a bad two months still leaves you whole.`
-          : `A buy ships in the next refiner lot, so the exposure is days. Over a 10-day hold in conditions like today's, one in twenty lost more than <b>${Math.abs(ev.q5).toFixed(1)}%</b> &mdash; which is why a buy sits closer to spot than a loan.`}</p>
+          : `A buy ships in the next refiner lot, so the exposure is days. Over a 10-day hold in conditions like today's, one in twenty lost more than <b>${Math.abs(ev.q5).toFixed(1)}%</b> &mdash; so a buy can be offered closer to today's price than a loan can.`}</p>
         <p>From <b>${(G.fixings||0).toLocaleString("en-US")}</b> London fixings, ${G.from_}&ndash;${G.to}. This band matches ${ev.n.toLocaleString("en-US")} days (about ${ev.indep} independent windows); ${ev.down}% ended lower, median ${pc(ev.mid)}, worst ${pc(ev.worst)}. Chosen on ${G.from}.
         ${ev.indep<20?`<b class="thin">Thin band &mdash; about ${ev.indep} windows. A hint, not a rule.</b>`:""}</p>
       </div>
@@ -3655,7 +3655,7 @@ function meltMathHTML(m){
   const rate=curRate(), out=PAWN()?m.loan:m.buy;
   const row=(k,v)=>`<div class="valRow" style="padding:6px 0"><span style="font-size:13px;color:var(--ink-2)">${k}</span><span class="num" style="font-size:15px">${v}</span></div>`;
   return `<div class="card"><span class="label">How the number is built</span>
-    ${row("Spot today, per troy ounce","$"+spot.toLocaleString("en-US"))}
+    ${row("Today's price, per troy ounce","$"+spot.toLocaleString("en-US"))}
     ${PAWN()&&basis<spot?row("Loans price off the 90-day average","$"+basis.toLocaleString("en-US")):""}
     ${row("Per gram of pure","$"+perG.toFixed(2))}
     ${row((st.metal==="gold"?st.karat:".925")+" is "+(purity*100).toFixed(1)+"% metal","$"+perGk.toFixed(2)+" / g")}
@@ -3765,7 +3765,7 @@ function renderMetal(){
   </div>`;
   const avgCard=()=>`<div class="card"><span class="label">${n()} &middot; 90-day average — the peak guard</span>
     <input id="avgIn" type="number" inputmode="decimal" value="${avg}" class="numIn">
-    <div class="cardHint">Auto-filled by the morning feed. Buys price off today's spot (scrap ships fast — the spread is the profit). Loans are a 60-day bet, so they price off the LOWER of spot or this average — if today is a peak, the loan is sized as if the peak never happened.</div>
+    <div class="cardHint">Auto-filled by the morning feed. A buy is priced off today's price — scrap ships fast, and the spread is the profit. A loan is a 60-day bet, so it is priced off the LOWER of today's price or this average: if today is a peak, the loan is sized as if the peak never happened.</div>
   </div>`;
   const rb=rateBounds();
   /* THE SCALE COMES FIRST.
@@ -3793,6 +3793,32 @@ function renderMetal(){
      Empty string until the two data files land, so a cold load or an
      offline device simply does not show it rather than showing a hole. */
   const guardCard=()=>(typeof metalGuardHTML==="function")?metalGuardHTML(st.metal):"";
+  /* THE TRADE'S WORDS, ONCE, IN PLAIN ONES.
+     Reported from the counter: "I'm still learning the lingo and rational.
+     I don't know what spot vs loan means." Mine to answer for - the page
+     was using "spot" as though everybody knew it, in a fold whose whole job
+     was explaining something. Every screen says "today's price" now. This
+     card teaches the trade word anyway, because a customer or a dealer WILL
+     say it and it should not be the first time you hear it. Folded shut:
+     read once, then never again. */
+  const wordsCard=()=>`<details class="card fold wordsFold"${st.openWords?" open":""} id="wordsFold">
+    <summary class="foldLine">What the words mean</summary>
+    <dl class="words">
+      <dt>Today's price &mdash; the trade calls it <i>spot</i></dt>
+      <dd>What one troy ounce of pure gold is trading for right now: <b>${money(Math.round(spotOf("gold")))}</b>.
+        Every dealer quotes off it. It is the number in box 3 and up in the header.</dd>
+      <dt>Troy ounce</dt>
+      <dd>How metal is weighed. <b>31.1 grams</b>, not the 28.3 in a kitchen ounce &mdash; about 10% heavier.</dd>
+      <dt>Melt</dt>
+      <dd>What the gold <i>inside</i> the piece is worth at today's price. A 14k ring is 58.5% gold,
+        so its melt is 58.5% of its weight priced as pure. The rest is alloy and worth nothing.</dd>
+      <dt>Buying it, or a pawn loan</dt>
+      <dd><b>Buying</b> &mdash; it is yours when he walks out. It goes in the next refiner lot and the money
+        is back in days. <b>Pawn loan</b> &mdash; he keeps ownership, you hold the piece. Day 30 it matures,
+        day 60 it is yours. So a loan leaves you holding gold for two months, and that is why the loan
+        is priced lower than the buy.</dd>
+    </dl>
+  </details>`;
 
   /* THE ANSWER SHOULD NOT BE THE FOURTH SCREEN.
      On the desk these are three columns and the offer is already beside
@@ -3820,12 +3846,12 @@ function renderMetal(){
     if(gates)parts.push(fakeCardHTML(null));
     /* the offer and the rules it carries take the next numbers */
     const res=metalResultHTML(n);
-    parts.push(`<div id="metalResult">${res}</div>`, rateCard(), guardCard(), extra(), spotCard(), avgCard());
+    parts.push(`<div id="metalResult">${res}</div>`, rateCard(), guardCard(), extra(), spotCard(), avgCard(), wordsCard());
     if(!gates)parts.push(fakeCardHTML(null));
     return `<div class="colC">${parts.join("")}</div>`;
   }
 
-  const left=`<div class="colL">${metalCard()}${dealCard()}${spotCard()}${avgCard()}</div>`;
+  const left=`<div class="colL">${metalCard()}${dealCard()}${wordsCard()}${spotCard()}${avgCard()}</div>`;
   const mid=`<div class="colC">${weightCard()}${guardCard()}${fakeCardHTML(null)}${rateCard()}${extra()}</div>`;
   const right=`<div class="colR"><div id="metalResult">${metalResultHTML(n)}</div></div>`;
   return left+mid+right;
@@ -7997,7 +8023,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0927.2107";
+const APP_BUILD="0927.2246";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
