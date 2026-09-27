@@ -91,16 +91,28 @@ await start("t1");
 /* Not every question is a row of buttons - "Which one is it?" and the
    price are typed - so a question with nothing to tap is stepped past with
    Next rather than ending the walk. */
+const seenOpts = [];
 for (let i = 0; i < 9; i++) {
   const s = await read(); if (!s) break;
-  seen.push(s.q);
+  seen.push(s.q); seenOpts.push((s.opts||[]).join(" "));
   const b = await page.$(".askOpt");
   if (b && s.opts.length) { await b.click(); }
   else { const n = await page.$('[data-askmove="1"]:not([disabled])'); if (!n) break; await n.click(); }
   await page.waitForTimeout(120);
 }
-const all = seen.join(" | ").toLowerCase();
-ok(/battery|platform/.test(all), "how many batteries is a question in the run — " + seen.join(" | "));
+const all = (seen.join(" | ") + " || " + seenOpts.join(" ")).toLowerCase();
+/* HOW MANY BATTERIES, NOT WHAT VOLTAGE. This matched "battery|platform"
+   against the question TITLES, and the title it was catching was "Battery
+   platform" - 18/20V against 12V, which is a fact about the model and is
+   answered by the record now, so it is no longer asked. The question this
+   assertion is actually about is "What came with it?", whose options are
+   two batteries, one battery, or tool only - and that one still has to be
+   asked, because it is about the box in front of you. So it is matched on
+   the options, where the meaning lives, rather than on a title. */
+ok(/batteries/.test(all),
+   "how many batteries is still a question in the run — " + seen.join(" | "));
+ok(!/battery platform/.test(seen.join(" | ").toLowerCase()),
+   "  and the voltage is not, because the model settles that");
 ok(/tool only|came with it|batter/.test(all),
    "  so is what came with it — which for this item IS the completeness question");
 ok(/sell for used/.test(all), "  and the price is the end of the run, not a separate page");

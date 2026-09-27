@@ -103,6 +103,34 @@ ok(r.bad.length === 1,
    "a fact naming an option that no longer exists is dropped, not forced onto the nearest one - "
    + r.bad.length + " of 2 applied");
 
+/* AND THE WHOLE TABLE, not just the saw it was reported on. Every value
+   stored has to still exist as an option on the item it belongs to - a
+   renamed option would otherwise sit in the record answering a question
+   with a string nothing matches. The generator checks this when it writes;
+   this checks it stayed true. */
+const all = await page.evaluate(() => {
+  const bad = [];
+  for (const [id, m] of Object.entries(MODEL_SPEC)) {
+    const row = MODEL_PRICES.find(x => x[0] === id);
+    if (!row) { bad.push(id + ": no such price row"); continue; }
+    let groups = null;
+    for (const ref of String(row[1]||"").split("|")) if (SPEC_CHOICES[ref]) { groups = SPEC_CHOICES[ref]; break; }
+    if (!groups) { bad.push(id + ": row has no spec questions"); continue; }
+    for (const [lab, val] of Object.entries(m)) {
+      const g = groups.find(z => z.label === lab);
+      if (!g) bad.push(id + ": no question called " + lab);
+      else if (!g.options.some(o => o.t === val)) bad.push(id + ": " + lab + " = " + val);
+    }
+  }
+  return {bad, rows: Object.keys(MODEL_SPEC).length,
+          facts: Object.values(MODEL_SPEC).reduce((n,m) => n + Object.keys(m).length, 0)};
+});
+console.log("\n  and the rest of the table");
+ok(all.bad.length === 0,
+   `every stored fact names a real question and a real option - ${all.facts} facts on ${all.rows} rows`
+   + (all.bad.length ? ": " + all.bad.slice(0,3).join("; ") : ""));
+ok(all.rows > 100, "the table is actually populated - " + all.rows + " rows");
+
 ok(errs.length === 0, "no page errors");
 await browser.close();
 console.log(fails ? `\n${fails} FAILED` : "\nall good");
