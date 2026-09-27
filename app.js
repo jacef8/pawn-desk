@@ -6392,13 +6392,30 @@ function omniRows(q){
     rows.push(Object.assign({},e,base,extra||{})); };
   if(P.metal&&!P.modelItem)rows.push({kind:"metal",metal:P.metal,karat:P.karat,q});
   if(P.modelItem){ add(findEntry(P.modelItem),{strong:true}); strong=true; }
-  { const bw=omniWords(P.brand||""), mq=omniWords(q).filter(w=>!STOP.has(w)&&bw.indexOf(w)<0);
+  { const bw=omniWords(P.brand||"");
+    /* TYPING BOTH THE MAKER AND ITS LINE MUST NOT DEMAND BOTH IN THE NAME.
+       "fender squier" read Squier as the make, took it out of the words,
+       and then required "fender" to appear in the row name - so every
+       "Squier Affinity Stratocaster" was dropped by the word its own maker
+       is called. The same shape as the Xbox fault, one level down.
+       When the query names a line AND its parent, the parent is redundant:
+       the row is named after the line. */
+    const qw=omniWords(q);
+    const parentSaid=new Set();
+    for(const w of qw){ const par=MP_FAMILY[w]; if(par&&qw.indexOf(par)>=0)parentSaid.add(par); }
+    const mq=qw.filter(w=>!STOP.has(w)&&bw.indexOf(w)<0&&!parentSaid.has(w));
     /* The brand words come out so that "husqvarna 455" is matched on 455
        rather than made to carry the brand into every comparison. When the
        brand is ALL that was typed there is nothing left to search with, and
        this step used to be skipped - so typing the whole brand showed fewer
        models than typing half of it. With nothing left, search the brand. */
-    const keys=mq.length?mq:bw;
+    /* When every word was a brand word, the search falls back to the brand.
+       But the brand book's own label can be richer than the row name - the
+       music shelf calls it "Fender Squier", while the rows are named
+       "Squier Affinity Stratocaster". Requiring both words drops them all.
+       So the fallback keeps the LINE and lets the parent go. */
+    const bwKeys=bw.filter(w=>!parentSaid.has(w));
+    const keys=mq.length?mq:(bwKeys.length?bwKeys:bw);
     if(keys.length){
       const r0=rows[0], strongId=r0&&r0.strong?((mpFor(r0.kind==="item"?r0.itemId:r0.name,[r0.brand,r0.model,r0.detail].join(" "))||[])[0]):null;
       /* These rows are measured prices for a NAMED tool, and the maker is
@@ -8023,7 +8040,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0927.2338";
+const APP_BUILD="0928.0012";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -8423,7 +8440,15 @@ document.addEventListener("paste",e=>{
    else is dropped. */
 const MP_FAMILY={macbook:"apple",imac:"apple",ipad:"apple",iphone:"apple",airpod:"apple",beats:"apple",
   galaxy:"samsung",pixel:"google",thinkpad:"lenovo",inspiron:"dell",latitude:"dell",
-  xbox:"microsoft",playstation:"sony",switch:"nintendo",wingmaster:"remington",rancher:"husqvarna"};
+  xbox:"microsoft",playstation:"sony",switch:"nintendo",wingmaster:"remington",rancher:"husqvarna",
+  /* Found by auditing every maker the brand book detects inside a price-book
+     row name - 120 of them. These three are budget or premium LINES of a
+     company the counter is likely to type by name, and were unreachable the
+     same way Xbox was. The rest of the 120 are companies in their own right.
+     Deliberately left out: marlin->ruger and craftsman->stanley are true on
+     paper, but nobody walks in calling a Marlin 336 a Ruger, so the mapping
+     would only put Marlins in front of somebody who typed Ruger. */
+  squier:"fender",epiphone:"gibson",alienware:"dell",tudor:"rolex"};
 /* MICROSOFT AND XBOX ARE NOT RIVAL MANUFACTURERS.
    Reported from the counter: typed "microsoft xbox", got "no measured
    price", and was never offered a series to pick - with twenty-three
@@ -8441,11 +8466,20 @@ const MP_FAMILY={macbook:"apple",imac:"apple",ipad:"apple",iphone:"apple",airpod
    and the lookup resolve a name through it before comparing, so a product
    line and the company that makes it agree. */
 function makerOf(name){ const n=omniNorm(name||""); return MP_FAMILY[n]||n; }
-function sameMaker(a,b){
-  if(!a||!b)return true;
-  const x=makerOf(a), y=makerOf(b);
-  if(!x||!y)return true;
-  return x===y||x.indexOf(y)>=0||y.indexOf(x)>=0;
+/* ASYMMETRIC ON PURPOSE, and the asymmetry is the whole safety of it.
+   A maker's name should find that maker's product lines: type Microsoft,
+   get the Xboxes. A LINE's name must not drag in the parent's other goods:
+   type Squier and you must not be offered a Fender, because a Squier
+   Affinity is $150 and a Fender Player is $600 and they are both
+   Stratocasters. Resolving both sides up to the parent - which is what a
+   symmetric version does - makes exactly that mistake.
+   So: the ROW is resolved up to its parent, the TYPED name is not. */
+function sameMaker(rowBrand,typed){
+  if(!rowBrand||!typed)return true;
+  const r=omniNorm(rowBrand), t=omniNorm(typed);
+  if(r===t)return true;
+  if(makerOf(r)===t)return true;               /* the row is a line of what was typed */
+  return r.indexOf(t)>=0||t.indexOf(r)>=0;     /* "sig" and "sig sauer" */
 }
 function mpBrandOf(text){
   const t=" "+omniNorm(text)+" ";

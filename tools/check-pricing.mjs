@@ -1757,9 +1757,24 @@ console.log("\n  a maker and its own product line are not rival brands");
       .filter(x => x.kind === "mp").map(x => x.mp[2]);
     const out = {};
     for (const q of ["microsoft xbox", "sony playstation", "nintendo switch",
-                     "apple ipad", "samsung galaxy"]) out[q] = models(q);
+                     "apple ipad", "apple beats", "samsung galaxy",
+                     "fender squier", "gibson epiphone", "dell alienware", "rolex tudor",
+                     "squier", "epiphone", "alienware", "tudor", "fender"]) out[q] = models(q);
     /* the guard must still drop a genuinely different maker */
     out.rival = models("milwaukee drill");
+    /* THE RULE ITSELF, tested directly. The list-level checks above turned
+       out NOT to discriminate - the word filter drops a Fender from a
+       "squier" search before the maker check is even reached, so a
+       symmetric sameMaker() passed them all. The rule still has to be
+       right, because the word filter will not always be there to save it.
+       So assert the function. */
+    out.dir = {
+      lineUnderParent: sameMaker("xbox", "microsoft"),   /* row is a line of what was typed */
+      parentUnderLine: sameMaker("fender", "squier"),    /* row is the PARENT: must not pass */
+      same:            sameMaker("dewalt", "dewalt"),
+      rival:           sameMaker("dewalt", "milwaukee"),
+      partial:         sameMaker("sig sauer", "sig")
+    };
     /* an ambiguous family must NOT silently pick one model - a Series X is
        $470 and an Xbox One is $71, and guessing between them is the worst
        outcome available */
@@ -1783,6 +1798,27 @@ console.log("\n  a maker and its own product line are not rival brands");
     ["\"apple ipad\" offers iPads", has(r["apple ipad"], /iPad/i)],
     ["\"samsung galaxy\" offers Galaxys", has(r["samsung galaxy"], /Galaxy/i)],
     /* the half that must NOT regress */
+    ["\"apple beats\" offers Beats", has(r["apple beats"], /Beats/i)],
+    /* the three lines found by auditing all 120 makers the book detects */
+    ["\"fender squier\" offers Squiers", has(r["fender squier"], /Squier/i)],
+    ["\"gibson epiphone\" offers Epiphones", has(r["gibson epiphone"], /Epiphone/i)],
+    ["\"dell alienware\" offers Alienwares", has(r["dell alienware"], /Alienware/i)],
+    ["\"rolex tudor\" offers Tudors", has(r["rolex tudor"], /Tudor/i)],
+    /* THE ASYMMETRY, which is the safety of the whole thing. A maker's name
+       finds its lines; a LINE's name must not drag in the parent's goods.
+       A Squier Affinity is $150 and a Fender Player is $600, and both are
+       Stratocasters. Resolving both sides up to the parent — the obvious
+       way to write this — makes exactly that mistake. */
+    ["typing \"squier\" does NOT offer a Fender", has(r.squier, /Squier/i) && !has(r.squier, /^Fender/i)],
+    ["typing \"epiphone\" does NOT offer a Gibson", has(r.epiphone, /Epiphone/i) && !has(r.epiphone, /^Gibson/i)],
+    ["typing \"alienware\" does NOT offer a plain Dell", has(r.alienware, /Alienware/i) && !has(r.alienware, /^Dell /i)],
+    ["typing \"tudor\" does NOT offer a Rolex", has(r.tudor, /Tudor/i) && !has(r.tudor, /^Rolex/i)],
+    ["but typing \"fender\" still offers Fenders", has(r.fender, /^Fender/i)],
+    ["the rule itself: a line passes under its parent's name", r.dir.lineUnderParent === true],
+    ["  and a parent does NOT pass under its line's name", r.dir.parentUnderLine === false],
+    ["  the same maker passes", r.dir.same === true],
+    ["  a rival maker does not", r.dir.rival === false],
+    ["  and a half-typed maker still does", r.dir.partial === true],
     ["a real rival maker is still dropped — no DeWalt for a Milwaukee",
      Array.isArray(r.rival) && !has(r.rival, /dewalt/i)],
     ["a bare family name still refuses to guess a model", r.ambiguous === null],
