@@ -859,6 +859,16 @@ function homeToday(){
     ? DEALS.filter(d=>!day||d.day===day) : [];
   return {day,rows,out:rows.reduce((a,d)=>a+(Number(d.loan)||0),0)};
 }
+/* THE FOUR QUICK ACTIONS WERE FOUR DUPLICATES. Jace circled Gold and the
+   navigation rail together: same button, twice, a few inches apart. It was
+   worse than the one he caught - on the desk every one of the four repeated
+   something already on the same screen. Type it focused the search box that
+   is the largest thing on the page. Gold and Log went where the rail goes.
+   Photo opened the camera that has its own card directly underneath.
+   So the desk drops the row outright (acts:false) and the phone keeps one
+   button. Not symmetry for its own sake: #photoCam is a hidden input, and on
+   the phone that button is its ONLY visible trigger - take it away and the
+   field screen has no camera. The desk has the card instead. */
 function homeHeroHTML(opts){
   const o=opts||{}, t=homeToday();
   const gold=(typeof spotOf==="function")?spotOf("gold"):0;
@@ -874,12 +884,9 @@ function homeHeroHTML(opts){
     <div class="heroSub">${silver?"Silver "+money(Math.round(silver*100)/100)+" \u00b7 ":""}${t.rows.length
       ? t.rows.length+" logged today \u00b7 "+money(t.out)+" out"
       : "nothing logged yet today"}</div>
-    <div class="acts">
+    ${o.acts===false?"":`<div class="acts one">
       ${act("snap",o.snapLabel||"Snap it",HOME_ICON.cam,camOn)}
-      ${act("type","Type it",HOME_ICON.look,true)}
-      ${act("gold","Gold",HOME_ICON.gold,true)}
-      ${act("log","Log",HOME_ICON.log,true)}
-    </div></div>`;
+    </div>`}</div>`;
 }
 function homeFeedHTML(limit){
   const t=homeToday(), rows=t.rows.slice(0,limit||4);
@@ -3272,7 +3279,7 @@ function renderItem(){
       </div>
     </div>
     <div class="startRail">
-      ${homeHeroHTML({snapLabel:"Photo"})}
+      ${homeHeroHTML({snapLabel:"Photo",acts:false})}
       ${homeFeedHTML(5)}
       ${left.replace('<div class="colL">','<div class="startCol">')
             .replace(/<details class="browse"[\s\S]*?<\/details>/,"")}
@@ -8769,7 +8776,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0927.2334";
+const APP_BUILD="0927.2348";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

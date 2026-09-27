@@ -1293,6 +1293,50 @@ console.log("\n  what it looks like with the tool shut");
   else console.log("ok   every icon is cached for offline");
 }
 
+/* NO BUTTON THAT REPEATS THE RAIL. The front card carried four quick
+   actions and every one of them repeated something already on the same
+   screen: Gold and Log went where the navigation rail goes, Type it focused
+   the search box that is the largest thing on the page, Photo opened the
+   camera that has its own card underneath. Jace circled the Gold button and
+   the rail together.
+   The phone keeps one, and the assertion says WHY rather than just counting:
+   #photoCam is a hidden input, so that button is the only visible way to the
+   camera on the field screen. Counting to one would pass if the button were
+   the wrong one. */
+{
+  const seen = async (url, viewport) => {
+    const pg = await browser.newPage({viewport});
+    await pg.goto(BASE + url, {waitUntil: "networkidle"});
+    await pg.waitForTimeout(500);
+    const r = await pg.evaluate(() => {
+      const vis = el => { if (!el) return false; const c = getComputedStyle(el), b = el.getBoundingClientRect();
+        return c.display !== "none" && c.visibility !== "hidden" && b.width > 0 && b.height > 0; };
+      return {
+        acts: [...document.querySelectorAll(".acts .act")].filter(vis)
+                .map(a => a.dataset.whome),
+        rail: [...document.querySelectorAll("#tabs button")].filter(vis)
+                .map(t => t.dataset.tab),
+        camHidden: !vis(document.getElementById("photoCam")),
+        camExists: !!document.getElementById("photoCam"),
+      };
+    });
+    await pg.close();
+    return r;
+  };
+  const d = await seen("/index.html", {width: 1400, height: 900});
+  if (d.acts.length) { bad++; console.log("FAIL the desk front card still carries quick actions: " + d.acts.join(", ")); }
+  else console.log("ok   the desk front card carries no button the rail already has");
+
+  const ph = await seen("/phone.html", {width: 390, height: 844});
+  const dupes = ph.acts.filter(a => ph.rail.includes(a === "log" ? "log" : a === "gold" ? "metal" : a));
+  if (dupes.length) { bad++; console.log("FAIL the phone repeats the rail: " + dupes.join(", ")); }
+  else console.log("ok   the phone repeats nothing the rail already has");
+  if (ph.acts.join(",") !== "snap") { bad++; console.log("FAIL the phone should keep exactly the camera button, got: " + (ph.acts.join(", ") || "none")); }
+  else console.log("ok   the phone keeps the camera button");
+  if (ph.camExists && !ph.camHidden) { bad++; console.log("FAIL #photoCam is visible on the phone — the button is no longer its only way in"); }
+  else console.log("ok   and it is the only visible way to the camera, which is why it stays");
+}
+
 await browser.close();
 console.log(bad ? `FAILED (${bad})` : "all screens draw themselves, every id once");
 process.exit(bad ? 1 : 0);
