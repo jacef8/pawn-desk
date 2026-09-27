@@ -5143,11 +5143,18 @@ function dedupeMake(make,name){
   return n.indexOf(m)>=0 ? n : m+" "+n;
 }
 function dealsFor(key){ return DEALS.filter(d=>(d.key||d.itemId)===key); }
+/* The shop's own sales are the best evidence there is, and they were being
+   AVERAGED - the one statistic that lets a single odd sale drag the number,
+   in the one place the counter trusts most. Three guns out at $150, $180 and
+   $400 read $243 when the truthful figure is $180. Worst where it matters
+   most, too: the mean misleads hardest on a handful of sales, and a handful
+   is what a shop has. Everything else in this tool reads the middle. This
+   does now as well. */
 function soldStats(key){
-  const sold=dealsFor(key).filter(d=>d.status==="sold"&&Number(d.soldPrice)>0).map(d=>Number(d.soldPrice));
+  const sold=dealsFor(key).filter(d=>d.status==="sold"&&Number(d.soldPrice)>0)
+    .map(d=>Number(d.soldPrice)).sort((a,b)=>a-b);
   if(!sold.length)return null;
-  const avg=sold.reduce((a,b)=>a+b,0)/sold.length;
-  return {n:sold.length, avg, lo:Math.min.apply(null,sold), hi:Math.max.apply(null,sold)};
+  return {n:sold.length, mid:pct(sold,.5), lo:sold[0], hi:sold[sold.length-1]};
 }
 function ownCompsInner(x){
   if(!CAP.db) return "";
@@ -5155,9 +5162,9 @@ function ownCompsInner(x){
   if(!s&&!open) return `<div class="cardHint" style="margin-top:9px">No sales of your own yet.</div>`;
   let h=`<div class="tagNote" style="margin-top:10px">`;
   if(s){
-    h+=`<b style="color:var(--ink)">Your own sales: ${s.n}</b> — average <b style="color:var(--accent)">${money(s.avg)}</b>`;
+    h+=`<b style="color:var(--ink)">Your own sales: ${s.n}</b> — middle <b style="color:var(--accent)">${money(s.mid)}</b>`;
     h+=(s.n>1?`, range ${money(s.lo)}&ndash;${money(s.hi)}`:``)+`. `;
-    h+=`This is Bristol money, not eBay money. <button id="useOwn" class="ghostBtn" style="padding:6px 12px;font-size:12.5px;margin-left:4px">Use ${money(s.avg)}</button>`;
+    h+=`This is Bristol money, not eBay money. <button id="useOwn" class="ghostBtn" style="padding:6px 12px;font-size:12.5px;margin-left:4px">Use ${money(s.mid)}</button>`;
   }
   if(open)h+=`${s?" ":""}${open} still on the shelf or in loan.`;
   return h+`</div>`;
@@ -6042,7 +6049,7 @@ function logCardInner(x){
     <div class="row2" style="margin:9px 0"><input id="logTicket" class="numIn" type="text" inputmode="numeric"
       autocomplete="off" placeholder="Ticket # (optional)" value="${esc(st.ticket||"")}"
       style="flex:1;min-width:0;font-family:var(--mono);font-size:14px"></div>
-    <button id="logDeal" class="brassBtn" title="Saves the item, your estimate, the offer and the ticket number. Mark it Sold later and the next one is priced from what this one actually brought." style="width:100%;padding:11px 0">Log this deal</button>
+    <button id="logDeal" class="brassBtn" title="Saves the item, your estimate, the offer and the ticket number. Mark it Sold with the price it brought, and next time this item comes in the tool offers that figure alongside the outside comps — you still choose it." style="width:100%;padding:11px 0">Log this deal</button>
     <div class="cardHint" id="logMsg">Records the item, your estimate, the offer and the ticket number &mdash; nothing else off the ticket. No name, no address, no ID. Mark it sold later and it teaches the next appraisal.${s?` You've sold ${s.n} of these.`:""}</div>
   </div>`;
 }
@@ -7547,7 +7554,18 @@ function crunchComps(res){
   if(used.length>=3&&used.length<kept.length){ kept.filter(k=>k.cond==="new").forEach(k=>out.push({title:k.title,price:k.price,why:"new in box"})); pool=used; }
   let p=pool.map(k=>k.price).sort((a,b)=>a-b);
   if(p.length>=5){
-    const q1=pct(p,.25),q3=pct(p,.75),iqr=q3-q1,lo=q1-1.5*iqr,hi=q3+1.5*iqr;
+    /* Throwing out the absurd used the spread alone - 1.5 times the middle
+       half, the textbook rule. It collapses. When most of a list sits on one
+       round number the spread is ZERO, the fence closes to that single point,
+       and every other sale is called absurd: 20 sold at $200 with a $240 and
+       a $300 among them reported "$200 to $200 from 20 sales" and threw the
+       $240 out as way above the rest. False confidence, and it hid the one
+       useful thing in the list.
+       So the fence is the WIDER of two rules, and a sale has to be absurd by
+       BOTH to go: the spread rule, and a flat third-to-triple of the middle.
+       The second cannot collapse, because the middle is never zero. */
+    const q1=pct(p,.25),q3=pct(p,.75),iqr=q3-q1,med=pct(p,.5);
+    const lo=Math.min(q1-1.5*iqr,med/3),hi=Math.max(q3+1.5*iqr,med*3);
     pool=pool.filter(k=>{ if(k.price<lo||k.price>hi){ out.push({title:k.title,price:k.price,why:k.price>hi?"way above the rest":"way below the rest"}); return false; } return true; });
     p=pool.map(k=>k.price).sort((a,b)=>a-b);
   }
@@ -8740,7 +8758,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0927.2254";
+const APP_BUILD="0927.2312";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -9081,7 +9099,7 @@ function wireStep4(){
   if(vin)vin.onkeydown=e=>{ if(e.key==="Enter")doSave(); };
   const clr=document.getElementById("mkClear"); if(clr)clr.onclick=()=>{ st.market=null; render(); };
   const own=document.getElementById("useOwn");
-  if(own)own.onclick=()=>{ const s=soldStats(itemKey()); if(!s)return; st.market={kind:"own",key:mkKey(),mid:Math.round(s.avg),lo:s.lo,hi:s.hi,n:s.n}; render(); };
+  if(own)own.onclick=()=>{ const s=soldStats(itemKey()); if(!s)return; st.market={kind:"own",key:mkKey(),mid:Math.round(s.mid),lo:s.lo,hi:s.hi,n:s.n}; render(); };
 }
 function refreshStep4(){
   const xx=calcItem();
@@ -9141,7 +9159,7 @@ function catsByUse(){
   return CATALOG.map((c,i)=>({c,seen:per[c.id]||0,i}))
                 .sort((a,b)=>b.seen-a.seen||a.i-b.i);
 }
-function ownAvgTag(id){ const s=CAP.db?soldStats(id):null; return s?`<span class="price mine">you: ${money(s.avg)}</span>`:""; }
+function ownAvgTag(id){ const s=CAP.db?soldStats(id):null; return s?`<span class="price mine">you: ${money(s.mid)}</span>`:""; }
 
 /* The Pawn price favorite sends "PAWNDESK:{...}" straight back to the desk tab
    that opened the sold page (window.opener), and the desk answers so that tab can
@@ -9829,7 +9847,7 @@ function gatherEvidence(x,t,retail){
     comps:t?{n:t.n,med:t.med,lo:t.lo,hi:t.hi,sold:t.sold,from:t.from,mid:t.mid}:null,
     retail:retail?{price:retail.price,where:retail.where,pct,
                    mid:Math.max(5,Math.round(retail.price*pct/100/5)*5)}:null,
-    own:own?{n:own.n,avg:Math.round(own.avg),mid:Math.max(5,Math.round(own.avg/5)*5)}:null,
+    own:own?{n:own.n,mid:Math.max(5,Math.round(own.mid/5)*5)}:null,
     seen:seen?{n:seen.n,lo:seen.lo,hi:seen.hi,mid:seen.mid}:null,
     book:Math.round(x.baseValue)};
 }
