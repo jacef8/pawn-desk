@@ -1340,3 +1340,17 @@
   .struckWas{font:700 11.5px/1 var(--mono);letter-spacing:.11em;
     text-transform:uppercase;color:var(--accent-ink);white-space:nowrap;
     align-self:center;padding:0 2px}
+  /* THE WHEEL THAT SAYS IT IS WORKING. An automatic lookup fires the
+     moment an item with a make and model is picked, and until now the only
+     thing that said so was the finished rail - which mid-run is not on the
+     page. Reported as the tool looking like it was waiting on the counter
+     when the counter was waiting on it. */
+  .pinSpin{display:inline-block;width:11px;height:11px;margin-right:7px;
+    vertical-align:-1px;border-radius:50%;
+    border:2px solid color-mix(in srgb,var(--accent) 30%,transparent);
+    border-top-color:var(--accent);animation:pinSpin .8s linear infinite}
+  @keyframes pinSpin{to{transform:rotate(360deg)}}
+  .pinStrip.working .pinLab{color:var(--accent-ink)}
+  .pinStrip.working .pinNote b{color:var(--accent-ink)}
+  @media (prefers-reduced-motion:reduce){
+    .pinSpin{animation:none;border-top-color:var(--accent);opacity:.9} }

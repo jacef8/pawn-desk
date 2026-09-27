@@ -1209,7 +1209,23 @@ function buyCapWhy(x){
 }
 function pinHTML(x){
   const F=fakeState(fakeSheet(x));
-  const bare=t=>`<div class="pinStrip"><span class="pinLab">${window.PHONE?"What it's worth to you":"The numbers"}</span><span class="pinNote">${t}</span></div>`;
+  /* NOTHING ON SCREEN SAID IT WAS WORKING.
+     Reported from the counter: "when an item does not have a number in the
+     dataset, and you first select it, while it's searching there is no
+     indicator that it is working on something. I thought it was just
+     waiting on me to make a selection."
+     It was searching. Picking an item with a make and a model fires the
+     lookup by itself, and priceFind does set findBusy and does re-render -
+     but the only place that says so is railHTML, which is not reached
+     until the run is FINISHED. Mid-run the rail is this strip, and this
+     strip had no idea. So the tool looked idle at exactly the moment it
+     was doing the one thing it is for, and the person waiting on it
+     thought they were the ones being waited on.
+     The wheel goes where the eye already is, in the box that is otherwise
+     telling them what is still missing. */
+  const working=(typeof findBusy!=="undefined"&&findBusy)||(typeof pickChase!=="undefined"&&pickChase);
+  const spin=working?`<span class="pinSpin" aria-hidden="true"></span>`:"";
+  const bare=t=>`<div class="pinStrip${working?" working":""}"><span class="pinLab">${spin}${window.PHONE?"What it's worth to you":"The numbers"}</span><span class="pinNote">${working?`<b>Looking it up\u2026</b> checking what these actually sell for. `:""}${t}</span></div>`;
   if(F&&F.blocks)return bare(F.verdict==="fail"?"A check failed \u2014 don't lend on the name."
     :"Not checked yet \u2014 "+F.done+" of "+F.n+" on the "+esc(F.sh.title.toLowerCase())+" sheet.");
   if(!priceReady(x))return bare("<b>No price yet \u2014 still needs "+esc(needList(x))
@@ -2589,6 +2605,40 @@ function coveredLine(){
    So the run ends with a box. Empty still logs the suggestion, because a
    counter in a hurry should not be blocked - but the moment a number is
    typed, that is the number, and the screen says so before it is saved. */
+/* THE TICKET NUMBER OUTLIVED THE DEAL IT BELONGED TO.
+   Reported from the counter: "when i move to a different item the old deal
+   number still sits in the log book at the bottom of the tool." It did.
+   st.struck and st.ticket are one draft - what you handed over, and the
+   ticket it was written on - and they have to be cleared together. They
+   were cleared by hand in six different places, and st.ticket had only
+   ever been added to one of them, startOver(). Every other way of moving
+   to the next item - picking from the list, picking off a search, picking
+   a book row, reading a make off a photo - cleared the amount and left the
+   number.
+   What that costs is not cosmetic. The ticket number is the one field on
+   the row that ties it to the pawn system, so the next customer's drill
+   gets logged against the last customer's ticket, and the shop's own price
+   book is built out of those rows.
+   One function now, called everywhere, so the two cannot drift apart
+   again. */
+function clearDeal(){ st.struck=""; st.ticket=""; }
+/* AND CLEARED BY THE THING ITSELF CHANGING, not by remembering to.
+   Adding clearDeal() to the six by-hand sites fixed six paths and missed
+   the one actually reported - picking off the search never cleared the
+   draft at all, neither the amount nor the ticket. I had read the first
+   test as proof it cleared the amount; it was not, the test had never
+   typed one. Both survived from a PlayStation onto a DeWalt drill.
+   Chasing call sites is what put this bug here. The draft belongs to one
+   thing on the counter, so it is keyed to that thing: when what is being
+   priced changes, the draft for the last one goes, whatever route the
+   change came in by, including routes not written yet. */
+let dealFor=null;
+function dealGuard(){
+  if(st.mode!=="item")return;
+  const k=itemKey()+"|"+(st.model||"");
+  if(dealFor===null){ dealFor=k; return; }
+  if(k!==dealFor){ dealFor=k; clearDeal(); }
+}
 function struckAmt(x){
   const kind=st.struckKind==="buy"?"buy":"loan";
   const n=Number(st.struck);
@@ -3201,7 +3251,7 @@ function wireItem(){
     else { st.mpNone=false; const c=CATALOG.find(x=>x.id===st.catId); st.itemId=c.items[0].id; st.bookName=""; }
     st.needKind=false;
     if(un&&st.photoRead)st.photoRead=Object.assign({},st.photoRead,{unplaced:false});
-    st.liq=null;st.brandTyped="";st.brandQ="";st.model="";st.detail="";st.complete=true;st.completeSet=false;st.struck="";st.askEdit=false;st.editing=false;
+    st.liq=null;st.brandTyped="";st.brandQ="";st.model="";st.detail="";st.complete=true;st.completeSet=false;clearDeal();st.askEdit=false;st.editing=false;
     /* THE MAKE WAS READ AND THEN THROWN AWAY.
        Reported from the counter: typed "microsoft surface book", answered
        "Electronics", and the make step still said NOTHING PICKED YET. The
@@ -3221,7 +3271,7 @@ function wireItem(){
     st.brand=h?h.tier:"mid";
     if(h){ st.brandTyped=h.name; st.brandQ=h.name; st.brandSet=true; }
     render();});
-  v.querySelectorAll("[data-item]").forEach(b=>b.onclick=()=>{st.needKind=false;st.itemId=b.dataset.item;st.market=null;st.omniDone="";st.mpPin=null;st.mpNone=false;st.condSet=false;st.cond="good";st.bookName="";st.liq=null;st.brand="mid";st.brandTyped="";st.brandQ="";st.model="";st.detail="";st.complete=true;st.completeSet=false;st.struck="";st.askEdit=false;st.askAt=0;st.brandSet=false;
+  v.querySelectorAll("[data-item]").forEach(b=>b.onclick=()=>{st.needKind=false;st.itemId=b.dataset.item;st.market=null;st.omniDone="";st.mpPin=null;st.mpNone=false;st.condSet=false;st.cond="good";st.bookName="";st.liq=null;st.brand="mid";st.brandTyped="";st.brandQ="";st.model="";st.detail="";st.complete=true;st.completeSet=false;clearDeal();st.askEdit=false;st.askAt=0;st.brandSet=false;
     /* picking "Something else" with no saved value drops you straight into the price box */
     st.editing=(st.itemId===custId(st.catId));
     render();if(st.editing)document.getElementById("valIn")?.focus();});
@@ -3397,7 +3447,7 @@ function wireItem(){
       document.getElementById("view").querySelectorAll("[data-hit]").forEach(b=>b.onclick=()=>{
         const e=hits[Number(b.dataset.hit)];
         st.catId=e[2]; st.itemId=custId(e[2]); st.bookName=e[0]; st.overrides[custId(e[2])]=bookVal(e);
-        st.liq=e[3]; st.brand="mid"; st.brandTyped="";st.brandQ=""; st.brandSet=false; st.complete=true;st.completeSet=false;st.struck="";st.askEdit=false; st.editing=false;
+        st.liq=e[3]; st.brand="mid"; st.brandTyped="";st.brandQ=""; st.brandSet=false; st.complete=true;st.completeSet=false;clearDeal();st.askEdit=false; st.editing=false;
         persist(); render();
       });
     };
@@ -5023,7 +5073,7 @@ function bookChecked(name){ return Number(BOOK_PRICES[name])>0; }
 function pickBookEntry(e){
   st.catId=e[2]; st.itemId=custId(e[2]); st.bookName=e[0]; st.overrides[custId(e[2])]=bookVal(e);
   st.liq=e[3]; st.brand="mid"; st.brandTyped="";st.brandQ=""; st.brandSet=false; st.model=""; st.detail="";
-  st.complete=true;st.completeSet=false;st.struck="";st.askEdit=false; st.editing=false; st.specSel={};
+  st.complete=true;st.completeSet=false;clearDeal();st.askEdit=false; st.editing=false; st.specSel={};
   persist(); render();
 }
 function wireBookSearch(){
@@ -5127,13 +5177,13 @@ const WORTHPOINT_CATS={jewel:1,coll:1,music:1};
 function compTargets(x){
   const q=compQuery(x), e=encodeURIComponent(q), t=[], guns=(st.catId==="guns");
   if(guns){
-    t.push({id:"gw",name:"GunWatcher",sub:"sold prices, no sign-in",
+    t.push({id:"gw",name:"GunWatcher",sub:"sold prices \u2014 no login needed",
       url:"https://gunwatcher.com/gun-value-sold-information/market-price?itemName="+encodeURIComponent(gunQuery(x)).replace(/%20/g,"+")});
     t.push({id:"gb",name:"GunBroker",sub:"tick Completed",
       url:"https://www.gunbroker.com/All/search?Keywords="+e});
   }
   t.push({id:"wc",name:"WatchCount",
-    sub:guns?"eBay parts &amp; optics only":"eBay sold, no sign-in",
+    sub:guns?"eBay parts &amp; optics only":"eBay sold prices \u2014 no login needed",
     url:watchCountUrl(q)});
   /* This used to be the plain sold search, ?LH_Sold=1&LH_Complete=1. It
      reaches back 90 days and no further, so anything that sells a few times
@@ -5143,7 +5193,7 @@ function compTargets(x){
      rather than a list to eyeball. It needs a seller sign-in, which the
      desk has; WatchCount above is the no-sign-in lane and is unchanged. */
   t.push({id:"ebay",name:"eBay Seller Hub",
-    sub:"sold, a full year &mdash; sign in",
+    sub:"sold, a full year &mdash; needs an eBay login",
     url:"https://www.ebay.com/sh/research?marketplace=EBAY-US&keywords="+e
        +"&dayRange=365&categoryId=0&offset=0&limit=50&tabName=SOLD&sorting=-sold"});
 
@@ -5879,7 +5929,7 @@ async function saveDeal(){
       ticket: String((document.getElementById("logTicket")||{}).value||"").trim().slice(0,24),
       status: "open", soldPrice: null, soldTs: null
     });
-    st.struck="";
+    clearDeal();
     if(msg)msg.textContent=(_k.kind==="buy"?"Logged \u2014 bought for ":"Logged \u2014 lent ")+money(_k.amt)
       +". It sits under Not settled yet in the Deal log until you mark it Sold or Redeemed.";
     const si=document.querySelectorAll(".struckIn"); si.forEach(e=>{ e.value=""; });
@@ -6839,8 +6889,8 @@ function startOver(){
   st.mode="item";                 /* from the scale too, not just the item page */
   st.picked=false; st.bookName=""; st.brandTyped="";st.brandQ=""; st.model=""; st.detail="";
   st.brand="mid"; st.brandSet=false; st.liq=null; st.market=null; st.mpPin=null; st.mpNone=false;
-  st.cond="good"; st.condSet=false; st.complete=true;st.completeSet=false;st.struck="";st.askEdit=false; st.specSel={}; st.editing=false;
-  st.ask=0; st.askKey=""; st.ticket=""; st.needKind=false; st.photoRead=null; st.compRead=null;
+  st.cond="good"; st.condSet=false; st.complete=true;st.completeSet=false;clearDeal();st.askEdit=false; st.specSel={}; st.editing=false;
+  st.ask=0; st.askKey=""; st.needKind=false; st.photoRead=null; st.compRead=null;
   st.fakeAns={}; st.fakeKey=""; st.stepAt=0; st.openS3=st.openS4=st.openS5=false;
   photoFile=null; findMsg="";
   render();
@@ -8341,7 +8391,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0928.1042";
+const APP_BUILD="0928.1156";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -9958,7 +10008,7 @@ function render(){
      beside itself. The green dot already says SYS.OK, so the words went. */
   if(sy)sy.textContent=fmtDay(FEED.date)+" · Gold $"+Math.round(FEED.gold).toLocaleString("en-US")+" · Silver $"+Number(FEED.silver).toFixed(2)
     +(BUILD?" · build "+BUILD+(st.newBuild?" (old — "+st.newBuild+" is out)":""):"");
-  if(st.mode==="item"){v.innerHTML=renderItem();wireItem();}
+  if(st.mode==="item"){dealGuard();v.innerHTML=renderItem();wireItem();}
   else if(st.mode==="metal"){v.innerHTML=renderMetal();wireMetal();}
   else if(st.mode==="log"){v.innerHTML=renderLog();wireLog();}
   else if(st.mode==="device"){v.innerHTML=renderDevice();}
