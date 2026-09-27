@@ -199,13 +199,21 @@ console.log("\n  what a missing piece costs");
       return {whole, part, ratio: whole ? part/whole : null, label: cat.complete.label||""};
     };
     out.elec  = run("elec", "e5");
-    out.tools = run("tools", "t1");
+    /* t4, the pancake compressor, not t1. The DRILL's specs already ask what
+       came with it, so the aisle's completeness question no longer applies
+       to it — this assertion used to run on t1 and was therefore asserting
+       the double-count as correct behaviour. It is checked the right way
+       round in "missing pieces are priced once" below. */
+    out.tools = run("tools", "t4");
+    out.drill = run("tools", "t1");
     return out;
   });
   ok(Math.abs(c.elec.ratio - 0.9) < 0.005,
      "electronics docks 10% for a missing piece (measured), got " + c.elec.ratio.toFixed(3));
   ok(Math.abs(c.tools.ratio - 0.7) < 0.005,
      "a category with no measurement still docks 30%, got " + c.tools.ratio.toFixed(3));
+  ok(Math.abs(c.drill.ratio - 1) < 0.005,
+     "  but not an item whose own specs already ask, got " + c.drill.ratio.toFixed(3));
   ok(c.elec.part > c.tools.ratio * c.elec.whole,
      "  so an incomplete console is worth more than the old flat rate said");
 }
@@ -2011,6 +2019,66 @@ console.log("\n  volatility is priced in the guard, not twice");
      `${r.today.total}% taken against a ${r.today.tail}% measured tail`],
   ];
   for (const [what, pass, extra] of t) ok(pass, what + (extra ? " — " + extra : ""));
+  ok(!errs.length, "  no page errors" + (errs.length ? ": " + errs[0] : ""));
+  await pg.close();
+}
+
+/* ================= THE SAME MISSING BATTERY, PRICED ONCE =================
+   Caught by an outside review and confirmed with numbers before changing
+   anything. A cordless drill is asked "what came with it" — tool only is
+   .52, because a bare tool IS about half a kit — and the aisle then asked
+   "is it all there? battery, charger, case", taking another 30% for the
+   battery the first answer had already said was missing. A $123 kit came
+   out at $45 instead of $64, and the loan is a share of that.
+
+   Two things have to hold: the item whose specs cover it must not be asked
+   or charged twice, and every OTHER item must keep the completeness
+   question, because for a console or a mower it is the only place missing
+   pieces are priced at all. */
+console.log("\n  missing pieces are priced once, not twice");
+{
+  const pg = await browser.newPage({viewport:{width:1500,height:1000}});
+  const errs = [];
+  pg.on("pageerror", e => errs.push(String(e)));
+  await pg.goto(BASE + "/index.html", {waitUntil:"networkidle"});
+  await pg.waitForTimeout(1100);
+  const r = await pg.evaluate(() => {
+    const setup = (catId, id) => {
+      st.mode = "item"; st.catId = catId; st.itemId = id; st.picked = true; st.specSel = {};
+      st.cond = "good"; st.condSet = true; st.brandSet = true; st.brand = "hi";
+      st.complete = true; st.completeSet = true;
+      (SPEC_CHOICES[id] || []).forEach((g, gi) => { st.specSel[id + ":" + gi] = specBase(g); });
+    };
+    const out = {};
+    /* the drill: its specs already ask */
+    setup("tools", "t1");
+    const gi = (SPEC_CHOICES.t1 || []).findIndex(g => g.covers === "complete");
+    const oi = (SPEC_CHOICES.t1[gi].options || []).findIndex(o => /tool only/i.test(o.t));
+    out.kit = Math.round(calcItem().resale);
+    st.specSel["t1:" + gi] = oi;
+    out.bare = Math.round(calcItem().resale);
+    st.complete = false;
+    out.bareAndMissing = Math.round(calcItem().resale);
+    out.drillAsks = askQueue(calcItem()).map(z => z.id);
+    out.marked = gi >= 0;
+    /* the console: its specs do NOT ask, so the aisle's question must stay */
+    setup("elec", "e5");
+    const whole = Math.round(calcItem().resale);
+    st.complete = false;
+    out.consoleDrop = Math.round(100 * (1 - calcItem().resale / whole));
+    out.consoleAsks = askQueue(calcItem()).map(z => z.id);
+    return out;
+  });
+  const t = [
+    ["the group that covers it says so itself, not by its label", r.marked === true],
+    ["a bare tool is cut once by the spec", r.bare < r.kit && r.bare > r.kit * 0.4],
+    ["and not again by the completeness question", r.bareAndMissing === r.bare],
+    ["the drill is not even ASKED twice", !r.drillAsks.includes("complete")],
+    /* the half that must not regress */
+    ["a console still gets the completeness question", r.consoleAsks.includes("complete")],
+    ["and missing pieces still cost it something", r.consoleDrop > 0],
+  ];
+  for (const [what, pass] of t) ok(pass, what);
   ok(!errs.length, "  no page errors" + (errs.length ? ": " + errs[0] : ""));
   await pg.close();
 }

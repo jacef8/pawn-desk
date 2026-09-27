@@ -68,16 +68,20 @@ console.log("\none question at a time\n");
 await start("t1");
 let r = await read();
 ok(!!r, "the run renders at all");
-ok(/^1 of 8/.test(r.where), "a cordless drill asks eight questions — " + r.where);
+/* SEVEN, not eight. The drill's specs already ask what came with it, so
+   the aisle's "is it all there" no longer fires for it — being asked both
+   is what let the same missing battery be priced twice. The completeness
+   question itself is still checked, below, on an item that still has it. */
+ok(/^1 of 7/.test(r.where), "a cordless drill asks seven questions — " + r.where);
 ok(/make/i.test(r.q), "it opens on the make — " + r.q);
 ok(r.backOff && r.outBtn,
    "  question one offers a way out of the run, not a backward step");
-ok(r.dots === 8, "  a dot for every question, got " + r.dots);
+ok(r.dots === 7, "  a dot for every question, got " + r.dots);
 
 /* the whole point: answering moves on */
 await page.click(".askOpt");
 r = await read();
-ok(/^2 of 8/.test(r.where), "answering moves to the next by itself — " + r.where);
+ok(/^2 of 7/.test(r.where), "answering moves to the next by itself — " + r.where);
 ok(r.done >= 1, "  and the one behind is marked done, got " + r.done);
 ok(!r.backOff, "  a real Back appears once there is something behind you");
 
@@ -97,7 +101,8 @@ for (let i = 0; i < 9; i++) {
 }
 const all = seen.join(" | ").toLowerCase();
 ok(/battery|platform/.test(all), "how many batteries is a question in the run — " + seen.join(" | "));
-ok(/all there|missing/.test(all) || /is it all there/.test(all), "  so is whether it is all there");
+ok(/tool only|came with it|batter/.test(all),
+   "  so is what came with it — which for this item IS the completeness question");
 ok(/sell for used/.test(all), "  and the price is the end of the run, not a separate page");
 
 /* a simpler item asks fewer - the queue is built from the item */
@@ -800,10 +805,15 @@ console.log("\n  nothing is lit until somebody picks it");
 {
   const r = await page.evaluate(() => {
     const out = {};
-    const c = CATALOG.find(y => y.items.some(i => i.id === "t1"));
-    st.flow="ask"; st.mode="item"; st.catId=c.id; st.itemId="t1"; st.picked=true;
+    /* t4, the pancake compressor, not the drill: the drill's own specs now
+       cover completeness, so the aisle's question is correctly absent from
+       its run. The BEHAVIOUR under test — opens unhighlighted, does not
+       count itself answered, tapping lights exactly one — is unchanged and
+       still has to hold wherever the question does appear. */
+    const c = CATALOG.find(y => y.items.some(i => i.id === "t4"));
+    st.flow="ask"; st.mode="item"; st.catId=c.id; st.itemId="t4"; st.picked=true;
     st.specSel={}; st.complete=true; st.completeSet=false; st.condSet=false;
-    st.cond="good"; st.brandSet=false; st.brandTyped=""; st.model="DCD791";
+    st.cond="good"; st.brandSet=false; st.brandTyped=""; st.model="C2002";
     st.market={kind:"found", key:mkKey(), mid:100, lo:80, hi:120, n:20, sold:20, basis:"sold", comps:[]};
     const q = askQueue(calcItem());
     const look = (id) => {

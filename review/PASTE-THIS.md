@@ -472,7 +472,7 @@ const SPEC_CHOICES={
 
     The baseline stays on two-batteries so the catalogue value does not have
     to move; what changes is that the other three can now be said. */
- t1:[CH_VOLT,{label:"What came with it",options:[
+ t1:[CH_VOLT,{label:"What came with it",covers:"complete",options:[
    {t:"Two batteries + charger",m:1},
    {t:"One battery + charger",m:.87,note:"one battery: −13%"},
    {t:"Tool only — no battery",q:"tool only",m:.52,note:"bare tool: about half a kit"},
@@ -488,7 +488,7 @@ const SPEC_CHOICES={
     and it is the same battery and the same charger missing. Recheck when
     there are more bare impact wrenches on the market. */
  t2:[CH_VOLT,{label:"Drive",options:[{t:"1/2 in",m:1},{t:"3/8 in",m:.9,note:"3/8 drive: −10%"},{t:"1 in / big iron",m:1.2,note:"heavy drive: +20%"}]},
-  {label:"What came with it",options:[
+  {label:"What came with it",covers:"complete",options:[
     {t:"Battery + charger",m:1},
     {t:"Tool only — no battery",q:"tool only",m:.55,note:"bare tool: about half"}]}],
  /* A corded grinder and a cordless one are not the same tool wearing a
@@ -749,7 +749,10 @@ function askQueue(x){
       opts:g.options.map((o,oi)=>({t:o.t, sub:o.note||"", on:st.specSel[key]===oi, set:"spec", v:gi+":"+oi})),
       answered:st.specSel[key]!=null});
   });
-  if(cat.complete.on){
+  /* and it is not ASKED twice either: being asked what came with it and
+     then whether it is all there is the same question, and the counter
+     answering both honestly is what produced the double cut. */
+  if(cat.complete.on&&!specCoversComplete(x&&x.item?x.item.id:st.itemId)){
     const what=cat.complete.label||"the bits that come with it";
     q.push({id:"complete", title:"Is it all there?",
       /* Same rule, and this one was the worst of them: st.complete starts
@@ -828,7 +831,8 @@ function calcItem(){
      for a missing controller was lending $180 against an Xbox that resells
      for $500. Per-category now; the ones still at 0.7 are still guesses and
      say so in the catalog. */
-  const completeMult=cat.complete.on&&!st.complete?(Number(cat.complete.mult)||0.7):1;
+  const completeMult=(cat.complete.on&&!st.complete&&!specCoversComplete(item.id))
+    ?(Number(cat.complete.mult)||0.7):1;
   const liqId=st.liq||item.liq;
   const liquidity=LIQUIDITY.find(l=>l.id===liqId);
   let spec;
