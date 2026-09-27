@@ -44,7 +44,7 @@ const MAP={
  b1:"GLOCK G17",                  b2:"GLOCK G19",
  b3:null, b4:null, b5:null, b6:null,
  b7:"SIG SAUER P365",             b8:"SIG SAUER P320",
- b9:"SIG SAUER P226",             // see SPLIT below — P229 is its own family
+ b9a:"SIG SAUER P226",            b9b:"SIG SAUER P229",
  b10:null,
  b11:"SMITH & WESSON SHIELD",
  b12:null, b13:null, b14:null,
@@ -58,14 +58,16 @@ const MAP={
  b27:null,                        // 642/638 Airweight is not the steel Model 36
  b28:null, b29:null,
  b30:"Ruger LCR",
- b31:"Ruger Blackhawk",           // see SPLIT below — Single-Six is its own family
+ b31a:"Ruger Blackhawk",          b31b:"Ruger SINGLE-SIX",
  b32:null,
  b33:"Colt Python",
 };
-// Rows that name two guns the sold data prices separately.
+// Rows that once named two guns the sold data prices separately. Both were
+// split on 2026-09-27; check-split.mjs holds them apart. Kept here so the
+// pairing is still checked, and so a future merge back shows up as a fault.
 const SPLIT={
- b9:[["P226","SIG SAUER P226"],["P229","SIG SAUER P229"]],
- b31:[["Blackhawk","Ruger Blackhawk"],["Single-Six","Ruger SINGLE-SIX"]],
+ "b9a/b9b":[["P226","SIG SAUER P226"],["P229","SIG SAUER P229"]],
+ "b31a/b31b":[["Blackhawk","Ruger Blackhawk"],["Single-Six","Ruger SINGLE-SIX"]],
 };
 
 const doc=JSON.parse(fs.readFileSync("tools/gunbroker/2026-08-used.json","utf8"));
@@ -89,10 +91,9 @@ console.log(pad("row",5)+pad("our gun",34)+pad("our range",12)+pad("sold med",10
 for(const r of out) console.log(pad(r.id,5)+pad(r.name,34)+pad(`$${r.lo}-${r.hi}`,12)
   +pad("$"+r.med,10)+pad(r.ratio.toFixed(2)+"x",9)+r.verdict);
 
-console.log("\nSPLIT ROWS — one row, two guns the market prices apart:");
+console.log("\nPAIRS THAT WERE ONE ROW UNTIL 2026-09-27:");
 for(const [id,pairs] of Object.entries(SPLIT)){
-  const r=rows.find(z=>z.id===id);
-  console.log(`  ${id} "${r.name}"  our $${r.lo}-${r.hi}`);
+  console.log(`  ${id}`);
   for(const [lbl,f] of pairs) console.log(`      ${pad(lbl,12)} sold median $${fam.get(f)[1]}`);
 }
 const g=v=>out.filter(r=>r.verdict===v).length;

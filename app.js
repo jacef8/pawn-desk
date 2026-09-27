@@ -7093,7 +7093,8 @@ const MODEL_SPEC={
   "b6":{"Caliber":"Common (9mm, .223, .308…)","Size":"Full / compact"},
   "b7":{"Caliber":"Common (9mm, .223, .308…)","Size":"Full / compact"},
   "b8":{"Caliber":"Common (9mm, .223, .308…)","Size":"Full / compact"},
-  "b9":{"Caliber":"Common (9mm, .223, .308…)","Size":"Full / compact"},
+  "b9a":{"Caliber":"Common (9mm, .223, .308…)","Size":"Full / compact"},
+  "b9b":{"Caliber":"Common (9mm, .223, .308…)","Size":"Full / compact"},
   "c1":{"Bar length":"16–18 in","Grade":"Homeowner"},
   "c12":{"Grade":"Homeowner"},
   "c13":{"Grade":"Farm / ranch"},
@@ -7837,13 +7838,14 @@ let MODEL_PRICES=[
  ["b6","g7","Glock 22 / 23 (.40)",300,370,"m","2026-09-19","https://gunwatcher.com/glock-23-value-sold-information/market-price",".40 is soft; lots of police trade-ins"],
  ["b7","g7","Sig Sauer P365",375,475,"m","2026-09-19","https://gunwatcher.com/sig-sauer-p365-value-sold-information/market-price","XL, X-Macro or optic on top"],
  ["b8","g7","Sig Sauer P320",360,440,"m","2026-09-19","https://gunwatcher.com/sig-sauer-p320-value-sold-information/market-price","Trade-ins and holster wear cheaper"],
- ["b9","g7","Sig Sauer P226 / P229",575,800,"m","2026-09-19","https://gunwatcher.com/sig-sauer-p226-value-sold-information/market-price","Police trade-ins $450–650; Legion much higher"],
+ ["b9a","g7","Sig Sauer P226",800,1100,"m","2026-09-27","https://gunwatcher.com/sig-sauer-p226-value-sold-information/market-price","Police trade-ins are the cheap end; West German, stainless Elite and Legion far higher"],
+ ["b9b","g7","Sig Sauer P229",575,750,"m","2026-09-27","https://gunwatcher.com/sig-sauer-p229-value-sold-information/market-price","Trade-ins common; .40 softer than 9mm"],
  ["b10","g7","S&W M&P9 2.0",320,400,"m","2026-09-19","https://gunwatcher.com/smith-wesson-m-p9-value-sold-information/market-price","Optics-ready on top; 1.0 models lower"],
  ["b11","g7","S&W M&P Shield / Shield Plus",260,340,"m","2026-09-19","https://gunwatcher.com/smith-wesson-m-p-shield-plus-value-sold-information/market-price","Shield Plus about $50 over the original"],
  ["b12","g7","S&W Bodyguard 380",220,280,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=bodyguard+380","Laser adds; Bodyguard 2.0 higher"],
  ["b13","g7","Springfield Hellcat",340,410,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=hellcat","OSP, Pro or a mounted optic on top"],
  ["b14","g7","Springfield XD / XDs",240,310,"m","2026-09-19","https://gunwatcher.com/springfield-xd-value-sold-information/market-price","XD Mod.2 and Elite above"],
- ["b15","g7","Taurus G2C / G3C",130,185,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=taurus+g3c","Cheap new price caps it; G3C over G2C"],
+ ["b15","g7","Taurus G2C / G3C",110,185,"m","2026-09-27","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=taurus+g3c","Cheap new price caps it; a G2C is the bottom of this range and a G3C the top"],
  ["b16","g7","Taurus G3 / GX4",145,210,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=taurus+gx4","GX4 above G3; optic cut adds"],
  ["b17","g7","Ruger LCP",170,230,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=ruger+lcp+max","LCP MAX on top; original LCP bottom"],
  ["b18","g7","Ruger Security-9 / Max-9",185,245,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=ruger+max-9","Max-9 edges Security-9"],
@@ -7860,7 +7862,8 @@ let MODEL_PRICES=[
  ["b28","g8","Ruger GP100",540,660,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=ruger+gp100","Wiley Clapp, Match Champion and 10mm above base"],
  ["b29","g8","Ruger SP101",450,560,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=ruger+sp101","3 in and 4 in above 2.25 in"],
  ["b30","g8","Ruger LCR",370,450,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=ruger+lcr",".357 and laser above .38 or .22"],
- ["b31","g8","Ruger Blackhawk / Single-Six",400,575,"l","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=ruger+blackhawk","Blackhawk above Single-Six; convertibles add"],
+ ["b31a","g8","Ruger Blackhawk",575,775,"m","2026-09-27","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=ruger+blackhawk","Convertibles and Super Blackhawk add; three-screw guns far higher"],
+ ["b31b","g8","Ruger Single-Six",400,525,"m","2026-09-27","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=ruger+single-six","Convertible with the .22 Mag cylinder adds"],
  ["b32","g8","Taurus Judge",320,400,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=taurus+judge","Public Defender, stainless and Magnum above basic"],
  ["b33","g8","Colt Python (2020+)",950,1200,"m","2026-09-19","https://www.webuyguns.com/valuations/colt/python","New retail near $1,100 caps it; older Pythons far more"],
  ["c1","p1","Stihl MS 170 / 180",170,230,"m","2026-09-22","shelf tags photographed 19 Sep 2026, Bristol area","MS 180 slightly more; easy start and good chain"],
@@ -8296,11 +8299,11 @@ const MP_MATCH=[
  ["a35",/\bsks\b/],["a36",/\bak\b|\bak\s*-?\s*(47|74)\b|\bwasr\b/],["a37a",/accura/],["a37b",/optima/],["a37c",/cva.*\bwolf\b/],
  ["a38a",/encore|pro\s*hunter/],["a38b",/(thompson|t\/c|\btc\b).*impact/],
  ["b1",/\b(g|glock\s*)17\b/],["b2",/\b(g|glock\s*)19x?\b/],["b3",/\b(g|glock\s*)26\b/],["b4",/\b(g|glock\s*)43x?\b/],["b5",/\b(g|glock\s*)48\b/],["b6",/\b(g|glock\s*)2[23]\b/],
- ["b7",/p\s*365/],["b8",/p\s*320/],["b9",/p\s*22[69]\b/],["b12",/bodyguard/],["b11",/shield/],["b10",/m&p/],
+ ["b7",/p\s*365/],["b8",/p\s*320/],["b9a",/p\s*226\b/],["b9b",/p\s*229\b/],["b12",/bodyguard/],["b11",/shield/],["b10",/m&p/],
  ["b13",/hellcat/],["b14",/\bxd[sme]?\b/],["b15",/\bg[23]c\b/],["b16",/\bg3x?\b|\bgx4\b/],["b17",/\blcp\b/],["b18",/security\s*-?\s*9|max\s*-?\s*9/],
  ["b19",/mark\s*iv|22\s*\/\s*45/],["b20",/canik|\btp\s*-?\s*9/],["b21a",/\bp\s*-?\s*10\b/],["b21b",/cz\s*75|shadow\s*2|sp\s*-?\s*01/],
  ["b22",/beretta.*\b92|\b92\s*fs\b|\bm9\b/],["b23",/\b1911\b/],["b24",/hi-?\s*point|\bc9\b/],["b25",/sccy|\bcpx/],
- ["b26",/\b686\b/],["b27",/\b64[2]\b|\b63[78]\b/],["b28",/gp\s*-?\s*100/],["b29",/sp\s*-?\s*101/],["b30",/\blcr/],["b31",/blackhawk|single\s*-?\s*six/],
+ ["b26",/\b686\b/],["b27",/\b64[2]\b|\b63[78]\b/],["b28",/gp\s*-?\s*100/],["b29",/sp\s*-?\s*101/],["b30",/\blcr/],["b31a",/blackhawk/],["b31b",/single\s*-?\s*six|\bsingle\s*6\b/],
  ["b32",/judge|public\s*defender/],["b33",/python/],
  ["c3",/ms\s*-?\s*271|farm\s*boss/],["c1",/ms\s*-?\s*1[78][01]\b/],["c2",/ms\s*-?\s*25[01]\b/],["c4",/ms\s*-?\s*291\b/],["c5",/ms\s*-?\s*362\b/],["c6",/ms\s*-?\s*46[12]\b/],
  ["c8",/\b455\b/],["c9",/\b460\b/],["c7",/\b(450|445)\b/],["c11",/cs\s*-?\s*590|timber\s*wolf/],["c10",/cs\s*-?\s*40(0|10)\b/],
@@ -8737,7 +8740,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0928.1918";
+const APP_BUILD="0927.2254";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
