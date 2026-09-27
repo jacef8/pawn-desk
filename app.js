@@ -1224,8 +1224,30 @@ function pinHTML(x){
      The wheel goes where the eye already is, in the box that is otherwise
      telling them what is still missing. */
   const working=(typeof findBusy!=="undefined"&&findBusy)||(typeof pickChase!=="undefined"&&pickChase);
-  const spin=working?`<span class="pinSpin" aria-hidden="true"></span>`:"";
-  const bare=t=>`<div class="pinStrip${working?" working":""}"><span class="pinLab">${spin}${window.PHONE?"What it's worth to you":"The numbers"}</span><span class="pinNote">${working?`<b>Looking it up\u2026</b> checking what these actually sell for. `:""}${t}</span></div>`;
+  /* A TINY WHEEL IN A WALL OF TEXT IS NOT AN ANSWER EITHER.
+     First cut put an 11px spinner beside the label and pushed "Looking it
+     up" into the front of the paragraph that was already there. Reported:
+     "I wasn't talking about a tiny one on the right sidebar, I'm thinking
+     a big one in that window where the prices are eventually going to pop
+     up."
+     Right. This box is where the number lands, so while the number is
+     being fetched the box should be visibly busy fetching it - not a
+     paragraph with a speck in the corner. The searching state gets its own
+     layout: the ring at 46px, one line saying what it is doing, and the
+     list of what is still missing kept underneath in small type, because
+     that is still true and still worth reading while you wait. */
+  const bare=t=>working
+    ? `<div class="pinStrip working">
+         <div class="pinWork">
+           <span class="pinSpin lg" aria-hidden="true"></span>
+           <div class="pinWorkT">
+             <b>Looking it up\u2026</b>
+             <span>checking what these actually sell for</span>
+           </div>
+         </div>
+         <span class="pinNote">${t}</span>
+       </div>`
+    : `<div class="pinStrip"><span class="pinLab">${window.PHONE?"What it's worth to you":"The numbers"}</span><span class="pinNote">${t}</span></div>`;
   if(F&&F.blocks)return bare(F.verdict==="fail"?"A check failed \u2014 don't lend on the name."
     :"Not checked yet \u2014 "+F.done+" of "+F.n+" on the "+esc(F.sh.title.toLowerCase())+" sheet.");
   if(!priceReady(x))return bare("<b>No price yet \u2014 still needs "+esc(needList(x))
@@ -8470,7 +8492,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0928.1521";
+const APP_BUILD="0928.1604";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -8737,6 +8759,20 @@ function step4Inner(x,bare){
      it twice and numbers it wrong: it is question five of six there, not
      step four of anything. */
   let h=bare?"":`<span class="label">4 &middot; Resale value &mdash; what it sells for used</span>`;
+  /* AND IN THE CARD THE FIGURE ACTUALLY LANDS IN.
+     The rail got the big wheel, but the rail is the desk's. On the phone
+     this card IS the window the price pops up in - "What does one sell for
+     used?" - and mid-lookup it showed a figure, a tick reading "Checked"
+     and no sign at all that a live search was in flight that could change
+     both. Same card on both surfaces, so one line covers them.
+     It goes ABOVE the figure rather than replacing it: whatever is showing
+     now is the book's or the last lookup's, and it is still the best thing
+     known until the search comes back. Hiding it would trade one kind of
+     not-knowing for another. */
+  if((typeof findBusy!=="undefined"&&findBusy)||(typeof pickChase!=="undefined"&&pickChase))
+    h+=`<div class="askBusy"><span class="pinSpin lg" aria-hidden="true"></span>
+      <div class="pinWorkT"><b>Looking it up\u2026</b>
+        <span>checking what these actually sell for${x.checked?" \u2014 this figure may change":""}</span></div></div>`;
   if(st.editing){
     h+=`<div class="row2"><input id="valIn" type="number" inputmode="numeric" placeholder="What a used one sold for" value="${m&&m.kind==="hand"?m.mid:""}" class="numIn" style="flex:1;min-width:0"><button class="brassBtn" id="valSave" style="padding:11px 18px">Save</button><button class="ghostBtn" id="valCancel" style="padding:11px 14px">Cancel</button></div>
       <div class="cardHint" style="font-size:13.5px;color:var(--ink-2)">What one like this actually sells for used, in normal shape. The loan works from this number.</div>`;

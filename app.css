@@ -1354,3 +1354,22 @@
   .pinStrip.working .pinNote b{color:var(--accent-ink)}
   @media (prefers-reduced-motion:reduce){
     .pinSpin{animation:none;border-top-color:var(--accent);opacity:.9} }
+  /* THE SEARCHING STATE, AT THE SIZE OF THE THING IT IS ABOUT.
+     An 11px wheel beside a label was reported as not registering at all -
+     "a big one in that window where the prices are eventually going to pop
+     up". This box is where the figure lands, so while it is being fetched
+     the box says so at the scale the figure itself will be. */
+  .pinWork{display:flex;align-items:center;gap:15px;padding:4px 0 2px}
+  .pinSpin.lg{width:46px;height:46px;margin:0;border-width:4px;flex:none;
+    vertical-align:0}
+  .pinWorkT{display:flex;flex-direction:column;gap:3px;min-width:0}
+  .pinWorkT b{font:800 21px/1.1 var(--disp);letter-spacing:-.02em;color:var(--ink)}
+  .pinWorkT span{font-size:13px;line-height:1.4;color:var(--ink-2)}
+  .pinStrip.working{border-color:color-mix(in srgb,var(--accent) 45%,transparent)}
+  .pinStrip.working .pinNote{margin-top:11px;padding-top:10px;
+    border-top:1px solid var(--line);font-size:12.5px}
+  /* The searching state inside the card the figure lands in. Above the
+     number, not instead of it - what is showing is still the best thing
+     known until the search comes back. */
+  .askBusy{display:flex;align-items:center;gap:14px;margin:2px 0 14px;
+    padding-bottom:13px;border-bottom:1px solid var(--line)}
