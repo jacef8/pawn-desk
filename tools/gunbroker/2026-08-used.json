@@ -127,7 +127,7 @@
     737
    ],
    "Smith & Wesson": [
-    9.0,
+    9,
     450
    ],
    "Ruger": [
@@ -155,7 +155,7 @@
     608
    ],
    "CZ-USA": [
-    3.0,
+    3,
     688
    ],
    "Heckler & Koch": [
@@ -180,59 +180,59 @@
    ]
   },
   "families": {
-   "Sig Sauer P320": [
+   "SIG SAUER P320": [
     2.5,
     469
    ],
-   "Sig Sauer P365": [
+   "SIG SAUER P365": [
     1.7,
     563
    ],
-   "Beretta Model 90": [
+   "BERETTA MODEL 90 PISTOLS": [
     1.6,
     676
    ],
-   "Sig Sauer P226": [
+   "SIG SAUER P226": [
     1.1,
     1189
    ],
-   "Glock G19": [
-    1.0,
+   "GLOCK G19": [
+    1,
     455
    ],
-   "S&W Shield": [
+   "SMITH & WESSON SHIELD": [
     0.9,
     296
    ],
-   "Taurus G2": [
+   "TAURUS G2": [
     0.9,
     124
    ],
-   "Sig Sauer P229": [
+   "SIG SAUER P229": [
     0.8,
     667
    ],
-   "H&K USP": [
+   "HECKLER & KOCH USP": [
     0.8,
     1033
    ],
-   "Colt Government": [
+   "COLT GOVERNMENT": [
     0.7,
     1306
    ],
-   "Glock G17": [
+   "GLOCK G17": [
     0.7,
     450
    ],
-   "Taurus PT": [
+   "TAURUS PT PISTOLS": [
     0.7,
     196
    ],
-   "Walther PPK": [
+   "WALTHER PPK": [
     0.7,
     750
    ],
-   "Sig Sauer P220": [
+   "SIG SAUER P220": [
     0.7,
     827
    ],
