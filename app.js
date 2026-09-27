@@ -3176,7 +3176,16 @@ function suggestPay(){
     else if(tr<-0.03){cut+=5; why+=`. And it's down ${t}% on the week — sliding; trim extra for the hold window`;}
     else if(tr<-0.015){cut+=2; why+=`. Down ${t}% on the week — drifting lower, take a small extra point`;}
   }
-  return {pay:Math.max(50,base-cut), why};
+  /* The trend's own word, added to the level rule above. Small on purpose:
+     the guard price has already taken the big cut off the per-ounce figure,
+     and the same worry must not be charged twice. */
+  const T=(typeof metalTrend==="function")?metalTrend(st.metal):null;
+  /* Carried separately so the card can show what the rate would be WITHOUT
+     the trend read. A suggestion you cannot see the alternative to is not a
+     suggestion, it is just the number. */
+  const bare=Math.max(50,base-cut);
+  if(T&&T.cut>0){ cut+=T.cut; why+=`. And ${T.detail.replace(/\.$/,"")}`; }
+  return {pay:Math.max(50,base-cut), bare, why, trend:T};
 }
 /* The rate DEFAULTS to today's suggestion and keeps tracking it as spot, the
    average or the metal changes — until the counter moves the slider, which
@@ -3187,6 +3196,7 @@ function suggestRate(){
   /* A loan runs about 30% under a buy: you carry the price for 60 days before
      the metal is even yours. Same market reasoning, lower landing point. */
   return {pay:Math.max(25,Math.round(s.pay*0.7)),
+          bare:Math.max(25,Math.round((s.bare||s.pay)*0.7)), trend:s.trend,
           why:s.why+". A loan lands about 30% under the buy rate, because you carry the price for 60 days"};
 }
 function syncPay(){
@@ -3318,6 +3328,50 @@ function metalState(metal){
           prem:(spot-a90)/a90, dd:(spot/peak-1), vol, band,
           aboveLong:spot>=a200, cuts};
 }
+/* WHICH WAY IT HAS BEEN GOING, AND WHETHER TO SAY SOMETHING.
+   Asked for at the counter, and fairly: "can't you at least warn me a trend
+   may be going down and suggest a price, like you do now, and let me take it
+   or not."
+
+   Yes. The rate suggestion has always had a Use button; the trend just was
+   not feeding it. Two readings do the work, both measured above:
+
+     falling  - under the 200-day average AND well off the 12-month peak.
+                Not a prediction that it keeps falling. It is that you are
+                holding a thing whose buyers have been getting cheaper.
+     unsettled- 30-day swing in the top fifth of its own 25-year history.
+
+   The trim it asks for is deliberately SMALL, and the reason matters: the
+   guard price has already taken the big cut off the per-ounce figure. Cut
+   the rate hard on top of that and the same fear gets charged twice, which
+   is how a shop stops writing tickets. So the guard does the heavy lifting
+   and this adds a couple of points of margin for the sitting-on-it risk. */
+function metalTrend(metal){
+  const s2=metalState(metal);
+  if(!s2)return null;
+  const S=metalSeries(metal), v=S.map(r=>r[1]);
+  const m30=v.length>22?(s2.spot/v[v.length-22]-1):0;
+  const falling=(!s2.aboveLong)&&s2.dd<-0.08;
+  const unsettled=s2.band==="violent";
+  const busy=s2.band==="busy";
+  if(!falling&&!unsettled&&!busy)
+    return {dir:"steady",warn:false,cut:0,
+            head:"Nothing unusual in the trend",
+            detail:`${metal==="gold"?"Gold":"Silver"} is ${s2.aboveLong?"above":"below"} its 200-day average and moving at an ordinary pace. No trend reason to change your rate.`};
+  let cut=0; const bits=[];
+  if(falling){ cut+=3;
+    bits.push(`it is ${Math.abs(Math.round(s2.dd*100))}% off its 12-month peak and under its 200-day average — the direction has been down, not sideways`); }
+  if(unsettled){ cut+=2;
+    bits.push(`it is swinging ${Math.round(s2.vol*100)}% a year, the top fifth of its own history — a bad two months is about twice as likely as in a calm stretch`); }
+  else if(busy){ cut+=1;
+    bits.push(`it is moving faster than usual, though not wildly`); }
+  if(m30<-0.05)bits.push(`and it is down ${Math.abs(Math.round(m30*100))}% in the last month alone`);
+  const head=falling&&unsettled ? `${metal==="gold"?"Gold":"Silver"} is falling, and moving fast`
+           : falling ? `${metal==="gold"?"Gold":"Silver"} has been trending down`
+           : `${metal==="gold"?"Gold":"Silver"} is moving fast right now`;
+  return {dir:falling?"falling":"unsettled", warn:true, cut:Math.min(5,cut), head,
+          detail:bits.join("; ")+".", m30, dd:s2.dd, vol:s2.vol};
+}
 const PREM_BAND=p => p< -0.05?"under" : p<0.05?"at" : p<0.10?"warm" : p<0.15?"hot" : "spike";
 /* The two guard prices, and the evidence for each. */
 function metalGuard(metal){
@@ -3393,13 +3447,27 @@ function metalChartHTML(metal){
 function metalGuardHTML(metal){
   const G=metalGuard(metal);
   if(!G)return metalChartHTML(metal);
-  const s2=G.st, ev=G.ev;
+  const s2=G.st, ev=G.ev, T=metalTrend(metal);
   const money0=n=>"$"+Math.round(n).toLocaleString("en-US");
   const pc=n=>(n>=0?"+":"−")+Math.abs(n).toFixed(1)+"%";
   const BAND={calm:["Calm","good"],normal:["Normal",""],busy:["Busy","warn"],violent:["Moving fast","bad"]}[G.band]||["",""];
   const lending=st.deal!=="buy";
   return `<div class="card mGuard">
     <span class="label">${metal==="gold"?"Gold":"Silver"} &mdash; what the market has been doing</span>
+    ${T?`<div class="mWarn ${T.warn?"on":"off"}">
+      <div class="h">${T.warn?"\u26a0 ":""}${esc(T.head)}</div>
+      <div class="p">${esc(T.detail)}</div>
+      ${(()=>{ const S=suggestRate();
+        if(!(T.cut>0&&S))return "";
+        const on=curRate()===S.pay;
+        return `<div class="ask">Because of that, today's suggested ${st.deal==="buy"?"buy":"lending"} rate is
+          <b>${S.pay}%</b> instead of <b>${S.bare}%</b> &mdash; ${S.pay<S.bare?`that is ${S.bare-S.pay} point${S.bare-S.pay===1?"":"s"} of extra margin for the risk of sitting on it`:"unchanged"}.
+          The guard price below has already taken its own cut off the per-ounce figure; this is not that cut charged twice.
+          ${on?`<span class="ison">You're on it. Drag the slider to set your own.</span>`
+              :`<button class="ghostBtn" id="useTrend">Use ${S.pay}%</button>`}
+          <span class="no">Ignore it and work off ${S.bare}% if you read the market differently &mdash; it is a suggestion, not a rule.</span></div>`;
+      })()}
+    </div>`:""}
     ${metalChartHTML(metal)}
     <div class="mRead">
       <div class="mStat"><span class="k">30-day swing</span><b class="${BAND[1]}">${Math.round(s2.vol*100)}%</b><span class="s">${BAND[0]}</span></div>
@@ -3651,6 +3719,13 @@ function wireMetal(){
   v.querySelectorAll("[data-karat]").forEach(b=>b.onclick=()=>{st.karat=b.dataset.karat;render();});
   const p=document.getElementById("paySlider"), pn=document.getElementById("payNum");
   function wireSuggest(){
+    /* The trend strip's button and the rate card's button do exactly the
+       same thing - take today's suggestion - so they share the handler
+       rather than growing a second way to set the same number. */
+    const t=document.getElementById("useTrend");
+    if(t)t.onclick=()=>{const s=suggestRate();if(!s)return;
+      setTouched(false);setRate(s.pay);if(p)p.value=s.pay;if(pn)pn.value=s.pay;
+      if(p)paintSlider(p);persist();upd();};
     const b=document.getElementById("useSuggest");
     if(b)b.onclick=()=>{const s=suggestRate();if(!s)return;
       setTouched(false);setRate(s.pay);p.value=s.pay;if(pn)pn.value=s.pay;paintSlider(p);
@@ -7804,7 +7879,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0927.1614";
+const APP_BUILD="0927.1748";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

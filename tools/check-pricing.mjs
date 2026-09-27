@@ -1555,6 +1555,83 @@ console.log("\n  the metal guard prices off what the market has actually done");
   await pg.close();
 }
 
+/* ================= THE TREND GETS A VOTE, NOT A VETO =================
+   Asked for at the counter: "can't you at least warn me a trend may be
+   going down and suggest a price, like you do now, and let me take it or
+   not." It can, and the pattern already existed for the rate - the trend
+   just was not feeding it.
+
+   Two things have to stay true or the feature is worse than nothing:
+     - a calm market must NOT cry wolf, or the warning gets ignored on the
+       day it matters
+     - the trim must stay small, because the guard price has already taken
+       the big cut off the per-ounce figure and the same worry must not be
+       charged twice
+   And the counter must be able to SEE the rate he would get without it,
+   or "your option" is not an option. */
+console.log("\n  the trend warns, suggests, and can be ignored");
+{
+  const pg = await browser.newPage({viewport:{width:1500,height:1100}});
+  const errs = [];
+  pg.on("pageerror", e => errs.push(String(e)));
+  await pg.goto(BASE + "/index.html", {waitUntil:"networkidle"});
+  await pg.waitForTimeout(900);
+  const r = await pg.evaluate(() => {
+    const out = {};
+    st.mode = "metal"; st.metal = "gold"; st.deal = "pawn"; st.grams = "12.4";
+    st.loanTouched = true; st.loanPct = 55; render();
+    const T = metalTrend("gold"), S = suggestRate();
+    out.now = T && {dir: T.dir, warn: T.warn, cut: T.cut, head: T.head};
+    out.rate = S && {pay: S.pay, bare: S.bare};
+    const strip = document.querySelector(".mWarn");
+    out.strip = strip ? strip.innerText.replace(/\s+/g, " ") : null;
+    out.lit = !!document.querySelector(".mWarn.on");
+    out.button = !!document.getElementById("useTrend");
+    /* pressing it sets the rate, and nothing else moves */
+    const before = curRate();
+    const b = document.getElementById("useTrend"); if (b) b.click();
+    out.took = {before, after: curRate()};
+    /* A FLAT MARKET MUST SAY NOTHING. Swap in a series that goes nowhere
+       and check the warning stands down - a warning that is always on is
+       not a warning. */
+    const real = MHIST.days.gold;
+    const flat = [];
+    for (let i = 0; i < 520; i++) {
+      const d = new Date(Date.UTC(2024, 8, 25) + i * 864e5).toISOString().slice(0, 10);
+      flat.push([d, 4000 + Math.sin(i / 9) * 8]);       /* drifts a few dollars, nothing more */
+    }
+    MHIST.days.gold = flat;
+    const saveManual = st.manual;
+    st.manual = {date: "x", spot: {gold: 4000, silver: 66}, avg90: {gold: 4000, silver: 66}};
+    const calm = metalTrend("gold"), calmRate = suggestRate();
+    out.calm = calm && {dir: calm.dir, warn: calm.warn, cut: calm.cut};
+    out.calmRate = calmRate && {pay: calmRate.pay, bare: calmRate.bare};
+    st.manual = saveManual; MHIST.days.gold = real;
+    return out;
+  });
+  const t = [
+    ["a falling, fast market is called out", !!(r.now && r.now.warn && r.now.dir === "falling")],
+    ["the strip is lit, not buried in grey", r.lit === true],
+    ["it says WHY in plain words, with the numbers",
+     !!(r.strip && /off its 12-month peak/.test(r.strip) && /swinging/.test(r.strip))],
+    ["it suggests a rate", !!(r.rate && r.rate.pay > 0)],
+    ["lower than the rate without the trend read", r.rate && r.rate.pay < r.rate.bare],
+    ["and it SHOWS that other rate, so ignoring it is a real choice",
+     !!(r.strip && r.strip.includes(r.rate.bare + "%"))],
+    ["it says the guard has not already charged this",
+     !!(r.strip && /not that cut charged twice/i.test(r.strip))],
+    ["it calls itself a suggestion, not a rule", !!(r.strip && /not a rule/i.test(r.strip))],
+    ["there is a button to take it", r.button === true],
+    ["and pressing it moves the rate to the suggestion", r.took && r.took.after === r.rate.pay],
+    ["the trim is small — never more than 5 points", !!(r.now && r.now.cut <= 5)],
+    ["a flat market raises no warning at all", !!(r.calm && r.calm.warn === false && r.calm.cut === 0)],
+    ["and asks for no trim there", !!(r.calmRate && r.calmRate.pay === r.calmRate.bare)],
+  ];
+  for (const [what, pass] of t) ok(pass, what);
+  ok(!errs.length, "  no page errors" + (errs.length ? ": " + errs[0] : ""));
+  await pg.close();
+}
+
 await browser.close();
 console.log(fails ? "\n  " + fails + " FAILED\n" : "\n  all passed\n");
 process.exit(fails ? 1 : 0);
