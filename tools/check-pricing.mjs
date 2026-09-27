@@ -559,7 +559,17 @@ console.log("\n  the loan card does not repeat the rail");
   /* what the rail cannot say has to survive */
   ok(/Pricing:/.test(wide.txt) && /MS 271/.test(wide.txt),
      "  it still says which model the price came from");
-  ok(/Go low when cash is tight/.test(wide.txt), "  and still says when to go high or low");
+  /* When to go high or low moved, and got better on the way: the rail
+     carries GO LOW / SUGGESTED / GO HIGH as three figures, restored there
+     after the wide layout dropped the list entirely. The card's prose was
+     then the same advice a few inches away with no numbers in it - the
+     third copy of one idea on one screen - so it went. What the counter
+     must still be told is unchanged, which is what this checks; only the
+     place changed. */
+  ok(/GO LOW/i.test(wide.pin) && /GO HIGH/i.test(wide.pin) && /SUGGESTED/i.test(wide.pin),
+     "  and the rail still says when to go high or low, with the figures");
+  ok(!/Go low when cash is tight/.test(wide.txt),
+     "  without the card repeating it in prose beside them");
   ok(/cushion, fee, and why it is this much/.test(wide.txt), "  and keeps the reasoning fold");
   /* narrow keeps everything, because nothing else has it */
   ok(/LOW LOAN/.test(narrow.txt) && /OR BUY IT OUTRIGHT/.test(narrow.txt) && /LEND HIM/.test(narrow.txt),

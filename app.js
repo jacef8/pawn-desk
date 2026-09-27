@@ -1671,7 +1671,11 @@ function ticketHTML(x){
     <span class="label">7 &middot; Pawn loan &mdash; the detail</span>
     ${(st.model||st.detail)?`<div class="cardHint" style="margin-top:0">Pricing: <b style="color:var(--ink)">${[st.model,st.detail].filter(Boolean).map(esc).join(" \u00b7 ")}</b></div>`:""}
     ${x.spec&&x.spec.stop?`<div class="tagWarn" style="border-left-color:var(--bad);background:var(--bad-wash);color:var(--bad-ink)"><b>NO TITLE &mdash; NO DEAL.</b> Don't negotiate around a missing title, at any price.</div>`:""}
-    <div class="cardHint" style="margin-top:0">Open at <b style="color:var(--ink)">${money(x.target)}</b>. Go low when cash is tight or the deal feels off; go toward <b style="color:var(--ink)">${money(x.high)}</b> for a regular you want back. Never above the top &mdash; that is your cushion.</div>
+    ${/* The rail carries GO LOW / SUGGESTED / GO HIGH as three figures now,
+          restored there after it went missing from the wide layout. This
+          sentence is the same advice in prose, four inches away - the
+          third copy of one idea on one screen. The rail's version is the
+          one with the numbers in it, so this one goes. */""}
     ${ticketDetailHTML(x)}
   </div>${paybackHTML(x)}`;
   return `<div class="card${x.checked?"":" unchecked"}">
@@ -2676,6 +2680,24 @@ function struckHTML(x){
       <button type="button" class="ghostBtn struckUse" data-struckset="${Math.round(sug)}">Use ${money(sug)}</button>
     </div>
     <div class="struckNote cardHint" style="margin-top:8px">${struckNoteHTML(x)}</div>
+    ${/* ONE PLACE TO WRITE THE DEAL DOWN.
+          "Seems like there are about 4 different spots to log the deal."
+          There were: this strip, a SECOND copy of this same strip inside a
+          separate Deal log card, the button that scrolls between them, and
+          the button that actually saves. Two live inputs bound to one
+          value, 365px apart.
+          The ticket number and the Save button belong with the amount they
+          describe, so they are here, and the separate card is gone. That
+          is 365px off the finished page and one fewer thing that can
+          disagree with itself. */""}
+    ${CAP.db?`<div class="row2" style="margin:9px 0">
+      <input id="logTicket" class="numIn" type="text" inputmode="numeric" autocomplete="off"
+        placeholder="Ticket # (optional)" value="${esc(st.ticket||"")}"
+        style="flex:1;min-width:0;font-family:var(--mono);font-size:14px"></div>
+    <button id="logDeal" class="brassBtn" style="width:100%;padding:11px 0"
+      title="Saves the item, your estimate, the offer and the ticket number.">Log this deal</button>
+    <div class="cardHint" id="logMsg" style="margin-top:7px">Records the item, your estimate, the offer and the ticket number &mdash; nothing else off the ticket. No name, no address, no ID.${(()=>{const t=soldStats(itemKey());return t?` You've sold ${t.n} of these.`:"";})()}</div>`
+    :`<div class="cardHint" style="margin-top:7px">Logging is not available on this device.</div>`}
   </div>`;
 }
 function askDoneHTML(x){
@@ -2746,6 +2768,18 @@ function askDoneHTML(x){
       <input id="detailIn" type="text" autocomplete="off" placeholder="${esc(detailHint(x).ph)}" value="${esc(st.detail)}" class="numIn"></label>
   </div>`;
 }
+/* IS THE RUN OVER. It was a local inside askHTML, which was fine while the
+   only thing that cared was the card asking the questions. Two other things
+   care now - the deal log, which has no business on screen before there is
+   a deal to log, and the market-check panel, which is a tool for getting TO
+   a price rather than something to read once you have one. Copying the test
+   into each of them is exactly how st.ticket and st.struck drifted apart.
+   One predicate, three readers. */
+function runFinished(x){
+  const q=askQueue(x);
+  const at=Math.max(0,Math.min(q.length-1,Number(st.askAt)||0));
+  return q.every(z=>z.answered)&&at>=q.length-1&&!st.askEdit;
+}
 function askHTML(x){
   const q=askQueue(x);
   const at=Math.max(0,Math.min(q.length-1,Number(st.askAt)||0));
@@ -2811,7 +2845,7 @@ function askHTML(x){
      button that lands on "Anything else?" is answering a question nobody
      asked. askEdit puts the last question back on screen in place of the
      answer; anything that moves the run clears it. */
-  const finished=allDone&&at>=q.length-1&&!st.askEdit;
+  const finished=runFinished(x);
   /* "Change an answer" has to land on a question with an answer in it. Once
      "Anything else?" became step 8 the card being replaced was the notepad,
      so the button reopened an empty text box - technically the card it had
@@ -3012,13 +3046,33 @@ function renderItem(){
     ? (function(){ const q=askQueue(x), at=Math.max(0,Math.min(q.length-1,Number(st.askAt)||0));
                    return q[at]&&q[at].id==="worth"; })()
     : (st.page==="worth"||st.page==="what");
-  const leftRef=(deskRail()&&onWorth)?`<div class="colL">${compsCardHTML(x)}</div>`:"";
+  /* "Some of this can be moved to the right side bar while we are in the
+     process of going through the prompts." The market panel is 411px, and
+     .colL is nested INSIDE .colQ - so it was not a side column at all, it
+     was stacked under the question, and it is what pushed the middle 76px
+     past the window on the one step that needs both of them at once.
+     On a wide desk it goes to the rail, beside the question rather than
+     below it. Narrow, there is no rail to put it in, so it stays where it
+     was. */
+  const railComps=deskRail()&&onWorth&&!runFinished(x);
+  const leftRef=(deskRail()&&onWorth&&!railComps)?`<div class="colL">${compsCardHTML(x)}</div>`:"";
   /* Before anything is picked, the camera IS the first step. After, it is
      a way to re-identify something already named, which nobody needs
      halfway down a run. */
   const camRef=(!st.picked&&!window.PHONE)?`<div class="colL">${photoCardHTML()}</div>`:"";
   /* The log appears when there is something worth logging. */
-  const logRef=x.checked?logCardHTML(x):"";
+  /* ONLY THE WINDOWS THAT BELONG TO THIS STAGE.
+     "The log deal window only needs to be open on the last page after a
+     price has been selected." It was keyed to x.checked, which goes true
+     the moment the desk has ANY figure - so 365px of ticket box and Save
+     button sat under the questions from step 4 onward, while the counter
+     was still being asked what condition the thing is in. There is nothing
+     to log at step 4. It waits for the run to finish. */
+  /* The deal log card WAS this, plus a second copy of the strip that is
+     already on the answer card. The strip carries the ticket and the Save
+     button now, so the card is gone rather than gated - a stage it is
+     never right on is not a stage. */
+  const logRef="";
   const ST=stepFlow()==="steps"&&!window.PHONE, LIVE=ST?liveStep(x):0;
   /* A step opened by hand stays open through the re-render a click inside it
      causes - otherwise it shuts under the hand that opened it. It is let go
@@ -3188,12 +3242,12 @@ function renderItem(){
   if(stepFlow()==="ask"&&st.picked)
     return omniHTML()
       +(deskWide()
-        ? `<div class="rail"><div id="pin">${pinHTML(x)}</div>${weightHTML(x)}</div>`
+        ? `<div class="rail"><div id="pin">${pinHTML(x)}</div>${weightHTML(x)}${railComps?compsCardHTML(x):""}</div>`
           +`<div class="colQ">${askHTML(x)}<div id="ticket">${ticketHTML(x)}</div>${leftRef}${camRef}${logRef}</div>`
         : `<div id="pin">${pinHTML(x)}</div>`+weightHTML(x)+askHTML(x)
           +`<div id="ticket">${ticketHTML(x)}</div>`+logRef);
   if(deskRail())return omniHTML()+nextStepHTML(x)
-    +`<div class="rail"><div id="pin">${pinHTML(x)}</div>${weightHTML(x)}</div>`
+    +`<div class="rail"><div id="pin">${pinHTML(x)}</div>${weightHTML(x)}${railComps?compsCardHTML(x):""}</div>`
     +`<div class="colQ">${left}${mid}<div id="ticket">${ticketHTML(x)}</div>`
       +`${leftRef}${camRef}${logRef}</div>`;
   /* The meter went out with the rail, and the rail needs 1080px - so on a
@@ -3217,6 +3271,7 @@ function wireItem(){
      causes - otherwise it shuts under the hand that opened it. */
   for(const [id,key] of [["whyFold","openWhy"],["paybackFold","openPayback"],["rateFold","openRates"],
                          ["driverFold","openDriver"],["tierFold","openTier"],["notesFold","openNotes"],
+                         ["compFold","openComp"],
                          ["s3","openS3"],["s4","openS4"],["s5","openS5"],["wordsFold","openWords"]]){
     const d=document.getElementById(id); if(d)d.ontoggle=()=>{ st[key]=d.open; };
   }
@@ -5177,13 +5232,13 @@ const WORTHPOINT_CATS={jewel:1,coll:1,music:1};
 function compTargets(x){
   const q=compQuery(x), e=encodeURIComponent(q), t=[], guns=(st.catId==="guns");
   if(guns){
-    t.push({id:"gw",name:"GunWatcher",sub:"sold prices \u2014 no login needed",
+    t.push({id:"gw",name:"GunWatcher",sub:"",
       url:"https://gunwatcher.com/gun-value-sold-information/market-price?itemName="+encodeURIComponent(gunQuery(x)).replace(/%20/g,"+")});
     t.push({id:"gb",name:"GunBroker",sub:"tick Completed",
       url:"https://www.gunbroker.com/All/search?Keywords="+e});
   }
   t.push({id:"wc",name:"WatchCount",
-    sub:guns?"eBay parts &amp; optics only":"eBay sold prices \u2014 no login needed",
+    sub:guns?"eBay parts &amp; optics only":"",
     url:watchCountUrl(q)});
   /* This used to be the plain sold search, ?LH_Sold=1&LH_Complete=1. It
      reaches back 90 days and no further, so anything that sells a few times
@@ -5193,7 +5248,7 @@ function compTargets(x){
      rather than a list to eyeball. It needs a seller sign-in, which the
      desk has; WatchCount above is the no-sign-in lane and is unchanged. */
   t.push({id:"ebay",name:"eBay Seller Hub",
-    sub:"sold, a full year &mdash; needs an eBay login",
+    sub:"a full year",
     url:"https://www.ebay.com/sh/research?marketplace=EBAY-US&keywords="+e
        +"&dayRange=365&categoryId=0&offset=0&limit=50&tabName=SOLD&sorting=-sold"});
 
@@ -5251,10 +5306,21 @@ function compsCardHTML(x){
     ).join("")}</div>
     <div class="cardHint" id="compMsg" style="min-height:18px;margin-top:9px"></div>
     <div id="compFallback"></div>
-    ${shotZoneHTML(x)}
+    ${/* CONDENSED, BECAUSE IT MOVED. This card is 514px and it now sits in
+          the rail beside the question rather than stacked under it. Four
+          buttons and the search text are what somebody uses; the
+          screenshot-paste block and the paragraph about Best Offer are
+          what somebody reads once and then knows. Read-once goes behind a
+          fold, which is the difference between a panel that fits and a
+          panel you scroll. The fold stays open once opened, like every
+          other fold on the page. */""}
     <span class="label" style="margin-top:8px">What those buttons search for</span>
     <div class="row2"><input id="compQ" class="roOut" readonly tabindex="-1" aria-label="What those buttons search for" value="${esc(q)}" style="flex:1;min-width:0;font-size:13px"><button id="compCopy" class="ghostBtn" style="padding:10px 15px">Copy</button></div>
-    <div class="cardHint">Sold prices, not asking prices. An item listed at $400 that nobody bought is worth nothing to you. On WatchCount, a Best Offer sale shows what the seller actually took &mdash; use that number, never the crossed-out one.${guns?" eBay doesn't sell guns &mdash; GunBroker completed auctions is the only real firearm comp.":""}</div>
+    <details class="fold" id="compFold"${st.openComp?" open":""}>
+      <summary class="foldLine">Paste a sold screenshot, and what to read off it</summary>
+      ${shotZoneHTML(x)}
+      <div class="cardHint">Sold prices, not asking prices. An item listed at $400 that nobody bought is worth nothing to you. On WatchCount, a Best Offer sale shows what the seller actually took &mdash; use that number, never the crossed-out one.${guns?" eBay doesn't sell guns &mdash; GunBroker completed auctions is the only real firearm comp.":""}</div>
+    </details>
   </div>`;
 }
 /* The ones the number was built from.
@@ -8391,7 +8457,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0928.1156";
+const APP_BUILD="0928.1318";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
