@@ -668,7 +668,7 @@ console.log("");
    Its own page, at desk width: there is no rail on a phone, and the gold
    block's page is 390 wide - which is how the first version of this threw
    on a null rail rather than failing honestly. */
-console.log("\n  the rail says what he pays back, not just what he gets");
+console.log("\n  the rail says what it costs him to get it back, not just what he gets");
 {
   const pay_bad = [];
   const dk = await browser.newPage({viewport:{width:1920, height:1000}});
@@ -1008,6 +1008,54 @@ console.log("\n  and the Look up button says what it is doing");
     else { bad++; console.log("FAIL " + what); }
   }
   if (errs.length) { bad++; console.log("FAIL Look up — page errors: " + errs.join(" | ")); }
+  await p.close();
+}
+
+/* $131 MUST NOT BE READABLE AS $131 OF INTEREST.
+   Reported from the counter, about a $105 loan: "I read it as he was
+   paying 131 in interest." The line said "He pays back $131 by day 30",
+   and on a screen where every other sentence pairs "pays" with a fee that
+   is a fair reading. The figure is the whole redemption - his $105 back
+   plus $26 - and the difference between those two readings is the whole
+   deal.
+   So wherever the redemption total is shown, the loan and the interest
+   have to be shown beside it, named. A total standing on its own next to
+   the word "pays" is the bug. */
+console.log("\n  the redemption total cannot be mistaken for the interest");
+{
+  const p = await browser.newPage({viewport:{width:1400,height:900}});
+  await p.goto(BASE + "/index.html", {waitUntil:"networkidle"});
+  const r = await p.evaluate(() => {
+    st.mode = "item"; st.catId = "tools"; st.itemId = "t1"; st.picked = true;
+    st.brandSet = true; st.brand = "hi"; st.model = "DCD791";
+    st.condSet = true; st.completeSet = true; st.cond = "good"; st.complete = true;
+    st.market = {kind:"found", key:mkKey(), mid:120, lo:100, hi:150,
+                 n:21, sold:21, basis:"sold", comps:[]};
+    (SPEC_CHOICES[st.itemId] || []).forEach((g, gi) => {
+      st.specSel[st.itemId + ":" + gi] = specBase(g); });
+    /* stand on the last card, which is where the answer takes over */
+    st.askEdit = false; st.askAt = askQueue(calcItem()).length - 1;
+    render();
+    const x = calcItem();
+    const card = document.querySelector(".adDeal.lend");
+    return {line: card ? card.innerText.replace(/\s+/g, " ") : null,
+            loan: money(x.target), fee: money(x.charge),
+            total: money(x.target + x.charge),
+            page: document.getElementById("view").innerText};
+  });
+  const L = r.line || "";
+  const want = [
+    ["the pawn-loan card states the redemption total", L.includes(r.total)],
+    ["names the loan inside it", L.includes(r.loan)],
+    ["names the interest inside it", L.includes(r.fee)],
+    ["and calls that part interest", /interest/i.test(L)],
+    ["it says what the total IS, not just that he pays it", /get it back/i.test(L)],
+    ["the bare phrase that was misread is gone", !/pays back/i.test(r.page)],
+  ];
+  for (const [what, ok] of want) {
+    if (ok) console.log("ok   " + what);
+    else { bad++; console.log("FAIL " + what + " — card reads: " + L.slice(0, 120)); }
+  }
   await p.close();
 }
 

@@ -1237,7 +1237,7 @@ function railHTML(x){
     ${killerHTML(x)}
     ${thin?"":`
     <div class="railBack">
-      <div class="railBackHd"><b>He pays back</b><span>${pawnPct()}% per 30 days \u00b7 $${(x.charge/30).toFixed(2)}/day after day\u00a060</span></div>
+      <div class="railBackHd"><b>To get it back</b><span>${pawnPct()}% per 30 days \u00b7 $${(x.charge/30).toFixed(2)}/day after day\u00a060</span></div>
       <div class="railLadder">${ladder(x.target,x.charge).map((r,i)=>
         `<div class="rbCell${i===0?" now":""}"><div class="k">${r.k}</div><div class="d">${money(r.due)}</div></div>`).join("")}</div>
       <div class="rbDay60">Day 60 it is <b>ours</b> &mdash; no notice, no letter.</div>
@@ -1533,9 +1533,9 @@ function pawnRateHTML(){
 }
 function paybackHTML(x){
   return `<details class="card foldCard"${st.openPayback?" open":""} id="paybackFold">
-    <summary><span class="label" style="margin:0">8 &middot; After the money moves</span><span class="foldSub">what he pays back, and the day it becomes ours</span></summary>
+    <summary><span class="label" style="margin:0">8 &middot; After the money moves</span><span class="foldSub">what it costs him to get it back, and the day it becomes ours</span></summary>
     ${pawnRateHTML()}
-    <span class="label" style="margin-bottom:0;margin-top:14px;color:var(--ink-2)">He pays back</span>
+    <span class="label" style="margin-bottom:0;margin-top:14px;color:var(--ink-2)">To get it back</span>
     <div class="ladder" id="payLadder">${ladder(x.target,x.charge).map(r=>`<div class="widget rung"><div class="k">${r.k}</div><div class="d">${money(r.due)}</div></div>`).join("")}</div>
     <div style="font-size:12px;line-height:1.5;color:var(--ink-2);margin-top:9px">
       It is <b style="color:var(--ink)">not</b> ${pawnPct()}% again every month. The charge is capped at <b style="color:var(--ink)">twice</b> the 30-day amount from day 31 through day 60, then accrues <b style="color:var(--ink)">$${(x.charge/30).toFixed(2)}/day</b> after that — and remember, past day 60 the item is already yours; late redemption is a courtesy you price with this rate.
@@ -2342,9 +2342,9 @@ function struckNoteHTML(x){
   const k=struckAmt(x), sug=k.kind==="buy"?x.buy:x.target;
   if(!k.typed)return `Leave it empty and the log keeps the suggested ${money(sug)}. Type what you actually handed over instead — the shop's own price book is built out of this number.`;
   if(k.kind==="loan"&&k.amt>x.high)
-    return `<b style="color:var(--bad-ink)">${money(k.amt)} is over the ${money(x.high)} top.</b> That is the cushion spent. It will log exactly as typed — he pays back ${money(k.amt+pawnCharge(k.amt))} by day 30.`;
+    return `<b style="color:var(--bad-ink)">${money(k.amt)} is over the ${money(x.high)} top.</b> That is the cushion spent. It will log exactly as typed — he gets it back for ${money(k.amt+pawnCharge(k.amt))} by day 30, interest ${money(pawnCharge(k.amt))}.`;
   return k.kind==="loan"
-    ? `Lent <b style="color:var(--ink)">${money(k.amt)}</b> — he pays back <b style="color:var(--ink)">${money(k.amt+pawnCharge(k.amt))}</b> by day 30, fee ${money(pawnCharge(k.amt))}. This is what the log keeps.`
+    ? `Lent <b style="color:var(--ink)">${money(k.amt)}</b> — he gets it back for <b style="color:var(--ink)">${money(k.amt+pawnCharge(k.amt))}</b> by day 30, interest ${money(pawnCharge(k.amt))}. This is what the log keeps.`
     : `Bought outright for <b style="color:var(--ink)">${money(k.amt)}</b> — no loan, no ticket to redeem. This is what the log keeps.`;
 }
 function struckHTML(x){
@@ -2398,7 +2398,13 @@ function askDoneHTML(x){
       <div class="adDeal lend">
         <div class="k">Pawn loan</div>
         <div class="d">${money(x.target)}</div>
-        <div class="s">He pays back <b>${money(x.target+x.charge)}</b> by day 30.</div>
+        ${/* "He pays back $131" was read at the counter as $131 of INTEREST
+              on a $105 loan. Understandable: the words sit next to a fee, and
+              "pays" goes with "fee" in every other sentence on this screen.
+              So the line names what the figure IS - the amount that gets the
+              thing off the shelf - and then splits it, which makes reading it
+              as interest impossible. */""}
+        <div class="s">To get it back: <b>${money(x.target+x.charge)}</b> by day 30 \u2014 the ${money(x.target)} plus ${money(x.charge)} interest.</div>
       </div>
     </div>
     <div class="adWhy">${x.checked?"":`<b style="color:var(--warn-ink)">Estimate &mdash; nothing looked up.</b> `}<b>Resells for ${money(Math.round(x.resale))}</b> in this shape &mdash; that is where both numbers come from. Lend anywhere in ${money(x.low)}&ndash;${money(x.high)}, never above the top.</div>
@@ -3270,7 +3276,7 @@ function meltMathHTML(m){
 function metalLadderHTML(m){
   if(!m||!PAWN())return "";
   const charge=pawnCharge(m.loan);
-  return `<div class="card"><span class="label">What he pays back</span>
+  return `<div class="card"><span class="label">What it costs him to get it back</span>
     ${pawnRateHTML()}
     <div class="ladder" id="payLadder" style="margin-top:14px">${ladder(m.loan,charge).map(r=>`<div class="widget rung"><div class="k">${r.k}</div><div class="d">${money(r.due)}</div></div>`).join("")}</div>
     <div style="font-size:13.5px;line-height:1.5;color:var(--ink-2);margin-top:9px">
@@ -7589,7 +7595,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0927.0914";
+const APP_BUILD="0927.1046";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -8896,11 +8902,11 @@ function nextStepHTML(x){
     h=`Where those numbers come from.`;
     sub=`<b>Resale value ${money(m.mid)}</b> ${x.handSet?"&mdash; your own figure, taken as this one sits"
         :`used (${esc(nsSrcShort(m))})${Math.round(x.resale)!==m.mid?`, ${money(x.resale)} in ${cw[0].toLowerCase()} shape`:""}`}.<br>
-      Lend <b>${x.ltv}%</b> of that, buy at <b>${x.buyPct}%</b>. A loan he pays back with the fee to get it back; a buy is yours to sell.<br>
+      Lend <b>${x.ltv}%</b> of that, buy at <b>${x.buyPct}%</b>. A loan he clears with the interest to get it back; a buy is yours to sell.<br>
       The offer is on the right, and it moves as you change the answers.`;
   } else {
     h=`Lend him ${money(x.target)}, or buy it for ${money(x.buy)}.`;
-    sub=`<b>Pawn loan ${money(x.target)}</b>: the cash you lend him. He pays it back with the fee to get it back. Room to move: ${money(x.low)} to ${money(x.high)}.<br>
+    sub=`<b>Pawn loan ${money(x.target)}</b>: the cash you lend him, and he adds the interest to get it back. Room to move: ${money(x.low)} to ${money(x.high)}.<br>
       <b>Buy price ${money(x.buy)}</b>: you pay him once and it's yours to sell.<br>
       Both come from the <b>resale value</b>, ${money(m.mid)} used (${esc(nsSrcShort(m))})${Math.round(x.resale)!==m.mid?`, about ${money(x.resale)} in ${cw[0].toLowerCase()} shape`:""}. Lend ${x.ltv}% of it, buy at ${x.buyPct}%.`;
     const u=m.kind==="list"?m.src:m.url;

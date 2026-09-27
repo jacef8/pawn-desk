@@ -914,7 +914,7 @@ console.log("\n  the number actually agreed can be typed, and it is what gets lo
      "  left empty it logs the suggested " + r.emptyLogs);
   ok(r.typedFlag === true && r.typedAmt === 77,
      "  typed, it logs what was typed \u2014 got " + r.typedAmt);
-  ok(/\$77/.test(r.note) && /pays back/i.test(r.note),
+  ok(/\$77/.test(r.note) && /gets it back for/i.test(r.note),
      "  and the screen says what that means before it is saved \u2014 " + r.note.slice(0, 90));
   ok(r.mirrored.every(v => v === "77"),
      "  every copy of the box on screen shows the same number \u2014 " + r.mirrored.join(", "));

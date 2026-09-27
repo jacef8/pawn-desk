@@ -536,7 +536,7 @@ console.log("\n  the loan card does not repeat the rail");
   ok(!/BUY IT FOR/i.test(wide.pin),
      "  wide, the rail no longer restates the buy price the answer card carries");
   ok(/what kills it/i.test(wide.pin) && /cushion/i.test(wide.pin)
-     && /he pays back/i.test(wide.pin),
+     && /to get it back/i.test(wide.pin),
      "  it carries what that card does not \u2014 the killer, the cushion and the later rungs");
   ok(!/LOW LOAN/.test(wide.txt) && !/SUGGESTED LOAN/.test(wide.txt) && !/TOP LOAN/.test(wide.txt),
      "  so the card drops the three range tiles");
