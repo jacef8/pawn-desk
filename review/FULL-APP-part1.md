@@ -1,0 +1,12585 @@
+# Whole-app review — part 1 of 4
+
+# Whole-app review: The Pawn Desk
+
+You are reviewing a working tool that decides how much money a small
+business hands over the counter. Please be blunt. I would rather be told
+something is wrong than be told it is fine.
+
+Two earlier reviews looked only at the pricing core. This is everything:
+the two front ends, the shop's own server, the tools that build the data,
+and the data itself. You are allowed — encouraged — to ask *why is it
+shaped like this at all*, not only *is this line correct*.
+
+## What it is and who uses it
+
+A pawnbroker's pricing desk for a one-person shop in Bristol, Florida
+(population about 900, rural North Florida). The owner stands at a counter
+with a customer in front of him. He types or photographs what is on the
+glass, answers a short run of questions, and the tool tells him **what to
+pay to buy it outright** and **what to lend on it as a pawn loan**.
+
+He is learning the trade. He is not a programmer and not a statistician.
+Anything the tool says has to be arguable at the counter in plain words,
+with a customer listening.
+
+- Static single-page app: plain HTML, CSS, vanilla JavaScript. **No build
+  step, no framework, no bundler.** Served from GitHub Pages.
+- **Two front ends**: a desk browser (`index.html` + `app.js`) and a phone
+  (`phone.html` + `phone.js`). The phone has **its own copies** of several
+  panels. This has repeatedly caused a fix to land on one surface and not
+  the other, and it is the architectural decision I am least sure about.
+- A small Node service on Railway (`server/`) holds the API keys and
+  answers lookups. **The app never holds a key.** A shared token gates it.
+- `tools/` builds and measures the data: the price harvest, the metals risk
+  table, the repeatability measurement, and ten Playwright test suites.
+
+## The law, because it drives the arithmetic
+
+Florida §539.001(11) caps the pawn service charge at **25% of the amount
+financed per 30 days, minimum $5**. A loan matures at day 30; the shop must
+hold the item **30 more days**; at day 60 title passes to the shop
+automatically.
+
+So a pawn loan is a **60-day position in the item** and a buy can be
+resold immediately. That asymmetry is deliberate throughout: the loan is
+sized off a guarded number, the buy off a less guarded one.
+
+Florida also requires transactions to be reported to law enforcement. The
+deal log deliberately holds **item facts only** — never a name, never an ID
+number, nothing off the state form. That is a firm line.
+
+## Where I most want a second opinion
+
+### 1. The thing two reviewers have now circled: what a number *represents*
+`marketNow()` can return a measured eBay figure, a harvested row, a row
+researched by an AI and never verified, a hand-typed figure, or a catalog
+baseline — and downstream arithmetic treats several of these as
+interchangeable. `rowEvidence()`, `m.kind`, `m.conf` and `itemGuard()` are
+the beginnings of provenance, but it is reconstructed from harvest notes
+rather than carried as data.
+
+Is making provenance first-class the right next move, and what would you
+make it look like in a codebase with no build step?
+
+### 2. The two front ends
+Is duplicating panels between `app.js` and `phone.js` a mistake worth
+paying to undo, given there is no framework and no bundler? If you would
+merge them, how, without introducing a build step?
+
+### 3. The question run
+`askQueue` builds the run: make → model → what it sells for → specs → is it
+all there → what shape → anything else. One question per screen, nothing
+pre-highlighted (a lit default was read as an answer already given).
+
+Is the order right? Is anything asked that does not move money, or not
+asked that does? Walk `calcItem()` for multipliers that are not
+independent — a recent fix removed one case where a missing battery was
+priced twice, once by a spec and once by the aisle's completeness question.
+
+### 4. New models pushing old ones down — my open question
+When a new console or phone launches, last year's drops. Today the tool
+handles this three ways and I do not know if it is enough:
+- `STALE_BY_TIER` in `tools/harvest.js`: electronics re-price every 30
+  days, tools every 180, jewelry every 180.
+- `PRICE_EVENTS`: known annual launch windows (September iPhone, January
+  Galaxy, August Madden, November Call of Duty) pull an aisle's re-pricing
+  forward by a month.
+- A `Previous gen` spec option on consoles at **×0.5**, which is a guess
+  nobody measured.
+
+Three things I can see wrong with it and would like your read on:
+**(a)** nothing schedules the harvest — there is no CI job, so none of this
+fires unless a human runs it; **(b)** a console *generation* is a ~7-year
+event that an annual calendar cannot represent; **(c)** ×0.5 is invented.
+Is there a defensible way to detect "a successor now exists" from the
+shop's own data rather than from a hand-maintained calendar?
+
+### 5. The aisles and the brand books
+11 aisles, ~90 items. Aisle-level brand tiers are the **headline
+product's** makes — the hunting aisle's tiers are optics, which was wrong
+for a trail camera until items got their own lists. A previous reviewer
+suggested a `brandProfile` per item rather than aisle inheritance. Is that
+the right shape?
+
+### 6. The lookups
+`findPasses`/`priceFind`: eBay Browse API first (free, via the shop's
+server, and since September 2026 it returns **asking prices, not sold** —
+the Marketplace Insights grant was refused), then AI web-search passes,
+then new-retail as a last resort. Firearms take a different ladder because
+eBay bans gun sales.
+
+Most of the price book now rests on asking prices. I measured the
+ask-to-sold gap and **declined** to apply a blanket haircut: the aggregate
+was 1.18× but per aisle it ran 4.30×, 0.83× and 1.06×, pointing opposite
+ways. Was refusing right?
+
+### 7. Safety, money and data
+The token, the deal log's contents, the service's CORS and rate limits, the
+service worker's cache behaviour, anything that could quietly ship a wrong
+number without failing loudly.
+
+## Things I already know — please do not spend effort rediscovering them
+
+- `stepFlow()` always returns `"ask"`, so several older layouts are dead
+  code, including a browse list and `#nextStep`. Measured, not removed yet.
+- The phone duplicates panels from the desk.
+- Nothing schedules the harvest.
+- 161 price rows dated 19–22 Sep 2026 came from AI web research and were
+  never verified against live listings.
+- 74 firearm rows rest on a source (GunWatcher) that cannot be read
+  automatically and has not been checked by hand.
+- The item price history is 5 days long, so there is no item trend read —
+  only a measurement of the tool's own repeatability (the same lookup
+  re-run days apart moved the answer a median of 17.3%).
+- `WORTHPOINT_SEARCH` and `FB_MARKETPLACE_SEARCH` are unverified URL shapes.
+
+## What I would like back
+
+1. **Correctness bugs first** — anything that produces a wrong number, with
+   the input that triggers it. A wrong offer is the only kind of bug here
+   that costs money.
+2. **Where the domain model is wrong** — a grouping, a tier, a question or
+   a multiplier that does not match how pawn actually works. If you know
+   this trade better than I do, say so and say how.
+3. **What is missing** — a question that should be asked, a source that
+   should be in the ladder, a check that should exist.
+4. **Architecture**, but only where it causes the above.
+5. Only then, style.
+
+Please cite the file and the function. If you are uncertain, say so rather
+than guessing — five findings I can act on beat thirty I have to triage.
+**If a finding depends on a line you cannot see, say that too**: an earlier
+review reported a duplicate declaration that turned out to be a bug in how
+I packaged the code for review, not in the code.
+
+Everything follows. Ask for any file I have sampled rather than pasted.
+
+
+**This is part 1. Wait for all 4 parts before answering.**
+## What the browser loads
+
+### `index.html` — 32 lines
+
+```html
+<!doctype html><html><head><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="apple-mobile-web-app-title" content="Pawn Desk">
+<link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png"><link rel="apple-touch-icon" href="apple-touch-icon.png"><meta name="theme-color" content="#15171C">
+<script src="app-head.js"></script>
+<meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><style>:root{color-scheme:dark}body{margin:0;padding:0;font:15px system-ui,-apple-system,sans-serif;background:#15171C;color:#fff}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>The Pawn Desk</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="app.css">
+
+<div class="dash">
+  <!-- THE DOCK. These were a strip of pills across the top bar, which on a
+       1440px screen meant six destinations laid out along the one edge the
+       eye leaves last, over the top of the thing being worked on. Down the
+       left they are a place rather than a control - the same move the
+       phone made, at desk size. Same element, same id, same handler. -->
+  <nav class="deskDock" id="tabs"></nav>
+  <div class="bar">
+    <div class="brand">
+      <div class="eyebrow">Lamar's</div>
+      <h1>The Pawn Desk</h1>
+    </div>
+    <div class="sys"><span class="dot"></span><span id="sysline">SYS.OK</span></div>
+  </div>
+  <div id="view"></div>
+  <div class="foot" id="foot"></div>
+</div>
+
+<script src="qr.js"></script>
+<script src="app.js"></script>
+
+</body></html>
+```
+
+### `phone.html` — 32 lines
+
+```html
+<!doctype html><html><head><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Pawn Desk">
+<link rel="manifest" href="manifest-phone.webmanifest"><link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png"><link rel="apple-touch-icon" href="apple-touch-icon.png"><meta name="theme-color" content="#15171C"><link rel="stylesheet" href="phone.css">
+<script src="phone.js"></script>
+<script src="app-head.js"></script>
+<meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><style>:root{color-scheme:dark}body{margin:0;padding:0;font:15px system-ui,-apple-system,sans-serif;background:#15171C;color:#fff}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>The Pawn Desk</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="app.css">
+
+<div class="dash">
+  <div class="bar">
+    <div class="brand">
+      <div class="eyebrow">Lamar's</div>
+      <h1>The Pawn Desk</h1>
+    </div>
+    <div class="sys"><span class="dot"></span><span id="sysline">SYS.OK</span></div>
+  </div>
+  <div id="view"></div>
+  <div class="foot" id="foot"></div>
+  <!-- THE TABS SIT UNDER THE THUMB, NOT UNDER THE CHIN.
+       They were a strip at the top of the phone, wrapping onto two rows at
+       360px wide, in the one part of a phone screen a hand holding it
+       cannot reach. Same element, same id, same handler - moved to where
+       it is pressed from. -->
+  <nav class="tabwrap dock" id="tabs"></nav>
+</div>
+
+<script src="app.js"></script>
+
+</body></html>
+```
+
+### `app-head.js` — 62 lines
+
+```javascript
+
+/* ===== stand-alone website extras: deal log saved on this device, live gold & silver, works offline ===== */
+function localDB(){
+  const KEY="pawnDeskDeals";
+  const load=()=>{ try{ return JSON.parse(localStorage.getItem(KEY)||"[]"); }catch(e){ return []; } };
+  /* The shelf record and the listing record both cap what they keep; the deal
+     log did not, and once the sync started merging in another device's rows
+     there was nothing holding it down. Keep the newest MAX, same as the view. */
+  const MAX=800;
+  const save=a=>{ try{
+    if(a.length>MAX)a=a.slice().sort((x,y)=>(y.ts||0)-(x.ts||0)).slice(0,MAX);
+    localStorage.setItem(KEY,JSON.stringify(a)); }catch(e){} };
+  const subs=[];
+  const emit=()=>{ const a=load().sort((x,y)=>(y.ts||0)-(x.ts||0)).slice(0,400);
+    const snap={docs:a.map(d=>({id:d._id,data:()=>{ const c=Object.assign({},d); delete c._id; return c; }}))};
+    subs.forEach(f=>{ try{ f(snap); }catch(e){} }); };
+  const q={orderBy(){return q;},limit(){return q;},onSnapshot(f){ subs.push(f); setTimeout(emit,0); return ()=>{}; }};
+  /* The deal log is the one record that predates syncing, and it keys rows on
+     _id rather than id. Rather than rename a field the log already writes and
+     reads, it hands the sync a door: read the rows, write them back, and tell
+     the deal-log view to redraw so merged-in deals appear without a reload. */
+  window.PD_DEALS={ all:load, save:a=>{ save(a); emit(); } };
+  return {
+    collection(){ return Object.assign({},q,{ async add(o){ const a=load(), id=Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+      a.push(Object.assign({_id:id},o)); save(a); emit(); return {id}; } }); },
+    doc(p){ const id=String(p).split("/")[1]; return {
+      async update(o){ const a=load(), d=a.find(x=>x._id===id); if(d)Object.assign(d,o); save(a); emit(); },
+      async delete(){ save(load().filter(x=>x._id!==id)); emit(); } }; }
+  };
+}
+async function liveMetals(){
+  try{
+    const get=async sym=>{ const r=await fetch("https://api.gold-api.com/price/"+sym,{cache:"no-store"}); if(!r.ok)throw 0; const j=await r.json(); return Number(j&&j.price); };
+    const [g,sv]=await Promise.all([get("XAU"),get("XAG")]);
+    if(!(g>1000&&g<20000&&sv>5&&sv<500))return;
+    const d=new Date(), p=n=>String(n).padStart(2,"0");
+    FEED.gold=Math.round(g); FEED.silver=Math.round(sv*100)/100;
+    FEED.date=d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate()); FEED.source="gold-api.com, live";
+    /* every price that arrives is written down, so the series the guard
+       reasons from grows by a day without anybody re-running anything */
+    try{ spotLogWrite(FEED.date,FEED.gold,FEED.silver); }catch(e){}
+    try{ render(); }catch(e){}
+  }catch(e){}
+}
+window.standaloneBoot=function(){
+  try{ CAP.db=localDB(); CAP.dbLocal=true; watchDeals(); }catch(e){}
+  if(pdServer()){
+    CAP.sample={limits:pdLimits,json:pdJSON};
+    pdLimits().then(l=>{ CAP.images=!!(l&&l.images); CAP.imgLimits=(l&&l.images)||null;
+                         try{ render(); }catch(e){} }).catch(()=>{});
+  }
+  try{ render(); }catch(e){}
+  liveMetals();
+  try{ refreshPrices(); }catch(e){}
+  try{ loadFakes(); }catch(e){}
+  try{ loadMetalRisk(); }catch(e){}
+  try{ loadItemNoise(); }catch(e){}
+  try{ readBuild(); }catch(e){}
+  try{ pdSync(); }catch(e){}
+  if("serviceWorker" in navigator&&location.protocol==="https:"){ try{ navigator.serviceWorker.register("sw.js").catch(()=>{}); }catch(e){} }
+};
+
+```
+
+### `app.js` — 9787 lines
+
+```javascript
+
+/* ================= DAILY FEED — updated automatically each morning =================
+   A scheduled task fetches these from Kitco and republishes this page daily.
+   avg90 = trailing ~90-day average (the peak guard); gold7/silver7 = ~a week ago (the trend read). */
+const FEED = { date: "2026-09-19", gold: 4377, silver: 66.1, gold90: 4219, silver90: 61.8, gold7: 4341, silver7: 64.6, source: "Kitco + TradingEconomics + USAGOLD" };
+/* =================================================================================== */
+
+const CATALOG = [
+ {id:"guns",label:"Firearms",ltv:50,
+  driver:"Model and caliber. Age barely matters — an old Model 70 can beat a new one.",
+  killer:"Bad bore. Oddball caliber nobody around here stocks.",
+  brand:{on:true,hi:"Premium maker",mid:"Standard maker",lo:"Budget / off brand"},
+  complete:{on:true,label:"Magazine, choke tubes, case"},
+  items:[
+   {id:"g1",name:"Pump shotgun",value:200,liq:"fast"},
+   {id:"g2",name:"Semi-auto shotgun",value:400,liq:"fast"},
+   {id:"g3",name:"Bolt-action rifle",value:275,liq:"fast"},
+   {id:"g4",name:"Lever-action rifle",value:450,liq:"fast"},
+   {id:"g5",name:"AR-15 / modern sporting rifle",value:650,liq:"normal"},
+   {id:"g6",name:".22 rifle",value:175,liq:"fast"},
+   {id:"g7",name:"Semi-auto pistol",value:300,liq:"fast"},
+   {id:"g8",name:"Revolver",value:325,liq:"fast"},
+   {id:"g9",name:"Muzzleloader",value:150,liq:"slow"},
+   {id:"g10",name:"Semi-auto rifle — hunting",value:450,liq:"normal"}]},
+ {id:"power",label:"Outdoor power",ltv:35,
+  driver:"Brand tier first, then does it start. Pro saws are worth three of a box-store saw.",
+  killer:"Won't start. Then it's parts, not a tool.",
+  brand:{on:true,hi:"Stihl / Husqvarna / Echo",mid:"Mid grade",lo:"Poulan / Craftsman / no name"},
+  complete:{on:true,label:"Bar, chain, guards"},
+  items:[
+   {id:"p1",name:"Chainsaw",value:180,liq:"fast"},
+   {id:"p2",name:"String trimmer",value:110,liq:"fast"},
+   {id:"p3",name:"Backpack blower",value:200,liq:"normal"},
+   {id:"p4",name:"Push mower",value:90,liq:"fast"},
+   {id:"p5",name:"Riding mower",value:500,liq:"normal"},
+   {id:"p6",name:"Pressure washer",value:125,liq:"normal"},
+   {id:"p7",name:"Generator — 3.5 to 7.5kW",value:350,liq:"fast"}]},
+ {id:"tools",label:"Tools",ltv:35,
+  driver:"Brand tier, then completeness. Battery and charger are half the value of a cordless tool.",
+  /* Same fault as the electronics aisle: a compressor, a welder and a tool
+     box were all being told about batteries. */
+  killer:"Bare tool with no battery, or a battery that won't hold a charge. Worth a third.",
+  brand:{on:true,hi:"DeWalt / Milwaukee / Makita",mid:"Ryobi / Ridgid",lo:"Harbor Freight / no name"},
+  complete:{on:true,label:"Battery, charger, case"},
+  items:[
+   /* Was "Cordless drill / driver kit", which said two things at once and
+      got both wrong. "Drill / driver" is the TOOL - not a hammer drill, not
+      an impact driver - and "kit" was meant to mean tool plus batteries plus
+      charger. But the desk then asked "Kit?" on top of it, and worse, it was
+      named after the rarest case: two batteries and a charger is 25 listings
+      out of 629. What came with it is the question, not the name. */
+   {id:"t1",name:"Cordless drill / driver",value:110,liq:"fast"},
+   {id:"t2",name:"Impact wrench",value:130,liq:"fast"},
+   {id:"t3",name:"Angle grinder",value:45,liq:"normal"},
+   {id:"t4",name:"Air compressor — pancake",value:70,liq:"normal"},
+   {id:"t5",name:"Air compressor — 60 gal upright",value:250,liq:"slow"},
+   {id:"t6",name:"MIG welder — 110v",value:250,liq:"normal"},
+   {id:"t7",name:"Rolling tool box",value:150,liq:"slow"},
+   {id:"t8",name:"Framing nailer",value:120,liq:"normal"}]},
+ {id:"hunt",label:"Hunting & fishing",ltv:40,
+  driver:"Brand tier on glass. Leupold and Vortex hold their money; Tasco does not.",
+  killer:"Fogged or scratched glass. Seasonal — thin money in spring.",
+  brand:{on:true,hi:"Leupold / Vortex / Zeiss",mid:"Bushnell / Nikon",lo:"Tasco / no name"},
+  complete:{on:true,label:"Rings, caps, case"},
+  items:[
+   {id:"h1",name:"Rifle scope",value:120,liq:"fast"},
+   {id:"h2",name:"Binoculars",value:70,liq:"normal"},
+   {id:"h3",name:"Rangefinder",value:110,liq:"normal"},
+   {id:"h4",name:"Trail camera",value:45,liq:"fast"},
+   /* Measured 24 Sep: "compound bow", 22 real sales, median $341, quartiles $125-$599. 341/0.8 is 426. The old $200 was less than half what a plain bow sells for, which is why a Mathews read as wild against it */
+   {id:"h5",name:"Compound bow",value:426,liq:"slow"},
+   {id:"h6",name:"Crossbow",value:250,liq:"normal"},
+   {id:"h7",name:"Rod & reel combo",value:70,liq:"fast"},
+   {id:"h8",name:"Trolling motor",value:250,liq:"normal"},
+   {id:"h9",name:"Outboard — 9.9 to 25hp",value:900,liq:"slow"}]},
+ {id:"elec",label:"Electronics",ltv:25,
+  driver:"Age. Model year is nearly the whole equation — two years old is half price.",
+  /* THIS LINE USED TO BE THE PHONE LINE, ON EVERYTHING IN THE AISLE.
+     Reported from the counter with a PlayStation 5 on the glass: "Activation
+     lock? This is a playstation not a phone." It was the category line, and
+     a category line is read by a TV, a laptop, a speaker and a car amp as
+     well. The aisle keeps what is true of anything with a circuit board in
+     it; every item below says its own. */
+  killer:"Won't power up, or it is locked to an account nobody can sign out of. Anything with a screen: look for cracks and dead pixels before you talk money.",
+  brand:{on:true,hi:"Apple / Samsung flagship",mid:"Mainstream",lo:"Off brand"},
+  /* 0.90 measured 23 Sep off sold comps: an Xbox Series X, Series S, PS5 or
+     Switch listed "console only" went for 0.92, 0.94, 0.89 and 0.88 of one
+     with a controller. The same run says EXTRAS are worth nothing - two or
+     more controllers came out at 1.03x and 0.95x, and games included at
+     1.04x - so there is no question to ask about them, only this toggle. */
+  complete:{on:true,label:"Charger, cables, remote",mult:.9},
+  items:[
+   /* Named for a size band, it read as the only size the desk knew - the
+      counter with a 75in TCL in front of them saw "50 to 65in" and stopped.
+      The size has always been a spec, with four bands and a multiplier on
+      each; the name was just contradicting the picker. The $175 is still the
+      50-65in figure, which is the band the picker treats as neutral. */
+   {id:"e1",name:"TV — smart, any size",value:175,liq:"normal"},
+   /* $175 was below every laptop the harvest measured except one, a tired
+      HP Pavilion at $132. Ten mid-tier machines came back with a median
+      resale of $249 - Chromebook, Inspiron, EliteBook, Surface, Vivobook,
+      Envy, Swift, Aspire, ZenBook, Pavilion - and 249/0.8 is 311. The
+      gaming machines are a different row now rather than dragging this
+      one up. */
+   {id:"e2",name:"Laptop",value:311,liq:"normal"},
+   {id:"e3",name:"Tablet",value:150,liq:"normal"},
+   {id:"e4",name:"Smartphone",value:200,liq:"fast"},
+   {id:"e5",name:"Game console — current gen",value:225,liq:"fast"},
+   {id:"e6",name:"Bluetooth speaker",value:50,liq:"normal"},
+   {id:"e7",name:"Car audio — amp & sub",value:80,liq:"slow"}]},
+ /* Big, heavy, and slow to move - a pawn shop is not an appliance store.
+    They are worth taking, but at a fraction of what they cost, and the offer
+    has to carry the cost of having it sit on the floor. */
+ {id:"appl",label:"Appliances & household",ltv:33,
+  driver:"Age and whether it runs. Anything over ten years old is scrap with a cord on it.",
+  killer:"Won't power up, or it's built-in and you'd have to pull it out of a wall. Rust, mold, smell \u2014 pass.",
+  brand:{on:true,hi:"Speed Queen / Sub-Zero / Bosch",mid:"Whirlpool / Maytag / LG / Samsung / GE",lo:"Kenmore / Frigidaire / Amana / Hotpoint / no name"},
+  complete:{on:true,label:"Racks, shelves, hoses, remote"},
+  items:[
+   {id:"a1",name:"Range / oven",value:150,liq:"slow"},
+   {id:"a2",name:"Refrigerator",value:240,liq:"slow"},
+   {id:"a3",name:"Washer",value:175,liq:"normal"},
+   {id:"a4",name:"Dryer",value:175,liq:"normal"},
+   {id:"a5",name:"Washer & dryer pair",value:375,liq:"normal"},
+   {id:"a6",name:"Chest freezer",value:120,liq:"normal"},
+   {id:"a7",name:"Window air conditioner",value:80,liq:"fast"},
+   {id:"a8",name:"Microwave",value:35,liq:"slow"},
+   {id:"a9",name:"Sewing machine",value:70,liq:"slow"},
+   {id:"a10",name:"Vacuum cleaner",value:60,liq:"normal"}]},
+ {id:"music",label:"Instruments",ltv:35,
+  driver:"Brand and model, more than anything else on this list.",
+  killer:"Cracked neck, warped top. Unfixable and unsellable.",
+  brand:{on:true,hi:"Fender / Gibson / Martin",mid:"Squier / Epiphone / Yamaha",lo:"No name"},
+  complete:{on:true,label:"Case, cable, strap"},
+  items:[
+   /* Measured 24 Sep: a generic "acoustic guitar" search returns 17 real sales, median $99, quartiles $43-$248. 99/0.8 is 124. The old $110 was close and is now exact */
+   {id:"m1",name:"Acoustic guitar",value:124,liq:"slow"},
+   {id:"m2",name:"Electric guitar",value:150,liq:"slow"},
+   /* Measured 24 Sep: "guitar amplifier", 18 real sales, median $135, quartiles $75-$275. 135/0.8 is 169. The old $100 priced every amp at $80 resale */
+   {id:"m3",name:"Amplifier",value:169,liq:"slow"}]},
+ /* Jewellery and watches where the NAME carries the value. Plain gold with
+    no name on it belongs on the Gold & silver tab, priced by weight - this is
+    for the pieces the scale badly under-values. Four of these five sheets
+    gate: a fake Rolex is not worth a fraction of a real one. */
+ {id:"jewel",label:"Jewelry & watches",ltv:40,
+  driver:"The name, then the condition of the case and band. A real one is worth many times its metal; a fake is worth nothing.",
+  killer:"Cannot be proven. Run the spotting-fakes card first \u2014 lend on the metal or pass.",
+  brand:{on:true,hi:"Rolex / Cartier / Tiffany",mid:"TAG / Seiko / James Avery",lo:"Fashion / no name"},
+  complete:{on:true,label:"Box, papers, extra links"},
+  items:[
+   {id:"j1",name:"Watch \u2014 luxury",value:1800,liq:"slow"},
+   {id:"j2",name:"Watch \u2014 name brand",value:120,liq:"normal"},
+   {id:"j3",name:"Designer jewelry piece",value:150,liq:"slow"},
+   {id:"j4",name:"Engagement / bridal set",value:400,liq:"slow"}]},
+ /* Bulky, seasonal, and half of it was bought on a New Year's resolution -
+    but it walks in constantly and it did not have anywhere to land. */
+ {id:"fit",label:"Fitness & sporting",ltv:25,
+  driver:"Whether it folds and whether it powers up. A treadmill nobody can move is worth what it weighs.",
+  killer:"Broken deck or motor, a subscription bike with a dead account, anything you cannot get through a door.",
+  brand:{on:true,hi:"Peloton / NordicTrack / Rogue",mid:"ProForm / Bowflex / Schwinn / Sole",lo:"Weider / Gold's Gym / no name"},
+  complete:{on:true,label:"Safety key, pins, all the plates"},
+  items:[
+   {id:"f1",name:"Treadmill",value:300,liq:"slow"},
+   {id:"f2",name:"Exercise bike / spin bike",value:150,liq:"slow"},
+   {id:"f3",name:"Elliptical",value:150,liq:"slow"},
+   {id:"f4",name:"Weight bench",value:60,liq:"normal"},
+   {id:"f5",name:"Dumbbells / weight set",value:70,liq:"fast"},
+   {id:"f6",name:"Home gym / power rack",value:200,liq:"slow"},
+   {id:"f7",name:"Golf clubs \u2014 full set",value:150,liq:"normal"}]},
+ /* The name on it carries the price, and so does whether it is real. These
+    gate to a spotting-fakes card the same way the luxury watches do. */
+ {id:"coll",label:"Cards, coins & collectibles",ltv:40,
+  driver:"Grade, then the name. Two of the same card can be $8 and $800 \u2014 the slab is the difference.",
+  killer:"Cannot be proven, or it is a reprint. Run the fakes card first, and never lend on a raw card at slab money.",
+  brand:{on:true,hi:"PSA / BGS / SGC graded",mid:"Raw, named player or set",lo:"Common / bulk / reprint"},
+  complete:{on:true,label:"Slab, case, certificate"},
+  items:[
+   {id:"c1",name:"Sports card \u2014 graded single",value:60,liq:"slow"},
+   {id:"c2",name:"Card lot \u2014 sports or Pok\u00e9mon",value:60,liq:"slow"},
+   {id:"c3",name:"Comic books \u2014 long box",value:80,liq:"slow"},
+   {id:"c4",name:"Coin collection \u2014 numismatic",value:150,liq:"slow"},
+   {id:"c5",name:"Zippo / collectible lighter",value:20,liq:"slow"}]},
+ {id:"rolling",label:"Trailers & ATVs",ltv:35,
+  driver:"Title, before you look at anything else. Then condition.",
+  killer:"No title. No deal, at any price. Don't negotiate around it.",
+  brand:{on:false},complete:{on:false},
+  items:[
+   {id:"r1",name:"Utility trailer — 5x8",value:600,liq:"normal"},
+   {id:"r2",name:"ATV / four wheeler",value:1500,liq:"normal"}]}
+];
+const CONDITIONS=[
+ {id:"new",label:"New in box",hint:"Sealed"},
+ {id:"exc",label:"Excellent",hint:"Barely used"},
+ {id:"good",label:"Good",hint:"Normal wear"},
+ {id:"fair",label:"Fair",hint:"Heavy wear"},
+ {id:"rough",label:"Rough",hint:"Needs work"}];
+/* One condition curve, anchored at Good, because Good is what the counter is
+   told every resale figure assumes.
+
+   There were two. A market price used 1.3/1.12/1/.75/.45 while a catalog
+   estimate used its own set, which normalised to +56% and +25% for the two
+   upgrades. The buttons show the first set, so on the catalog path "New in
+   box" added 56% while the button said 30%. Good, Fair and Rough already
+   agreed; only the upgrades were wrong, and only on that path.
+
+   CATALOG_AT_GOOD keeps the catalog path's Good price exactly where it was -
+   its base values were anchored a step above Good - so nothing moves except
+   the two figures that were misreporting themselves. */
+const COND_MULT={new:1.3,exc:1.12,good:1,fair:.75,rough:.45};
+const CATALOG_AT_GOOD=0.8;
+const BRANDS=[{id:"hi",mult:1.4},{id:"mid",mult:1.0},{id:"lo",mult:0.55}];
+const LIQUIDITY=[
+ {id:"fast",label:"Sells fast",hint:"Gone in a week",adj:0},
+ {id:"normal",label:"Normal",hint:"Few weeks",adj:-5},
+ {id:"slow",label:"Slow here",hint:"Months, or never",adj:-13}];
+const PURITY=[{k:"10k",p:.4167},{k:"14k",p:.5833},{k:"18k",p:.75},{k:"22k",p:.9167},{k:"24k",p:.999}];
+/* THE BRAND BOOK — type a brand, get the tier. Seeded for rural North Florida;
+   correct it as the counter teaches you. hi = +40%, mid = baseline, lo = -45%. */
+const BRANDBOOK={
+ guns:{
+  hi:["Colt","Sig Sauer","Heckler & Koch","HK","Benelli","Beretta","Browning","CZ","Tikka","Weatherby","Kimber","FN","Dan Wesson","Wilson Combat","Henry","Nighthawk","Staccato","Franchi","Bergara","Christensen Arms","Walther","Sako","Caesar Guerini"],
+  mid:["Glock","Smith & Wesson","S&W","Ruger","Remington","Winchester","Mossberg","Savage","Marlin","Springfield Armory","Springfield","Stoeger","Canik","Rossi","CVA","Traditions","Tristar","Girsan","Diamondback","IWI","Kel-Tec"],
+  lo:["Taurus","Hi-Point","SCCY","Heritage","Jimenez","Raven","Phoenix","Cobra","Anderson","Palmetto","PSA","Bear Creek","Del-Ton","ATI","Citadel","EAA","Radical Firearms","Charter Arms","Jennings"]},
+ power:{
+  hi:["Stihl","Husqvarna","Echo","Honda","Shindaiwa","RedMax","John Deere","Kubota","Exmark","Scag","Gravely","Ferris","Wright"],
+  mid:["Toro","Cub Cadet","Troy-Bilt","Snapper","Bad Boy","DeWalt","Milwaukee","EGO","Ryobi","Generac","Champion","Ariens","Simplicity","Makita","Kawasaki"],
+  lo:["Poulan","Craftsman","Murray","Weed Eater","Hyper Tough","PowerSmart","Predator","Black Max","Remington outdoor","Wild Badger","SENIX","Greenworks"]},
+ appl:{
+  hi:["Speed Queen","Sub-Zero","Wolf","Viking","Thermador","Bosch","Miele","Fisher & Paykel","KitchenAid","Monogram","Cafe"],
+  mid:["Whirlpool","Maytag","LG","Samsung","GE","Electrolux","Frigidaire Gallery","Bosch 300","Dyson","Shark","Singer","Brother","Janome"],
+  lo:["Kenmore","Frigidaire","Amana","Hotpoint","Roper","Insignia","Hisense","Magic Chef","Danby","Avanti","Galanz","Bissell","Hoover","Black+Decker"]},
+ fit:{
+  hi:["Peloton","NordicTrack","Rogue","Life Fitness","Precor","Concept2","Hydrow","Tonal","Titleist","Callaway","TaylorMade","Ping","Scotty Cameron"],
+  mid:["ProForm","Bowflex","Schwinn","Sole","Horizon","Echelon","Cybex","Cap Barbell","Rep Fitness","Cobra","Wilson","Mizuno","Cleveland"],
+  lo:["Weider","Gold's Gym","Everlast","Sunny Health","Marcy","Body Champ","Top Flite","Strata","no name"]},
+ coll:{
+  hi:["PSA","BGS","Beckett","SGC","CGC","CBCS","NGC","PCGS"],
+  mid:["Topps","Bowman","Panini","Upper Deck","Fleer","Marvel","DC","Morgan","Peace"],
+  lo:["Donruss","Score","Pro Set","Leaf","common","bulk","reprint"]},
+ tools:{
+  hi:["DeWalt","Milwaukee","Makita","Snap-on","Festool","Hilti","Bosch","Mac Tools","Matco","Ingersoll Rand","Lincoln Electric","Miller","Fluke","Knipex"],
+  mid:["Ryobi","Ridgid","Craftsman","Kobalt","Hart","Skil","Porter-Cable","Metabo","Metabo HPT","Husky","Flex","Dremel","Hobart","Stanley","Irwin","Klein","Channellock","Campbell Hausfeld"],
+  lo:["Harbor Freight","Bauer","Hercules","Chicago Electric","Pittsburgh","Central Pneumatic","Warrior","Drill Master","WEN","Vevor","Hyper Tough","Tool Shop","Black & Decker","Wagner"]},
+ hunt:{
+  hi:["Leupold","Vortex","Zeiss","Swarovski","Nightforce","Trijicon","Aimpoint","EOTech","Garmin","Sig Sauer optics","Mathews","Hoyt","Bowtech","Ravin","TenPoint","Shimano","G Loomis","St. Croix","Minn Kota"],
+  mid:["Bushnell","Nikon","Burris","Athlon","Holosun","Primary Arms","Bear Archery","PSE","Diamond","Barnett","Abu Garcia","Penn","Lew's","13 Fishing","Ugly Stik","Daiwa","Moultrie","Tactacam","Spypoint","MotorGuide","Excalibur"],
+  lo:["Tasco","Simmons","BSA","CVLIFE","Pinty","Truglo","CenterPoint","Wildgame Innovations","Stealth Cam","Zebco","Shakespeare","South Bend","Wicked Ridge"]},
+ elec:{
+  hi:["Apple","Samsung","Sony","Nintendo","Bose","Sonos","JL Audio","Alienware","ASUS ROG"],
+  mid:["Microsoft","Xbox","Dell","HP","Lenovo","LG","Google","Pixel","Motorola","OnePlus","JBL","Beats","Klipsch","Kicker","Rockford Fosgate","Alpine","Pioneer","Acer","Asus","MSI","Vizio","TCL"],
+  lo:["Onn","RCA","Element","Westinghouse","Sceptre","Hisense","Boss Audio","Pyle","Dual","Insignia","Blackweb","Coby","Sylvania"]},
+ jewel:{
+  hi:["Rolex","Cartier","Omega","Tiffany","Tiffany & Co","Patek Philippe","Audemars Piguet","Van Cleef","Bulgari","David Yurman","Tudor","Breitling","Grand Seiko","IWC","Jaeger-LeCoultre","Panerai","Hublot","Vacheron"],
+  mid:["TAG Heuer","Tissot","Longines","Seiko","Citizen","Hamilton","Oris","Rado","Movado","James Avery","Pandora","John Hardy","Kendra Scott","Swarovski","Bulova","Shinola"],
+  lo:["Fossil","Michael Kors","Invicta","MVMT","Armitron","Timex","Guess","Anne Klein","Stuhrling","Daniel Wellington","Skagen"]},
+ music:{
+  hi:["Fender","Gibson","Martin","Taylor","PRS","Rickenbacker","Mesa Boogie","Gretsch"],
+  mid:["Squier","Epiphone","Yamaha","Ibanez","Jackson","ESP","LTD","Schecter","Takamine","Seagull","Alvarez","Peavey","Orange","Marshall","Boss","Line 6","Blackstar","Fender Squier","Mitchell"],
+  lo:["First Act","Rogue","Glarry","Donner","Monoprice","Sawtooth","Best Choice","Lyx"]}
+};
+/* The brand is often already written on the thing that was picked.
+ *
+ * "DeWalt 20V drill kit" was picked from the price list, and the make
+ * question opened with Ryobi / Ridgid lit - because st.brand defaults to
+ * "mid" and nothing had read the name. Mid tier against top tier is 40% of
+ * the price, so the desk was not merely asking a question it could answer:
+ * it was answering it wrong and waiting to be corrected.
+ *
+ * Whole words only. brandLookup matches on substrings, which is right when
+ * somebody is typing a name into a box and wrong when scanning a sentence -
+ * "kit" would find Kitchenaid.
+ *
+ * It used to be only the word scan below, and that could not see a make
+ * whose name is two words - it asked for ONE word equal to a whole book
+ * entry. Eighty-two of the makes on the books are two words, so Sig Sauer,
+ * Smith & Wesson, John Deere, Harbor Freight, Black & Decker, Speed Queen,
+ * Michael Kors and seventy others read as no make at all, and the card said
+ * "nothing picked yet" with the name sitting in front of it.
+ *
+ * Five read as the WRONG make, which costs money rather than silence: the
+ * scan stopped at the first word it knew, so a Fender Squier priced as a
+ * Fender (+40%), a Bosch 300 as a Bosch (+40%), a Frigidaire Gallery as a
+ * Frigidaire (-45%), and a Grand Seiko and an ASUS ROG both lost their
+ * premium (-29%). brandInText matches whole names and the longest one wins,
+ * which is what settles every one of those - the same guard brandLookup
+ * already had, which is why "seiko" does not answer Grand Seiko.
+ *
+ * The word scan stays as the fallback: brandInText skips anything under
+ * four characters, so S&W, PSA, IWI, JBL, TCL, RCA, IWC, PRS and seventeen
+ * others are only findable that way. Strongest reader first, and it only
+ * falls through when that one found nothing. */
+/* NOBODY SAYS "SONY" WHEN THEY MEAN A PLAYSTATION.
+   The brand book holds MAKERS, and the counter types what is written on
+   the thing: PlayStation 4, iPhone 13, MacBook Air, Galaxy Watch 6, Switch
+   OLED. None of those carries its maker's name, so brandFromName returned
+   nothing for every one of them and the desk priced the most common items
+   in the shop at the neutral middle tier. Hi against mid is 40% - an
+   iPhone was being read as a no-name handset.
+   A product line resolves to its maker, and the maker is then looked up in
+   the book as usual, so the tier still comes from one place and the screen
+   still shows the make somebody would recognise. Longest match first, so
+   "apple watch" beats "watch" and "galaxy buds" beats "galaxy". */
+const BRAND_LINE={
+  elec:[["playstation","Sony"],["ps5","Sony"],["ps4","Sony"],["ps3","Sony"],
+        ["psvr","Sony"],["bravia","Sony"],["walkman","Sony"],
+        ["iphone","Apple"],["ipad","Apple"],["macbook","Apple"],["imac","Apple"],
+        ["airpods","Apple"],["apple watch","Apple"],["airtag","Apple"],["ipod","Apple"],
+        ["mac mini","Apple"],["mac studio","Apple"],
+        ["galaxy","Samsung"],["odyssey","Samsung"],["frame tv","Samsung"],
+        ["switch","Nintendo"],["wii","Nintendo"],["3ds","Nintendo"],["game boy","Nintendo"],
+        ["surface","Microsoft"],["thinkpad","Lenovo"],["ideapad","Lenovo"],
+        ["inspiron","Dell"],["latitude","Dell"],["optiplex","Dell"],["xps","Dell"],
+        ["chromecast","Google"],["nest","Google"],
+        ["soundlink","Bose"],["quietcomfort","Bose"],["soundtouch","Bose"],
+        ["beats","Beats"],["roku","Roku"]]
+};
+function aliasBrand(catId,txt){
+  const list=BRAND_LINE[catId]; if(!list)return null;
+  const t=" "+String(txt||"").toLowerCase().replace(/[^a-z0-9]+/g," ")+" ";
+  let best=null;
+  for(const [word,maker] of list){
+    if(t.indexOf(" "+word+" ")>=0||t.indexOf(" "+word)>=0){
+      if(!best||word.length>best[0].length)best=[word,maker];
+    }
+  }
+  return best?brandLookup(catId,best[1]):null;
+}
+function brandFromName(catId,txt){
+  const whole=brandInText(catId,txt);
+  if(whole)return whole;
+  /* Before giving up on the words, try what the thing is actually called. */
+  const al=aliasBrand(catId,txt);
+  if(al)return al;
+  /* Two characters is safe HERE because this scan only accepts a word that
+     equals a whole book entry - it is the containment matching that needs a
+     floor, and there is none in this loop. */
+  const words=String(txt||"").split(/[^A-Za-z0-9&+.-]+/).filter(w=>w.length>=2);
+  for(const w of words){
+    const hit=brandLookup(catId,w);
+    if(hit&&hit.name.toLowerCase()===w.toLowerCase())return hit;
+  }
+  return null;
+}
+/* The override belongs to the item on the counter, so it may only answer
+   for that item's OWN category. It was applied whatever catId was asked
+   about, so after pricing a Harbor Freight generator the generator's brand
+   list answered for tools too - DeWalt was not in it, "DeWalt 20V drill
+   kit" read as carrying no maker, and a Black & Decker drill was handed
+   the DeWalt row at +40%. Which book answered depended on what had been
+   looked at last, which is why the same search gave two answers. */
+function ovBrands(catId){
+  const ov=(catId===st.catId)?ITEM_OVERRIDES[st.itemId]:null;
+  return (ov&&ov.brands)||null;
+}
+function brandLookup(catId,txt){
+  const book=ovBrands(catId)||BRANDBOOK[catId]; if(!book)return null;
+  const t=String(txt).trim().toLowerCase(); if(!t)return null;
+  /* Three characters was the floor for EVERY kind of match, so the makes
+     with two-letter names could not be looked up at all: LG, GE, HK, FN,
+     CZ, DC are all on the books and none of them was reachable. An LG OLED
+     read as no maker and priced as standard, which on a set the book puts
+     in the top tier is 29% of it. The floor is there to stop a short
+     fragment matching by CONTAINMENT - "lg" inside something else - so it
+     belongs on that loop only. An exact name is never a fragment. */
+  for(const tier of["hi","mid","lo"]) for(const b of book[tier])
+    if(b.toLowerCase()===t)return {tier,name:b};
+  if(t.length<3)return null;
+  let best=null;
+  for(const tier of["hi","mid","lo"]) for(const b of book[tier]){
+    const bl=b.toLowerCase();
+    /* An exact name wins outright. Without this the longest containing name
+       won instead, so "seiko" answered Grand Seiko and a $90 watch was filed
+       as a premium maker. */
+    if(bl===t)return {tier,name:b};
+    if(bl.includes(t)||t.includes(bl)){
+      if(!best||b.length>best.name.length)best={tier,name:b};
+    }
+  }
+  return best;
+}
+/* brandLookup matches a brand FIELD, where the whole field is the brand. When
+   the counter just types the item ("stihl br800 blower") the brand is a word
+   inside a sentence, so it has to be spotted on word boundaries - and names
+   too short to be safe that way (HK, FN, ATI) are left to the tier buttons. */
+function brandInText(catId,txt){
+  const book=ovBrands(catId)||BRANDBOOK[catId]; if(!book)return null;
+  const flat=x=>String(x).toLowerCase().replace(/[^a-z0-9& ]+/g," ").replace(/\s+/g," ").trim();
+  const t=" "+flat(txt)+" "; if(t.length<5)return null;
+  let best=null;
+  for(const tier of["hi","mid","lo"]) for(const b of book[tier]){
+    const bl=flat(b);
+    if(bl.length<4)continue;
+    if(t.indexOf(" "+bl+" ")>=0&&(!best||bl.length>flat(best.name).length))best={tier,name:b};
+  }
+  return best;
+}
+/* THE PRICE BOOK — common walk-ins that aren't on the main lists.
+   Values are starting resale estimates for rural North Florida, excellent
+   condition, mid brand, complete. The counter person is still the judge. */
+/* Checked against the open market on 2026-09-20. What could be reached was
+   live ASKING prices and published resale guides, not completed sales -
+   eBay's sold pages could not be opened from here - so these are treated the
+   way a shelf tag is: the observed ask, one markdown step down. Eleven rows
+   moved. The rest of this list has not been checked against anything and
+   should be read as a starting point until a shelf tag or a logged sale
+   says otherwise. */
+const PRICEBOOK=[
+ /* gaps the counter walked into: every one of these was photographed on a
+    shelf in Tallahassee and had nowhere to land in this list. Values are
+    the observed asking price taken one markdown step down, the same way a
+    shelf tag is treated everywhere else. */
+ ["Wireless earbuds",60,"elec","fast"],["DSLR / mirrorless camera",200,"elec","slow"],
+ /* Two kinds that walk in constantly and had nowhere to land: over-ear
+    headphones (the book had earbuds and nothing else) and a loose
+    controller. Both figures are STARTING POINTS nobody has checked - the
+    same state as 166 of the rows above - and the desk can no longer quote
+    a book figure as a price, so neither is an answer until the sold page
+    or the counter says otherwise. The harvest is what makes them real. */
+ ["Headphones — over-ear",50,"elec","fast"],["Game controller",30,"elec","fast"],
+ /* Desk clutter that walks in constantly and had no row at all, which is how
+    a Logitech mouse came to be priced as a gaming tower. Both unverified -
+    from used listings, not from anything sold here. */
+ ["Wireless mouse \u2014 computer",10,"elec","slow"],["Computer keyboard",15,"elec","slow"],
+ ["Band saw \u2014 benchtop",160,"tools","slow"],["Audio mixer \u2014 PA board",140,"music","slow"],
+ ["TIG / stick welder",320,"tools","slow"],
+ /* guns & shooting */
+ ["Gun safe",400,"guns","slow"],["Single-shot shotgun",100,"guns","fast"],["SKS rifle",500,"guns","normal"],
+ ["AK-pattern rifle",650,"guns","normal"],["Derringer",125,"guns","normal"],["Air rifle / pellet gun",40,"guns","normal"],
+ ["Reloading press",100,"guns","slow"],["Black-powder revolver",125,"guns","slow"],["Bayonet / military knife",60,"guns","slow"],
+ /* outdoor power */
+ ["Zero-turn mower",2200,"power","normal"],["Tiller",150,"power","normal"],["Log splitter",600,"power","normal"],
+ ["Pole saw",130,"power","fast"],["Hedge trimmer",70,"power","normal"],["Lawn edger",80,"power","normal"],
+ ["Water pump — gas",150,"power","normal"],["Inverter generator — 2kW",300,"power","fast"],["Welder/generator combo",800,"power","slow"],
+ /* tools */
+ ["Table saw",200,"tools","normal"],["Miter saw / chop saw",150,"tools","fast"],["Circular saw",50,"tools","fast"],
+ ["Reciprocating saw",60,"tools","fast"],["Jigsaw",40,"tools","normal"],["Router",70,"tools","normal"],
+ ["Benchtop planer",180,"tools","normal"],["Drill press",150,"tools","slow"],["Bench grinder",45,"tools","normal"],
+ ["Shop vac",40,"tools","fast"],["Extension ladder",90,"tools","normal"],["Floor jack",60,"tools","fast"],
+ ["Jack stands — pair",25,"tools","fast"],["Socket set — complete",60,"tools","fast"],["Torque wrench",40,"tools","normal"],
+ ["Come-along / hand winch",40,"tools","normal"],["Chain hoist",60,"tools","normal"],["Engine hoist",120,"tools","slow"],
+ ["Finish nail gun",80,"tools","normal"],["Tile saw",120,"tools","slow"],["Concrete mixer",250,"tools","slow"],
+ ["Stick welder",180,"tools","normal"],["Plasma cutter",300,"tools","normal"],["Oxy-acetylene torch set",150,"tools","normal"],
+ ["Sewing machine",60,"tools","slow"],["Stand mixer — KitchenAid class",120,"tools","fast"],
+ /* hunting, fishing, water */
+ ["Climbing tree stand",90,"hunt","normal"],["Ladder stand",70,"hunt","slow"],["Ground blind",60,"hunt","normal"],
+ ["Deer feeder — barrel",60,"hunt","fast"],["Cellular game camera",70,"hunt","fast"],["Duck decoys — dozen",40,"hunt","normal"],
+ ["Kayak — sit-on-top",300,"hunt","normal"],["Jon boat — 12ft, no motor",400,"hunt","slow"],["Boat trailer",800,"hunt","slow"],
+ ["Cast net",25,"hunt","fast"],["Fish finder",120,"hunt","normal"],["Offshore rod & reel",90,"hunt","normal"],
+ ["Fly rod & reel",80,"hunt","slow"],["Hard gun case",25,"hunt","fast"],["Waders",40,"hunt","normal"],
+ ["Spotting scope",130,"hunt","normal"],["Red dot sight",70,"hunt","fast"],["Crossbow bolts & broadheads — lot",25,"hunt","fast"],
+ /* electronics */
+ ["Soundbar",60,"elec","fast"],["AV receiver",80,"elec","slow"],["Turntable",70,"elec","normal"],
+ ["Gaming desktop PC",550,"elec","normal"],["Monitor — 27in",80,"elec","fast"],["Camera drone",300,"elec","normal"],
+ /* A DJI Osmo is not a drone and has nowhere else to land. Priced off the
+    five real sold listings the search returned on 23 Sep - a Pocket 3 at
+    $300, $316 and $282, an RS 4 Mini at $230, a faulty Pocket 3 at $181 -
+    taken a markdown step down, the way every shelf figure here is. */
+ ["Gimbal / pocket camera",250,"elec","normal"],
+ /* SPLITS THE HARVEST ASKED FOR. Each of these was one row covering a
+    spread no single number could hold, and the sanity band kept refusing
+    perfectly good measurements because the row underneath them was wrong.
+
+    Gaming laptop: six measured, median resale $732, but Alienware is the
+    only hi-tier make among them and the x1.4 lands on top - so the base
+    is the mid-tier median, $675, over 0.8. Against a $175 "Laptop" row an
+    HP Omen at $950 read as 5.4x and was held back; against this it is
+    within the band and merges.
+
+    Sports title: five measured - Madden 25 at $4, NBA 2K24 $7, College
+    Football 25 $10, FC 24 $11, FC 25 $13 - and they crater on a schedule,
+    every year, which is the most predictable thing in the whole book.
+
+    Nintendo title: only TWO measured, Mario Kart 8 at $28 and Pokemon
+    Scarlet at $52, so treat this one as a placeholder with a direction
+    rather than a price. Nintendo first-party holds where everything else
+    falls; how much it holds is not yet known. */
+ ["Gaming laptop",844,"elec","normal"],
+ ["Video game — sports title",13,"elec","fast"],
+ ["Video game — Nintendo title",50,"elec","fast"],
+ ["GoPro / action camera",90,"elec","fast"],["Smartwatch \u2014 Apple / Galaxy",120,"elec","fast"],["VR headset",180,"elec","normal"],
+ ["Handheld game console",170,"elec","fast"],["Video game — current title",25,"elec","fast"],["Projector",120,"elec","normal"],
+ ["Two-way radios — pair",40,"elec","normal"],["Wristwatch — quartz, name brand",60,"jewel","slow"],["DJ controller",120,"elec","slow"],
+ /* instruments */
+ ["Bass guitar",120,"music","slow"],["Keyboard — 61 key",90,"music","normal"],["Digital piano — 88 key",350,"music","slow"],
+ ["Banjo",120,"music","slow"],["Mandolin",90,"music","slow"],["Fiddle / violin",100,"music","slow"],
+ ["Full drum set",250,"music","slow"],["Vocal mic — SM58 class",60,"music","normal"],["Powered PA speaker",150,"music","normal"],
+ ["Guitar pedal",50,"music","normal"],["Trumpet",180,"music","slow"],["Alto saxophone",400,"music","slow"],
+ /* rolling stock */
+ ["Golf cart",4000,"rolling","normal"],["Dirt bike",1500,"rolling","normal"],["Go-kart",400,"rolling","slow"],
+ ["Lawn / dump trailer cart",120,"rolling","fast"],["Enclosed trailer — 6x12",2800,"rolling","slow"],
+ ["UTV / side-by-side",6000,"rolling","normal"],["Jet ski with trailer",3500,"rolling","slow"],
+ ["Truck toolbox",90,"rolling","fast"],["ATV winch",60,"rolling","normal"],["Truck rims & tires — set",300,"rolling","normal"],
+ ["Bicycle — adult",60,"rolling","normal"],["E-bike",600,"rolling","normal"],
+ /* grilling, smoking and camping - the back half of every truck around here */
+ ["Gas grill",90,"appl","normal"],["Charcoal grill / kettle",40,"appl","normal"],
+ ["Pellet grill / smoker",275,"appl","normal"],["Offset smoker",150,"appl","slow"],
+ ["Flat-top griddle \u2014 Blackstone class",120,"appl","fast"],["Propane tank \u2014 20lb, full",20,"appl","fast"],
+ ["Camp stove",30,"hunt","normal"],["Tent \u2014 4 to 6 person",40,"hunt","normal"],
+ ["Sleeping bag",20,"hunt","normal"],["Hard cooler \u2014 Yeti class",200,"hunt","fast"],
+ ["Soft cooler / tote",35,"hunt","normal"],["Camp chairs \u2014 pair",20,"hunt","normal"],
+ /* small kitchen and comfort - cheap each, but they come through the door
+    every week and every one of them used to come up empty */
+ ["Air fryer",35,"appl","fast"],["Pressure cooker \u2014 Instant Pot class",35,"appl","normal"],
+ ["Blender",30,"appl","normal"],["Coffee maker",25,"appl","normal"],
+ ["Space heater",25,"appl","normal"],["Box fan / tower fan",15,"appl","normal"],
+ ["Dehumidifier",80,"appl","normal"],["Portable air conditioner",120,"appl","normal"],
+ ["Dishwasher",75,"appl","slow"],["Garbage disposal",25,"appl","slow"],
+ /* furniture. Mattresses, car seats and strollers are deliberately not here
+    - they are on the Walk away list instead. */
+ ["Recliner",80,"appl","slow"],["Sofa / couch",120,"appl","slow"],
+ ["Dresser / chest of drawers",70,"appl","slow"],["Dining table & chairs",120,"appl","slow"],
+ ["TV stand / entertainment center",40,"appl","slow"],["Gun cabinet \u2014 wood",150,"guns","slow"],
+ /* farm and ranch */
+ ["Post hole digger \u2014 gas",140,"power","slow"],["Fence charger",60,"power","normal"],
+ ["Sprayer tank \u2014 25 to 55 gal",120,"power","slow"],["Earth auger \u2014 one man",180,"power","normal"],
+ ["Livestock water trough",40,"power","slow"],["Chicken coop",120,"power","slow"],
+ /* the rest of the shop */
+ ["Paint sprayer \u2014 airless",180,"tools","normal"],["Laser level",90,"tools","normal"],
+ ["OBD scan tool",50,"tools","fast"],["Scaffolding \u2014 section",80,"tools","slow"],
+ ["Wheelbarrow",35,"tools","normal"],["Mechanic's creeper",20,"tools","fast"],
+ ["Drywall lift",120,"tools","slow"],["Battery charger / jump box",40,"tools","fast"],
+ ["Transfer pump \u2014 gas",90,"power","normal"],["Grease gun",25,"tools","normal"],
+ /* school band. Rental returns turn up every June. */
+ ["Clarinet",80,"music","slow"],["Flute",80,"music","slow"],
+ ["Trombone",150,"music","slow"],["French horn",300,"music","slow"],
+ ["Cello",300,"music","slow"],["Ukulele",40,"music","normal"],
+ /* the rest of the sporting goods */
+ ["Bowling ball",20,"fit","slow"],["Skateboard",40,"fit","normal"],
+ ["Surfboard",150,"fit","slow"],["Paddle board \u2014 SUP",250,"fit","normal"],
+ ["Life jackets \u2014 set",30,"hunt","normal"],
+ /* devices that are not the trail camera they kept matching */
+ ["Ring / smart doorbell",40,"elec","normal"],["Dash camera",40,"elec","normal"],
+ ["Security camera system",120,"elec","normal"],["Wifi router / modem",30,"elec","normal"],
+ ["Printer \u2014 all in one",40,"elec","slow"],["Record player / turntable set",70,"elec","normal"],
+ ["Karaoke machine",50,"elec","slow"],["E-reader \u2014 Kindle class",40,"elec","normal"],
+ ["Power wheels / ride-on toy",60,"rolling","normal"],["Wet tile saw",100,"tools","slow"],
+ ["Scooter / moped",400,"rolling","normal"],["Pop-up camper",1800,"rolling","slow"],
+ ["Boat anchor & rode",30,"hunt","normal"]
+];
+const CATLABEL=Object.fromEntries(CATALOG.map(c=>[c.id,c.label]));
+/* Compiled suggested lending rates — pawn-industry norms (loans run 25-60% of
+   resale nationally) tuned for this market. Never anywhere near 100%. */
+const LTV_BOOK={
+ guns:{p:50,why:"guns are the best collateral in the building — they hold value, sell fast here, and get redeemed"},
+ power:{p:35,why:"seasonal, condition-fragile, and every August the market is full of them"},
+ tools:{p:35,why:"plentiful supply, and cordless value dies with the battery"},
+ hunt:{p:40,why:"good glass holds money, but it's seasonal — thin in spring"},
+ elec:{p:25,why:"fastest-depreciating thing you take in — two model years is half the value"},
+ jewel:{p:40,why:"a real one holds its price, but it must be proven first and it sells slowly"},
+ music:{p:35,why:"holds value but sits on the shelf for months"},
+ rolling:{p:35,why:"real money but title friction and a slow, local buyer pool"}};
+function ltvSuggestHTML(cat,cur){
+  const s=LTV_BOOK[cat.id]; if(!s)return "";
+  if(cur===s.p)return `<div class="cardHint" style="margin-top:8px"><span style="color:var(--accent);font-family:var(--mono);font-weight:600">Suggested: ${s.p}%</span> — ${s.why}. You're on it.</div>`;
+  return `<div class="cardHint" style="margin-top:8px"><span style="color:var(--accent);font-family:var(--mono);font-weight:600">Suggested: ${s.p}%</span> — ${s.why}.
+    <button id="useLtv" class="ghostBtn" style="padding:5px 12px;font-size:11.5px;margin-left:8px">Use ${s.p}%</button></div>`;
+}
+/* The price list used to want every typed word to appear inside the row name,
+   which only ever worked for someone typing the row name. A photo read comes
+   back as "Anker Soundcore wireless earbud charging case (green)" and could
+   never reach "Wireless earbuds", and the synonym list was not consulted at
+   all. Score the words instead, same machinery the main search uses. */
+let BOOK_IDX=null,BOOK_DF=null;
+function bookIdx(){
+  if(BOOK_IDX)return BOOK_IDX;
+  BOOK_DF=new Map();
+  BOOK_IDX=PRICEBOOK.map(e=>{
+    const nw=omniWords(e[0]).filter(w=>!STOP.has(w));
+    const sw=omniWords(BOOK_SYN[e[0]]||"");
+    const all=Array.from(new Set(nw.concat(sw)));
+    all.forEach(w=>BOOK_DF.set(w,(BOOK_DF.get(w)||0)+1));
+    /* The thing itself, with the trim cut off: "Hard cooler - Yeti class" is
+       a cooler, "Post hole digger - gas" is a digger, "Box fan / tower fan"
+       is a fan either way. The photo read has to land on one of these. */
+    const core=String(e[0]).split(/[\u2014\u2013,(]/)[0];
+    /* A slash in a row name means "or", so each side is a name in its own
+       right: "Soft cooler / tote" is covered by the words "soft cooler"
+       alone. Counting tote against it let a brand word on another row
+       ("Igloo") outrank the row the words literally spell. */
+    const nc=core.split("/").map(part=>omniWords(part).filter(w=>!STOP.has(w))).filter(a=>a.length);
+    const head=Array.from(new Set(nc.map(a=>a[a.length-1])));
+    return {e,nw,nc,sw,all,head};
+  });
+  return BOOK_IDX;
+}
+/* Scored rows, best first. Typed search only wants the names; the photo read
+   prices off the top row without anyone looking at it, so it wants the
+   numbers too - see photoBook() below. */
+function searchBookHits(txt){
+  const raw=String(txt).trim(); if(raw.length<3)return [];
+  const q=omniWords(raw).filter(w=>!STOP.has(w));
+  if(!q.length)return [];
+  const out=[];
+  for(const b of bookIdx()){
+    let score=0,strong=0,rare=false,headHit=false;
+    for(const w of q){
+      let h=0,hw="";
+      for(const bw of b.all){ const x=wordHit(w,[bw]); if(x>h){h=x;hw=bw;} }
+      if(!h)continue;
+      score+=h;
+      if(h>=2){
+        strong++;
+        if(b.head.includes(hw))headHit=true;
+        /* a word this row owns outright - "airpods", "sawzall", "yeti".
+           Short ones are usually half of a two-word alias ("lazy boy"), and
+           on their own they land anywhere: "game boy" found the recliner. */
+        if(h===3&&hw.length>=4&&!b.nc.some(alt=>alt.includes(hw))&&(BOOK_DF.get(hw)||9)<=2)rare=true;
+      }
+    }
+    if(!strong)continue;
+    /* How much of the name the words cover, so "Wireless earbuds" beats "Hard
+       gun case" on a query carrying both. Only the name proper counts - the
+       trim after the dash ("- 2kW", "- Yeti class") is not what someone
+       types. A word the row owns outright ("airpods") stands in for it. */
+    const nameCover=b.nc.reduce((best,alt)=>
+      Math.max(best,alt.filter(n=>q.some(w=>wordHit(w,[n])>0)).length/alt.length),0);
+    /* A name the row owns ("airpods", "yeti", "logitech") stands in for its
+       name words. It used to stand in only where the name matched nothing at
+       all, which read well and priced badly: "Logitech K350 wireless
+       keyboard" half-matched the computer row and wholly matched the music
+       book's one-word "Keyboard", so a PC keyboard was a 61-key. It counts
+       either way now, and where two rows tie it is the one with more of the
+       words behind it that wins, then the one the words literally spell -
+       which is what keeps an Igloo soft cooler a soft cooler rather than the
+       Yeti-class hard one Igloo also makes. */
+    const cover=Math.max(nameCover,rare?1:0);
+    if(!cover)continue;
+    out.push({e:b.e,score,cover,nameCover,rare,headHit,qCover:strong/q.length,len:b.e[0].length});
+  }
+  /* how much of the row the words covered comes first: someone typing two
+     words wants the row those two words are, not the row that happens to
+     share a word with every other thing in the shop. */
+  out.sort((a,b)=>b.cover-a.cover||b.score-a.score||b.nameCover-a.nameCover||a.len-b.len);
+  return out.slice(0,6);
+}
+function searchBook(txt){ return searchBookHits(txt).map(o=>o.e); }
+/* The photo path has nobody checking the answer before it becomes a price, so
+   it takes a row only when the words land on what the row actually is - the
+   head word ("cooler", "digger", "earbuds") or a name the row owns outright
+   ("airpods"). Matching the trim is not enough: a Kenmore range came back
+   "E-bike" on "electric", a chainsaw "Gun cabinet" on "case", and a Samsung
+   TV a Blackstone griddle on "flat". */
+/* The reader is asked for a model and sometimes answers with a sentence:
+   "Likely M510 (Unifying wireless mouse) - model number on underside". Cut
+   to the part that is actually a model - no hedge, nothing bracketed,
+   nothing past a dash or a comma - or the ticket carries prose, and the
+   phone's headline reads "Logitech Likely M510 (Unifying wireless mo". */
+function tidyModel(t){
+  let v=String(t||"").replace(/[\u2014\u2013]/g," - ").trim();
+  v=v.replace(/^(likely|probably|possibly|possible|maybe|appears to be|looks like|seems to be)\s+/i,"");
+  v=v.replace(/^(a|an|the)\s+/i,"");
+  v=v.split(/\s-\s|[(,;:]/)[0];
+  return v.replace(/\s+/g," ").trim().slice(0,28);
+}
+/* a row named outright, spelled the way the book spells it */
+function bookRow(name){
+  const n=omniNorm(name);
+  return PRICEBOOK.find(e=>omniNorm(e[0])===n)||null;
+}
+function photoBook(txt){
+  const h=searchBookHits(txt).find(x=>(x.headHit&&x.cover>=0.75)||(x.cover>=0.66&&x.score>=4)||(x.rare&&x.qCover>=0.4));
+  return h?h.e:null;
+}
+function brandVerdictHTML(){
+  if(!st.brandTyped)return "";
+  const hit=brandLookup(st.catId,st.brandTyped);
+  if(!hit)return `<span style="color:var(--warn)">Not in the book — pick the tier yourself.</span>`;
+  const words={hi:"top tier here — worth ~40% over standard",mid:"standard tier — the baseline number",lo:"budget tier — worth about half of standard"};
+  return `<b style="color:var(--accent)">${hit.name}</b> — ${words[hit.tier]}.`;
+}
+const FLAGS=[
+ "No photo ID, or the ID doesn't match the face",
+ "Serial number ground, filed, or scratched off",
+ "Still in retail packaging with security tags on",
+ "Doesn't know how to work his own item",
+ "Three of the same thing, or six identical tools",
+ "Under 18 — statutory, no judgment involved",
+ "Apparently drunk or high — statutory, we may not transact",
+ "Using somebody else's name, or another business's name",
+ "Won't hold still for the transaction form",
+ "Price doesn't matter to him — takes any offer",
+ "Wants to stay in his vehicle — no drive-up transactions, ever"];
+/* Not red flags about the person - these are items that are simply more
+   trouble than they are worth. Kept out of the price lists on purpose. */
+const NO_TAKE=[
+ ["Mattresses and box springs","Bedbugs, stains and state bedding law. You cannot resell a used one in Florida without it being sanitised and tagged, and nobody is set up for that. No price is low enough."],
+ ["Car seats and boosters","They expire, they are recalled constantly, and one that has been in a wreck looks exactly like one that has not. If a child is hurt in a seat you sold, that is yours."],
+ ["Strollers, cribs, playpens","Same recall problem, and drop-side cribs are outright banned. Small money, real liability."],
+ ["Anything with a ground-off serial","Already on the walk-away list above, and it is worth repeating: that is a felony waiting on the counter."]];
+const DEVICE_STEPS=[
+ {t:"Dial *#06# and check the IMEI",d:"Free at stolenphonechecker.org. Blacklisted means reported stolen OR unpaid carrier financing — either way it won't activate on any US carrier and it's worth nothing."},
+ {t:"He removes the lock — at the counter, not later",d:"iPhone: Settings → his name → Find My → Find My iPhone → off. Needs his Apple ID password. Android: Settings → Accounts → remove the Google account BEFORE any reset."},
+ {t:"Then factory reset, still standing there",d:"Order matters on Android. Reset before removing the account and it locks itself."},
+ {t:"Boot it and watch the screen",d:"Setup screen with no account prompt = clean. Asks for an Apple ID or Google account = brick. Hand it back."},
+ {t:"Never take a password",d:"Not written down, not typed in, not 'he told you.' He does the removal or there's no deal. Passwords change; a promise is worth nothing in thirty days."},
+ {t:"Buy phones. Don't lend on them.",d:"A pawn customer wants it back with his photos on it. You need it wiped. Those can't both be true — so buy outright, or pass."}];
+
+/* THE COUNTER ANSWER — what to say when he asks why the number is what it is.
+   Written to be read out loud across the counter, not recited from a policy
+   binder. Metal and merchandise get different answers because he is asking
+   two different questions. */
+const WHY={
+ metal:[
+  ["Selling it outright","The gold becomes ours the moment we pay you. It still has to sit here untouched for 30 days before it can go anywhere \u2014 that is state law, not our rule \u2014 and then it goes to the refiner. One outcome, and half the waiting."],
+  ["Pawning it","The gold stays yours. You are borrowing against it, and you get it back when you pay off the ticket."],
+  ["Why the loan is the smaller number","A loan doubles that wait and leaves the ending open. Your ticket matures at day 30 and you have until day 60 to come get it, so we carry the price for twice as long without knowing whether we end up with the gold or the money. If it drops while we hold it, we are sitting on something worth less than we handed you. Lending lower is what makes both endings survivable."],
+  ["Why neither one is full melt","Melt is what the metal is worth as a bar at a refinery, not across this counter. The difference pays the refiner, the counter, and the lights."]],
+ item:[
+  ["What it sells for is not what it is worth today","It has to sit on the shelf first, and around here some things sit a long while."],
+  ["Listed is not sold","A price online that nobody actually paid does not tell us anything. We go by what these really bring."],
+  ["Why the loan is a share of that","If you pay the ticket, you get it back and we have made the fee. If you do not, we own it and we have to sell it ourselves, for whatever it brings then. The loan has to be small enough that both of those endings work."],
+  ["Why slow movers get less","That is not a knock on your item. It is how long our money sits in it before it turns back into money."]]};
+function whyHTML(kind){
+  if(!st.whyOpen)
+    return `<button id="whyBtn" class="ghostBtn" style="width:100%;margin-top:11px;padding:10px 0">Why is it this much? &mdash; what to tell him</button>`;
+  return `<div class="tagNote" style="margin-top:11px">
+    ${WHY[kind].map(r=>`<div style="margin-bottom:9px"><b style="color:var(--ink)">${r[0]}.</b> ${r[1]}</div>`).join("")}
+    <button id="whyBtn" class="ghostBtn" style="width:100%;margin-top:4px;padding:9px 0">Close</button></div>`;
+}
+
+const money = n => "$" + Math.round(n).toLocaleString("en-US");
+const ladder = (p,c) => [
+ {k:"BY DAY 30",due:p+c},
+ {k:"DAY 31–60",due:p+c*2},
+ {k:"DAY 90",due:p+c*2+(c/30)*30}];
+
+/* WHAT HE PAYS TO GET IT BACK IS A PRICE. IT WAS WRITTEN AS A STATUTE.
+
+   The charge was hardcoded `Math.max(5, target*0.25)` - 25% per 30 days,
+   which is the CEILING §539.001(11) sets, not a rate anybody at this shop
+   chose. So the desk quoted the legal maximum on every single ticket and
+   printed it in the largest type on the rail: $105 out the door came back
+   as $131 by day 30, $158 by day 60. Reading that off a screen to the man
+   standing there is how you watch him leave.
+
+   A ceiling belongs at the top of a control, not inside the arithmetic. The
+   rate is shop policy now - one number, set once, kept like buyFloor and
+   buyMult - and 25% is where the slider stops, with the statute quoted
+   underneath so nobody has to remember where the line is.
+
+   26 Sep: asked for, and set to, 25% - the ceiling. That is Lamar's call
+   and it is legal; what changed here is that it is now a NUMBER SOMEBODY
+   CHOSE rather than a constant nobody could see or move, which was the
+   whole complaint. Everything still follows the setting, so dropping it
+   to 20 is one drag of a slider.
+
+   The $5 floor stays: the same subsection allows it outright, and on a $40
+   loan the percentage alone does not cover writing the ticket. */
+const PAWN_CAP=25;
+function pawnPct(){ const n=Number(st.pawnPct); return Math.min(PAWN_CAP,Math.max(0,isNaN(n)?0:n)); }
+function pawnCharge(p){ return Math.max(5,Math.round((Number(p)||0)*pawnPct())/100); }
+
+/* ---------------- state ---------------- */
+const KEY="pawndesk:web:v1";
+let st={mode:"item",catId:"guns",itemId:"g1",picked:false,cond:"good",brand:"mid",complete:true,completeSet:false,struck:"",struckKind:"loan",liq:null,brandTyped:"",model:"",detail:"",specSel:{},
+        overrides:{},bookVals:{},modelVals:{},ltvs:{},buys:{},buyFloor:25,buyMult:2,pawnPct:25,pawnSet:false,payPct:70,payTouched:false,loanPct:48,loanTouched:false,editing:false,
+        manual:null, /* {date, spot:{gold,silver}, avg90:{gold,silver}} — a same-day hand edit beats the feed */
+        deal:"buy",metal:"gold",karat:"14k",grams:"",whyOpen:false,photoRead:null,bookQ:"",bookName:""};
+try{
+  const s=JSON.parse(localStorage.getItem(KEY)||"null");
+  if(s){ st.overrides=s.overrides||{}; st.ltvs=s.ltvs||{}; st.buys=s.buys||{};
+    st.bookVals=s.bookVals||{}; st.modelVals=s.modelVals||{};
+    if(s.buyFloor!=null)st.buyFloor=Math.max(0,Number(s.buyFloor)||0);
+    if(s.buyMult!=null)st.buyMult=Math.max(1,Number(s.buyMult)||1);
+    /* Shop policy, not a daily figure - it does not expire with the feed.
+       But a stored number only outranks the code's default once somebody
+       has actually MOVED the control. Without that flag, every device that
+       had quietly saved the old default would have gone on using it, and
+       changing the shipped rate would have reached only brand-new devices
+       - the tablet and the phone quoting different repayments on the same
+       loan, with nothing on either screen to say why. */
+    st.pawnSet=!!s.pawnSet;
+    if(s.pawnSet && s.pawnPct!=null)
+      st.pawnPct=Math.min(PAWN_CAP,Math.max(0,Number(s.pawnPct)||0));
+         /* A hand-set pay rate wins only for the day it was set — tomorrow's
+            feed brings new numbers, so the rate goes back to following them. */
+         if(s.payDate===FEED.date && typeof s.payPct==="number"){ st.payPct=s.payPct; st.payTouched=!!s.payTouched; }
+         if(s.payDate===FEED.date && typeof s.loanPct==="number"){ st.loanPct=s.loanPct; st.loanTouched=!!s.loanTouched; }
+         if(s.manual && s.manual.date===FEED.date) st.manual=s.manual; }
+}catch(e){}
+/* The catalog's first item is only a fallback so the math always has something
+   to hold — it is not a choice the clerk made. Nothing counts as chosen until
+   something actually assigns itemId, which only ever happens on a tap, a
+   search pick, or a photo read. */
+(function(){ let _iid=st.itemId; Object.defineProperty(st,"itemId",{
+  get(){ return _iid; }, set(v){ _iid=v; st.picked=true; },
+  enumerable:true, configurable:true }); })();
+let saveTimer=null;
+function persist(){
+  try{
+    localStorage.setItem(KEY,JSON.stringify({overrides:st.overrides,ltvs:st.ltvs,buys:st.buys,
+      bookVals:st.bookVals,modelVals:st.modelVals,
+      buyFloor:st.buyFloor,buyMult:st.buyMult,pawnPct:st.pawnPct,pawnSet:st.pawnSet,payPct:st.payPct,flow:st.flow,
+      payTouched:st.payTouched,loanPct:st.loanPct,loanTouched:st.loanTouched,payDate:FEED.date,manual:st.manual}));
+    flashSave("Saved");
+  }catch(e){ flashSave("Couldn't save"); }
+}
+function flashSave(msg){
+  const el=document.getElementById("saveNote"); if(!el)return;
+  el.textContent=msg; clearTimeout(saveTimer); saveTimer=setTimeout(()=>{el.textContent="";},1600);
+}
+function spotOf(m){ return st.manual ? st.manual.spot[m] : FEED[m]; }
+function avgOf(m){ return st.manual ? st.manual.avg90[m] : FEED[m+"90"]; }
+function makeManual(){ if(!st.manual) st.manual={date:FEED.date,spot:{gold:FEED.gold,silver:FEED.silver},avg90:{gold:FEED.gold90,silver:FEED.silver90}}; }
+
+const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
+/* The worked examples, in one place. They were prose under the search box
+   naming four things you could type - which is a list of instructions for
+   retyping something by hand. They are buttons now, and the hint line and
+   the buttons cannot drift apart because they read the same array. */
+const START_TRY=["stihl 271","remington 870 12 gauge","dewalt dcd791","iphone 15",
+                 "kayak","14k ring","generac 7500","yamaha p-125"];
+
+/* fill the recessed track up to the knob */
+function paintSlider(el){
+  if(!el)return;
+  const p=(el.value-el.min)/(el.max-el.min)*100;
+  el.style.background=`linear-gradient(90deg,var(--accent-2) 0%,var(--accent) ${p}%,var(--well) ${p}%)`;
+}
+
+/* the anchor gauge: 270° sweep, recessed track, emissive gradient arc.
+   Quiet mode: the tick ring is static — no rotation. */
+function gauge(pct,label,big,small,id){
+  const T=613,C=817,v=(Math.max(0,Math.min(1,pct))*T).toFixed(0);
+  return `<div class="gwrap"><svg viewBox="0 0 340 340" role="img" aria-label="${label} ${big}">
+   <defs>
+    <linearGradient id="${id}" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0%" stop-color="var(--accent-2)"/><stop offset="100%" stop-color="var(--accent)"/>
+    </linearGradient>
+   </defs>
+   <circle cx="170" cy="170" r="163" fill="none" stroke="rgba(255,255,255,.14)" stroke-width="1" stroke-dasharray="1.5 13"/>
+   <circle cx="170" cy="170" r="130" fill="none" stroke="rgba(0,0,0,.65)" stroke-width="24" stroke-linecap="round" stroke-dasharray="613 817" transform="rotate(135 170 170)"/>
+   ${+v>0?`<circle cx="170" cy="170" r="130" fill="none" stroke="url(#${id})" stroke-width="22" stroke-linecap="round" stroke-dasharray="${v} 817" transform="rotate(135 170 170)"/>`:""}
+  </svg>
+  <div class="gcenter"><span class="gl">${label}</span><b>${big}</b><span class="gs">${small}</span></div></div>`;
+}
+
+/* ══ THE HOME CARD ════════════════════════════════════════════════════
+   One component, both machines. The phone had this first and the desk
+   was still showing a search box over an empty screen; writing it twice
+   is how the two drift into two apps, which is the thing design A was
+   picked to stop.
+
+   It is the item screen's own shape doing the day's job: a hero with
+   the one number that matters before anything is on the counter, the
+   ways to start as circular actions, and a feed of what has actually
+   been priced today. The feed reads the deal log - it is not decoration,
+   it is the thing you reach for when a customer comes back. */
+const HOME_ICON={
+  cam :'<rect x="3" y="7" width="18" height="13" rx="3"/><circle cx="12" cy="13.4" r="3.4"/><path d="M8 7l1.6-3h4.8L16 7"/>',
+  look:'<circle cx="11" cy="11" r="7"/><path d="M16 16l5 5"/>',
+  gold:'<circle cx="12" cy="12" r="8"/><path d="M12 7.6v8.8M9.8 10h4a1.9 1.9 0 010 3.8h-3.6a1.9 1.9 0 000 3.8h4"/>',
+  log :'<path d="M5 4h11l3 3v13H5z"/><path d="M9 9h6M9 13h6"/>',
+  tag :'<path d="M3 11.5V4.5A1.5 1.5 0 014.5 3h7L21 12.5 12.5 21 3 11.5Z"/><circle cx="7.6" cy="7.6" r="1.2"/>'
+};
+function homeToday(){
+  const day=(typeof todayStr==="function")?todayStr():"";
+  const rows=(typeof DEALS!=="undefined"&&DEALS.length)
+    ? DEALS.filter(d=>!day||d.day===day) : [];
+  return {day,rows,out:rows.reduce((a,d)=>a+(Number(d.loan)||0),0)};
+}
+function homeHeroHTML(opts){
+  const o=opts||{}, t=homeToday();
+  const gold=(typeof spotOf==="function")?spotOf("gold"):0;
+  const silver=(typeof spotOf==="function")?spotOf("silver"):0;
+  const act=(id,l,ic,on)=>`<button class="act" data-whome="${id}"${on?"":" disabled"}>`
+    +`<i><svg viewBox="0 0 24 24" aria-hidden="true">${ic}</svg></i><span>${l}</span></button>`;
+  const camOn=!!(CAP.sample&&CAP.images);
+  return `<div class="hero homeHero">
+    <div class="heroWho">${esc(fmtDay(t.day)||"Today")}</div>
+    <div class="heroWhat">Nothing on the counter</div>
+    <div class="heroLab">Gold, per troy ounce</div>
+    <div class="heroBig">${gold?money(Math.round(gold)):"\u2014"}</div>
+    <div class="heroSub">${silver?"Silver "+money(Math.round(silver*100)/100)+" \u00b7 ":""}${t.rows.length
+      ? t.rows.length+" logged today \u00b7 "+money(t.out)+" out"
+      : "nothing logged yet today"}</div>
+    <div class="acts">
+      ${act("snap",o.snapLabel||"Snap it",HOME_ICON.cam,camOn)}
+      ${act("type","Type it",HOME_ICON.look,true)}
+      ${act("gold","Gold",HOME_ICON.gold,true)}
+      ${act("log","Log",HOME_ICON.log,true)}
+    </div></div>`;
+}
+function homeFeedHTML(limit){
+  const t=homeToday(), rows=t.rows.slice(0,limit||4);
+  if(!rows.length)return "";
+  return `<div class="wSect">Priced today</div>`+rows.map(d=>
+    `<div class="wRow"><i><svg viewBox="0 0 24 24" aria-hidden="true">${HOME_ICON.tag}</svg></i>
+      <div class="t"><b>${esc([d.brand,d.model,d.itemName].filter(Boolean).join(" "))||"Item"}</b>
+        <span>${esc(d.catLabel||"")}${d.ticket?" \u00b7 #"+esc(d.ticket):""}</span></div>
+      <div class="v">${money(d.loan||0)}<small>${d.status==="sold"?"sold":"lent"}</small></div></div>`).join("");
+}
+
+/* ---------------- tabs ---------------- */
+const PRICE_TABS=[["item","Price an item"],["metal","Gold & silver"]];
+/* WALK AWAY WAS A TAB NOBODY OPENED.
+   Reported from the counter: "I don't need the separate walk away section."
+   Fair - it is a page of law and a list of things we do not take, read once
+   and then never again, holding a sixth of a navigation column all day. But
+   none of it is disposable: the sheriff's reporting deadline and the hold
+   order clock live on it, and losing those would be losing the one thing on
+   the page with a penalty attached. So it folds into Setup, which is where
+   the things you read once already live. */
+const REF_TABS=[["log","Deal log"],["device","Phones & devices"],["setup","Setup"]];
+/* A dock label is one or two words under a drawing, because a column 96px
+   wide is what is left once the working area has what it needs. Line art
+   at one weight: a tag, a coin, a ledger, a phone, a hand, a dial. */
+const TAB_SHORT={item:"Price",metal:"Gold",log:"Deal log",device:"Devices",setup:"Setup"};
+const TAB_ICON={
+  item:'<path d="M3 11.5V4.5A1.5 1.5 0 0 1 4.5 3h7L21 12.5 12.5 21 3 11.5Z"/><circle cx="7.6" cy="7.6" r="1.3"/>',
+  metal:'<circle cx="12" cy="12" r="8.2"/><path d="M12 7.4v9.2M9.6 9.6h4a1.9 1.9 0 0 1 0 3.8h-3.6a1.9 1.9 0 0 0 0 3.8h4"/>',
+  log:'<path d="M5 3.8h11a2 2 0 0 1 2 2v14.4H7a2 2 0 0 1-2-2V3.8Z"/><path d="M8.6 8.2h6M8.6 12h6M8.6 15.8h3.4"/>',
+  device:'<rect x="6.4" y="2.6" width="11.2" height="18.8" rx="2.4"/><path d="M10.6 18.4h2.8"/>',
+  flags:'<path d="M5.6 20.4V4.2M5.6 5.2h10.8l-1.9 3.6 1.9 3.6H5.6"/>',
+  setup:'<circle cx="12" cy="12" r="3.1"/><path d="M12 2.6v3M12 18.4v3M21.4 12h-3M5.6 12h-3M18.6 5.4l-2.1 2.1M7.5 16.5l-2.1 2.1M18.6 18.6l-2.1-2.1M7.5 7.5 5.4 5.4"/>'};
+function renderTabs(){
+  /* Six destinations were a row of pills along the top bar - laid out on
+     the one edge the eye leaves last, over the top of the thing being
+     worked on, and taking the width the title needed. Down the left they
+     read as places. Same buttons, same data-tab, same handler; the
+     current one is LIT rather than filled, because a solid pill sitting
+     in a navigation column all day reads as a button mid-press. */
+  const tabs=PRICE_TABS.concat(REF_TABS.filter(t=>t[0]!=="log"||CAP.db));
+  document.getElementById("tabs").innerHTML = tabs.map(([id,full])=>
+    `<button class="${st.mode===id?"on":""}" data-tab="${id}" aria-label="${full}"`+
+    `${st.mode===id?' aria-current="page"':""} title="${full}">`+
+    `<svg viewBox="0 0 24 24" aria-hidden="true">${TAB_ICON[id]||""}</svg>`+
+    `<i>${TAB_SHORT[id]||full}</i></button>`).join("");
+}
+document.getElementById("view").addEventListener("click",e=>{
+  if(e.target.closest("#whyBtn")){ st.whyOpen=!st.whyOpen; render(); }
+  /* The tab strip's own handler sits on #tabs, so a button inside the view
+     that wants to send you to a tab needs saying so here. */
+  const go=e.target.closest&&e.target.closest("[data-gotab]");
+  if(go){ st.mode=go.dataset.gotab; st.editing=false; render(); }
+  /* Setup draws itself with no wiring pass of its own, so the one fold on it
+     that is worth remembering is remembered from here. */
+  if(e.target.closest&&e.target.closest("#rulesFold>summary"))
+    setTimeout(()=>{ const d=document.getElementById("rulesFold"); if(d)st.openRules=d.open; },0);
+});
+document.getElementById("tabs").addEventListener("click",e=>{
+  const b=e.target.closest("[data-tab]"); if(!b)return;
+  st.mode=b.dataset.tab; st.editing=false; render();
+});
+
+/* ---------------- item tab ---------------- */
+const custId = catId => "cust-"+catId;
+function custItem(cat){
+  return {id:custId(cat.id), name:"Something else", value:st.overrides[custId(cat.id)]??100, liq:"normal"};
+}
+/* ================= HOW MUCH THE ITEM NUMBER COULD BE WRONG BY =================
+   Asked for at the counter: trends on items, the same as gold got.
+
+   The first job was to find out whether the item history can carry a trend
+   read at all, and the answer is no - not yet, and not close. Five days of
+   history, 47 before-and-after pairs. tools/measure-noise.mjs reads them
+   and reports what they actually are:
+
+     - 24 rows out of 24 moved UP on the 19->22 September run, median +20%.
+       Chainsaws, bows, scopes and laptops do not all gain a fifth in three
+       days. That is the source changing underneath - SoldComps ran out of
+       quota and the ladder fell through to eBay's asking prices, which sit
+       above sold ones. A step change in what is being measured, set aside.
+     - What is left scatters both ways, 43% up, median 17.3%.
+
+   So an item "trend" built on this today would be the tool reading its own
+   noise back to the counter and calling it a market. That is worse than
+   showing nothing, because it would be believed.
+
+   What the same measurement IS good for is the question underneath the
+   trend question: how much can I trust the number on screen? A midpoint
+   that could be 17% different tomorrow should not be lent against as
+   though it were exact - and unlike gold, where the guard comes from
+   25 years of prices, here it comes from the tool's own repeatability.
+
+   When months of re-checks exist and they start leaning one way rather
+   than scattering, measure-noise.mjs says so (trendReady) and a real trend
+   read can be built on top of this. It is not ready and it says so. */
+let INOISE=null;
+async function loadItemNoise(){
+  try{ const r=await fetch("item-noise.json",{cache:"no-store"});
+    if(!r.ok)return; const j=await r.json();
+    if(j&&j.noiseMid>0){ INOISE=j; try{ render(); }catch(e){} }
+  }catch(e){}
+}
+/* Aisles where the thing itself loses value while it sits, so a price from
+   last month is wrong in a way a wrench's is not. */
+const FAST_DECAY={elec:1,phone:1,coll:0.5};
+function itemGuard(x){
+  const m=x&&x.market;
+  if(!m||!x.checked||!INOISE)return null;
+  const mid=Number(m.mid)||0, lo=Number(m.lo)||0, hi=Number(m.hi)||0;
+  if(!(mid>0))return null;
+  /* A figure the counter typed is about THIS thing, in their hands. There
+     is no sampling error to guard against - they looked at it. */
+  if(m.kind==="hand")return {kind:"hand",mid,guard:mid,cut:0,why:[],warn:false,
+    head:"Your own number for this one",
+    detail:"You typed this in, so it is about the thing in front of you rather than a sample of listings. Nothing to guard."};
+  const ev=(typeof rowEvidence==="function")?rowEvidence(m.note):{kind:"research",n:0};
+  const spread=(hi>lo&&mid>0)?(hi-lo)/mid:0;
+  const age=Number(m.age)||0;
+  const decay=FAST_DECAY[x.cat&&x.cat.id]||0;
+  const why=[];
+  let cut=0;
+  /* Short phrases, not sentences: they are read at a counter with somebody
+     waiting, and they get stacked into one line. */
+  if(ev.kind==="asking"){ cut+=INOISE.noiseMid/2;
+    why.push(`${ev.n||"a few"} asking prices, not sales`); }
+  else if(ev.kind==="research"){ cut+=8; why.push("researched, never measured"); }
+  else if(ev.n&&ev.n<5){ cut+=5; why.push(`only ${ev.n} sale${ev.n===1?"":"s"}`); }
+  if(spread>(INOISE.spread75||51)/100){ cut+=5;
+    why.push(`${money(lo)}\u2013${money(hi)}, a ${Math.round(spread*100)}% spread`); }
+  if(decay&&age>30){ cut+=Math.min(8,Math.round(decay*age/10));
+    why.push(`${age} days old, and this aisle fades`); }
+  else if(age>90){ cut+=4; why.push(`${age} days old`); }
+  cut=Math.min(25,Math.round(cut));
+  return {kind:ev.kind,n:ev.n,mid,lo,hi,spread,age,cut,
+          guard:Math.max(1,mid*(1-cut/100)),
+          noise:INOISE.noiseMid,
+          band:[mid*(1-INOISE.noiseMid/100),mid*(1+INOISE.noiseMid/100)],
+          warn:cut>=8, why,
+          head:(cut>=8?"Soft":cut>0?"Fair":"Solid")+" — "
+              +(why.length?why.join(", "):(ev.n?ev.n+" real sales, tight range":"real sales, tight range"))};
+}
+/* The same strip the metals page carries, saying the item version of the
+   same thing: here is how good this number is, here is what it does to the
+   offer, and here is the figure if you disagree. */
+function itemGuardHTML(x){
+  const G=x&&x.guard;
+  if(!G||G.kind==="hand")return "";
+  const m0=n=>money(Math.round(n));
+  /* WORDY. Reported from the counter, and it was: 190 words on a card that
+     answers one question. What he needs while somebody is waiting is whether
+     the number is good and what the loan comes off. The rest - the
+     repeatability band, why items have no trend read - is background, and
+     background goes in a fold. */
+  return `<div class="card iGuard">
+    <span class="label">How good is this number?</span>
+    <div class="iHead ${G.warn?"warn":G.cut?"":"good"}">${G.warn?"⚠ ":""}${esc(G.head)}</div>
+    ${G.cut>0
+      ? `<div class="iLine">Loan off <b>${m0(G.guard)}</b>, not ${m0(G.mid)}. Buy keeps ${m0(G.mid)}.</div>`
+      : `<div class="iLine">Used as it stands.</div>`}
+    <details class="fold iFold"><summary class="foldLine">Why, and why items have no trend read</summary>
+      <div class="iMore">
+        ${G.cut>0?`<p>A buy you can price and move. A pawn is 60 days on a number that came out of a sample, so the loan takes the ${G.cut}%. Type your own resale in and the guard steps aside.</p>`:""}
+        <p><b>${m0(G.band[0])}–${m0(G.band[1])}</b> is what the same search would likely say tomorrow. Re-running it days apart moved the answer ${G.noise}% in testing — the tool's own repeatability, not the market.</p>
+        ${INOISE&&!INOISE.trendReady?`<p><b>No trend read on items yet.</b> Gold's guard has 25 years of daily prices. This has ${INOISE.spanDays} day${INOISE.spanDays===1?"":"s"} and ${INOISE.usable} usable pairs, scattering both ways (${INOISE.upShare}% up)${INOISE.stepChanges&&INOISE.stepChanges.length?`, after throwing out a run where ${INOISE.stepChanges[0].up} of ${INOISE.stepChanges[0].n} rows moved together — the price source changing, not the market`:""}. Months of re-checks that lean one way would make it a trend. This is not that.</p>`:""}
+      </div>
+    </details>
+  </div>`;
+}
+function calcItem(){
+  const cat=CATALOG.find(c=>c.id===st.catId);
+  const item=st.itemId===custId(cat.id) ? custItem(cat) : (cat.items.find(i=>i.id===st.itemId)||cat.items[0]);
+  const baseValue=st.overrides[item.id]??item.value;
+  const baseLtv=st.ltvs[st.catId]??cat.ltv;
+  const condition=CONDITIONS.find(c=>c.id===st.cond);
+  /* The make is often written on the thing itself: "DeWalt 20V drill kit"
+     was picked off the price list and the desk still priced it as Ryobi,
+     because st.brand defaults to "mid" and nothing read the name. Mid
+     against top is 40% of the price - the desk was not just failing to
+     answer a question it could answer, it was answering it wrong.
+     A make typed by hand always wins; this only fills the silence.
+     Everything the counter has told us about what this is gets read: the
+     catalog row, the model they picked off the list ("DeWalt 20V drill
+     kit" - the make is the first word of it), and anything typed in the
+     price book. A tier they tapped themselves outranks all of it. */
+  const namedBrand=(cat.brand.on&&!st.brandTyped&&!st.brandSet)
+    ? brandFromName(cat.id,(item.name||"")+" "+(st.model||"")+" "+(st.bookName||"")) : null;
+  const brandTier=namedBrand?namedBrand.tier:st.brand;
+  const brandMult=cat.brand.on?BRANDS.find(b=>b.id===brandTier).mult:1;
+  /* What a missing piece costs. It was a flat 30% for everything, which was
+     a guess nobody had checked - and it is the wrong number where it has
+     been checked. Consoles sold WITHOUT a controller went for 0.88 to 0.94
+     of one with, across four models: a tenth off, not a third. Docking 30%
+     for a missing controller was lending $180 against an Xbox that resells
+     for $500. Per-category now; the ones still at 0.7 are still guesses and
+     say so in the catalog. */
+  const completeMult=(cat.complete.on&&!st.complete&&!specCoversComplete(item.id))
+    ?(Number(cat.complete.mult)||0.7):1;
+  const liqId=st.liq||item.liq;
+  const liquidity=LIQUIDITY.find(l=>l.id===liqId);
+  let spec;
+  const _ch=SPEC_CHOICES[item.id];
+  if(_ch){
+    spec={mult:1,notes:[],stop:false,absSuggest:null};
+    _ch.forEach((g,gi)=>{const sel=st.specSel[item.id+":"+gi]??specBase(g);const o=g.options[sel]||g.options[specBase(g)];
+      spec.mult*=o.m;if(o.note)spec.notes.push(o.note);if(o.stop)spec.stop=true;});
+    const gw=genWatts(item.name,st.model+" "+st.detail);
+    if(gw){spec.absSuggest=gw.abs;spec.notes.push(gw.note);}
+    spec.mult=Math.max(.4,Math.min(1.8,spec.mult));
+  } else {
+    spec=specRead(st.catId,item.name,st.model+" "+st.detail);
+  }
+  const market=marketNow(), checked=!!(market&&!market.stale);
+  /* A number the counter typed themselves is what THIS one is worth. They
+     have the thing in their hands; the scratches are already in the figure.
+     Multiplying it by the condition adjustment prices the wear twice - type
+     $150 for a rough one and the desk quietly made it $112 - so a hand-set
+     resale is taken as it stands. Everything else (a list price, a shelf
+     tag, a price worked back from new) describes a typical good one, and
+     those still get adjusted. */
+  const handSet=checked&&market.kind==="hand";
+  const cond=handSet?1:(COND_MULT[st.cond]||1);
+  const resale=checked ? market.mid*cond*completeMult
+                       : baseValue*CATALOG_AT_GOOD*cond*brandMult*completeMult*spec.mult;
+  const ltv=Math.max(10,baseLtv+liquidity.adj);
+  /* set by hand for the category > this item's own rate > the category's */
+  const buySuggest=(typeof BUY_ITEM!=="undefined"&&BUY_ITEM[item.id]!=null)?BUY_ITEM[item.id]
+                  :((typeof BUY_DEFAULT!=="undefined"&&BUY_DEFAULT[st.catId]!=null)?BUY_DEFAULT[st.catId]:Math.min(90,baseLtv+5));
+  const buyWhy=(typeof BUY_ITEM_WHY!=="undefined"&&BUY_ITEM_WHY[item.id])||(typeof BUY_WHY!=="undefined"&&BUY_WHY[st.catId])||"";
+  const buyBase=(st.buys&&st.buys[st.catId]!=null)?st.buys[st.catId]:buySuggest;
+  const buyPct=Math.max(10,Math.min(90,buyBase+liquidity.adj));
+  /* Three things cap what you can pay, and the tightest one wins.
+
+     The RATE is a share of resale, and it is the only one that bites on
+     expensive things - it is what stops you paying $1,650 for a $3,000 saw
+     because doubling your money still technically worked.
+
+     The FLOOR is the least you will clear in dollars, and it bites at the
+     bottom: it stops the $30 item you haul home, photograph, list and ship
+     for nine dollars of profit.
+
+     The MULTIPLE is how many times your money has to come back, and it bites
+     in the middle, where a percentage looks reasonable and the dollars are
+     thin.
+
+     Whichever leaves the most profit decides, and the desk says which it
+     was - because "why only $85?" is the question you ask standing in
+     somebody's driveway. */
+  const buyFloor=Math.max(0,Number(st.buyFloor)||0);
+  const buyMult=Math.max(1,Number(st.buyMult)||1);
+  const capRate ={k:"rate", pay:resale*buyPct/100};
+  const capFloor={k:"floor",pay:resale-buyFloor};
+  const capMult ={k:"mult", pay:resale/buyMult};
+  const cap=[capRate,capFloor,capMult].sort((a,b)=>a.pay-b.pay)[0];
+  const buyCapBy=cap.k;
+  /* Below this there is nothing left to make: clearing the floor would cost
+     more than the thing sells for. */
+  /* THE LOAN COMES AFTER THE BUY, AND NEVER GOES ABOVE IT.
+     The floor was applied to buying and not to lending, so the two numbers
+     drifted apart at the bottom of the book and ended up contradicting each
+     other: a $32 air rifle read "pay $7" and "lend $14" side by side, and 40
+     of the 248 rows the desk prices did the same thing.
+     There is no version of the trade where that is right. A loan that is not
+     redeemed leaves you owning the thing at what you lent, with the same
+     hauling, listing and shipping the floor was written to cover - so
+     lending $14 on it is a worse deal than buying it for $7, not a better
+     one. You never lend more than you would pay to own it outright.
+     Nothing new is invented here: the loan is simply held to the same three
+     caps the buy price already answers to. */
+  /* MONEY THAT CHANGES HANDS IS ROUNDED TO THE NEAREST FIVE.
+     Nobody counts $31 out of a till, and "thirty" is a number a customer
+     hears and repeats. The resale value, the cushion and the fee are NOT
+     rounded - they are the arithmetic behind the offer, not the offer.
+     Rounding happens after the caps, and the caps are then re-applied to
+     the rounded figures: $42 rounds down to $40 while $38 rounds UP to
+     $40, so without that the loan could land above the buy price and undo
+     the very thing the caps are for. */
+  const r5=(n)=>Math.max(5,Math.round(n/5)*5);
+  /* THE LOAN IS SIZED OFF THE GUARDED RESALE, THE BUY OFF THE PLAIN ONE.
+     Same split as the metals page, for the same reason: a buy you can price
+     and shift, a pawn is a 60-day position in a number that came out of a
+     sample. Where the sample is thin, old, or asking prices rather than
+     sales, the loan comes off a figure that allows for it. The buy keeps
+     the straight resale - its own rate and the floor already answer for it,
+     and guarding both would charge the same doubt twice. */
+  const _g=(typeof itemGuard==="function")
+    ? itemGuard({market,checked,cat}) : null;
+  const guardResale=_g? Math.min(resale, resale*(1-_g.cut/100)) : resale;
+  const lendWant=Math.round(guardResale*ltv/100);
+  const targetRaw=Math.min(lendWant,cap.pay);
+  const lendCapped=lendWant>cap.pay;
+  /* Below this there is no deal to write, buy or loan. The desk already
+     refused to write a loan under five dollars; the same five dollars now
+     decides whether there is anything here at all, rather than printing a
+     one-dollar offer next to an eight-dollar loan. */
+  const buyTooThin=cap.pay<5;
+  /* A row too thin to deal on keeps its true pennies: the screens say walk
+     away rather than naming a figure, and rounding $1 up to $5 would put a
+     number back on a deal that has none. */
+  const buy=buyTooThin?Math.max(1,Math.round(cap.pay)):r5(cap.pay);
+  const target=buyTooThin?Math.max(1,Math.round(targetRaw)):Math.min(buy,r5(targetRaw));
+  return {cat,item,baseValue,baseLtv,condition,liquidity,liqId,resale,guardResale,guard:_g,ltv,target,market,checked,handSet,buyBase,buySuggest,buyWhy,buyPct,buy,lendWant,lendCapped,
+          brandTier,namedBrand:namedBrand&&namedBrand.name,
+          brandMult,brandName:cat.brand.on?(((ITEM_OVERRIDES[st.itemId]||{}).tiers)||cat.brand)[brandTier]:null,spec,specMult:spec.mult,
+          /* The range is held to the same ceiling as the suggested loan -
+             a "top loan" above what you would pay to own the thing is the
+             original fault wearing a different label. Capped at the BUY
+             ceiling, not at the suggested loan: clamping to the suggestion
+             would flatten the range to a single number on every ordinary
+             row, where the top loan is meant to sit above it. */
+          low:buyTooThin?Math.max(1,Math.round(resale*Math.max(8,ltv-12)/100))
+              :Math.min(target,r5(resale*Math.max(8,ltv-12)/100)),
+          high:buyTooThin?Math.max(1,Math.min(Math.round(cap.pay),Math.round(resale*Math.min(100,ltv+8)/100)))
+              :Math.min(buy,r5(resale*Math.min(100,ltv+8)/100)),
+          charge:pawnCharge(target),margin:resale-target,buyMargin:resale-buy,
+          buyCapBy,buyTooThin,buyFloor,buyMult};
+}
+/* The panel that does not move. Everything else on this page walks the
+   counter through a decision; this one just shows where those decisions have
+   landed, and it is short enough to stay on screen while they do - which the
+   1406px loan card never was. */
+/* Why the buy price is what it is, in the words you would use out loud. */
+function buyCapWhy(x){
+  return x.buyCapBy==="rate"  ? x.buyPct+"% of resale, your "+x.cat.label.toLowerCase()+" rate"
+       : x.buyCapBy==="floor" ? "leaving you the "+money(x.buyFloor)+" you asked to clear"
+       :                        x.buyMult+"\u00d7 your money back";
+}
+function pinHTML(x){
+  const F=fakeState(fakeSheet(x));
+  const bare=t=>`<div class="pinStrip"><span class="pinLab">${window.PHONE?"What it's worth to you":"The numbers"}</span><span class="pinNote">${t}</span></div>`;
+  if(F&&F.blocks)return bare(F.verdict==="fail"?"A check failed \u2014 don't lend on the name."
+    :"Not checked yet \u2014 "+F.done+" of "+F.n+" on the "+esc(F.sh.title.toLowerCase())+" sheet.");
+  if(!priceReady(x))return bare("<b>No price yet \u2014 still needs "+esc(needList(x))
+    +".</b> Finish the run and the number comes with everything behind it.");
+  /* It used to stop here and say "no resale value yet". The desk HAD a
+     value - the built-in price book is the whole reason it knows what a
+     laptop is worth - and it computed it, called it "the desk's own
+     starting point" in the card above, and then refused to show it. On a
+     tablet with no service connection, which is the one carried to the
+     counter, that meant the tool never answered at all.
+     An estimate is worth having as long as it is labelled an estimate, so
+     it is shown and labelled. Only a failed authenticity check still
+     blanks the money, because that is a reason not to lend, not a missing
+     number. */
+  /* Each figure is named so a narrow screen can lay them out as a grid with
+     the loan on top. On the desk they stay a single row and the name is
+     ignored. */
+  const cell=(k,l,v,big)=>`<div class="pinCell${big?" big":""}" data-k="${k}"><span>${l}</span><b>${v}</b></div>`;
+  /* The phone goes to yard sales and thrift stores, where there is no loan to
+     make - you pay their price or you walk. So it leads with the most you
+     should pay, and the loan drops to an aside. The fee and the loan-to-
+     resale percentage are pawn-counter mechanics and mean nothing over a
+     folding table, so the phone does not carry them at all. */
+  const P=!!window.PHONE;
+  /* These two numbers are the only things on the page anyone says out loud,
+     and they used to sit in a row of six at the same weight - the buy price
+     second, prefixed "Or", reading as an afterthought, and "Loan / resale
+     35%" given equal billing beside it. Buy and lend are the decision; the
+     other four are the arithmetic behind it. So the two lead, together and
+     the same size, and the rest drop to a subordinate line.
+
+     The strip was called "Where it stands", which describes the state of
+     the app rather than the money. It is the numbers. */
+  /* THE DESK GETS THE DIAL TOO.
+     The phone's whole screen was rebuilt around the anchor and the desk
+     was left with what it always had: a stack of six labelled figures in
+     small type, with the one number anybody says out loud the same size
+     as "Loan / resale 35%". The rail is the desk's equivalent of the
+     phone's hero card, so it holds the same thing - one enormous number
+     in a dial, the second decision beside it, and the arithmetic
+     underneath in a quiet grid where arithmetic belongs. */
+  if(deskRail()) return railHTML(x);
+  return `<div class="pinStrip pinDecide${P&&x.buyTooThin?" thin":""}">
+    <span class="pinLab">${P?"What it's worth to you":"The numbers"}</span>
+    <button class="pinNew" id="pinNew" type="button" title="Clear this item and start the next one. Your rates, shelf record, listings and deal log are kept.">Start over</button>
+    ${x.buyTooThin
+      ? cell("buy","Not worth buying","Walk away",1)+cell("lend","Not worth lending","Walk away",1)
+      : (P?cell("buy","Pay up to",money(x.buy),1)+cell("lend","Or lend on it",money(x.target),1)
+          :cell("buy","Buy it for",money(x.buy),1)+cell("lend","Lend him",money(x.target),1))}
+    ${cell("resale",x.handSet?(P?"Resells for":"Resale, yours"):(P?"Resells for":"Resale, "+esc(COND_WORDS[st.cond][0].toLowerCase())),money(x.resale))}
+    ${P&&!x.buyTooThin?cell("gain","You'd make",money(x.buyMargin)):""}
+    ${cell("cushion","Your cushion",money(x.margin))}
+    ${cell("fee","Fee / 30 days",money(x.charge))}
+    ${cell("ltv","Loan \u00f7 resale",x.ltv+"%")}
+    <span class="pinNote">${x.checked?"":`<b style="color:var(--warn-ink)">Estimate \u2014 nothing looked up yet.</b> `}${x.buyTooThin
+      ? `It doesn\u2019t sell for enough to clear the ${money(x.buyFloor)} you want out of it \u2014 not as a buy, and not as a loan you end up owning.`
+      : P?(x.buyTooThin
+        ?`It doesn\u2019t sell for enough to clear the ${money(x.buyFloor)} you want out of a buy.`
+        :`Capped by ${esc(buyCapWhy(x))}. Over ${money(x.buy)} and you\u2019re eating the ${money(x.buyMargin)}.`)
+      :`Range ${money(x.low)}&ndash;${money(x.high)}. Never above the top.`}${x.buy===x.target&&!x.lendCapped&&!x.buyTooThin?` Buy and lend match in ${esc(x.cat.label.toLowerCase())} on purpose \u2014 ${esc(x.buyWhy||"")}.`:""}</span>
+  </div>`;
+}
+/* The rail: one dial, one partner figure, then the working.
+   Built as its own function rather than a variant of the strip, because
+   the strip is a ROW of equals and this is a hierarchy - trying to be both
+   is how the old one ended up with a 40px buy price and a 14px fee
+   sharing a flexbox. */
+/* WHAT COMES BACK BELONGS BESIDE WHAT GOES OUT.
+   The money out the door was on the rail; the money coming back was folded
+   shut in step 8, three cards down the middle column. Those are the two
+   halves of one sentence, and the customer asks the second half out loud -
+   "so what do I owe you" - while you are still holding the first. It is
+   also the number he decides on.
+   Day 30 is the one that matters, so it is the one that is big. The other
+   two are what he asks next. The forfeit date is not a footnote either: it
+   is the whole deal, and it goes on the card rather than in a fold. */
+function railHTML(x){
+  /* THE RAIL ONCE THERE IS AN ANSWER.
+     It used to open with a saturated card carrying the offer, the loan and
+     the resale - the phone's hero, on the desk. That was right while the
+     middle column was a question; it stopped being right the moment the
+     run started ending in the answer six inches to the left. Reported from
+     the counter as redundant, and it was.
+     What is here instead is everything the middle column does NOT say:
+     the actions, what kills one of these, the rungs past day 30, and the
+     cushion. */
+  const thin=x.buyTooThin;
+  const I={
+    look:'<circle cx="11" cy="11" r="7"/><path d="M16 16l5 5"/>',
+    log :'<path d="M5 4h11l3 3v13H5z"/><path d="M9 9h6M9 13h6"/>',
+    add :'<path d="M12 5v14M5 12h14"/>',
+    ev  :'<path d="M3 17l5-6 4 4 5-7 4 5"/>',
+    lend:'<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>',
+    math:'<path d="M4 18V9M10 18V5M16 18v-6M2 21h20"/>'
+  };
+  const canLook=!!(CAP.sample&&!ebayBlind(x));
+  const act=(id,label,icon,on)=>`<button class="act" data-dact="${id}"${on?"":" disabled"}>`
+    +`<i><svg viewBox="0 0 24 24" aria-hidden="true">${icon}</svg></i><span>${label}</span></button>`;
+  /* THE SAME THREE NUMBERS, TWICE, SIX INCHES APART.
+     Reported from the counter: once the run ends in the answer, the blue
+     hero beside it is "redundant of the new middle section." It is - buy
+     it for, lend him, resells, all of it repeated in a bigger typeface
+     than the card that just produced them.
+     What the rail keeps is what the middle does NOT say. The three actions
+     are actions, not numbers, so they stay - "Another" especially, since
+     it is how the next customer gets served. The ladder keeps days 31-60
+     and 90; the middle only names day 30. The cushion is nowhere else. And
+     the space the hero gave up goes to the thing a counter actually wants
+     in the last second before the money moves: what kills one of these. */
+  /* pinHTML above returns a bare strip whenever the run is not finished,
+     so this function is only ever reached once there IS an answer - which
+     is why the old hero branch that used to follow was unreachable and has
+     been taken out rather than left sitting here looking live. */
+  /* The name was here AND at the top of the answer card, which now leads
+     with "Laptop · Excellent". One of them had to go, and it is this one:
+     the card that carries the money should carry the name of the thing the
+     money is for. What is left is the three actions, which are the only
+     reason this strip exists. */
+  return `<div class="railTop${thin?" bad":""}">
+      ${thin?`<div class="railNo"><b>Walk away.</b> It will not clear the ${money(x.buyFloor)} you want out of it &mdash; not as a buy, and not as a loan you end up owning.</div>`:""}
+      <div class="acts">
+        ${act("look",findBusy?"Looking\u2026":"Look up",I.look,canLook&&!findBusy)}
+        ${act("log","Log it",I.log,true)}
+        ${act("new","Another",I.add,true)}
+      </div>
+      ${/* IT WAS NOT THAT THE BUTTON DID NOTHING - IT WAS THAT IT SAID
+            NOTHING. Reported from the counter: "the lookup button doesn't
+            do anything." It fires, it searches, it can change the price.
+            But every word it produces - "Searching eBay...", the tally,
+            "No listings found", "Every search failed" - was written into
+            #pdFindMsg, which belongs to the comps card and is not on the
+            page at all when the rail is up. Press it and the screen does
+            not move, win or lose. So the rail carries the running
+            commentary itself, right under the button that started it. */""}
+      ${(findBusy||findMsg)?`<div class="railFind${findBusy?" busy":""}" id="railFindMsg">${esc(findMsg||"Searching\u2026")}</div>`:""}
+    </div>
+    ${(typeof itemGuardHTML==="function")?itemGuardHTML(x):""}
+    ${killerHTML(x)}
+    ${thin?"":`
+    <div class="railBack">
+      <div class="railBackHd"><b>To get it back</b><span>${pawnPct()}% per 30 days \u00b7 $${(x.charge/30).toFixed(2)}/day after day\u00a060</span></div>
+      <div class="railLadder">${ladder(x.target,x.charge).map((r,i)=>
+        `<div class="rbCell${i===0?" now":""}"><div class="k">${r.k}</div><div class="d">${money(r.due)}</div></div>`).join("")}</div>
+      <div class="rbDay60">Day 60 it is <b>ours</b> &mdash; no notice, no letter.</div>
+    </div>`}
+    <div class="wRow"><i><svg viewBox="0 0 24 24" aria-hidden="true">${I.math}</svg></i>
+      <div class="t"><b>Your cushion</b><span>fee ${money(x.charge)} \u00b7 lending ${x.ltv}% of resale</span></div>
+      <div class="v">${money(x.margin)}</div></div>
+    <div class="pinNote railNote">${x.checked?"":`<b style="color:var(--warn-ink)">Estimate \u2014 nothing looked up yet.</b> `}${thin
+      ? `Not worth buying, and not worth lending on either.`
+      : `Range ${money(x.low)}&ndash;${money(x.high)}. Never above the top.`}</div>`;
+}
+/* HOW MUCH IS BEHIND THE NUMBER.
+   The desk has always known this and said it in one line of small grey type:
+   how many listings the resale value rests on, how many of those were real
+   sales rather than asking prices, and which sites they came from. A price
+   built on nine completed eBay sales and a price built on two hopeful
+   Craigslist ads were exactly the same size on the screen.
+
+   They are not the same number. The difference is whether you hold your
+   offer when he argues, and it is the first thing you would want to know
+   standing there - so it gets drawn rather than mentioned.
+
+   The bar is the share that were real sales. Amber, not green, when most of
+   what is behind the figure is somebody's asking price: asks run high, and
+   high is the wrong way to be wrong when the money is going out. */
+/* WHAT KILLS ONE OF THESE.
+   The desk has carried a driver and a killer for every kind of thing since
+   the beginning, and they sat folded inside a details on the step that sets
+   the brand - read once while typing a model, gone by the time anybody is
+   deciding. They belong in the last second before the money moves, which
+   on a desk is the rail: the price is settled, the offer is on the screen,
+   and the only question left is whether the thing in your hands is the
+   thing the price assumed. */
+function killerHTML(x){
+  const ov=itemOv()||{}, cat=x.cat||{};
+  const kill=ov.killer||cat.killer||"", drive=ov.driver||cat.driver||"";
+  if(!kill&&!drive)return "";
+  return `<div class="card killCard">
+    <span class="label" style="margin:0">Before the money moves</span>
+    ${kill?`<div class="killRow no"><b>What kills it</b><span>${esc(kill)}</span></div>`:""}
+    ${drive?`<div class="killRow go"><b>What sets the price</b><span>${esc(drive)}</span></div>`:""}
+  </div>`;
+}
+/* Sale, hope, or hearsay - read off the row's own note.
+   The harvest writes these strings, so the shapes are fixed:
+     "14 eBay sales in the last 90 days"        a measured sale
+     "11 listings, asking prices - no sold data" a measured ask
+   and anything else is one of the 161 rows that were researched by hand in
+   September, which are neither and should not pretend to be either. */
+function rowEvidence(note){
+  const t=String(note||"");
+  const sold=t.match(/(\d+)\s+[^.]*\bsales?\b[^.]*\blast\b/i);
+  if(sold)return {kind:"sold", n:Number(sold[1])||0};
+  if(/asking price|no sold data|listings,\s*asking/i.test(t)){
+    const n=t.match(/(\d+)\s+listing/i);
+    return {kind:"asking", n:n?Number(n[1]):0};
+  }
+  return {kind:"research", n:0};
+}
+function weightHTML(x){
+  const m=x.market;
+  const CONF={h:[100,"","good data"],m:[62,"warn","fair data"],l:[28,"warn","thin - check it"]};
+  const bar=(pct,tone)=>`<div class="wBar"><i class="${tone||""}" style="width:${Math.max(3,Math.min(100,Math.round(pct)))}%"></i></div>`;
+  const card=(head,right,barHTML,foot)=>`<div class="card wCard">
+    <span class="label" style="margin:0">Behind this number</span>
+    <div class="wHead"><b>${head}</b><span>${right}</span></div>
+    ${barHTML}${foot?`<div class="wFoot">${foot}</div>`:""}</div>`;
+
+  /* A meter that means "no evidence" was drawn FULL and merely greyed out.
+     Grey or not, a full bar reads as a full bar at arm's length across a
+     counter - the one glance this card exists for said maximum confidence
+     when it meant none at all. Empty is the honest picture, and it is the
+     same shape as the sentence underneath it. */
+  if(!m||!x.checked)
+    return card("Not checked","nothing looked up",bar(0,"none"),
+      "No sale behind this yet. The figure is a built-in starting point, not a price anybody paid. Look one up and this bar fills with what it found.");
+
+  if(m.kind==="found"||m.kind==="harvest"){
+    const n=m.n||0, sold=m.sold||0, share=n?sold/n:0;
+    const asks=n-sold;
+    /* The pictures belong HERE, not only on the step that set the price.
+       By the time the counter is deciding, the price is already set and
+       step 2 is long gone - and "12 sold" is a claim, while twelve pictures
+       are something they can check against the thing in their hand. */
+    /* WHICH SOURCE, IN WORDS, AND WHY IT IS NOT THE BETTER ONE.
+       Asked from the counter: "how are we searching eBay right now? sold
+       comps usage is maxed out." The desk knew - the service answers every
+       lookup with the source it reached and a warning saying what it fell
+       past to get there - and the only place that ever appeared was one
+       word on the progress line, which is gone the moment the price lands.
+       So the counter was looking at a number with no idea whether it came
+       from sales, from asking prices, or from the built-in list.
+       It is named here now, on the price itself, in the order the service
+       tries them. */
+    /* FOUR WAYS OF SAYING THE SAME THING.
+       This card read: "34 listings / 0 sold - 34 asking", then "eBay
+       listings - what is for sale right now", then "sold-price quota spent
+       for the month, fell back to asking prices", then "eBay 34", then
+       "Mostly asking prices. Nobody paid these..." Every one of those is
+       the sentence "these are asks", and a counter reading the same fact
+       five times in five wordings starts skimming - which is how the one
+       line that is NOT a repeat gets missed.
+       One statement each: what they are, where from, why not better, and
+       what it means for the number. */
+    const askOnly=sold===0;
+    const head=askOnly ? n+" asking price"+(n===1?"":"s")
+             : share>=0.5 ? sold+" real sale"+(sold===1?"":"s")
+             : n+" listings";
+    const right=askOnly ? "nobody paid these"
+              : share>=0.5 ? "somebody paid these"
+              : sold+" sold \u00b7 "+asks+" asking";
+    const VIA={soldcomps:"SoldComps \u2014 completed sales",
+               marketplace_insights:"eBay \u2014 sold and completed",
+               browse:"eBay listings, not sales"};
+    const via=VIA[m.via]||(m.from?esc(m.from):"");
+    /* The service's own sentence carries "fell back to asking prices" on
+       the end, which the headline has already said. Keep the half that is
+       news - WHY there is no sold data this time. */
+    const why=String(m.viaWhy||"").replace(/,?\s*fell back to asking prices\.?$/i,"").trim();
+    return card(`<span class="wKind ${askOnly?"asking":share>=0.5?"sold":""}">${head}</span>`, right,
+      bar(n?share*100:3,share>=0.5?"":"warn"),
+      (via?`<div class="wVia"><span>Source</span><b>${esc(via)}</b></div>`:"")
+      +(why?`<div class="wWhy">${esc(why.charAt(0).toUpperCase()+why.slice(1))}.</div>`:"")
+      +(share>=0.5
+        ? "Prices somebody actually paid, in the last 90 days."
+        : "What sellers are hoping for. They run high, so treat this as a ceiling rather than a price."))
+      +thumbStripCard(compsMatch(x));
+  }
+
+  if(m.kind==="list"){
+    const c=CONF[m.conf]||CONF.m;
+    /* THE HEADLINE SLOT HOLDS A VERDICT, NOT A HOSTNAME.
+       This branch used to put srcName(m.src) there, so the card read
+       "Swappa" - one word on its own, in the same slot where every other
+       branch of this function puts a quantity or a judgement: "12
+       listings", "Not checked", "No sales found", "your 3 sales". Swappa
+       is right and the price behind it is right; the screen just never
+       said what the word was doing there. It went past me in three of my
+       own screenshots reading "Underpriced", which is also a price site
+       and not, as it looks, a verdict on the offer.
+
+       The source belongs in the sentence, where it has "researched from"
+       in front of it and is worth something. */
+    /* "Researched from eBay, checked Sep 23. Nothing looked up live yet."
+       Both halves were true and together they read as a contradiction -
+       a great deal WAS looked up, on 23 Sep, by the weekly harvest; what
+       had not happened was this device re-checking it today. The sentence
+       said "nothing" about work that is the entire reason the row has a
+       number. It says which day the figure is from and leaves it there. */
+    /* WAS IT A SALE OR A HOPE? THE ONE THING IT DID NOT SAY.
+       Asked at the counter looking at a PlayStation: "is this truly a sold
+       number or a for sale number?" It was a sold number - fourteen
+       completed eBay sales - and nothing on the screen said so. The panel
+       led with "Desk price list", which describes where the figure is
+       STORED rather than what is behind it, and the only clue was a
+       confidence word.
+       The row has always known. Its note is written by the harvest and
+       says either "14 eBay sales in the last 90 days" or "11 listings,
+       asking prices - no sold data". So the panel leads with that, in the
+       slot where every other branch of this function puts a verdict. */
+    const ev=rowEvidence(m.note);
+    const head=ev.kind==="sold" ? (ev.n?ev.n+" real sales":"Sold prices")
+             : ev.kind==="asking" ? "Asking prices"
+             : "Researched";
+    const right=ev.kind==="sold" ? "somebody paid these"
+              : ev.kind==="asking" ? "nobody paid these"
+              : c[2];
+    const pct=ev.kind==="sold"?c[0]:ev.kind==="asking"?26:52;
+    const tone=ev.kind==="sold"?c[1]:"warn";
+    const via=ev.kind==="sold" ? esc(srcName(m.src))+" \u2014 sold and completed"
+            : ev.kind==="asking" ? esc(srcName(m.src))+" \u2014 what was up for sale"
+            : esc(srcName(m.src))+" \u2014 looked up by hand, not measured";
+    return card(`<span class="wKind ${ev.kind}">${head}</span>`,right,bar(pct,tone),
+      (m.mine?`<div class="wVia"><span>Source</span><b>Your own master sheet</b></div>`
+             :`<div class="wVia"><span>Source</span><b>${via}</b></div>`)
+      +(m.note?`<div class="wFrom">${esc(m.note)}</div>`:"")
+      +(ev.kind==="asking"
+        ?`<b>Nobody paid these.</b> They are what sellers were hoping for, and they run high \u2014 treat the figure as a ceiling. `
+        :ev.kind==="research"
+        ?`<b>No count behind this one.</b> It was researched rather than measured off a page of sales. `
+        :"")
+      +"For <b>"+esc(m.name||"this model")+"</b>, checked "+esc(fmtDay(m.date))+". Not re-checked since.");
+  }
+
+  if(m.kind==="shot")
+    return card(m.n+" sold","on "+esc(m.site||"the sold page"),bar(100,""),
+      "Read off a sold page you photographed. These are completed sales.");
+
+  if(m.kind==="seen")
+    return card(m.n+" seen locally","asking "+money(m.ask),bar(30,"warn"),
+      "<b>Another shop's shelf tags.</b> Asking prices, and they have their own markdown to come.");
+
+  if(m.kind==="own")
+    return card("your "+m.n+" sales","your own counter",bar(100,""),
+      "What this shop actually got for one. Nothing beats it.");
+
+  if(m.kind==="retail")
+    return card("No sales found","worked back from new",bar(25,"warn"),
+      "Nothing sold turned up, so this is "+money(m.retail)+" new taken down to a used share. A real sold price beats it every time.");
+
+  if(m.kind==="hand")
+    return card("Your own figure","typed in",bar(100,""),
+      "You set this by hand, so it is taken as this one sits - condition does not adjust it again.");
+
+  return "";
+}
+function paintPin(x){ const p=document.getElementById("pin"); if(p)p.innerHTML=pinHTML(x||calcItem()); }
+function ticketHTML(x){
+  const F=fakeState(fakeSheet(x));
+  if(F&&F.blocks)return fakeHoldHTML(F);
+  /* Same gate as the numbers strip: a loan figure is a price like any other,
+     and quoting one off a half-finished run is the thing being stopped. */
+  /* The numbers strip already says "No price yet - still needs the model,
+     what it sells for and the condition", three inches away. This card
+     said the same sentence again in different words, on every step of
+     every run. Where the strip is on screen, one of them is enough. */
+  if(!priceReady(x))return deskRail()?"":`<div class="card unchecked">
+    <span class="label">7 &middot; Pawn loan &mdash; the cash you lend him</span>
+    <div class="cardHint" style="margin-top:0">No loan figure yet. The run still needs
+      <b style="color:var(--ink)">${esc(needList(x))}</b> &mdash; each one moves the number,
+      and a figure quoted without them is a guess wearing a dollar sign.</div>
+  </div>`;
+  /* A loan the shop would lose money owning is not a smaller loan, it is
+     no loan. The desk used to print one anyway - "lend $8" beside "pay $1"
+     for a wheelbarrow - so the card says the same thing the numbers strip
+     says rather than quoting a figure nobody should write. */
+  if(x.buyTooThin)return `<div class="card unchecked">
+    <span class="label">7 &middot; Pawn loan &mdash; the cash you lend him</span>
+    <div class="tagWarn" style="border-left-color:var(--bad);background:var(--bad-wash);color:var(--bad-ink)">
+      <b>Walk away.</b> It resells for about ${money(x.resale)}, and clearing the
+      ${money(x.buyFloor)} you want out of a deal leaves ${money(x.buy)} to offer.
+      There is nothing here to lend against either \u2014 an unredeemed loan
+      leaves you owning it with the same hauling and listing to do.</div>
+    <div class="cardHint" style="font-size:14px;color:var(--ink-2)">If you want it anyway,
+      set your own price in the run above and the desk will work from that.</div>
+  </div>`;
+  /* WHEN THE RAIL IS THERE, THE RAIL IS THE MONEY.
+     The panel on the right already carries buy, lend, resale, cushion, fee,
+     loan-to-resale, the range and the estimate warning. This card then drew
+     a gauge of the same loan, three tiles of the same range, the same buy
+     price and a fold to the same cushion and fee - the whole card was one
+     duplicate, and it pushed everything worth reading below the fold.
+     What the rail cannot say stays: a check that failed, a missing title,
+     which model the price came from, and the reasoning behind the cap. */
+  if(deskRail())return `<div class="card${x.checked?"":" unchecked"}">
+    <span class="label">7 &middot; Pawn loan &mdash; the detail</span>
+    ${(st.model||st.detail)?`<div class="cardHint" style="margin-top:0">Pricing: <b style="color:var(--ink)">${[st.model,st.detail].filter(Boolean).map(esc).join(" \u00b7 ")}</b></div>`:""}
+    ${x.spec&&x.spec.stop?`<div class="tagWarn" style="border-left-color:var(--bad);background:var(--bad-wash);color:var(--bad-ink)"><b>NO TITLE &mdash; NO DEAL.</b> Don't negotiate around a missing title, at any price.</div>`:""}
+    <div class="cardHint" style="margin-top:0">Open at <b style="color:var(--ink)">${money(x.target)}</b>. Go low when cash is tight or the deal feels off; go toward <b style="color:var(--ink)">${money(x.high)}</b> for a regular you want back. Never above the top &mdash; that is your cushion.</div>
+    ${ticketDetailHTML(x)}
+  </div>${paybackHTML(x)}`;
+  return `<div class="card${x.checked?"":" unchecked"}">
+    <span class="label">7 &middot; Pawn loan &mdash; the cash you lend him</span>
+    ${x.checked?"":`<div class="mkNo" style="margin-bottom:6px"><b>Nothing looked up yet.</b> This is a built-in figure for a typical one, not a sale anybody made. Check the sold prices and it will change.</div>`}
+    ${gauge(x.ltv/100,"Lend him",money(x.target),x.checked?"pawn loan":"estimate","gi")}
+    ${(st.model||st.detail)?`<div class="cardHint" style="text-align:center;margin-top:2px">Pricing: <b style="color:var(--ink)">${[st.model,st.detail].filter(Boolean).map(esc).join(" · ")}</b></div>`:""}
+    ${x.spec&&x.spec.stop?`<div class="tagWarn" style="border-left-color:var(--bad);background:var(--bad-wash);color:var(--bad-ink)"><b>NO TITLE — NO DEAL.</b> Don't negotiate around a missing title, at any price.</div>`:""}
+    <div class="tiles" style="grid-template-columns:1fr 1fr 1fr;margin-top:4px">
+      <div class="widget"><div class="l">Low loan</div><div class="v">${money(x.low)}</div></div>
+      <div class="widget" style="box-shadow:inset 0 1px 0 rgba(255,255,255,.13),inset 0 -1px 0 rgba(0,0,0,.5),0 4px 10px -6px rgba(0,0,0,.9),inset 0 0 0 1px rgba(0,232,160,.9)"><div class="l">Suggested loan</div><div class="v">${money(x.target)}</div></div>
+      <div class="widget"><div class="l">Top loan</div><div class="v">${money(x.high)}</div></div>
+    </div>
+    <div class="cardHint" style="margin-top:8px">Open at the suggested loan. Go low when cash is tight or the deal feels off; go toward the top for a regular you want back. Never lend above the top — that's your cushion.</div>
+    ${buyRowHTML(x)}
+    ${ticketDetailHTML(x)}
+  </div>${paybackHTML(x)}`;
+}
+/* Split out so the two halves can be read on their own. The rail carries
+   the numbers panel and nothing else - see below. */
+function ticketDetailHTML(x){
+  return `<details class="fold"${st.openWhy?" open":""} id="whyFold"><summary class="foldLine">The detail &mdash; cushion, fee, and why it is this much</summary>
+    ${x.liquidity.adj!==0?`<div class="tagNote">Cut ${Math.abs(x.liquidity.adj)} points because it's a ${x.liquidity.label.toLowerCase()} item here. Your money sits in it longer, so lend less — don't drop the price.</div>`:""}
+    <div class="tiles">
+      <div class="widget"><div class="l">Resale value in this condition</div><div class="v">${money(x.resale)}</div></div>
+      <div class="widget"><div class="l">Your cushion (resale &minus; loan)</div><div class="v">${money(x.margin)}</div></div>
+      <div class="widget"><div class="l">Your fee, each 30 days</div><div class="v">${money(x.charge)}</div></div>
+      <div class="widget"><div class="l">Loan &divide; resale — the ring above</div><div class="v">${x.ltv}%</div></div>
+    </div>
+    ${whyHTML("item")}
+    </details>`;
+}
+/* THE RATE SITS WITH THE NUMBER IT EXPLAINS.
+   Putting it in the rates fold with the lending percentages would have been
+   tidier and wronger: the question "why is he paying back $131" gets asked
+   while looking at the $131, and an answer two cards away is not an answer. */
+function pawnRateHTML(){
+  const p=pawnPct();
+  return `<div class="rateRow" style="margin-top:2px"><span class="label" style="margin:0">Your charge, each 30 days (%)</span>
+      <input id="pawnNum" class="numIn rateNum" type="number" inputmode="numeric" min="0" max="${PAWN_CAP}" step="1" value="${p}"></div>
+    <input type="range" min="0" max="${PAWN_CAP}" step="1" value="${p}" id="pawnSlider">
+    <div class="sliderScale"><span>0% — no charge</span><span>${PAWN_CAP}% — the legal ceiling</span></div>
+    ${p>=PAWN_CAP?`<div class="tagWarn" style="margin-top:9px"><b>${PAWN_CAP}% is the ceiling &sect; 539.001(11) allows.</b> ${money(100)} lent comes back as ${money(125)} by day 30. This is the shop’s rate, set here on purpose — and there is no room above it: overcharging voids the transaction and forfeits twice the charge.</div>`:""}`;
+}
+function paybackHTML(x){
+  return `<details class="card foldCard"${st.openPayback?" open":""} id="paybackFold">
+    <summary><span class="label" style="margin:0">8 &middot; After the money moves</span><span class="foldSub">what it costs him to get it back, and the day it becomes ours</span></summary>
+    ${pawnRateHTML()}
+    <span class="label" style="margin-bottom:0;margin-top:14px;color:var(--ink-2)">To get it back</span>
+    <div class="ladder" id="payLadder">${ladder(x.target,x.charge).map(r=>`<div class="widget rung"><div class="k">${r.k}</div><div class="d">${money(r.due)}</div></div>`).join("")}</div>
+    <div style="font-size:12px;line-height:1.5;color:var(--ink-2);margin-top:9px">
+      It is <b style="color:var(--ink)">not</b> ${pawnPct()}% again every month. The charge is capped at <b style="color:var(--ink)">twice</b> the 30-day amount from day 31 through day 60, then accrues <b style="color:var(--ink)">$${(x.charge/30).toFixed(2)}/day</b> after that — and remember, past day 60 the item is already yours; late redemption is a courtesy you price with this rate.
+    </div>
+    <div class="tagWarn"><b>Day 60 it's ours.</b> Maturity is day 30, then we must hold it 30 more. Not redeemed by day 60 and title passes to us automatically — no notice, no letter, no auction. Within the first 30 days only he or his attorney-in-fact may redeem it.</div>
+    <div class="fine">&sect; 539.001(11) caps the charge at 25% of the amount financed per 30 days, minimum $5. Overcharging voids the transaction and forfeits twice the charge — but an honest mistake corrected when you catch it carries no penalty. Fix it, don't hide it.</div>
+  </details>`;
+}
+/* THE SPEC BOOK — compiled spec economics. Read from the Details/Model text,
+   applied as visible multipliers with the reasoning shown. Capped 0.4–1.8. */
+const SPECBOOK={
+ guns:[
+  {re:/16\s*(ga|gauge)/i,mult:.85,note:"16 gauge — dying gauge, ammo scarce: −15%, and slower"},
+  {re:/28\s*(ga|gauge)/i,mult:1.3,note:"28 gauge — boutique: +30%, but fewer buyers — consider Slow"},
+  {re:/\.410|410\s*(bore|ga)/i,mult:1.1,note:".410 — popular little bore: +10%"},
+  {re:/(12|20)\s*(ga|gauge)/i,mult:1,note:"12/20 gauge — the liquid gauges: baseline"},
+  {re:/(9\s*mm|\.?223|5\.56|\.?22\b|\.?308|30-06|\.?243|6\.5)/i,mult:1,note:"common caliber — sells fast: baseline"},
+  {re:/(10\s*mm|45-70|\.?357)/i,mult:1.08,note:"desirable caliber: +8%"}],
+ power:[
+  {re:/inverter/i,mult:1.6,note:"inverter — quiet tech runs ~60% over open-frame at the same watts"},
+  {re:/(2[0-9])\s*(in|\")\s*bar/i,mult:1.15,note:"pro-length bar: +15%, slower buyer"}],
+ hunt:[
+  {re:/cellular/i,mult:.6,note:"cellular: −40% — priced with no plan on it, because the plan leaves with the customer"}],
+ tools:[
+  {re:/\b12\s*v/i,mult:.6,note:"12V platform — worth ~40% less than 18/20V"},
+  {re:/\b(36|40|56|60)\s*v/i,mult:1.2,note:"high-voltage platform: +20%"}],
+ elec:[
+  {re:/\b(7\d|8\d)\s*(in|\")/,mult:1.4,note:"75in-class screen: +40%"},
+  {re:/\b(3[0-9])\s*(in|\")/,mult:.5,note:"small screen: about half"}],
+ rolling:[
+  {re:/(no|lost|missing)\s+title/i,mult:1,note:"NO TITLE — NO DEAL, at any price",stop:true}]};
+/* PER-ITEM OVERRIDES — where the category default misleads. Each entry can
+   replace the tier pill labels, the typed-brand book, and the details prompt. */
+/* STRUCTURED SPEC CHOICES — pick, don't type. First option is always the
+   baseline. Each item asks 2–3 questions; every answer carries its exact
+   multiplier and reasoning. Stacked, capped 0.4–1.8. */
+const CH_GAUGE={label:"Gauge",options:[
+  {t:"12 ga",m:1},{t:"20 ga",m:1},
+  {t:"16 ga",m:.85,note:"16 gauge — ammo scarce: −15%, and slower"},
+  {t:"28 ga",m:1.3,note:"28 gauge — boutique: +30%, fewer buyers — consider Slow"},
+  {t:".410",m:1.1,note:".410 — popular little bore: +10%"}]};
+const CH_BARREL={label:"Barrel",options:[
+  {t:"Field length (24–28 in)",m:1},
+  {t:"Short / home-defense (18–20 in)",m:1.05,note:"defense length: +5%"},
+  {t:"Extra-long (30 in +)",m:.9,note:"long target barrel — fewer local buyers: −10%"}]};
+const CH_CALIBER={label:"Caliber",options:[
+  {t:"Common (9mm, .223, .308…)",m:1},
+  {t:"Desirable (10mm, .45-70…)",m:1.08,note:"desirable caliber: +8%"},
+  {t:"Oddball",m:.85,note:"oddball caliber — fewer local buyers: −15%, consider Slow"}]};
+const CH_OPTIC={label:"Optics mounted",options:[
+  {t:"None / irons",m:1},
+  {t:"Scoped — decent glass",m:1.15,note:"decent glass on top: +15%"},
+  {t:"Scoped — junk glass",m:1,note:"junk glass adds nothing — price the gun alone"}]};
+const CH_TITLE={label:"Title",options:[
+  {t:"Title in hand",m:1},
+  {t:"NO title",m:1,stop:true,note:"NO TITLE — NO DEAL, at any price"}]};
+const CH_VOLT={label:"Battery platform",options:[
+  {t:"18 / 20V",m:1},
+  {t:"12V",m:.6,note:"12V platform — worth ~40% less"},
+  {t:"36V+",m:1.2,note:"high-voltage platform: +20%"}]};
+const CH_PWR={label:"Power",options:[
+  {t:"Gas",m:1},
+  {t:"Battery — with battery & charger",m:.9,note:"battery unit: −10%, and the battery is most of the value"},
+  {t:"Battery — bare, no battery",q:"tool only",m:.4,note:"bare battery tool: −60%"},
+  {t:"Corded electric",m:.5,note:"corded: about half"}]};
+const CH_AGE={label:"Age",options:[
+  {t:"Under 3 yr",m:1},
+  {t:"3–6 yr",m:.6,note:"3-6 years old: −40%"},
+  {t:"6 yr +",m:.4,note:"aged electronics — accessory money"}]};
+/* DOES IT RUN? The aisle's killer line has always said "Won't start. Then
+   it's parts, not a tool" - and the run never asked. An outside reviewer
+   pointed at the same gap from the other side: a gas engine that starts
+   today often will not after sitting sixty days with pump gas in the
+   carburettor, which is exactly the hold a pawn loan puts it through.
+
+   I have not encoded a figure for how often that happens - I have no
+   measurement of it and would not put somebody else's statistic in the
+   arithmetic. What IS certain is that a small engine which will not start
+   sells for parts, and the desk should ask rather than assume. The 0.35 is
+   a shop judgement, not a measurement, and it says so on the option.
+
+   Pull the cord before you price it; drain the tank before you shelve it. */
+const CH_RUNS={label:"Does it start?",options:[
+  {t:"Starts and runs",m:1},
+  /* .4 and not the .35 first written: spec.mult is clamped to a floor of
+     .4 in calcItem, so .35 would have printed "about a third" on the card
+     while the arithmetic did 40%. The number shown has to be the number
+     used. */
+  {t:"Won't start, or didn't try",m:.4,
+   note:"not proven to run \u2014 priced as parts, 40% of a running one. A shop judgement, not a measured figure",
+   q:"for parts not working"}]};
+const CH_GRADE={label:"Grade",options:[
+  {t:"Homeowner",m:1},
+  {t:"Farm / ranch",m:1.1,note:"farm grade: +10%"},
+  {t:"Pro / commercial",m:1.25,note:"pro grade: +25%"}]};
+/* THE SAME MISSING BATTERY, PRICED TWICE.
+   Caught by an outside review and confirmed with numbers. A cordless drill
+   is asked "what came with it" - tool only is .52, because a bare tool IS
+   about half a kit - and then the aisle asks "is it all there? battery,
+   charger, case", which takes another 30% for the battery that the first
+   answer already said was missing. A $123 kit came out at $45 instead of
+   $64, and the loan is a share of that.
+
+   Where a spec group already asks the question, the aisle's must not ask it
+   again. The group says so itself rather than this being matched on its
+   label, so a renamed group cannot quietly turn the double-count back on. */
+function specCoversComplete(id){
+  return (SPEC_CHOICES[id||st.itemId]||[]).some(g=>g&&g.covers==="complete");
+}
+/* Which option stands when nobody has answered yet: the neutral one, the one
+   that does not move the price. Never "whichever is listed first" - the bands
+   read best in size order, and reading order and neutral only ever coincided
+   by luck. */
+function specBase(g){ const i=g.options.findIndex(o=>(o.m||1)===1); return i<0?0:i; }
+/* Appliances die on age more than anything else - a ten-year-old washer is
+   a repair call waiting to happen, and everyone at the counter knows it. */
+const CH_APPL_AGE={label:"Age",options:[
+ {t:"Under 3 yr",m:1.2,note:"nearly new: +20%"},
+ {t:"3\u20137 yr",m:1},
+ {t:"8\u201312 yr",m:.7,note:"getting old: \u221230%"},
+ {t:"Over 12 yr / unknown",m:.45,note:"old or unknown age \u2014 it is scrap with a cord on it"}]};
+const SPEC_CHOICES={
+ g1:[CH_GAUGE,CH_BARREL],g2:[CH_GAUGE,CH_BARREL],
+ g3:[CH_CALIBER,CH_OPTIC],g4:[CH_CALIBER,CH_OPTIC],
+ g5:[CH_CALIBER,{label:"Build",options:[{t:"Basic / irons",m:1},{t:"Optic + real upgrades",m:1.15,note:"upgraded build: +15%"}]}],
+ g6:[{label:"Action",options:[{t:"Semi-auto (10/22 class)",m:1},{t:"Bolt / single-shot",m:.85,note:"bolt/single .22s sell slower: −15%"}]},CH_OPTIC],
+ g7:[CH_CALIBER,{label:"Size",options:[{t:"Full / compact",m:1},{t:"Pocket (.25/.380 junk-class)",m:.8,note:"pocket-class: −20%"}]}],
+ g8:[CH_CALIBER,{label:"Barrel",options:[{t:"3–6 in",m:1},{t:"Snub 2 in",m:1},{t:"7 in + hunter",m:.9,note:"long hunter barrel — narrower market: −10%"}]}],
+ g9:[{label:"Type",options:[{t:"In-line (modern)",m:1},{t:"Sidelock / traditional",m:.8,note:"traditional — thin buyer pool: −20%"}]},CH_OPTIC],
+ g10:[CH_CALIBER,CH_OPTIC],
+ p1:[CH_RUNS,{label:"Bar length",options:[{t:"Under 16 in",m:.85,note:"short bar — homeowner saw: −15%"},{t:"16–18 in",m:1},{t:"19 in +",m:1.15,note:"pro-length bar: +15%, slower buyer"}]},CH_GRADE],
+ p2:[CH_RUNS,CH_PWR,CH_GRADE],p3:[CH_RUNS,CH_PWR,CH_GRADE],
+ /* No "battery mower, no battery" option, and that is deliberate. eBay
+    cannot price a mower at all: 0 of 10 push mowers in the harvest came
+    back usable, and the share gate marked four of them local-only outright
+    - a Honda HRX217 returned 4 real machines out of 39 listings, the rest
+    spindles and deck belts. Measuring bare against with-battery on that
+    data gave bare as DEARER, 1.25x, which is the pooled-mix trap and not a
+    market. A mower without its battery is a real thing that walks in; it is
+    just not a thing eBay can put a number on. Price it off the shelf record
+    and your own sales, and do not invent a multiplier here. */
+ p4:[CH_RUNS,{label:"Drive",options:[{t:"Gas push",m:1},{t:"Self-propelled",m:1.15,note:"self-propelled: +15%"},{t:"Battery — with battery",m:.9,note:"battery mower: −10%"},{t:"Corded electric",m:.5,note:"corded: about half"}]},
+     {label:"Deck",options:[{t:"Standard 20–22 in",m:1},{t:"Wide-area 26 in +",m:1.2,note:"wide-area: +20%"}]}],
+ p5:[{label:"Deck",options:[{t:"Under 42 in",m:.85,note:"small deck: −15%"},{t:"42–45 in",m:1},{t:"46 in +",m:1.15,note:"bigger deck: +15%"}]},
+     {label:"Hours",options:[{t:"Under 300",m:1},{t:"300–800",m:.85,note:"mid-life hours: −15%"},{t:"High / unknown",m:.7,note:"high or unknown hours: −30%"}]}],
+ p6:[CH_RUNS,{label:"Power",options:[{t:"Gas",m:1},{t:"Electric",m:.6,note:"electric washer: −40%"}]},
+     {label:"Pressure",options:[{t:"Under 2,500 PSI",m:.8,note:"light duty: −20%"},{t:"2,500–3,200 PSI",m:1},{t:"3,200 PSI +",m:1.2,note:"commercial PSI: +20%"}]}],
+ p7:[CH_RUNS,{label:"Type",options:[{t:"Open-frame",m:1},{t:"Inverter",m:1.6,note:"inverter — ~60% over open-frame at the same watts"}]},
+     {label:"Start",options:[{t:"Pull start",m:1},{t:"Electric start",m:1.1,note:"electric start: +10%"}]}],
+ /* Measured 22 Sep off 1,057 eBay listings across 30 drill models.
+    One battery against two, same model, single tool only: 0.87 - so the
+    0.9 here was right and stays.
+
+    The combo figure was not. A combo is a drill AND a second tool, and it
+    was carrying +15% when the listings say +60%: single-tool kits with two
+    batteries run $86, combos $150 (n=30). The counter was lending against
+    one tool while two were on the bench.
+
+    Worth knowing for the baseline: of 560 real listings only 23 were a
+    single tool with two batteries. The used drill kit that actually walks
+    in has ONE battery, and a bare one is 0.60 of that. */
+ /* Measured 23 Sep off 629 listings. The shares matter as much as the
+    prices: BARE is the biggest group at 274, and it was not on the list at
+    all. A bare drill could only be entered as "One battery", which prices a
+    $45 tool at $75 - a two-thirds over-lend on the commonest thing that
+    crosses the counter.
+
+      bare    n=274   $45   0.52x
+      one     n=266   $75   0.87x
+      two     n= 25   $86   1.00x   <- the baseline, and the rarest
+      combo   n= 64   $141  1.64x
+
+    The baseline stays on two-batteries so the catalogue value does not have
+    to move; what changes is that the other three can now be said. */
+ t1:[CH_VOLT,{label:"What came with it",covers:"complete",options:[
+   {t:"Two batteries + charger",m:1},
+   {t:"One battery + charger",m:.87,note:"one battery: −13%"},
+   {t:"Tool only — no battery",q:"tool only",m:.52,note:"bare tool: about half a kit"},
+   {t:"Combo — a second tool with it",q:"combo kit",m:1.64,note:"two tools, not one: +64%"}]}],
+ /* An impact wrench asks Battery platform, so it is a battery tool - and it
+    had no way to say the battery was missing. A bare one entered as a kit
+    prices 45% over.
+
+    Measured 23 Sep and THIN: of three models only the Milwaukee 2767 had a
+    usable sample (bare n=4 $122, kit n=8 $221, 0.55x); the other two rested
+    on a single bare listing each and are worth nothing. What makes 0.55
+    usable is that the drill says 0.52 off 274 bare listings, independently,
+    and it is the same battery and the same charger missing. Recheck when
+    there are more bare impact wrenches on the market. */
+ t2:[CH_VOLT,{label:"Drive",options:[{t:"1/2 in",m:1},{t:"3/8 in",m:.9,note:"3/8 drive: −10%"},{t:"1 in / big iron",m:1.2,note:"heavy drive: +20%"}]},
+  {label:"What came with it",covers:"complete",options:[
+    {t:"Battery + charger",m:1},
+    {t:"Tool only — no battery",q:"tool only",m:.55,note:"bare tool: about half"}]}],
+ /* A corded grinder and a cordless one are not the same tool wearing a
+    different cord - they are two tools that happen to share a name, and the
+    gap is about two and a half times, not ten percent. Priced at +10% the
+    counter lends $49 against something that resells for $108. The figures
+    came out of asking prices, which read high, but the RATIO between two
+    asks taken from the same search carries the same bias on both sides and
+    largely cancels - it is a far safer thing to lean on than either level.
+    There will be no recheck against sold prices through the API. eBay
+    declined the Marketplace Insights application on 23 Sep 2026 - "highly
+    limited and generally reserved for eBay's approved partners only" - so
+    the ratio is what the desk has, and it is a sounder thing to stand on
+    than either level. */
+ t3:[{label:"Power",options:[{t:"Corded",m:1},{t:"Cordless — with battery",m:2.4,note:"cordless with a battery — a different tool: about 2.4x the corded one"},{t:"Cordless — bare",q:"tool only",m:1.35,note:"bare cordless — the battery was most of it, but still over a corded unit"}]},
+     {label:"Size",options:[{t:"4.5–6 in",m:1},{t:"7–9 in",m:1.15,note:"big grinder: +15%"}]}],
+ t4:[{label:"Size",options:[{t:"Mini 2–3 gal",m:.8,note:"small tank: −20%"},{t:"Pancake 4–6 gal",m:1},{t:"8 gal +",m:1.15,note:"bigger tank: +15%"}]},
+     {label:"Extras",options:[{t:"Unit only",m:1},{t:"With hose & nailer",m:1.1,note:"working combo: +10%"}]}],
+ t5:[{label:"Stage",options:[{t:"Single-stage",m:1},{t:"Two-stage",m:1.3,note:"two-stage — real shop money: +30%"}]},
+     {label:"Tank",options:[{t:"60 gal",m:1},{t:"80 gal",m:1.15,note:"80 gallon: +15%"}]}],
+ t6:[{label:"Setup",options:[{t:"110V, gas-ready MIG",m:1},{t:"Flux-core only",m:.8,note:"flux-only: −20%"},{t:"220/240V",m:1.25,note:"220V unit: +25%"}]},
+     {label:"Duty",options:[{t:"Under 160A",m:1},{t:"160–200A",m:1.1,note:"mid duty: +10%"},{t:"200A +",m:1.2,note:"heavy duty: +20%"}]}],
+ t7:[{label:"Keys",options:[{t:"Keys in hand",m:1},{t:"No keys",m:.85,note:"no keys: −15%"}]},
+     {label:"Size",options:[{t:"Mid box",m:1},{t:"Full-size stack",m:1.2,note:"full stack: +20%"}]}],
+ /* Same story as the grinder: a pneumatic nailer is about $105 and a
+    cordless one is $230-300. +20% was covering a 2x gap.
+
+    The bare figure WAS a placeholder - built, not measured. It is
+    measured now: 22 Sep, bare against kit within the same model across
+    six nailers (2744, 2745, DCN692, DCN920, DCN21PL, CF325XP), ratios
+    0.63 0.78 0.83 0.95 0.96 1.04, median 0.89. Pairing inside one model
+    is the whole trick - pooled, the bare listings came out DEARER than
+    the kits, because the bare ones were higher-end nailers.
+
+    So bare is 0.89 of the kit: 2.0 x 0.89 = 1.8, up from the built 1.5.
+    The battery is a smaller share of a nailer than of a drill, which is
+    what the placeholder was reaching for - it just undershot.
+
+    On the kit figure itself: this run puts cordless kits at $280 against
+    $110 for a pneumatic, which is 2.5, not 2.0. 2.0 is the conservative
+    end of the original $230-300 measurement and it is left alone on
+    purpose - it is the lending side, and low is the safe way to be wrong. */
+ t8:[{label:"Drive",options:[{t:"Pneumatic",m:1},{t:"Cordless — with battery",m:2,note:"cordless with a battery — roughly twice a pneumatic"},{t:"Cordless — bare",q:"tool only",m:1.8,note:"bare cordless — no battery or charger, about a tenth under the kit"}]}],
+ h1:[{label:"Type",options:[{t:"Standard 3-9x class",m:1},{t:"High-mag 4-16x+",m:1.1,note:"high-mag glass: +10%"},{t:"Fixed / oddball",m:.85,note:"odd configuration: −15%"}]},
+     {label:"Features",options:[{t:"Standard",m:1},{t:"Illuminated / FFP",m:1.1,note:"premium features: +10%"}]}],
+ h2:[{label:"Size",options:[{t:"Full-size (8/10x42)",m:1},{t:"Compact",m:.8,note:"compacts: −20%"}]}],
+ h3:[{label:"Type",options:[{t:"Hunting (600–1000 yd)",m:1},{t:"Golf model",m:.85,note:"golf unit — wrong buyer here: −15%"}]}],
+ /* A LIVE PLAN IS THE CUSTOMER'S, NOT OURS.
+    This asked whether the cam was on a current plan and paid +25% when it
+    was. Jace, 26 Sep: "someone else's live plan is of no use to me. All
+    cellular devices need to be assumed no active plan."
+    Exactly right, and the old option was worse than useless - it was a
+    trap. The plan sits on the previous owner's account and their card. It
+    is not transferable, it stops the day they stop paying, and on a pawn
+    it stops the day they decide not to come back. So the one state that
+    matters for a loan is the state it will be in when it becomes ours:
+    no plan, needing one activated before it sends a picture.
+    One cellular option now, priced where the dead-plan one was. */
+ h4:[{label:"Type",options:[{t:"SD card",m:1},{t:"Cellular",m:.6,note:"assume no plan — SD-card money: −40%"}]}],
+ /* Bare bow checked 22 Sep against 329 compound-bow listings. Only 8 said
+    bare, which is thin, but they ran 0.88 of the packages - so 0.85 stands.
+    Adding up what the accessories fetch on their own (sight $79, rest $25,
+    quiver $29) would argue for less, nearer 0.6; accessories sold loose
+    carry a markup they never carry bolted to a bow, so the direct comps
+    win and 0.85 is, if anything, a shade generous. */
+ h5:[{label:"Age",options:[{t:"Current gen (under 5 yr)",m:1},{t:"5–10 yr",m:.8,note:"older bow: −20%"},{t:"10 yr +",m:.6,note:"old bow — near-accessory money"}]},
+     {label:"Setup",options:[{t:"Ready-to-hunt package",m:1},{t:"Bare bow",m:.85,note:"bare bow: −15%"}]}],
+ /* A bare crossbow cannot be measured on eBay: 22 Sep, ONE listing in 312
+    said no scope. Crossbows are sold as packages and that is that - the
+    same wall the outdoor power equipment hit, where the machine is not
+    listed because nobody ships it. Comparing scope-stated against silent
+    listings was tried and is noise (0.49 to 3.75 across seven brands):
+    silent does not mean scopeless, it means the seller did not say.
+
+    So this one is DERIVED, not measured, and says so. A crossbow scope on
+    its own runs $165 (n=84) against a $400 package. Deducting all of it
+    gives 0.59; an accessory is worth less as part of a rig than loose, so
+    the true figure sits above that and well under the 0.85 that was here.
+    0.7 is the middle, and the low side is the safe side to lend from.
+    Revisit if bare crossbows ever start showing up listed. */
+ h6:[{label:"Cocking",options:[{t:"Rope / standard",m:1},{t:"Crank-cocking",m:1.15,note:"crank models sell to older hunters: +15%"}]},
+     {label:"Package",options:[{t:"Scope package",m:1},{t:"Bare",m:.7,note:"bare crossbow — the scope is most of what is missing: −30%"}]}],
+ h7:[{label:"Type",options:[{t:"Spinning combo",m:1},{t:"Baitcast combo",m:1.1,note:"baitcasters: +10%"},{t:"Kids / Zebco-class",m:.6,note:"kid combos: −40%"}]}],
+ h8:[{label:"Class",options:[{t:"Basic 12V",m:1},{t:"24V high-thrust",m:1.25,note:"24V thrust: +25%"},{t:"GPS / spot-lock",m:1.5,note:"spot-lock — the premium motor: +50%"}]},
+     {label:"Mount",options:[{t:"Transom",m:1},{t:"Bow mount",m:1.1,note:"bow mount: +10%"}]}],
+ h9:[{label:"Stroke",options:[{t:"4-stroke",m:1},{t:"2-stroke",m:.85,note:"2-stroke — older tech: −15%"}]},
+     {label:"Controls",options:[{t:"Tiller",m:1},{t:"Remote w/ controls & cables",m:1.1,note:"remote rig: +10%"}]}],
+ e1:[{label:"Screen size",options:[{t:"Under 43 in",m:.5,note:"small screen: about half"},{t:"43–49 in",m:.75,note:"smaller panel: −25%"},{t:"50–65 in",m:1},{t:"66 in +",m:1.4,note:"big screen: +40%"}]},
+     {label:"Age",options:[{t:"Under 2 yr",m:1},{t:"2–3 yr",m:.85,note:"2-3 years: −15%"},{t:"3–5 yr",m:.7,note:"3-5 years: −30%"},{t:"5 yr +",m:.5,note:"old panel: half"}]}],
+ a1:[{label:"Fuel",options:[{t:"Electric",m:1},{t:"Gas",m:1.1,note:"gas range \u2014 easier sale here: +10%"}]},CH_APPL_AGE],
+ a2:[{label:"Style",options:[{t:"Top freezer",m:1},{t:"Side-by-side",m:1.15,note:"side-by-side: +15%"},{t:"French door",m:1.35,note:"french door: +35%"},{t:"Mini / dorm",m:.4,note:"mini fridge \u2014 small money"}]},CH_APPL_AGE],
+ a3:[{label:"Style",options:[{t:"Top load",m:1},{t:"Front load",m:1.15,note:"front load: +15%"}]},CH_APPL_AGE],
+ a4:[{label:"Fuel",options:[{t:"Electric",m:1},{t:"Gas",m:.9,note:"gas dryer \u2014 fewer hookups around here: \u221210%"}]},CH_APPL_AGE],
+ a5:[{label:"Match",options:[{t:"Matching set",m:1},{t:"Mismatched",m:.85,note:"mismatched pair: \u221215%"}]},CH_APPL_AGE],
+ a6:[{label:"Size",options:[{t:"Under 7 cu ft",m:.8,note:"small freezer: \u221220%"},{t:"7\u201315 cu ft",m:1},{t:"15 cu ft +",m:1.15,note:"big freezer: +15%"}]},CH_APPL_AGE],
+ a7:[{label:"Size",options:[{t:"Under 8,000 BTU",m:.75,note:"small unit: \u221225%"},{t:"8,000\u201312,000 BTU",m:1},{t:"12,000 BTU +",m:1.3,note:"big unit: +30%"}]},CH_APPL_AGE],
+ a9:[{label:"Type",options:[{t:"Household machine",m:1},{t:"Serger / embroidery",m:1.4,note:"serger or embroidery machine: +40%"},{t:"Vintage cabinet model",m:.6,note:"vintage cabinet \u2014 slow, bulky: \u221240%"}]}],
+ /* Cordless stick checked 22 Sep: 97 stick listings against 117 uprights,
+    $144 to $115 - 1.25 pooled, 1.19 within brand. 1.2 is right where it
+    was. Worth noting the brands disagree sharply (Dyson 1.46, Shark 0.92):
+    a stick is worth more than an upright of the same make only where the
+    make is one people want cordless. */
+ /* No "cordless stick, no battery" option, and that is deliberate too.
+    Checked 23 Sep across Dyson V8, V10 and Shark: ONE bare listing in 35.
+    The battery in a stick vacuum is built in, so one without a working
+    battery is not a configuration somebody sells - it is a dead vacuum,
+    and the condition scale already says that. */
+ a10:[{label:"Type",options:[{t:"Upright / canister",m:1},{t:"Cordless stick",m:1.2,note:"cordless stick: +20%"},{t:"Shop vac",m:.8,note:"shop vac: \u221220%"}]}],
+ e2:[CH_AGE,{label:"Class",options:[{t:"Standard",m:1},{t:"Gaming / workstation",m:1.3,note:"gaming class: +30%"}]}],
+ e3:[CH_AGE],
+ e4:[{label:"Age",options:[{t:"Under 2 yr, flagship-class",m:1},{t:"2–3 yr",m:.8,note:"2-3 years old: −20%"},{t:"3–5 yr",m:.6,note:"3-5 years old: −40%"},{t:"5 yr +",m:.4,note:"old phone — accessory money"}]},
+     {label:"Lock",options:[{t:"Unlocked",m:1},{t:"Carrier-locked",m:.85,note:"carrier-locked: −15% (and run the Devices checklist)"}]}],
+ e5:[{label:"Version",options:[{t:"Current gen, disc",m:1},{t:"Current gen, digital",m:.9,note:"digital edition: −10%"},{t:"Previous gen",m:.5,note:"last generation: half"}]},
+     {label:"Controllers",options:[{t:"One",m:1},{t:"Two +",m:1.05,note:"extra controller: +5%"}]}],
+ e6:[{label:"Size",options:[{t:"Standard portable",m:1},{t:"Party-size",m:1.2,note:"big speaker: +20%"}]}],
+ e7:[{label:"Setup",options:[{t:"Amp + sub combo",m:1},{t:"Sub only",m:.8,note:"sub without amp: −20%"}]}],
+ /* Two questions each, and neither of them prices a stone by itself - the
+    shop's rule is that the metal is what is paid on and the stone rides free
+    unless there is a report to read. Sheet 4 says so; this follows it. */
+ j1:[{label:"Movement",options:[{t:"Automatic / mechanical",m:1},{t:"Quartz",m:.55,note:"quartz in a luxury case \u2014 far less: \u221245%"}]},
+     {label:"Papers",options:[{t:"Box and papers",m:1},{t:"Watch only",m:.8,note:"no box or papers: \u221220%"}]}],
+ j2:[{label:"Movement",options:[{t:"Quartz",m:1},{t:"Automatic",m:1.25,note:"automatic: +25%"}]},
+     {label:"Case",options:[{t:"Clean",m:1},{t:"Scratched / worn band",m:.75,note:"worn case and band: \u221225%"}]}],
+ j3:[{label:"Metal",options:[{t:"Sterling silver",m:1},{t:"Gold",m:2.4,note:"gold rather than silver: more than double"}]},
+     {label:"Marks",options:[{t:"Maker's mark reads clean",m:1},{t:"Faint or missing",m:.6,note:"unproven mark \u2014 price it as no-name: \u221240%"}]}],
+ j4:[{label:"Report",options:[{t:"No report",m:1},{t:"GIA or IGI report in hand",m:1.4,note:"a report you can look up: +40%"}]},
+     {label:"Center stone",options:[{t:"Under 0.5 ct",m:.8,note:"small center stone: \u221220%"},{t:"0.5\u20131 ct",m:1},{t:"Over 1 ct",m:1.5,note:"over a carat: +50%, and get the report"}]}],
+ m1:[{label:"Type",options:[{t:"Steel-string",m:1},{t:"Acoustic-electric",m:1.15,note:"pickup built in: +15%"},{t:"Classical / nylon",m:.8,note:"nylon-string — slow here: −20%"}]},
+     {label:"Wood",options:[{t:"Laminate",m:1},{t:"Solid top",m:1.2,note:"solid top: +20%"}]}],
+ m2:[{label:"Orientation",options:[{t:"Right-handed",m:1},{t:"Left-handed",m:.8,note:"lefty — tiny buyer pool: −20%, consider Slow"}]},
+     {label:"Level",options:[{t:"Player grade",m:1},{t:"Beginner pack",m:.7,note:"starter pack: −30%"}]}],
+ m3:[{label:"Type",options:[{t:"Solid-state",m:1},{t:"Tube amp",m:1.3,note:"tube amp: +30%"}]},
+     {label:"Size",options:[{t:"Practice (under 30W)",m:1},{t:"30–50W",m:1.1,note:"mid-size: +10%"},{t:"Gigging (50W +)",m:1.2,note:"gig-size: +20%"}]}],
+ r1:[CH_TITLE,{label:"Condition to tow",options:[{t:"Ready to tow",m:1},{t:"Needs lights / wiring",m:.85,note:"wiring work: −15%"}]}],
+ r2:[CH_TITLE,{label:"Class",options:[{t:"Full-size (400cc +)",m:1},{t:"Youth quad",m:.7,note:"youth quad — smaller market: −30%"}]}]};
+/* generator wattage from the details text — kept even with choices, since watts
+   are a number, not a pick */
+function genWatts(itemName,txt){
+  if(!/gener/i.test(itemName))return null;
+  let t=String(txt||"").replace(/[-\/]/g," ").replace(/\bkilowatts?\b/gi,"kw").replace(/\bwatts?\b/gi,"w");
+  let kw=null,mm;
+  if(mm=t.match(/(\d+(?:\.\d+)?)\s*k\s*w/i))kw=parseFloat(mm[1]);
+  else if(mm=t.match(/(\d{3,5})\s*w\b/i))kw=parseFloat(mm[1])/1000;
+  if(!kw||kw<=0.5||kw>=20)return null;
+  const abs=Math.round(kw*85/5)*5;
+  return {abs,note:`${kw}kW → about $${abs} used, open-frame ($85 per 1,000W; the inverter pick stacks on top)`};
+}
+const ITEM_OVERRIDES={
+ h4:{driver:"Brand, then megapixels. A cellular cam is priced with NO plan on it — the plan is the customer's account and it leaves with them.",killer:"Corroded battery tray. A cellular cam nobody can activate.",tiers:{hi:"Reconyx / Tactacam / Browning",mid:"Spypoint / Moultrie / Bushnell",lo:"Wildgame / Stealth Cam / no name"},
+     brands:{hi:["Reconyx","Tactacam","Browning"],mid:["Spypoint","Moultrie","Bushnell","Muddy Pro"],lo:["Wildgame Innovations","Stealth Cam","Muddy","Vikeri","Campark"]},
+     detail:{ph:"cellular or SD / megapixels — cellular, 32MP",hint:"Price a cellular cam as if it has no plan. The one on it belongs to the customer's account and stops when they do."}},
+ h5:{driver:"Brand and draw specs — the bow has to FIT a local buyer.",killer:"Dry-fired or cracked limbs — walk away.",tiers:{hi:"Mathews / Hoyt / Bowtech",mid:"Bear / PSE / Diamond / Elite",lo:"Box-store / no name"},
+     brands:{hi:["Mathews","Hoyt","Bowtech","Elite"],mid:["Bear Archery","PSE","Diamond","Mission","Prime"],lo:["Barnett bow","Genesis","no name"]},
+     detail:{ph:"draw weight & length — 70lb, 29in",hint:"The bow must FIT a local buyer — odd draw lengths sit for months."}},
+ h6:{driver:"Brand tier and speed; crank-cocking models sell to older hunters.",killer:"Cracked limbs or a frayed string on a budget unit.",tiers:{hi:"Ravin / TenPoint",mid:"Excalibur / Barnett / Killer Instinct",lo:"CenterPoint / no name"},
+     brands:{hi:["Ravin","TenPoint"],mid:["Excalibur","Barnett","Killer Instinct","Wicked Ridge"],lo:["CenterPoint","Bear X","no name"]},
+     detail:{ph:"speed & cocking — 400fps, crank cocker",hint:"Crank-cocking models sell to older hunters — worth real money here."}},
+ h7:{driver:"Brand on the REEL — the rod mostly rides along.",killer:"Gritty retrieve or a bent spool.",tiers:{hi:"Shimano / St. Croix / G Loomis",mid:"Abu Garcia / Penn / Lew's / Ugly Stik",lo:"Zebco / Shakespeare"},
+     brands:{hi:["Shimano","St. Croix","G Loomis","Daiwa Tatula"],mid:["Abu Garcia","Penn","Lew's","13 Fishing","Ugly Stik","Daiwa"],lo:["Zebco","Shakespeare","South Bend"]},
+     detail:{ph:"type & size — baitcaster, 7ft medium",hint:"Combos sell; oddball specialty rods sit."}},
+ h8:{driver:"Thrust, voltage, and whether it has spot-lock.",killer:"Bent shaft or water in the head.",tiers:{hi:"Minn Kota Terrova+ / Garmin",mid:"Minn Kota base / MotorGuide",lo:"Newport / no name"},
+     brands:{hi:["Garmin Force","Minn Kota Terrova","Minn Kota Ulterra"],mid:["Minn Kota","MotorGuide"],lo:["Newport","Watersnake","no name"]},
+     detail:{ph:"thrust & shaft — 55lb, 54in, 24V",hint:"Thrust and voltage drive the price; spot-lock models are the premium."}},
+ h9:{driver:"Hours and brand; 4-stroke over 2-stroke.",killer:"Low or no compression — then it is parts, not a motor.",tiers:{hi:"Yamaha / Honda / Suzuki",mid:"Mercury / Tohatsu",lo:"Off-brand import"},
+     brands:{hi:["Yamaha","Honda","Suzuki"],mid:["Mercury","Tohatsu","Evinrude","Johnson"],lo:["Hangkai","Coleman outboard","no name"]},
+     detail:{ph:"HP, shaft length, 2- or 4-stroke — 9.9HP, short shaft, 4-stroke",hint:"4-strokes bring more; a seized or no-compression motor is parts, not a motor."}},
+ p7:{driver:"Watts, and inverter or open-frame — value tracks watts almost linearly.",killer:"Will not start, or surges under load.",tiers:{hi:"Honda / Yamaha",mid:"Generac / Champion / Westinghouse",lo:"Predator / no name"},
+     brands:{hi:["Honda","Yamaha"],mid:["Generac","Champion","Westinghouse","DeWalt generator","Firman"],lo:["Predator","PowerSmart","Pulsar","no name"]},
+     detail:{ph:"wattage & type — 6,500W, inverter",hint:"Value tracks watts — about $85 per 1,000 running watts open-frame; inverters run ~60% over that."}},
+ p5:{driver:"Deck size, hours, and brand tier.",killer:"Blown spindles or a bent deck.",tiers:{hi:"John Deere / Kubota / Toro comm.",mid:"Cub Cadet / Troy-Bilt / Husqvarna",lo:"Murray / MTD / no name"},
+     brands:{hi:["John Deere","Kubota","Toro Commercial","Exmark","Gravely"],mid:["Cub Cadet","Troy-Bilt","Husqvarna rider","Snapper","Ariens"],lo:["Murray","MTD","Yard Machines","no name"]},
+     detail:{ph:"deck size & hours — 42in, ~300hrs",hint:"Deck size and hours are the price; a straight deck and clean cut matter more than paint."}},
+ /* Every item in the electronics and tools aisles says its own line. The
+    aisle line is the fallback, and a fallback that names a phone is wrong
+    on five of the seven things filed under it. */
+ e2:{driver:"Age first, then processor and memory. Five years old is parts money whatever it cost new.",
+     killer:"No charger. A swollen battery, a BIOS or activation password nobody can clear, or a machine that will not boot past the maker's logo."},
+ e3:{driver:"Model year and storage. Brand carries more of the price here than anywhere else in the aisle \u2014 an iPad holds money, the rest mostly does not.",
+     killer:"Activation lock \u2014 an iCloud or Google account still signed in makes it a brick. Cracked glass costs more to fix than the tablet is worth."},
+ e4:{driver:"Model year, storage and whether it is carrier-locked. Two years old is half price.",
+     killer:"Activation lock. A locked phone is a brick. See the Devices tab before you lend a dollar."},
+ e5:{driver:"Which generation, and disc drive or digital-only. A current-gen machine holds its money; the one before it falls off a cliff.",
+     killer:"No controller and no power or HDMI lead \u2014 that is a paperweight until you source them. Run a game before you call it working: a noisy fan or a drive that will not read is the end of it."},
+ e6:{driver:"Brand and size. A JBL or a Bose moves; everything else sits on the shelf.",
+     killer:"Won't hold a charge, a driver you can hear buzzing, or a proprietary charger that is not with it."},
+ e7:{driver:"Brand and RMS watts \u2014 the RMS figure, never the number printed on the box.",
+     killer:"Burnt voice coil, a torn surround, or no wiring harness. Installed gear pulled out of a car is often somebody else's \u2014 ask."},
+ t3:{driver:"Brand, and whether it is cordless with a battery. A corded grinder is $20 money.",
+     killer:"Seized spindle, or a burnt smell out of the vents. No guard."},
+ t4:{driver:"Brand and tank size, and whether the pump still builds pressure.",
+     killer:"Won't build pressure, or leaks down overnight. A rusted or cracked tank is scrap \u2014 never lend on one."},
+ t5:{driver:"Motor horsepower and voltage \u2014 a 240v unit narrows the buyers a lot. Tank condition is the rest.",
+     killer:"Rusted tank bottom, or a pump that will not build. And you have to get it back out the door: this is a two-man load and slow money."},
+ t6:{driver:"Brand and amperage, and whether the gun, leads and regulator came with it.",
+     killer:"No gun or ground clamp, or a dead transformer. The gas bottle is not his to pawn \u2014 those are leased from the gas supplier."},
+ t7:{driver:"Brand and size. An empty box is furniture \u2014 the money is the steel and the name on it.",
+     killer:"Bent drawers, dead casters, rust. Slow money even when it is clean."},
+ t8:{driver:"Brand, and pneumatic or cordless \u2014 a cordless one needs its battery to be worth anything.",
+     killer:"Dry-fired to death: leaking o-rings, a bent driver blade. No case and no fittings."},
+ e1:{driver:"Size and model year are nearly the whole price.",killer:"Any panel line or burn-in — then it is worthless.",tiers:{hi:"Sony / Samsung / LG OLED",mid:"TCL / Hisense / Vizio",lo:"Onn / RCA / Sceptre"},
+     brands:{hi:["Sony","Samsung","LG OLED","LG"],mid:["TCL","Hisense","Vizio"],lo:["Onn","RCA","Sceptre","Element","Westinghouse"]},
+     detail:{ph:"size & year — 65in, 2024",hint:"Size and model year ARE the price — two model years old is half of new."}}
+};
+function itemOv(){return ITEM_OVERRIDES[st.itemId]||null;}
+/* THE MAKE OFTEN SAYS WHAT THE THING IS.
+   Reported from the counter, with a Tactacam Reveal SK on the glass: the
+   make question offered "Leupold / Vortex / Zeiss", "Bushnell / Nikon" and
+   "Tasco / no name" - the hunting aisle's OPTICS tiers - for a game
+   camera. Leupold and Zeiss do not make one. And it never asked what kind
+   of thing a Tactacam is before deciding.
+
+   What happened: the words did not match the book row (a Reveal SK typed
+   as "real sk"), so the search offered "use what I typed", which makes a
+   CUSTOM item in the aisle. A custom item has no overrides, so it inherits
+   the AISLE's brand tiers - and the hunting aisle's tiers are about glass.
+
+   But the aisle already knows the answer. h4, the trail camera, lists
+   Reconyx, Tactacam and Browning as its own top tier. A make that appears
+   in exactly one item's brand list in that aisle names that item. Nothing
+   consulted it, so the desk had Tactacam written down as a make and still
+   did not know it was looking at a camera. */
+function itemFromBrand(catId,txt){
+  const cat=CATALOG.find(c=>c.id===catId); if(!cat)return null;
+  /* Scans the ITEMS' own brand lists rather than asking the aisle's brand
+     book what the make is. The aisle book is about the aisle's headline
+     product - the hunting one is full of glass - so it never heard of
+     Mathews or Minn Kota, and leaning on it found Tactacam and missed the
+     rest. These lists are the thing that actually knows. */
+  const t=" "+omniNorm(txt)+" ";
+  /* A MAKE THE AISLE ITSELF NAMES IS NOT DECISIVE.
+     The aisle's brand book is a flat union of every product in it, so it
+     says nothing. But the aisle's TIER LABELS name the makes of its
+     headline product - hunting reads "Leupold / Vortex / Zeiss",
+     "Bushnell / Nikon", "Tasco / no name", which is glass. Bushnell is in
+     the trail camera's list too, and Bushnell is at least as much a scope
+     maker, so "bushnell" must not land on a camera. Tactacam, Mathews,
+     Shimano and Minn Kota appear in no label and stay decisive. */
+  const labels=" "+omniNorm(["hi","mid","lo"].map(k=>(cat.brand&&cat.brand[k])||"").join(" "))+" ";
+  let found=null;
+  for(const it of cat.items){
+    const ov=ITEM_OVERRIDES[it.id]; if(!ov||!ov.brands)continue;
+    const mine=["hi","mid","lo"].some(tier=>(ov.brands[tier]||[]).some(b=>{
+      const n=omniNorm(b);
+      /* whole words only: "bear" must not fire on "bearing" */
+      if(!(n.length>=3&&t.indexOf(" "+n+" ")>=0))return false;
+      return labels.indexOf(" "+n+" ")<0;   /* the aisle claims it: says nothing */
+    }));
+    if(!mine)continue;
+    if(found&&found!==it.id)return null;   /* two items claim it - it says nothing */
+    found=it.id;
+  }
+  return found;
+}
+function specRead(catId,itemName,txt){
+  const out={mult:1,notes:[],stop:false,absSuggest:null};
+  let t=String(txt||""); if(!t.trim())return out;
+  /* forgive typing: hyphens and slashes become spaces, spelled-out words map
+     to the forms the rules expect */
+  t=t.replace(/[-\/]/g," ").replace(/\s+/g," ")
+     .replace(/\bgauge\b/gi,"ga").replace(/\bgage\b/gi,"ga")
+     .replace(/\bvolts?\b/gi,"v").replace(/\bwatts?\b/gi,"w")
+     .replace(/\bkilowatts?\b/gi,"kw").replace(/\binch(es)?\b/gi,"in");
+  for(const r of (SPECBOOK[catId]||[])){
+    if(r.re.test(t)){out.mult*=r.mult;out.notes.push(r.note);if(r.stop)out.stop=true;}
+  }
+  /* generators: value tracks watts — $85 per 1,000 running watts open-frame;
+     the inverter multiplier above stacks on top (≈ $136/kW). */
+  if(/gener/i.test(itemName)){
+    let kw=null,m;
+    if(m=t.match(/(\d+(?:\.\d+)?)\s*k\s*w/i))kw=parseFloat(m[1]);
+    else if(m=t.match(/(\d{3,5})\s*w\b/i))kw=parseFloat(m[1])/1000;
+    if(kw&&kw>0.5&&kw<20){
+      out.absSuggest=Math.round(kw*85/5)*5;
+      out.notes.push(`${kw}kW → about $${out.absSuggest} used, open-frame ($85 per 1,000W; the inverter bonus stacks on top)`);
+    }
+  }
+  out.mult=Math.max(.4,Math.min(1.8,out.mult));
+  return out;
+}
+const DETAIL_HINTS={
+ guns:{ph:"caliber & barrel — 12ga 28in, 9mm…",hint:"Common calibers (9mm, .223, 12ga, .30-06) sell; oddballs sit — for an oddball, set speed to Slow and let the number fall."},
+ power:{ph:"wattage / bar / deck — 5,500W, 20in bar, 42in deck",hint:"Generators track watts — figure roughly $80–100 per 1,000 running watts, used. Pro sizes bring more but sell slower here."},
+ tools:{ph:"voltage / drive — 20V, 1/2in drive",hint:"Higher-voltage platforms and 1/2in drive carry more; a bare 12V tool is nearly worthless."},
+ hunt:{ph:"magnification / length / draw — 3-9x40, 7ft, 70lb",hint:"Standard specs sell fastest; extreme specs shrink the buyer pool — consider setting speed to Slow."},
+ elec:{ph:"size / year / storage — 65in, 2024, 256GB",hint:"Size and model year ARE the price on TVs and phones — two model years old is half of new."},
+ jewel:{ph:"model / metal / size — Datejust 36, 14k, 7in",hint:"The reference or model number is most of the price on a watch. Metal and stone weight matter on jewelry."},
+ music:{ph:"type / size — dreadnought, 4-string",hint:""},
+ rolling:{ph:"year / title — 2019, clean title in hand",hint:"No title, no deal — at any price."}};
+function specVerdictHTML(x){
+  if(x.checked)return "";
+  const s=x.spec;
+  if(!s)return "";
+  if(!s.notes.length){
+    return (st.model+st.detail).trim()
+      ? `<span style="color:var(--ink-3)">No price rules matched these specs — they're noted on the ticket, but the number is unchanged. If a spec should move money, adjust step 4 yourself.</span>`
+      : "";
+  }
+  let h=s.notes.map(n=>`<span style="color:${/NO DEAL/.test(n)?"var(--bad)":"var(--accent)"};font-weight:600">&#9656;</span> ${n}`).join("<br>");
+  if(s.absSuggest&&(st.overrides[st.itemId]??null)!==s.absSuggest)
+    h+=` <button id="useSpec" class="ghostBtn" style="padding:4px 10px;font-size:11px;margin-left:6px">Use $${s.absSuggest} baseline</button>`;
+  return h;
+}
+function valSubText(x){
+  const bits=[];
+  if(x.brandName&&x.brandMult!==1)bits.push(`${x.brandName} tier`);
+  if(x.specMult!==1)bits.push(`specs ×${x.specMult.toFixed(2)}`);
+  if(bits.length)return `${bits.join(" + ")} applied — standard baseline ${money(x.baseValue)}; condition from step 5 comes off next. Change edits the baseline`;
+  return st.overrides[x.item.id]?"Your number":"Starting estimate — replace it with what you actually sell these for";
+}
+/* One step at a time, the way the phone works. Which one is live follows
+   the same run the Next step panel reads: what it is, then what it resells
+   for, then what shape it is in. A step that is not live folds to a line
+   carrying its answer, and any line opens on a click. */
+/* Three layouts. "pages" is the default: one job on the screen at a time,
+   cycled with a bar across the top, because everything at once is thirteen
+   cards and three and a half thousand pixels of them. */
+/* The three-column desk layout has been in the stylesheet the whole time.
+   The paging default hid it: .paged carries display:block!important, so a
+   1440px window ran the phone's one-job-at-a-time wizard stretched across
+   the whole monitor - one tall column, the numbers scrolled off the top,
+   and a thousand pixels of slack down the side of every card.
+
+   So the default now follows the screen instead of assuming a phone. A desk
+   gets its columns; anything narrow keeps the pages, which is what they
+   were written for. An explicit choice in Setup still beats both. */
+function deskWide(){
+  try{ return !window.PHONE && window.matchMedia("(min-width:1080px)").matches; }
+  catch(e){ return false; }
+}
+/* The desk lays an item out as a questionnaire down the left and a live
+   numbers rail down the right: you answer, the money moves beside you, and
+   nothing you are working on is ever off the screen. Three columns of cards
+   was the old shape, and it meant the answer to a question you were reading
+   lived in a different column from the question. */
+function deskRail(){ return deskWide() && st.mode==="item" && st.picked; }
+/* ---- one question on the screen -----------------------------------------
+ * Asked for repeatedly and never actually built. "One page at a time" was
+ * four PAGES, and the first of them still carried six questions in one
+ * scrolling card: brand, tier, platform, kit, model, specs. That is a form,
+ * not a questionnaire.
+ *
+ * This is the questionnaire. One question, big answers, and answering it
+ * moves to the next by itself. The specifics - how many batteries, whether
+ * the accessories are there - are questions in the run rather than fields
+ * buried under it, because they are what move the money.
+ *
+ * The queue is built from the item, so an item with no brand tier and no
+ * spec pickers asks two questions and an Xbox asks five. Nothing is padded
+ * to a fixed shape.
+ */
+/* What the "details" box is for differs by category, and the wording lived
+   inline in the whole-page layout. The run needs the same words. */
+function detailHint(x){
+  const ov=itemOv(), id=(x&&x.cat?x.cat.id:st.catId);
+  const d=(ov&&ov.detail)||DETAIL_HINTS[id]||{ph:"",hint:""};
+  return {ph:d.ph||"", hint:d.hint||"",
+    /* Keyed on the DETAIL hint, not on the override existing: an item that
+       overrides only its driver and killer still wants the aisle's wording
+       for what to type in the box. */
+    what: (ov&&ov.detail)?"specs for this item"
+        : id==="guns"?"caliber & barrel"
+        : id==="power"?"size & wattage"
+        : id==="elec"?"size & year":"specs"};
+}
+/* A WHEELBARROW HAS NO MAKE AND A HAMMER HAS NO MODEL.
+
+   Picking a line out of the price book already names the exact thing -
+   "Wheelbarrow", "Jigsaw", "Shop vac" - and for most of that book the make
+   is not worth a tap. But the same book holds a $2,200 zero-turn and a $400
+   gun safe, where it certainly is, so "came out of the book" cannot be the
+   whole rule.
+
+   The line is drawn where the answer could change the decision. The make
+   tiers swing about 40% either way, so when 40% of the thing's own value
+   comes to less than the floor you want to clear, no answer to "what make"
+   can move what you do. A $40 jigsaw: sixteen dollars, under the $25 floor,
+   so it is not asked. A $400 gun safe: a hundred and sixty, so it is. The
+   floor is yours to set, and this follows it.
+
+   The questions are still offered - a branded wheelbarrow can still be said -
+   they just do not hold the price back. */
+function bookSimple(x){
+  return isCustom() && !!st.bookName
+      && (Number(x.resale)||0)*0.4 < (Number(x.buyFloor)||25);
+}
+/* A SURFACE BOOK WAS BEING FILED AS A FIREARM.
+   "Not on the lists" parked the item in custId(st.catId) - whatever
+   category happened to be selected - and the desk opens on guns. So the
+   thing on the counter became cust-guns: the gun brand book, the gun buy
+   rate, GunBroker offered as its comp, and no chance of reading "Microsoft"
+   out of the words because Microsoft is not a gun maker. The counter saw
+   only the end of that chain: NOTHING PICKED YET on the make step.
+   The words usually say which aisle. Read them against every category and
+   take the one that answers; a tie or a blank still asks. */
+function guessCat(txt){
+  const t=String(txt||"").trim(); if(t.length<3)return null;
+  const hits=CATALOG.map(c=>c.id).filter(id=>!!brandFromName(id,t));
+  return hits.length===1?hits[0]:null;
+}
+function askQueue(x){
+  const q=[], cat=x.cat, ov=itemOv(), easy=bookSimple(x);
+  /* THE DESK ASKED A QUESTION IT NEVER DREW.
+     needKind means "I do not know what sort of thing this is, and nothing
+     is priced until somebody says". The buttons for it lived inside
+     #nextStep - a card the one-question run does not render on either the
+     phone or the desk - so the counter was asked nothing, and the item sat
+     in whatever aisle was last open. A question belongs in the run with the
+     rest of the questions. */
+  if(st.needKind){
+    q.push({id:"kind", title:"What kind of thing is it?",
+      hint:"Nothing is priced until this is answered \u2014 it decides where to look for a price, and what share of new to work from.",
+      opts:CATALOG.map(c=>({t:c.label, on:false, set:"kind", v:c.id})),
+      answered:false});
+  }
+  if(cat.brand.on){
+    const tiers=(ov&&ov.tiers)||cat.brand;
+    /* If the make is known, that IS the answer - show it answered rather
+       than lighting a tier nobody chose.
+       Known two ways, and both have to say the make out loud. Typing
+       "Sony Laptop" lit "Apple / Samsung flagship" and explained nothing,
+       so the screen read as the desk calling a Sony an Apple. It is the
+       right TIER - the buttons are named after their examples, and Sony
+       keeps company with Apple - but the counter is owed the word Sony. */
+    const typedHit=st.brandTyped?brandLookup(st.catId,st.brandTyped):null;
+    const named=x.namedBrand?{name:x.namedBrand,tier:x.brandTier}
+      :typedHit?{name:typedHit.name,tier:typedHit.tier}:null;
+    /* Nothing lit until something actually says so. A default that lights
+       "Ryobi / Ridgid" reads as an answer somebody gave, and the counter
+       walks past it. The price still uses mid as its neutral - it has to
+       use something - but the screen does not claim that was a choice.
+       TYPED IS NOT THE SAME AS KNOWN. This counted any text at all as an
+       answer, so a make the category's list does not carry - Harbor Freight
+       among the generators, anything at all on a chainsaw - fell to the
+       standard tier and lit "Mid grade" as though somebody had picked it.
+       The make was typed, the desk did not recognise it, and the screen
+       said it had. It has to have resolved to a tier, or be a tap. */
+    const unknownTyped=!!st.brandTyped&&!named;
+    const known=!!named||!!st.brandSet;
+    const sel=known?x.brandTier:null;
+    q.push({id:"brand", title:"What make is it?", optional:easy,
+      named:named&&named.name,
+      /* The lit button wears the actual make, with the tier it sits in
+         underneath. The other two keep their examples, so there is still
+         somewhere obvious to move it. */
+      opts:BRANDS.map(br=>({t:(named&&sel===br.id)?named.name:tiers[br.id],
+        sub:(named&&sel===br.id)?tiers[br.id]:"",
+        on:sel===br.id, set:"brand", v:br.id})),
+      /* Saying WHICH make went unrecognised beats a blank "nothing picked":
+         the counter typed it, and being told the list does not carry it is
+         the difference between a bug and a question. */
+      hint:known?""
+        :unknownTyped?"<b>"+esc(st.brandTyped)+"</b> is not on the list for "
+          +esc(String(cat.label||"this").toLowerCase())+" \u2014 say where it sits and the price follows."
+        :"Nothing picked yet \u2014 the price is using the standard tier until you say.",
+      answered:known});
+  }
+  /* WHICH ONE IS IT. The run never asked, and the model is the single
+     thing on the page that moves money most: it is what the sold-price
+     lookup searches on, it is what the measured rows are matched against,
+     and it is where the make is read from. It existed only as an optional
+     fold on the old whole-page layout, so the one-question run - now the
+     default - walked straight past it to the price and left the lookup
+     searching for "laptop".
+     Never required. A model nobody knows is a blank box and a Skip. */
+  q.push({id:"model", title:"Which one is it?", kind:"model", optional:easy,
+    hint:"Model number or name, and anything that changes the price. Skip it if you cannot see one.",
+    /* Skip is an ANSWER here, not a dodge: plenty of things - a wheelbarrow,
+       a gold chain - carry no model at all, and the price now waits for
+       every question, so a question with no way to say "there isn't one"
+       would wait for ever. st.mpNone is the phone's existing "I can't see a
+       model" flag; the desk's Skip sets the same one.
+
+       Only this question works that way. The specs each have a default that
+       is wrong often enough to matter - defaulting a bare drill to a
+       two-battery kit doubles it - and the shape and the sold price can
+       always be answered, so neither may be waved past. */
+    /* st.detail used to count here, back when its box was on this card.
+       It is its own question now, so a model is answered by a model. */
+    answered:!!(st.model||st.mpNone)});
+  /* THE RESEARCH STEP COMES WHILE THE ITEM IS STILL IN MIND.
+     This used to sit at 7 of 8, between "is it all there" and the
+     condition. On anything the desk cannot price itself - a television,
+     a saw, a model not in the book - that step is not a question, it is
+     an instruction to go and look something up, and arriving at it on the
+     second-to-last card reads as a form asking you for the answer you
+     came to get. Straight after the model, where the thing you would
+     search for is what you just typed.
+     Nothing is lost by the move: only 5 options in the whole catalogue
+     add a word to the search, and the automatic lookup fires when the
+     item is picked, well before either position. */
+  q.push({id:"worth", title:"What does one sell for used?",
+    hint:"", kind:"worth", answered:!!x.checked});
+  /* A QUESTION THAT CANNOT MOVE THE NUMBER IS NOT A QUESTION.
+     When the resale figure is typed by hand, calcItem takes it as it
+     stands: cond is forced to 1 and brandMult and spec.mult are not in
+     that branch at all. The counter has the thing in his hands and has
+     priced THIS one - the scratches and the screen size are already in
+     his figure, and applying them again would price the wear twice.
+     That much is deliberate and right. What was not right is that the run
+     went on asking anyway: screen size, age, and then "what shape is it
+     in?" on the last card, every one of them thrown away. Keystrokes at a
+     counter with a customer waiting, spent on answers the arithmetic never
+     reads, on the very items the desk had already failed to price.
+     So they come out of the run. Condition still rides on the ticket as a
+     record of what walked in; it is just not asked as though it were an
+     input. Completeness stays, because completeMult IS applied to a
+     hand-set figure. */
+  const handSet=!!(x.checked&&x.market&&x.market.kind==="hand");
+  const sc=handSet?[]:(SPEC_CHOICES[st.itemId]||[]);
+  sc.forEach((g,gi)=>{
+    const key=st.itemId+":"+gi;
+    q.push({id:"spec:"+gi, title:g.label+"?",
+      hint:g.options.map(o=>o.note).filter(Boolean)[0]||"",
+      /* `sel` is what the ARITHMETIC uses - the recorded pick, or the
+         book's neutral default when there isn't one. It is not what the
+         screen may claim was chosen. A bare drill defaults to the
+         two-battery kit and doubles the price, and the card was showing
+         that answer already highlighted, so Next read as agreement to a
+         guess nobody made. Only a recorded pick lights up now. */
+      opts:g.options.map((o,oi)=>({t:o.t, sub:o.note||"", on:st.specSel[key]===oi, set:"spec", v:gi+":"+oi})),
+      answered:st.specSel[key]!=null});
+  });
+  /* and it is not ASKED twice either: being asked what came with it and
+     then whether it is all there is the same question, and the counter
+     answering both honestly is what produced the double cut. */
+  if(cat.complete.on&&!specCoversComplete(x&&x.item?x.item.id:st.itemId)){
+    const what=cat.complete.label||"the bits that come with it";
+    q.push({id:"complete", title:"Is it all there?",
+      /* Same rule, and this one was the worst of them: st.complete starts
+         true so "All there" came up lit AND the question counted itself
+         answered, which means a drill with no battery in it priced as a
+         kit unless the counter happened to re-tap the button that was
+         already glowing. Nothing lit, and nothing answered, until he says. */
+      opts:[{t:"All there", on:!!st.completeSet&&st.complete===true, set:"comp", v:"1"},
+            {t:"Something missing", sub:"worth "+Math.round((Number(cat.complete.mult)||0.7)*100)+"% of a complete one",
+             on:!!st.completeSet&&st.complete===false, set:"comp", v:"0"}],
+      hint:what+". Missing pieces come off the price."+(st.completeSet?"":" Nothing picked yet \u2014 the price is treating it as complete until you say."),
+      answered:!!st.completeSet});
+  }
+  if(!handSet)q.push({id:"cond", title:"What shape is it in?",
+    hint:"Next to a typical used one.",
+    opts:CONDITIONS.map(c=>{const w=COND_WORDS[c.id]||[c.label,""];
+      /* NOTHING LIT UNTIL SOMEBODY SAYS SO - the same rule the make above
+         already follows, and for the same reason. st.cond defaults to
+         "good" because the arithmetic needs something, so Good came up
+         already highlighted and read as a choice that had been made. The
+         counter sees his answer sitting there, moves on, and the desk
+         prices a rough drill as a good one. Condition swings the number
+         from +30% to -55%: it is the widest lever on the page and it was
+         showing an answer nobody gave.
+         The price still uses good as its neutral. The screen just stops
+         claiming that was a decision. */
+      return {t:w[0], sub:w[1]||"", on:!!st.condSet&&st.cond===c.id, set:"cond", v:c.id};}),
+    answered:!!st.condSet});
+  /* ANYTHING ELSE COMES LAST - AFTER THE CONDITION, NOT BEFORE IT.
+     It used to sit under the model box, which put a catch-all "anything
+     else" in front of the specific questions - on a TV the thing you
+     reach for after the make is the screen size, and the card was asking
+     for free text before it asked for that. Its own step, after every
+     question that has a real answer.
+     26 Sep, asked for from the counter: it was landing at 7, one step
+     AHEAD of the condition, so the run asked "anything else?" and then
+     carried on asking. A catch-all that comes before the last real
+     question is not a catch-all. Condition is 7 now and this is 8.
+     It sits after the price step now. That is safe: the automatic lookup
+     fires when the item is PICKED, long before either, and what is typed
+     here only ever reaches the link-out buttons and the ticket - which
+     re-read it. And the Osmo measurement says extra words narrow a search
+     until it finds a different product, so keeping them out of the
+     automatic one is the better half of the trade. */
+  q.push({id:"extra", title:"Anything else?", kind:"extra", optional:true,
+    hint:"Only what changes the price and was not already asked. Usually nothing.",
+    answered:true});
+  return q;
+}
+/* NOTHING IS PRICED UNTIL THE RUN HAS BEEN MADE.
+
+   The desk used to answer the moment an item was picked: a Samsung tablet
+   with no model named came back "pay up to $40, resells for $168" in mint
+   green, with "nothing looked up yet" underneath in small orange. A Galaxy
+   Tab runs from a Tab A7 Lite at about $45 to a Tab S9 Ultra ten times
+   that, so $168 was not an estimate - it was the middle of a range wide
+   enough to be useless, printed in the same type as a checked price.
+
+   The run already asks everything that moves the number: the make, the
+   model, the specs that matter for the thing in hand (age, battery, barrel,
+   deck), what it sells for, and the shape it is in. Every one of those
+   carries an `answered` flag. So the gate is the run itself - no hand-picked
+   list of conditions to drift out of date, and a question added later gates
+   the price for free.
+
+   This deliberately reverses an earlier call. The price used to be hidden
+   when the market was unknown, that stranded an unconnected tablet, and it
+   was made to show the built-in figure instead. The offline case still
+   works, because looking it up is not the only way to answer "what does it
+   sell for" - typing the number, or the new price, answers it too. What is
+   gone is the desk answering a question nobody finished asking. */
+/* The first question with nothing in it. Everything before it has either
+   been answered or does not apply to this thing. */
+function firstOpenAsk(x){
+  const q=askQueue(x);
+  const i=q.findIndex(z=>!z.answered&&!z.optional);
+  return i<0?0:i;
+}
+function priceReady(x){ return !!st.picked && askQueue(x).every(q=>q.answered||q.optional); }
+const NEED_WORD={brand:"the make", model:"the model", worth:"what it sells for",
+                 cond:"the condition", complete:"what's with it"};
+function priceMissing(x){
+  if(!st.picked)return [];
+  return askQueue(x).filter(q=>!q.answered&&!q.optional).map(q=>NEED_WORD[q.id]
+    || (String(q.id).indexOf("spec:")===0
+        ? String(q.title||"").replace(/\?+$/,"").toLowerCase()
+        : "one more answer"));
+}
+/* "the make, the model and what it sells for" - an Oxford-less list, because
+   it is read aloud off a counter. */
+function needList(x){
+  const n=priceMissing(x);
+  return n.length<2?(n[0]||"") : n.slice(0,-1).join(", ")+" and "+n[n.length-1];
+}
+/* TYPE THREE LETTERS, TAP THE NAME, NEVER SPELL IT.
+
+   The make question offered three tiers and nothing else - "Top tier",
+   "Mid grade", "Budget" - so the counter had to know which tier a Ryobi sat
+   in to answer it, and the model box below was raw text, where "Stihl MS
+   271" and "stil ms271" are two different searches and only one of them
+   finds anything. The desk holds 423 makes across ten categories and 179
+   measured models; it was asking the counter to remember them.
+
+   Too many for buttons, so it filters as you type. Tapping a hit writes the
+   canonical spelling and sets the tier with it - one tap answers both the
+   make and which tier it sits in, which is the thing nobody should have to
+   look up. The tier buttons stay underneath for a make the book has never
+   heard of. */
+function tierLabel(x,tier){
+  const ov=itemOv(), t=(ov&&ov.tiers)||(x&&x.cat&&x.cat.brand)||{};
+  return String(t[tier]||tier);
+}
+function brandHits(catId,q){
+  const book=ovBrands(catId)||BRANDBOOK[catId]; if(!book)return [];
+  const t=String(q||"").trim().toLowerCase();
+  /* Nothing typed lists nothing. The first ten makes in book order are not a
+     shortlist of anything - they are the first ten - and a list you have to
+     read to find out it is useless is worse than no list. */
+  if(!t)return [];
+  const out=[];
+  for(const tier of["hi","mid","lo"]) for(const name of (book[tier]||[])){
+    const n=name.toLowerCase();
+    if(n===t){ out.push({name,tier,rank:0}); }
+    else if(n.indexOf(t)===0){ out.push({name,tier,rank:1}); }
+    else if(n.indexOf(t)>=0){ out.push({name,tier,rank:2}); }
+  }
+  out.sort((a,b)=>a.rank-b.rank||a.name.localeCompare(b.name));
+  return out.slice(0,10);
+}
+/* What the buttons on the NEXT screens already ask for, so the free-text
+   box stops inviting it a second time. A riding mower asked for the deck
+   and the hours as buttons and then offered "42in deck" as a placeholder
+   one step earlier; the counter typed it twice or wondered which one
+   counted. */
+function specCovered(){
+  return (SPEC_CHOICES[st.itemId]||[]).map(g=>String(g.label||"").toLowerCase()).filter(Boolean);
+}
+function coveredLine(){
+  const c=specCovered(); if(!c.length)return "";
+  const list=c.length<2?c[0]:c.slice(0,-1).join(", ")+" and "+c[c.length-1];
+  return list.charAt(0).toUpperCase()+list.slice(1)
+    +(c.length<2?" is":" are")+" asked next \u2014 no need to type "+(c.length<2?"it":"them")+" here.";
+}
+/* THE LAST QUESTION ENDED IN NOTHING.
+
+   Answer step 8 and the card sat exactly where it was, carrying a live
+   button and no verdict. The answer HAD appeared - over in the rail, off to
+   the right, in the same panel that had been sitting there half-filled since
+   the item was picked - so from the counter it read as a screen still
+   waiting on you rather than a screen that had finished. On a phone there is
+   no rail at all, so it read as nothing happening whatsoever.
+
+   A run of questions has to end in an answer, and the answer belongs on the
+   card that asked the last question. Nothing here is new arithmetic; it is
+   the decision the rail already holds, said once, where the eye already is. */
+/* THE NUMBER YOU ACTUALLY AGREED ON HAD NOWHERE TO GO.
+
+   The desk handed over a window - low, suggested, top - as three read-only
+   tiles, and then logged `x.target` as though the middle tile were the deal.
+   It never is. What gets counted out of the drawer is a negotiation, and the
+   one figure that matters six months later is that one: it is what the
+   shop's own price book learns from, what a redemption is measured against,
+   and what ties the row to the ticket.
+
+   So the run ends with a box. Empty still logs the suggestion, because a
+   counter in a hurry should not be blocked - but the moment a number is
+   typed, that is the number, and the screen says so before it is saved. */
+function struckAmt(x){
+  const kind=st.struckKind==="buy"?"buy":"loan";
+  const n=Number(st.struck);
+  const typed=st.struck!==""&&st.struck!=null&&isFinite(n)&&n>0;
+  return {kind, typed, amt:Math.round(typed?n:(kind==="buy"?x.buy:x.target))};
+}
+function struckNoteHTML(x){
+  const k=struckAmt(x), sug=k.kind==="buy"?x.buy:x.target;
+  if(!k.typed)return `Leave it empty and the log keeps the suggested ${money(sug)}. Type what you actually handed over instead — the shop's own price book is built out of this number.`;
+  if(k.kind==="loan"&&k.amt>x.high)
+    return `<b style="color:var(--bad-ink)">${money(k.amt)} is over the ${money(x.high)} top.</b> That is the cushion spent. It will log exactly as typed — he gets it back for ${money(k.amt+pawnCharge(k.amt))} by day 30, interest ${money(pawnCharge(k.amt))}.`;
+  return k.kind==="loan"
+    ? `Lent <b style="color:var(--ink)">${money(k.amt)}</b> — he gets it back for <b style="color:var(--ink)">${money(k.amt+pawnCharge(k.amt))}</b> by day 30, interest ${money(pawnCharge(k.amt))}. This is what the log keeps.`
+    : `Bought outright for <b style="color:var(--ink)">${money(k.amt)}</b> — no loan, no ticket to redeem. This is what the log keeps.`;
+}
+function struckHTML(x){
+  const k=struckAmt(x), sug=k.kind==="buy"?x.buy:x.target;
+  return `<div class="struck">
+    <span class="label" style="margin:0">What you actually did — the number that gets logged</span>
+    <div class="struckRow">
+      <div class="struckPick">
+        <button type="button" class="${k.kind==="loan"?"on":""}" data-struckkind="loan">Lent</button>
+        <button type="button" class="${k.kind==="buy"?"on":""}" data-struckkind="buy">Bought</button>
+      </div>
+      <input class="numIn struckIn" type="number" inputmode="decimal" min="0" step="1" autocomplete="off"
+        placeholder="${Math.round(sug)}" value="${esc(st.struck==null?"":String(st.struck))}"
+        aria-label="What you actually ${k.kind==="loan"?"lent":"paid"}">
+      <button type="button" class="ghostBtn struckUse" data-struckset="${Math.round(sug)}">Use ${money(sug)}</button>
+    </div>
+    <div class="struckNote cardHint" style="margin-top:8px">${struckNoteHTML(x)}</div>
+  </div>`;
+}
+function askDoneHTML(x){
+  if(x.buyTooThin)return `<div class="askDone bad">
+    <div class="adHd">That is everything &mdash; <b>and the answer is no</b></div>
+    <div class="adWhat">${esc(displayName(x))}${st.condSet?` \u00b7 ${esc((COND_WORDS[st.cond]||[st.cond])[0])}`:""}</div>
+    <div class="adBig">Walk away</div>
+    <div class="adWhy">It will not clear the ${money(x.buyFloor)} you want out of it &mdash; not as a buy, and not as a loan you end up owning. Hand it back.</div>
+  </div>`;
+  return `<div class="askDone">
+    <div class="adHd">That is everything &mdash; <b>here is the answer</b></div>
+    <div class="adWhat">${esc(displayName(x))}${st.condSet?` \u00b7 ${esc((COND_WORDS[st.cond]||[st.cond])[0])}`:""}</div>
+    <!-- THREE EQUAL BOXES AND NO WAY TO TELL WHICH WAS WHICH.
+         Reported from the counter: "the pawn price and buy now price
+         should be the most visible numbers so I don't get confused on what
+         number is what." They were three identical tiles in a row, and one
+         of them was not even a decision - resale is what the other two are
+         BUILT from, and it was wearing the same size and the same box.
+         So: two decisions, large, side by side, each labelled with the kind
+         of deal rather than a verb - a counter reading "Or lend him" has to
+         work out that this is the pawn number, and "Buy it for" and "Or
+         lend him" look alike at arm's length. Each carries the one line
+         that says what it commits you to. Resale drops to a line of
+         evidence underneath, where it explains the two above it.
+         "He pays back by day 30" came out of this row entirely: it is the
+         first rung of the ladder on the rail, in the same typeface, four
+         inches away - the duplication the counter asked about, and mine. -->
+    <div class="adPair">
+      <div class="adDeal buy">
+        <div class="k">Buy it outright</div>
+        <div class="d">${money(x.buy)}</div>
+        <div class="s">Yours. Nothing to pay back, nothing to hold.</div>
+      </div>
+      <div class="adDeal lend">
+        <div class="k">Pawn loan</div>
+        <div class="d">${money(x.target)}</div>
+        ${/* "He pays back $131" was read at the counter as $131 of INTEREST
+              on a $105 loan. Understandable: the words sit next to a fee, and
+              "pays" goes with "fee" in every other sentence on this screen.
+              So the line names what the figure IS - the amount that gets the
+              thing off the shelf - and then splits it, which makes reading it
+              as interest impossible. */""}
+        <div class="s">To get it back: <b>${money(x.target+x.charge)}</b> by day 30 \u2014 the ${money(x.target)} plus ${money(x.charge)} interest.</div>
+      </div>
+    </div>
+    <div class="adWhy">${x.checked?"":`<b style="color:var(--warn-ink)">Estimate &mdash; nothing looked up.</b> `}<b>Resells for ${money(Math.round(x.resale))}</b> in this shape &mdash; that is where both numbers come from. Lend anywhere in ${money(x.low)}&ndash;${money(x.high)}, never above the top.</div>
+    ${struckHTML(x)}
+    <!-- ANYTHING ELSE IS A NOTEPAD, NOT A QUESTION, AND IT IS STEP 8 NOW.
+         Moving it after the condition made it the last card - and the
+         answer card replaces the last card, so the box would have been
+         swallowed before the counter ever saw it. A catch-all has no
+         answer to give up its card for, and it also does not deserve a
+         card: it comes into the answer, beside the amount, where the last
+         thing before writing a ticket is "anything odd about this one". -->
+    <label class="adNote"><span>Anything else? <i>optional &mdash; only what changes the price</i></span>
+      <input id="detailIn" type="text" autocomplete="off" placeholder="${esc(detailHint(x).ph)}" value="${esc(st.detail)}" class="numIn"></label>
+  </div>`;
+}
+function askHTML(x){
+  const q=askQueue(x);
+  const at=Math.max(0,Math.min(q.length-1,Number(st.askAt)||0));
+  const cur=q[at];
+  const opt=(o)=>`<button class="askOpt${o.on?" on":""}" data-ask="${esc(o.set)}" data-askv="${esc(o.v)}">`
+    +`<span class="askT">${esc(o.t)}</span>${o.sub?`<span class="askS">${esc(o.sub)}</span>`:""}</button>`;
+  const dh=detailHint(x);
+  const cov=coveredLine();
+  const mods=(cur.kind==="model")?mpCandidates():[];
+  const bq=st.brandQ||st.brandTyped||"";
+  const hits=(cur.id==="brand")?brandHits(st.catId,bq):[];
+  const body=cur.kind==="worth"
+    ? `<div class="askWorth">${step4Inner(x,true)}</div>`
+    : cur.id==="brand"
+    ? `<div class="askWorth">
+         <span class="label">Make</span>
+         <input id="askBrandIn" type="text" autocomplete="off" placeholder="Start typing \u2014 Stihl, DeWalt, Ryobi\u2026" value="${esc(bq)}" class="numIn" style="font-family:var(--sans);font-size:15px">
+         ${hits.length?`<div class="askOpts askHits">${hits.map(h=>
+             `<button class="askOpt${(st.brandTyped||"").toLowerCase()===h.name.toLowerCase()?" on":""}" data-brandpick="${esc(h.name)}" data-brandtier="${esc(h.tier)}"><span class="askT">${esc(h.name)}</span><span class="askS">${esc(tierLabel(x,h.tier))}</span></button>`
+           ).join("")}</div>`
+          :`<div class="cardHint">${bq?"<b>"+esc(bq)+"</b> is not on the list for "+esc(String(x.cat.label||"this").toLowerCase())+" \u2014 say where it sits below and the price follows.":"Type a make above, or just say where it sits below."}</div>`}
+         <span class="label" style="margin-top:14px">Or just say where it sits</span>
+         <div class="askOpts">${(cur.opts||[]).map(opt).join("")}</div>
+       </div>`
+    : cur.kind==="model"
+    ? `<div class="askWorth">
+         ${mods.length?`<span class="label">${esc(st.brandTyped||"Known")} models with measured prices</span>
+           <div class="askOpts askHits">${mods.map(r=>
+             `<button class="askOpt${(st.model||"")===String(r[2])?" on":""}" data-modelpick="${esc(r[0])}"><span class="askT">${esc(r[2])}</span><span class="askS">${money(r[3])}&ndash;${money(r[4])} resale</span></button>`
+           ).join("")}</div>
+           <span class="label" style="margin-top:14px">Or type it</span>`
+          :`<span class="label">Model</span>`}
+         <input id="modelIn" type="text" autocomplete="off" placeholder="870 Wingmaster, MS 271, 10/22\u2026" value="${esc(st.model)}" class="numIn" style="font-family:var(--sans);font-size:15px">
+         ${(()=>{ /* SAY IT HERE, NOT AT THE PRICE STEP.
+              A television, a chainsaw, a fridge: the desk will not look
+              these up, on purpose, because the search comes back with
+              remotes and bars and door seals. Typing a model in good faith
+              and only finding that out two cards later - on a screen that
+              then asks you to go do the research yourself - is the tool
+              wasting your time and then blaming you for it. */
+            const b=(typeof ebayBlind==="function")?ebayBlind(x):"";
+            return b?`<div class="cardHint" style="margin-top:8px;border-left:2px solid var(--warn);padding-left:9px;color:var(--ink-2)"><b style="color:var(--warn-ink)">This one cannot be looked up.</b> ${esc(b)} Put the model in anyway &mdash; it sharpens the sold-price buttons, and you type the figure in at the next step.</div>`:"";
+          })()}
+         ${cov?`<div class="cardHint" style="margin-top:6px">${esc(cov)}</div>`:""}
+         <div class="cardHint" id="specVerdict">${specVerdictHTML(x)}</div>
+       </div>`
+    : cur.kind==="extra"
+    ? `<div class="askWorth">
+         <input id="detailIn" type="text" autocomplete="off" placeholder="${esc(dh.ph)}" value="${esc(st.detail)}" class="numIn" style="font-family:var(--sans);font-size:15px">
+         <div class="cardHint" style="margin-top:8px">Most of the time the answer is nothing, and Skip is the right move. Extra words narrow a sold-price search, and a search that is too narrow finds a different product instead of fewer of the right one.</div>
+       </div>`
+    : `<div class="askOpts">${(cur.opts||[]).map(opt).join("")}</div>`;
+  /* THE LAST QUESTION STAYED ON SCREEN AFTER IT WAS ANSWERED.
+     Reported from the counter: "after I'm done with step 8, it needs to go
+     away and move the deal details into the top section." Right - five
+     condition buttons with one of them lit, above the answer they produced,
+     is the form still asking after it has been filled in. The answer takes
+     the card; Back and the dots still reach every question, including this
+     one, so nothing is locked in. */
+  const allDone=q.every(z=>z.answered);
+  /* "Change an answer" has to reach the question this card REPLACED, not
+     the one before it - the counter just answered the condition, and a back
+     button that lands on "Anything else?" is answering a question nobody
+     asked. askEdit puts the last question back on screen in place of the
+     answer; anything that moves the run clears it. */
+  const finished=allDone&&at>=q.length-1&&!st.askEdit;
+  /* "Change an answer" has to land on a question with an answer in it. Once
+     "Anything else?" became step 8 the card being replaced was the notepad,
+     so the button reopened an empty text box - technically the card it had
+     taken over, and useless. It goes to the last question that actually
+     asked something, which is the condition. */
+  const lastReal=(()=>{ for(let i=q.length-1;i>=0;i--) if(!q[i].optional)return i; return Math.max(0,q.length-1); })();
+  if(finished)return `<div class="card askCard askFin" id="askCard">
+    <div class="askWhere">${q.length} of ${q.length} \u00b7 all answered</div>
+    ${askDoneHTML(x)}
+    <div class="askNav">
+      <button class="ghostBtn" data-askgo="${lastReal}">&larr; Change an answer</button>
+      <div class="askDots">${q.map((z,i)=>`<i class="${i===at?"on":""}${z.answered?" done":""}" title="${esc(z.title)}" data-askgo="${i}"></i>`).join("")}</div>
+      <button class="brassBtn" data-askdone="log">Write the ticket &darr;</button>
+    </div>
+  </div>`;
+  return `<div class="card askCard" id="askCard">
+    <div class="askWhere">${at+1} of ${q.length}${allDone?" \u00b7 all answered":""}</div>
+    <div class="askQ">${esc(cur.title)}</div>
+    ${cur.named?`<div class="cardHint" style="margin-top:0"><b style="color:var(--accent)">${esc(cur.named)}</b> &mdash; read off the name. Tap another if it is wrong.</div>`
+      :cur.hint?`<div class="cardHint" style="margin-top:0">${esc(cur.hint)}</div>`:""}
+    ${body}
+    <div class="askNav">
+      ${at<=0
+        /* THE SAME DEAD BUTTON, AT THE OTHER END OF THE RUN.
+           Back was disabled on question one because there is no earlier
+           question - true, and useless. What the counter wants there is
+           the way OUT: he has picked the wrong thing off the search box
+           and needs to pick again. A greyed control where the way back
+           should be reads as broken, exactly as the dead "Next" did on
+           the last card, and it was reported as broken for the same
+           reason. So question one goes back to the search. */
+        ? `<button class="ghostBtn" data-askout="1" title="Pick something else">&larr; Pick another</button>`
+        : `<button class="ghostBtn" data-askmove="-1">&larr; Back</button>`}
+      <div class="askDots">${q.map((z,i)=>`<i class="${i===at?"on":""}${z.answered?" done":""}" title="${esc(z.title)}" data-askgo="${i}"></i>`).join("")}</div>
+      ${at>=q.length-1
+        /* A DEAD BUTTON IS NOT AN ENDING.
+           The last card used to carry a DISABLED button still labelled
+           "Next", which reads as broken, not finished - you answer the
+           last question and the only thing that looks like a way forward
+           stops responding. There is more page below it and nothing says
+           so. So the last step gets a live button that says what it does
+           and takes you to the detail. */
+        ? (()=>{ /* "SEE THE DETAIL" SAID NOTHING AND DID NOTHING.
+               It was my guess at what comes after the last question, and
+               it was wrong twice: nobody knows which detail, and on a desk
+               the card it scrolled to is already on screen, so the click
+               had no visible effect at all. A button that does nothing
+               visible is a broken button, whatever it does internally.
+               What comes next is not a place, it is the next ACTION -
+               either the run has a gap in it, or it is finished and the
+               deal wants logging. Say which. */
+             const open=q.findIndex(z=>!z.answered);
+             if(open<0)return `<button class="brassBtn" data-askdone="log">Write the ticket &darr;</button>`;
+             if(open!==at)return `<button class="brassBtn" data-askgo="${open}">Still to answer: ${esc(q[open].title)}</button>`;
+             return `<button class="brassBtn" data-askdone="here">Pick one above &uarr;</button>`;
+           })()
+        : `<button class="brassBtn" data-askmove="1">${cur.answered?"Next":"Skip"} &rarr;</button>`}
+    </div>
+  </div>`;
+}
+function stepFlow(){
+  if(st.flow==="ask")return "ask";
+  if(st.flow==="all")return "all";
+  if(st.flow==="steps")return "steps";
+  if(st.flow==="pages")return "pages";
+  /* A questionnaire is ONE question on the screen with a way forward, back
+     and past it. "Pages" was four pages and the first of them still carried
+     six questions in a scrolling card - a form wearing a pager. The default
+     is the real thing now; the other three are still there for anyone who
+     wants the whole item at once. */
+  return "ask";
+}
+
+/* Which page each card belongs to. Every card carries a stable id, so this
+   is a lookup rather than a guess at its wording. */
+const ITEM_PAGES=[
+  ["what",  "What it is",  ["browseBox","photoCard","s3"]],
+  ["check", "Checks",      ["fakeCard"]],
+  ["worth", "Worth",       ["compsCard","s4","seenCard"]],
+  ["cond",  "Condition",   ["s5"]],
+  ["offer", "Your offer",  ["ticket","rateFold","paybackFold","logCard"]]
+];
+function pagesOn(){ return stepFlow()==="pages"&&st.mode==="item"&&st.picked; }
+/* A page with nothing on it is not offered - the fakes card is only there for
+   the sheets that gate, and the deal log only once there is a service. */
+function livePages(v){
+  return ITEM_PAGES.filter(([id,,ids])=>ids.some(i=>v.querySelector("#"+i)));
+}
+function applyPages(){
+  const v=document.getElementById("view"); if(!v)return;
+  v.classList.toggle("paged",pagesOn());
+  v.classList.toggle("railed",deskRail());
+  const old=v.querySelector("#pageNav"); if(old)old.remove();
+  if(!pagesOn())return;
+  const pages=livePages(v); if(!pages.length)return;
+  if(!pages.some(p=>p[0]===st.page))st.page=pages[0][0];
+  const at=pages.findIndex(p=>p[0]===st.page);
+  /* Hide, never remove: the inputs keep their values and their handlers, and
+     a card that is off-screen is still wired when you page back to it. */
+  ITEM_PAGES.forEach(([id,,ids])=>ids.forEach(i=>{
+    const el=v.querySelector("#"+i); if(el)el.classList.toggle("pgOff",id!==st.page);
+  }));
+  const nav=document.createElement("div");
+  nav.id="pageNav"; nav.className="pageNav";
+  /* "1 of 4" next to a panel saying ALL ANSWERED - NOTHING LEFT TO SET read
+     as a contradiction, and fairly: one is where you are LOOKING and the
+     other is what is DONE, and nothing on screen said which was which.
+     A tick on the pages that are answered settles it - the strip now shows
+     the same thing the panel does, and the counter is plainly just standing
+     on page one of a finished item. */
+  const x=calcItem();
+  const done={ what:!!st.picked, check:true, worth:!!x.checked,
+               cond:!!st.condSet, offer:!!(x.checked&&st.condSet) };
+  const allDone=pages.every(([id])=>done[id]!==false);
+  nav.innerHTML=`<div class="pageTabs">${pages.map(([id,label],i)=>
+      `<button class="${id===st.page?"on":""}${done[id]?" done":""}" data-page="${id}">`
+      +`<i>${done[id]?"\u2713":i+1}</i>${esc(label)}</button>`).join("")}</div>
+    <div class="pageStep">
+      <button class="ghostBtn" data-pgmove="-1"${at<=0?" disabled":""}>&larr; Back</button>
+      <span class="pageWhere">${allDone?"all answered \u00b7 ":""}page ${at+1} of ${pages.length}</span>
+      ${at<pages.length-1&&!done[st.page]?`<button class="ghostBtn pageSkip" data-pgmove="1" title="Leave this one unanswered and carry on. You can come back to it from the row above.">Skip</button>`:""}
+      <button class="brassBtn" data-pgmove="1"${at>=pages.length-1?" disabled":""}>Next &rarr;</button>
+    </div>`;
+  /* In the rail layout the nav steers the left column, so it lives at the
+     top of it. Anywhere else and the controls for the questions are not
+     beside the questions. */
+  const q=v.querySelector(".colQ");
+  if(q){ q.insertBefore(nav,q.firstChild); return; }
+  const pin=v.querySelector("#pin");
+  if(pin&&pin.nextSibling)v.insertBefore(nav,pin.nextSibling); else v.appendChild(nav);
+}
+function goPage(id){ st.page=id; render(); const v=document.getElementById("view");
+  const n=v&&v.querySelector("#pageNav"); if(n)n.scrollIntoView({block:"start",behavior:"instant"}); }
+function liveStep(x){
+  /* Without a resale value nothing downstream means anything, so that is the
+     step. After it, condition - and it stays the live one, because it is what
+     gets adjusted while the customer is standing there, and slamming it shut
+     the instant it is answered would be worse than leaving it open. */
+  return x.checked?5:4;
+}
+function stepHead(n,title,answer,live){
+  return `<summary class="stepSum${live?" live":""}"><span class="stepN">${n}</span>`
+    +`<span class="stepT">${title}</span><span class="stepA">${answer||"&mdash;"}</span></summary>`;
+}
+function brandAnswer(x){
+  const bits=[st.brandTyped||(x.brandName||""),st.model||"",st.detail||""].map(t=>String(t).trim()).filter(Boolean);
+  return bits.length?esc(bits.join(" \u00b7 ")):"not set";
+}
+function renderItem(){
+  const x=calcItem(); const cat=x.cat;
+  /* the pipeline: 1 category → 2 item → 3 your resale → 4 what changes it → 5 rate → 6 THE LOAN → 7 the rules */
+  /* The search bar reaches every one of these and the price book besides, so
+     the two columns of buttons are a second way to do what it already does -
+     17 of them, taking the top of the screen before anything has been asked.
+     They fold away. Open once and they stay open for the session: thumbing
+     the lists is a habit, not a one-off. */
+  const left=`<div class="colL"><details class="browse" id="browseBox"${st.browse?" open":""}>
+    <summary><span class="label" style="margin:0">Browse the lists</span><span class="browseSub">${CATALOG.length} groups &middot; ${CATALOG.reduce((a,c)=>a+c.items.length,0)} items &middot; or just type above</span></summary>
+    <div class="card" style="margin-top:10px">
+      <span class="label">1 &middot; Category</span>
+      ${CATALOG.map(c=>`<button class="catBtn${c.id===st.catId?" on":""}" data-cat="${c.id}">${c.label}</button>`).join("")}
+    </div>
+    <div class="card"><span class="label">2 &middot; Item</span>
+      <div class="cardHint" style="margin-top:0;font-size:13.5px">Not here? Type it in the search bar at the top. It also searches ${PRICEBOOK.length}+ more items.</div>
+      ${itemsByUse(cat).map(({it,seen},ix)=>`<button class="itemBtn${st.picked&&it.id===st.itemId?" on":""}" data-item="${it.id}"><span class="idx">${String(ix+1).padStart(2,"0")}</span><span style="flex:1">${it.name}</span>${seen?`<span class="seenTag">${seen}\u00d7 taken in</span>`:""}${ownAvgTag(it.id)}</button>`).join("")}
+      <button class="itemBtn${st.picked&&st.itemId===custId(cat.id)?" on":""}" data-item="${custId(cat.id)}"><span class="idx">+</span><span style="flex:1">${st.itemId===custId(cat.id)&&st.bookName?esc(st.bookName):"Not on any list — I set the price"}</span></button>
+    /* On the phone this column is hidden and the camera card is drawn in the
+       visible run instead - drawing it here too would put two of every id on
+       the page, and the handlers would wire to the invisible copy. */
+    /* The shelf-tag record used to hang here on any screen without a rail -
+       the second of two paths it was reaching the pricing page by, and the
+       one the first cut missed. It is a record of what OTHER shops ask,
+       and it lives on the deal log with the rest of the shop's own
+       records. It has no business beside the thing in your hand.
+       The camera stays, but only until something is picked: it is how you
+       find out WHAT this is, not something to re-open halfway down a run
+       about one already named. */
+    </div></details>${(deskRail()||window.PHONE||st.picked)?"":photoCardHTML()}</div>`;
+  /* The market check is a tool, not a question - it interrupted the run
+     between the browse bar and step 3 with 292px of buttons. It goes with
+     the other reference cards at the foot, where it is still a click away
+     when step 4 wants a real sold price. */
+  /* WHAT BELONGS ON A STEP IS THAT STEP.
+     The column under the question carried the market card, the camera,
+     the shelf-tag recorder and the deal log - all of them, at every step,
+     whatever was being asked. Seven cards in the run and thirteen in the
+     page flow, to answer one question.
+     None of those three belong to a step. The camera is how you find out
+     WHAT the thing is, so it goes before an item is picked and not after.
+     Shelf tags are a record of other shops' prices, kept for later, and
+     have nothing to do with the item in your hand - they moved to the
+     deal log, where the shop's own records live. And the log itself says
+     "check the market first, so the log only keeps real numbers", which
+     is an admission that it is useless until there is a price.
+     What is left is the market card, on the one step that asks about the
+     market. */
+  const onWorth=(stepFlow()==="ask")
+    ? (function(){ const q=askQueue(x), at=Math.max(0,Math.min(q.length-1,Number(st.askAt)||0));
+                   return q[at]&&q[at].id==="worth"; })()
+    : (st.page==="worth"||st.page==="what");
+  const leftRef=(deskRail()&&onWorth)?`<div class="colL">${compsCardHTML(x)}</div>`:"";
+  /* Before anything is picked, the camera IS the first step. After, it is
+     a way to re-identify something already named, which nobody needs
+     halfway down a run. */
+  const camRef=(!st.picked&&!window.PHONE)?`<div class="colL">${photoCardHTML()}</div>`:"";
+  /* The log appears when there is something worth logging. */
+  const logRef=x.checked?logCardHTML(x):"";
+  const ST=stepFlow()==="steps"&&!window.PHONE, LIVE=ST?liveStep(x):0;
+  /* A step opened by hand stays open through the re-render a click inside it
+     causes - otherwise it shuts under the hand that opened it. It is let go
+     when the work moves to a different step. */
+  if(ST&&st.stepAt!==LIVE){ st.openS3=st.openS4=st.openS5=false; st.stepAt=LIVE; }
+  let mid=`<div class="colC">${fakeCardHTML(x)}${deskRail()?"":compsCardHTML(x)}${ST?`<details class="card stepCard" id="s3"${st.openS3?" open":""}>`+stepHead(3,"Brand, make &amp; model",brandAnswer(x),false):`<div class="card" id="s3"><span class="label">3 &middot; Brand, make &amp; model</span>`}
+    ${/* Four lines of coaching, every item, for ever. True and worth
+          reading - once. Folded, so it is one line until somebody wants it. */""}
+    <details class="fold driverFold"${st.openDriver?" open":""} id="driverFold"><summary class="foldLine">What sets the price on one of these</summary>
+    <div class="driver"><p><b class="go">What sets the price:</b> ${(itemOv()&&itemOv().driver)||cat.driver}</p><p><b class="no">What kills it:</b> ${(itemOv()&&itemOv().killer)||cat.killer}</p></div></details>`;
+  if(cat.brand.on){
+    const ov=itemOv();
+    const book=(ov&&ov.brands)||BRANDBOOK[cat.id];
+    const tiers=(ov&&ov.tiers)||cat.brand;
+    mid+=`<span class="label">Brand — type it, I'll place it</span>
+    <input id="brandIn" type="text" autocomplete="off" list="dlBrands" placeholder="${book?book.hi[0]+", "+book.lo[0]+"…":"brand…"}" value="${esc(st.brandTyped)}" class="numIn" style="font-family:var(--sans);font-size:15px">
+    ${book?`<datalist id="dlBrands">${["hi","mid","lo"].flatMap(t=>book[t]).sort().map(b=>`<option value="${b}">`).join("")}</datalist>`:""}
+    <div class="cardHint" id="brandVerdict" style="min-height:16px">${brandVerdictHTML()}</div>
+    ${/* Typing "DeWalt" and being told "DeWalt - top tier here" already
+          answers the tier. Showing three buttons underneath asks the same
+          question a second time, and the counter has to read all three to
+          notice the right one is already lit. Only when the book does NOT
+          know the brand is there a question left to ask. */""}
+    ${brandLookup(st.catId,st.brandTyped)
+      ? `<details class="fold"${st.openTier?" open":""} id="tierFold"><summary class="foldLine">Placed as ${esc(tiers[st.brand])} &mdash; change it</summary>
+         <div class="pills mb14" style="border-radius:var(--r-s);margin-top:8px">${BRANDS.map(br=>`<button class="${st.brand===br.id?"on":""}" style="flex:1;font-size:11px;padding:7px 6px" data-brand="${br.id}">${tiers[br.id]}</button>`).join("")}</div></details>`
+      : `<div class="pills mb14" style="border-radius:var(--r-s);margin-top:8px">${BRANDS.map(br=>`<button class="${st.brand===br.id?"on":""}" style="flex:1;font-size:11px;padding:7px 6px" data-brand="${br.id}">${tiers[br.id]}</button>`).join("")}</div>`}`;
+  }
+  const _ov=itemOv();
+  const dh=(_ov&&_ov.detail)||DETAIL_HINTS[cat.id]||{ph:"",hint:""};
+  const _sc=SPEC_CHOICES[st.itemId];
+  if(_sc)_sc.forEach((g,gi)=>{
+    const sel=st.specSel[st.itemId+":"+gi]??specBase(g);
+    mid+=`<span class="label">${g.label}</span><div class="pills mb14" style="border-radius:var(--r-s)">${g.options.map((o,oi)=>`<button class="${sel===oi?"on":""}" style="flex:1;padding:7px 5px;font-size:11px" data-spec="${gi}:${oi}">${o.t}</button>`).join("")}</div>`;
+  });
+  /* Both optional, and when the pickers above set the price these are notes
+     for the ticket rather than questions. Folded unless something has been
+     typed in them, so a page that was six questions is four. */
+  const notes=!!(st.model||st.detail);
+  mid+=`<details class="fold"${notes||st.openNotes?" open":""} id="notesFold"><summary class="foldLine">Model and specs${notes?` &mdash; ${esc([st.model,st.detail].filter(Boolean).join(" \u00b7 ").slice(0,44))}`:" (optional)"}</summary>
+    <span class="label">Model (optional)</span>
+    <input id="modelIn" type="text" autocomplete="off" placeholder="870 Wingmaster, MS 271, 10/22…" value="${esc(st.model)}" class="numIn" style="font-family:var(--sans);font-size:15px">
+    <span class="label" style="margin-top:12px">Details — ${_ov?"specs for this item":cat.id==="guns"?"caliber & barrel":cat.id==="power"?"size & wattage":cat.id==="elec"?"size & year":"specs"} (optional)</span>
+    <input id="detailIn" type="text" autocomplete="off" placeholder="${dh.ph}" value="${esc(st.detail)}" class="numIn" style="font-family:var(--sans);font-size:15px">
+    <div class="cardHint" id="specVerdict">${specVerdictHTML(x)}</div>
+    ${_sc&&!x.checked?`<div class="cardHint" style="opacity:.8">This item prices from the pickers, not the text boxes — those are for the ticket record${/gener/i.test(x.item.name)?" (watts typed here still compute a value)":""}.</div>`:""}
+    <div class="cardHint">${dh.hint?dh.hint+" ":""}The exact model and specs can move money more than anything else on this page — when they matter, check sold listings and put the real number in step 4.</div>
+    </details>
+  ${ST?"</details>":"</div>"}
+  ${ST?`<details class="card stepCard" id="s4"${LIVE===4||st.openS4?" open":""}>`+stepHead(4,"Resale value",x.checked?money(Math.round(x.resale)):"not checked",LIVE===4)+`<div id="step4">${step4Inner(x)}</div>`
+      :`<div class="card" id="s4"><div id="step4">${step4Inner(x)}</div>`}`;
+  mid+=`${ST?"</details>":"</div>"}${ST?`<details class="card stepCard" id="s5"${LIVE===5||st.openS5?" open":""}>`+stepHead(5,"Condition &amp; speed",esc(COND_WORDS[st.cond][0]),LIVE===5)
+      :`<div class="card" id="s5"><span class="label">5 &middot; Condition, completeness &amp; speed</span>`}`;
+  /* Say it here too, where the buttons are. Without a word the counter
+     presses Rough, watches the price not move, and reasonably concludes the
+     thing is broken. */
+  mid+=`<span class="label">Condition${x.handSet?" &mdash; already in your figure":(x.checked?" &mdash; next to a typical used one":"")}</span>`
+    +(x.handSet?`<div class="tagNote">You typed the resale value yourself, so this doesn't move the price &mdash; your number is taken as this one sits, wear and all. Clear it in <b>Resale value</b> to price off the list again and have condition adjust it.</div>`:"")
+    +`<div class="pills mb14" style="border-radius:var(--r-s)">${CONDITIONS.map(c=>`<button class="${c.id===st.cond?"on":""}" style="flex:1;padding:7px 5px;font-size:11px${x.handSet?";opacity:.55":""}" data-cond="${c.id}" title="${x.handSet?"Does not change the price while the resale value is your own figure":c.hint}">${c.label.replace("New in box","New")}</button>`).join("")}</div>`;
+  if(cat.complete.on){
+    mid+=`<span class="label">${cat.complete.label}</span><div class="pills mb14" style="border-radius:var(--r-s)">
+      <button class="${st.completeSet&&st.complete?"on":""}" style="flex:1" data-comp="1">All there</button>
+      <button class="${st.completeSet&&!st.complete?"on":""}" style="flex:1" data-comp="0">Pieces missing</button></div>`;
+  }
+  mid+=`<span class="label">How fast it moves in Bristol</span><div class="pills" style="border-radius:var(--r-s)">${LIQUIDITY.map(l=>`<button class="${x.liqId===l.id?"on":""}" style="flex:1;padding:7px 5px;font-size:11px" data-liq="${l.id}" title="${l.hint}">${l.label}</button>`).join("")}</div>
+  ${ST?"</details>":"</div>"}
+  <details class="card foldCard"${st.openRates?" open":""} id="rateFold">
+    <summary><span class="label" style="margin:0">6 &middot; Lending and buying rates</span><span class="foldSub">${x.baseLtv}% lend &middot; ${x.buyPct}% buy &mdash; shop policy, rarely per deal</span></summary>
+    <div class="rateRow" style="margin-top:10px"><span class="label">Base lending rate for ${cat.label.toLowerCase()} (%)</span><input id="ltvNum" class="numIn rateNum" type="number" inputmode="numeric" min="15" max="100" value="${x.baseLtv}"></div>
+    <input type="range" min="15" max="100" value="${x.baseLtv}" id="ltvSlider">
+    <div class="sliderScale"><span>15% — tight</span><span>100% — your whole cushion, gone</span></div>
+    <div id="ltvSuggest">${ltvSuggestHTML(cat,x.baseLtv)}</div>${buyRateHTML(x)}</details></div>`;
+  const right=`<div class="colR"><div id="ticket">${ticketHTML(x)}</div>${logRef}</div>`;
+  /* The pin sat at the top of the right column, and that column starts below
+     the Next step panel - so the number the counter is working toward was
+     off-screen until they scrolled to it, which is what it existed to avoid.
+     It goes in the top row instead, in the empty half of that panel. */
+  /* Nothing has been chosen yet, so there is no price, no loan and nothing
+     to check it against - and drawing the whole machinery empty is what was
+     filling the first screen with blank boxes. Until step 1 is answered the
+     page is the search box and the two other ways in. */
+  /* This was a full card restating the search placeholder in 132px of prose,
+     above three columns stretched to the tallest one - so a 58-character
+     summary bar sat in a 468px box. The cards stand at their own height now,
+     across the full desk width.
+
+     The headline went too: "What's on the counter?" is the placeholder text
+     in the box directly above it, word for word, and repeating it put two
+     lines of small print nose to nose under the search bar. What is left is
+     the one thing the box does not already say - how much it knows. */
+  /* THE FRONT PAGE WAS A SEARCH BOX AND 600px OF NOTHING.
+     Under the box sat two lines of prose naming four things you could
+     type, then a closed fold and, when disconnected, the setup card -
+     and then the bottom two-thirds of a 1440x900 screen, empty. The
+     prose was the worst of it: it listed the four best ways in as text
+     you have to retype by hand, and the fold hid the twelve categories
+     behind a click, so the page managed to be both bare AND to withhold
+     everything it knew.
+
+     Both become controls. The examples are buttons that run themselves,
+     and the twelve kinds the desk carries are laid out rather than
+     folded away. Same information, no more cards, and the screen is
+     doing something. */
+  /* THE DESK GETS THE HOME CARD TOO.
+     It had the search box, the worked examples and the eleven kinds -
+     all useful, all a way IN - and nothing about the day it is already
+     halfway through. The hero and the feed come from the same two
+     functions the phone calls, so the two cannot drift. The ways in
+     keep the main column; the day sits in the rail, where the money
+     sits once something is on the counter. */
+  if(!st.picked&&!window.PHONE)return `<div class="startHome">
+    <div class="startMain">
+      ${omniHTML()}
+      <!-- The worked examples used to sit here: eight chips that typed
+           themselves into the box. They were built to show what the search
+           accepts, and after a week at the counter that is not a thing
+           anybody needs shown twice - it is a row of somebody else's items
+           standing between the search box and the real lists. Taken out at
+           the counter's request. START_TRY stays: the phone has no room for
+           the tiles below and still names a few in one line of prose. -->
+      <div class="startWays">
+        <span class="label" style="margin:0">Or pick the kind of thing it is &mdash; ${CATALOG.reduce((a,c)=>a+c.items.length,0)} of them, and ${mpCount()} models by name</span>
+        <div class="startGrid">${catsByUse().map(({c,seen})=>
+          `<button class="kindTile" type="button" data-cat="${c.id}"><b>${esc(c.label)}</b>`
+          +`<span>${seen?seen+"\u00d7 taken in":c.items.length+" kind"+(c.items.length===1?"":"s")}</span></button>`).join("")}</div>
+      </div>
+    </div>
+    <div class="startRail">
+      ${homeHeroHTML({snapLabel:"Photo"})}
+      ${homeFeedHTML(5)}
+      ${left.replace('<div class="colL">','<div class="startCol">')
+            .replace(/<details class="browse"[\s\S]*?<\/details>/,"")}
+    </div>
+  </div>`;
+  /* The phone hides the three columns outright, and the camera card lived in
+     one of them - so the phone has had a photo reader built, wired and
+     working that nobody could see. It goes in the visible run instead.
+
+     Before anything is picked it sits directly under the search box, because
+     that is the whole point at a yard sale: you photograph the thing BECAUSE
+     you do not know what it is. Once something is picked it drops below the
+     price, so it never pushes the answer off the screen again. */
+  if(window.PHONE){
+    const cam=photoCardHTML();
+    /* On a phone with nothing on the go, the camera IS the first move. You
+       see something on a table, you want to shoot it and let the desk work
+       out what it is - being handed a search box first means typing, which
+       is the one thing you cannot do when you do not know what the thing is.
+       So: camera first, search underneath as the way in when you would
+       rather type. Once something is picked the price takes the top and the
+       camera drops below it. */
+    return st.picked
+      ? omniHTML()+nextStepHTML(x)+`<div id="pin">${pinHTML(x)}</div>`+cam+left+mid+right
+      : cam+omniHTML()+nextStepHTML(x)+`<div id="pin">${pinHTML(x)}</div>`+left+mid+right;
+  }
+  /* The rail holds the numbers panel and nothing else.
+     The loan card was in it too, and it was the same figures again: a ring
+     the size of a fist saying LEND HIM $32 directly under a panel already
+     saying LEND HIM $32, with low/suggested/top under that repeating a range
+     the panel's own note line carries. Two copies of one number, and the
+     second one so tall it pushed the rest of the rail off the screen - the
+     one thing a pinned column must never do. The loan card is still there in
+     full, at the foot of the questionnaire, ring and all. */
+  /* One question on the screen, the number beside it, and nothing else to
+     scroll past. The reference cards and the ticket live at the foot for
+     when somebody wants them, but the run itself is the card. */
+  if(stepFlow()==="ask"&&st.picked)
+    return omniHTML()
+      +(deskWide()
+        ? `<div class="rail"><div id="pin">${pinHTML(x)}</div>${weightHTML(x)}</div>`
+          +`<div class="colQ">${askHTML(x)}<div id="ticket">${ticketHTML(x)}</div>${leftRef}${camRef}${logRef}</div>`
+        : `<div id="pin">${pinHTML(x)}</div>`+weightHTML(x)+askHTML(x)
+          +`<div id="ticket">${ticketHTML(x)}</div>`+logRef);
+  if(deskRail())return omniHTML()+nextStepHTML(x)
+    +`<div class="rail"><div id="pin">${pinHTML(x)}</div>${weightHTML(x)}</div>`
+    +`<div class="colQ">${left}${mid}<div id="ticket">${ticketHTML(x)}</div>`
+      +`${leftRef}${camRef}${logRef}</div>`;
+  /* The meter went out with the rail, and the rail needs 1080px - so on a
+     phone, and on a tablet held upright, the one card that says how much
+     evidence is behind the number simply did not exist. It was asked for
+     precisely so a thin number could not pass as a solid one, and it was
+     missing on the two devices that get carried to a yard sale. It goes
+     under the pin here, where the pin is. */
+  return omniHTML()+nextStepHTML(x)
+    +`<div id="pin">${pinHTML(x)}</div>`+weightHTML(x)
+    +left+mid+right;
+}
+function wireItem(){
+  const v=document.getElementById("view");
+  /* Opened once, it stays open for the session - thumbing the lists is a
+     habit, not a one-off, and it must survive the re-render that picking a
+     category causes. */
+  const br=document.getElementById("browseBox");
+  if(br)br.ontoggle=()=>{ st.browse=br.open; };
+  /* Opened by hand, it stays open through the re-render a click inside it
+     causes - otherwise it shuts under the hand that opened it. */
+  for(const [id,key] of [["whyFold","openWhy"],["paybackFold","openPayback"],["rateFold","openRates"],
+                         ["driverFold","openDriver"],["tierFold","openTier"],["notesFold","openNotes"],
+                         ["s3","openS3"],["s4","openS4"],["s5","openS5"],["wordsFold","openWords"]]){
+    const d=document.getElementById(id); if(d)d.ontoggle=()=>{ st[key]=d.open; };
+  }
+  /* A worked example is only worth showing if pressing it works. */
+  /* The home card's four actions, on whichever machine drew it. */
+  v.querySelectorAll("[data-whome]").forEach(b=>b.onclick=()=>{
+    const a=b.dataset.whome;
+    if(a==="snap"){ const c=document.getElementById("photoCam")||document.getElementById("photoIn");
+                    if(c)c.click(); return; }
+    if(a==="gold"){ st.mode="metal"; render(); return; }
+    if(a==="log"){ st.mode="log"; render(); return; }
+    if(a==="type"){ const i2=document.getElementById("omniIn");
+                    if(i2){ i2.focus(); try{ i2.scrollIntoView({block:"nearest"}); }catch(e){} } return; }
+  });
+  v.querySelectorAll("[data-dact]").forEach(b=>b.onclick=()=>{
+    const a=b.dataset.dact;
+    if(a==="look"){ try{ priceFind(null,true); }catch(e){} return; }
+    if(a==="log"){ st.mode="log"; render(); return; }
+    if(a==="new"){ const n=document.getElementById("pinNew"); if(n)n.click();
+                   else { st.picked=false; st.omniDone=""; st.market=null; render(); } return; }
+  });
+  v.querySelectorAll("[data-cat]").forEach(b=>b.onclick=()=>{
+    /* Typing something the lists don't carry parks you on a custom item and
+       asks what kind of thing it is - and these buttons are the answer on this
+       page. Answering must not throw away what was typed. */
+    /* A photo that was read but could not be placed is the same situation:
+       the name is known, the kind of thing is not. Keep the name. */
+    const un=(st.photoRead&&st.photoRead.unplaced&&st.photoRead.what)?st.photoRead.what:"";
+    const typed=un||((st.mpNone&&isCustom()&&st.bookName)?st.bookName:"");
+    st.catId=b.dataset.cat;st.market=null;st.omniDone="";st.mpPin=null;st.condSet=false;st.cond="good";
+    if(typed){ st.itemId=custId(st.catId); st.bookName=typed; st.mpNone=true; }
+    else { st.mpNone=false; const c=CATALOG.find(x=>x.id===st.catId); st.itemId=c.items[0].id; st.bookName=""; }
+    st.needKind=false;
+    if(un&&st.photoRead)st.photoRead=Object.assign({},st.photoRead,{unplaced:false});
+    st.liq=null;st.brandTyped="";st.brandQ="";st.model="";st.detail="";st.complete=true;st.completeSet=false;st.struck="";st.askEdit=false;st.editing=false;
+    /* THE MAKE WAS READ AND THEN THROWN AWAY.
+       Reported from the counter: typed "microsoft surface book", answered
+       "Electronics", and the make step still said NOTHING PICKED YET. The
+       desk had in fact read it - this line set the TIER off those same
+       words and priced against it - it just never wrote down WHICH make,
+       so the screen claimed ignorance about something it had already
+       used. "It should understand Microsoft as a brand." It did. It was
+       hiding it.
+       brandFromName rather than brandInText, because the words on the
+       counter are as often a product line as a maker: "surface" is
+       Microsoft, "inspiron" is Dell, "quietcomfort" is Bose, and the
+       whole-name scan alone finds none of those. brandSet goes with it -
+       a make the desk is confident enough to price with is a make it is
+       confident enough to show, and the counter can tap another if it is
+       wrong. */
+    const h=typed?brandFromName(st.catId,typed):null;
+    st.brand=h?h.tier:"mid";
+    if(h){ st.brandTyped=h.name; st.brandQ=h.name; st.brandSet=true; }
+    render();});
+  v.querySelectorAll("[data-item]").forEach(b=>b.onclick=()=>{st.needKind=false;st.itemId=b.dataset.item;st.market=null;st.omniDone="";st.mpPin=null;st.mpNone=false;st.condSet=false;st.cond="good";st.bookName="";st.liq=null;st.brand="mid";st.brandTyped="";st.brandQ="";st.model="";st.detail="";st.complete=true;st.completeSet=false;st.struck="";st.askEdit=false;st.askAt=0;st.brandSet=false;
+    /* picking "Something else" with no saved value drops you straight into the price box */
+    st.editing=(st.itemId===custId(st.catId));
+    render();if(st.editing)document.getElementById("valIn")?.focus();});
+  /* A tier tapped by hand is the counter overruling whatever was read off
+     the name, so it has to outrank it - brandSet is what says so. */
+  v.querySelectorAll("[data-brand]").forEach(b=>b.onclick=()=>{st.brand=b.dataset.brand;st.brandTyped="";st.brandQ="";st.brandSet=true;render();});
+  const bIn=document.getElementById("brandIn");
+  if(bIn)bIn.oninput=()=>{
+    st.brandTyped=bIn.value;
+    st.brandSet=false;
+    const hit=brandLookup(st.catId,st.brandTyped);
+    if(hit)st.brand=hit.tier;
+    document.getElementById("brandVerdict").innerHTML=brandVerdictHTML();
+    v.querySelectorAll("[data-brand]").forEach(b=>b.classList.toggle("on",b.dataset.brand===st.brand));
+    const xx=calcItem();
+    const vn=document.getElementById("valNum");if(vn)vn.textContent=money(xx.baseValue*xx.brandMult);
+    const vs=document.getElementById("valSub");if(vs)vs.textContent=valSubText(xx).replace(/<[^>]*>/g,"");
+    document.getElementById("ticket").innerHTML=ticketHTML(xx); paintPin(xx);
+    refreshStep4();
+  };
+  v.querySelectorAll("[data-cond]").forEach(b=>b.onclick=()=>{st.cond=b.dataset.cond;st.condSet=true;render();});
+  v.querySelectorAll("[data-comp]").forEach(b=>b.onclick=()=>{st.complete=b.dataset.comp==="1";st.completeSet=true;render();});
+  /* Answering IS moving on. A questionnaire that makes you answer and then
+     press Next has two actions where the counter's hand expects one. The
+     last question does not advance - there is nowhere to go, and the price
+     is already beside it. */
+  v.querySelectorAll("[data-ask]").forEach(b=>b.onclick=()=>{
+    const kind=b.dataset.ask, val=b.dataset.askv;
+    if(kind==="brand"){ st.brand=val; st.brandTyped="";st.brandQ=""; st.brandSet=true; }
+    else if(kind==="kind"){
+      /* Same work the category buttons did, minus the reset: the words the
+         counter typed are the only thing known about this item, so they are
+         kept and the make is read out of them against the aisle just
+         chosen - which is the whole reason it could not be read before. */
+      const typed=st.bookName||"";
+      st.catId=val; st.itemId=custId(val); st.bookName=typed||"Something else";
+      st.needKind=false; st.mpNone=true; st.liq=null; st.market=null; st.mpPin=null;
+      const bh=typed?brandFromName(val,typed):null;
+      st.brand=bh?bh.tier:"mid";
+      st.brandTyped=bh?bh.name:""; st.brandQ=st.brandTyped; st.brandSet=!!bh;
+    }
+    else if(kind==="comp"){ st.complete=val==="1"; st.completeSet=true; }
+    else if(kind==="cond"){ st.cond=val; st.condSet=true; }
+    else if(kind==="spec"){ const [gi,oi]=val.split(":"); st.specSel[st.itemId+":"+gi]=Number(oi); }
+    const q=askQueue(calcItem());
+    const at=Math.max(0,Math.min(q.length-1,Number(st.askAt)||0));
+    if(at<q.length-1)st.askAt=at+1;
+    persist(); render();
+  });
+  v.querySelectorAll("[data-askmove]").forEach(b=>b.onclick=()=>{
+    const q=askQueue(calcItem());
+    const at=Math.max(0,Math.min(q.length-1,Number(st.askAt)||0));
+    /* Moving on from the model question without typing one IS the answer
+       "there is no model". Every other question stays where it is. */
+    if(Number(b.dataset.askmove)>0&&q[at]&&q[at].id==="model"&&!q[at].answered)st.mpNone=true;
+    st.askAt=Math.max(0,Math.min(q.length-1,at+Number(b.dataset.askmove)));
+    st.askEdit=false;
+    render();
+  });
+  v.querySelectorAll("[data-askout]").forEach(b=>b.onclick=()=>{
+    /* Back to the search box, the same way the rail's "Another" does it. */
+    const n=document.getElementById("pinNew");
+    if(n){ n.click(); return; }
+    st.picked=false; st.omniDone=""; st.market=null; render();
+    const inp=document.getElementById("omniIn"); if(inp)inp.focus();
+  });
+  v.querySelectorAll("[data-askdone]").forEach(b=>b.onclick=()=>{
+    if(b.dataset.askdone==="here"){
+      /* the answer is on this card - put the options where the eye is */
+      const o=document.querySelector("#askCard .askOpts,#askCard .askWorth");
+      if(o&&o.scrollIntoView)o.scrollIntoView({behavior:"smooth",block:"center"});
+      return;
+    }
+    /* The run is done, so the next thing the counter does is write it
+       down. Straight to the ticket box, focused - and on a desk, where that
+       box is very often already on screen, the scroll alone is invisible and
+       was reported as a dead button. So the card it lands on says so. */
+    const log=document.getElementById("logCard")||document.getElementById("nextStep");
+    if(log&&log.scrollIntoView)log.scrollIntoView({behavior:"smooth",block:"start"});
+    if(log){ log.classList.remove("flashTo"); void log.offsetWidth; log.classList.add("flashTo");
+             setTimeout(()=>log.classList.remove("flashTo"),1400); }
+    const t=document.getElementById("ticketIn")||(log&&log.querySelector("input"));
+    if(t&&t.focus)setTimeout(()=>{try{t.focus({preventScroll:true});}catch(e){}},260);
+  });
+  v.querySelectorAll("[data-askedit]").forEach(b=>b.onclick=()=>{
+    st.askEdit=b.dataset.askedit==="1"; render(); });
+  v.querySelectorAll("[data-askgo]").forEach(b=>b.onclick=()=>{ st.askAt=Number(b.dataset.askgo); st.askEdit=false; render(); });
+  v.querySelectorAll("[data-liq]").forEach(b=>b.onclick=()=>{st.liq=b.dataset.liq;render();});
+  v.querySelectorAll("[data-spec]").forEach(b=>b.onclick=()=>{
+    const [gi,oi]=b.dataset.spec.split(":").map(Number);
+    st.specSel[st.itemId+":"+gi]=oi;render();});
+  /* THE BUTTON WAS TELLING THE TRUTH ABOUT THE WRONG MOMENT.
+     Its label is decided when the card is drawn, and typing in the model
+     box deliberately does NOT redraw the card - redrawing on every
+     keystroke threw the cursor out of the box mid-word. So the label froze
+     at whatever it was when the card appeared: type a model, and the way
+     forward still read "Skip".
+     The click itself was always right - it re-reads the queue and does not
+     set "there is no model" when one has been typed - so nothing was lost.
+     But a button that says Skip over a filled-in box makes the counter
+     doubt that the typing registered, which is worse than a wasted tap.
+     So: repaint the label and the dot on input, and nothing else. A full
+     render would take the cursor with it. */
+  function askNavRefresh(){
+    const nav=document.querySelector('[data-askmove="1"]'); if(!nav)return;
+    const q=askQueue(calcItem());
+    const at=Math.max(0,Math.min(q.length-1,Number(st.askAt)||0));
+    const cur=q[at]; if(!cur)return;
+    if(at<q.length-1)nav.innerHTML=(cur.answered?"Next":"Skip")+" \u2192";
+    const dot=document.querySelectorAll(".askDots i")[at];
+    if(dot)dot.classList.toggle("done",!!cur.answered);
+  }
+  function specRefresh(){
+    const xx=calcItem();
+    askNavRefresh();
+    const sv=document.getElementById("specVerdict");if(sv){sv.innerHTML=specVerdictHTML(xx);wireUseSpec();}
+    const vn=document.getElementById("valNum");if(vn)vn.textContent=money(xx.baseValue*xx.brandMult*xx.specMult);
+    const vs=document.getElementById("valSub");if(vs)vs.textContent=valSubText(xx).replace(/<[^>]*>/g,"");
+    document.getElementById("ticket").innerHTML=ticketHTML(xx); paintPin(xx);
+    refreshStep4();
+  }
+  function wireUseSpec(){
+    const u=document.getElementById("useSpec");
+    if(u)u.onclick=()=>{const s=calcItem().spec;if(!s||!s.absSuggest)return;
+      st.overrides[st.itemId]=s.absSuggest;persist();render();};
+  }
+  /* The make box filters the book as you type; the hits redraw under it
+     without losing the caret, so the whole card is not rebuilt on a
+     keystroke. Tapping a hit writes the canonical spelling AND the tier. */
+  const abIn=document.getElementById("askBrandIn");
+  if(abIn)abIn.oninput=()=>{ st.brandQ=abIn.value; render();
+    const again=document.getElementById("askBrandIn");
+    if(again){ again.focus(); again.setSelectionRange(again.value.length,again.value.length); } };
+  document.querySelectorAll("[data-brandpick]").forEach(b=>b.onclick=()=>{
+    st.brandTyped=b.dataset.brandpick; st.brand=b.dataset.brandtier;
+    st.brandSet=true; st.brandQ=b.dataset.brandpick;
+    /* A different make means the model list under it is a different list. */
+    st.mpPin=null; st.market=null;
+    /* Answering is moving on here too, the same as tapping a tier. */
+    const q=askQueue(calcItem());
+    const at=Math.max(0,Math.min(q.length-1,Number(st.askAt)||0));
+    if(at<q.length-1)st.askAt=at+1;
+    persist(); render(); });
+  /* A measured row picked by hand - the same thing the phone's list does,
+     so the model is spelled the way the sold-price search expects. */
+  document.querySelectorAll("[data-modelpick]").forEach(b=>b.onclick=()=>{
+    const r=MP_BY_ID[b.dataset.modelpick]; if(!r)return;
+    st.model=String(r[2]); st.mpPin={id:r[0],model:String(r[2])};
+    st.mpNone=false; st.market=null;
+    /* Answering is moving on, the same as a tier or a make. */
+    const q=askQueue(calcItem());
+    const at=Math.max(0,Math.min(q.length-1,Number(st.askAt)||0));
+    if(at<q.length-1)st.askAt=at+1;
+    persist(); render(); });
+  const mIn=document.getElementById("modelIn");
+  if(mIn)mIn.oninput=()=>{st.model=mIn.value;specRefresh();};
+  const dIn=document.getElementById("detailIn");
+  if(dIn)dIn.oninput=()=>{st.detail=dIn.value;specRefresh();};
+  wireUseSpec();
+  const lk=document.getElementById("lookupIn");
+  if(lk){
+    lk.oninput=()=>{
+      const hits=searchBook(lk.value);
+      document.getElementById("lookupHits").innerHTML=hits.map((e,i)=>
+        `<button class="itemBtn" data-hit="${i}" style="margin-top:6px"><span style="flex:1">${e[0]}</span><span class="price" style="color:var(--accent-2)">${money(e[1])} &middot; ${CATLABEL[e[2]]}</span></button>`).join("");
+      document.getElementById("view").querySelectorAll("[data-hit]").forEach(b=>b.onclick=()=>{
+        const e=hits[Number(b.dataset.hit)];
+        st.catId=e[2]; st.itemId=custId(e[2]); st.bookName=e[0]; st.overrides[custId(e[2])]=bookVal(e);
+        st.liq=e[3]; st.brand="mid"; st.brandTyped="";st.brandQ=""; st.brandSet=false; st.complete=true;st.completeSet=false;st.struck="";st.askEdit=false; st.editing=false;
+        persist(); render();
+      });
+    };
+  }
+  wireStep4();
+  const sl=document.getElementById("ltvSlider"), ln=document.getElementById("ltvNum");
+  function ltvRefresh(){
+    document.getElementById("ticket").innerHTML=ticketHTML(calcItem()); paintPin(calcItem());
+    refreshStep4(); refreshBuyRate();
+    const c=CATALOG.find(x=>x.id===st.catId);
+    document.getElementById("ltvSuggest").innerHTML=ltvSuggestHTML(c,st.ltvs[st.catId]??c.ltv);
+    wireUseLtv();
+  }
+  function wireUseLtv(){
+    const u=document.getElementById("useLtv");
+    if(u)u.onclick=()=>{const s=LTV_BOOK[st.catId];if(!s)return;
+      st.ltvs[st.catId]=s.p;sl.value=s.p;if(ln)ln.value=s.p;paintSlider(sl);persist();ltvRefresh();};
+  }
+  if(sl){paintSlider(sl);
+    sl.oninput=()=>{st.ltvs[st.catId]=Number(sl.value);if(ln)ln.value=sl.value;paintSlider(sl);ltvRefresh();};
+    sl.onchange=()=>persist();}
+  if(ln)ln.oninput=()=>{let n=parseInt(ln.value);if(isNaN(n))return;n=Math.max(15,Math.min(100,n));
+    st.ltvs[st.catId]=n;sl.value=n;paintSlider(sl);ltvRefresh();};
+  if(ln)ln.onblur=()=>{ln.value=st.ltvs[st.catId]??calcItem().baseLtv;persist();};
+  wireUseLtv();
+  wirePhoto();
+  wireComps();
+  wireBookSearch();
+  wireLogButton();
+  wireOmni();
+  wireShots();
+  wirePawnRate();
+}
+
+/* ---------------- gold tab ---------------- */
+/* Suggested pay% — the peak/valley buy rule:
+   gold base 70, silver base 62 (thinner refiner spreads, wilder swings).
+   Trim as spot runs above its own 90-day average; a valley keeps the normal
+   rate — the discipline there is shipping on day 31, not paying up. */
+function suggestPay(){
+  const spot=spotOf(st.metal), avg=avgOf(st.metal);
+  if(!avg||avg<=0)return null;
+  const prem=(spot-avg)/avg;
+  const base=st.metal==="gold"?70:62;
+  let cut=0, why;
+  const p=Math.round(prem*100);
+  if(prem>0.15){cut=st.metal==="gold"?10:12; why=`today's price is ${p}% over its 90-day average — that is a hard spike, and spikes like this usually snap back; the discount is your insurance for the 30-day hold`;}
+  else if(prem>PEAK_OVER){cut=st.metal==="gold"?8:10; why=`today's price is ${p}% over its 90-day average — peak conditions; sellers are walking in anyway, you don't have to pay up to win deals`;}
+  else if(prem>0.05){cut=4; why=`today's price is ${p}% over its 90-day average — running warm, trim a little`;}
+  else if(prem<-0.05){cut=0; why=`today's price is ${Math.abs(p)}% UNDER its 90-day average — hold the normal rate and ship on day 31 like always; "it's cheap" is not a reason to buy heavy`;}
+  else {cut=0; why=`today's price is close to its 90-day average — nothing unusual happening, so use the normal rate`;}
+  /* Trend read: a steady weekly slide raises the odds of more slide during the
+     30-day hold — a fast drop trims ON TOP of the level rule. Rising weeks
+     add nothing; the level tiers already handle a run-up. */
+  const wk=FEED[st.metal+"7"];
+  if(wk&&wk>0){
+    const tr=(spotOf(st.metal)-wk)/wk, t=Math.round(Math.abs(tr)*100);
+    if(tr<-0.06){cut+=8; why+=`. And it has dropped ${t}% in a week — it is dropping fast and has not stopped; every day of your 30-day hold is exposed to more of that`;}
+    else if(tr<-0.03){cut+=5; why+=`. And it's down ${t}% on the week — sliding; trim extra for the hold window`;}
+    else if(tr<-0.015){cut+=2; why+=`. Down ${t}% on the week — drifting lower, take a small extra point`;}
+  }
+  /* The trend's own word, added to the level rule above. Small on purpose:
+     the guard price has already taken the big cut off the per-ounce figure,
+     and the same worry must not be charged twice. */
+  const T=(typeof metalTrend==="function")?metalTrend(st.metal):null;
+  /* Carried separately so the card can show what the rate would be WITHOUT
+     the trend read. A suggestion you cannot see the alternative to is not a
+     suggestion, it is just the number. */
+  const bare=Math.max(50,base-cut);
+  if(T&&T.cut>0){ cut+=T.cut; why+=`. And ${T.detail.replace(/\.$/,"")}`; }
+  return {pay:Math.max(50,base-cut), bare, why, trend:T};
+}
+/* The rate DEFAULTS to today's suggestion and keeps tracking it as spot, the
+   average or the metal changes — until the counter moves the slider, which
+   then wins for the rest of the day. */
+function suggestRate(){
+  const s=suggestPay(); if(!s)return null;
+  if(!PAWN()) return s;
+  /* A loan runs about 30% under a buy: you carry the price for 60 days before
+     the metal is even yours. Same market reasoning, lower landing point. */
+  return {pay:Math.max(25,Math.round(s.pay*0.7)),
+          bare:Math.max(25,Math.round((s.bare||s.pay)*0.7)), trend:s.trend,
+          why:s.why+". A loan lands about 30% under the buy rate, because you carry the price for 60 days"};
+}
+function syncPay(){
+  if(curTouched()) return;
+  const s=suggestRate();
+  if(s) setRate(s.pay);
+}
+function suggestHTML(){
+  const s=suggestRate();
+  if(!s)return "";
+  const match=curRate()===s.pay;
+  return `<div class="cardHint" style="border-top:1px solid rgba(255,255,255,.08);margin-top:10px;padding-top:9px">
+    <span style="color:var(--accent);font-family:var(--mono);font-weight:600">Suggested today: ${s.pay}%</span> — ${s.why}.
+    ${match?`<span style="color:var(--ink-2)"> ${curTouched()?"You're on it.":"Filled in for you \u2014 drag the slider to set your own for today."}</span>`
+      :`<button id="useSuggest" class="ghostBtn" style="padding:5px 12px;font-size:11.5px;margin-left:8px">Use ${s.pay}%</button>`}
+  </div>`;
+}
+/* The slider is a share of melt, but a loan also takes the peak guard and the
+   30% loan cut on top — so the loan lands well below the slider number. This
+   is that true share, for honest labelling. */
+/* What a refiner actually returns on scrap, as a share of melt. Widely
+   quoted at 90-95%; no refiner is lined up yet, so the card shows the band. */
+const REFINER_LO=0.90, REFINER_HI=0.95;
+/* When spot is this far above its 90-day average, the loan is sized off the
+   average instead. It was written out at each of the three places that ask
+   the question, which is how two of them end up disagreeing later. */
+const PEAK_OVER=0.08;
+/* What a jeweller sells a piece for against what they paid, from Folmar's in
+   Tallahassee and matching the trade's triple-keystone convention. The card
+   used to multiply by 3 and 4 and then say "three to four" in words beside
+   it, so changing one would have left the other lying. */
+const JEWELRY_LO=3, JEWELRY_HI=4;
+const PAWN=()=>st.deal==="pawn";
+function curRate(){ return PAWN()?st.loanPct:st.payPct; }
+function setRate(n){ if(PAWN())st.loanPct=n; else st.payPct=n; }
+function curTouched(){ return PAWN()?st.loanTouched:st.payTouched; }
+function setTouched(v){ if(PAWN())st.loanTouched=v; else st.payTouched=v; }
+function rateBounds(){ return PAWN()?{min:25,max:75}:{min:50,max:100}; }
+function loanPctOfMelt(){
+  const spot=spotOf(st.metal), avg=avgOf(st.metal);
+  if(!spot||spot<=0)return null;
+  const guardOz=Math.min(spot,avg||spot);
+  const prem=avg>0?(spot-avg)/avg:0;
+  return Math.round((guardOz/spot)*(st.loanPct/100)*(prem>PEAK_OVER?0.9:1)*100);
+}
+/* ================= WHAT THE MARKET HAS ACTUALLY DONE =================
+   The counter's question, in his words: don't just lend off today's rate.
+   He is right, and the reason is arithmetic rather than opinion. A buy is
+   over in days - the lot ships, the money comes back. A pawn is a 60-day
+   position in the metal whether you wanted one or not: thirty days to
+   maturity, then thirty more the statute makes you hold it. Those are two
+   different exposures and they should not be priced off the same number.
+
+   The old guard was `min(spot, 90-day average)` plus a 10% trim when spot
+   ran hot. Honest, and blind in one eye: it only ever looked at the LEVEL.
+   In September 2026 gold sat within 0.1% of its 90-day average, so the
+   guard did nothing at all - while the metal was swinging at the 85th
+   percentile of its own 25-year history and sitting 21% below January's
+   peak. Calm price, violent market.
+
+   metals-risk.json is what tools/build-metal-risk.mjs measured off 6,700
+   LBMA fixings back to 2000: for every day, what a 60-day hold was worth
+   when it ended. The fifth percentile of that - one hold in twenty went at
+   least this far against you - IS the haircut. It is not a forecast. It is
+   what the last quarter-century did, sorted.
+
+   Re-run the tool whenever you want the table to learn from more months. */
+let MRISK=null, MHIST=null;
+async function loadMetalRisk(){
+  try{
+    const [a,b]=await Promise.all([
+      fetch("metals-risk.json",{cache:"no-store"}).then(r=>r.ok?r.json():null).catch(()=>null),
+      fetch("metals-history.json",{cache:"no-store"}).then(r=>r.ok?r.json():null).catch(()=>null)]);
+    if(a&&a.metals)MRISK=a;
+    if(b&&b.days)MHIST=b;
+    if(MRISK||MHIST){ try{ render(); }catch(e){} }
+  }catch(e){}
+}
+/* THE PART THAT KEEPS BUILDING.
+   Every price the morning feed brings in is written down here, so the
+   series the desk reasons from grows by a day, every day, without anybody
+   re-running anything. The shipped history is the seed; this is the log. */
+const SPOTLOG="pawnDeskSpotLog";
+function spotLogRead(){ try{ return JSON.parse(localStorage.getItem(SPOTLOG)||"{}")||{}; }catch(e){ return {}; } }
+function spotLogWrite(day,gold,silver){
+  if(!day||!(gold>0)||!(silver>0))return;
+  try{
+    const L=spotLogRead();
+    if(L[day]&&L[day][0]===gold&&L[day][1]===silver)return;
+    L[day]=[gold,silver];
+    /* three years is plenty to hold on a device; the table behind the
+       haircut lives in the shipped file, not here */
+    const keys=Object.keys(L).sort();
+    while(keys.length>1100)delete L[keys.shift()];
+    localStorage.setItem(SPOTLOG,JSON.stringify(L));
+  }catch(e){}
+}
+/* shipped history + everything logged since, one series, newest last */
+function metalSeries(metal){
+  const out={};
+  if(MHIST&&MHIST.days&&MHIST.days[metal])for(const [d,v] of MHIST.days[metal])out[d]=v;
+  const L=spotLogRead(), i=metal==="silver"?1:0;
+  for(const d in L){ const v=L[d]&&L[d][i]; if(v>0)out[d]=v; }
+  return Object.keys(out).sort().map(d=>[d,out[d]]);
+}
+/* Today's reading of the market, from that series. Everything here is
+   arithmetic on prices - no judgement is applied until metalGuard(). */
+function metalState(metal){
+  const S=metalSeries(metal);
+  if(S.length<80)return null;
+  const v=S.map(r=>r[1]), n=v.length;
+  const live=spotOf(metal);
+  /* the counter's own typed number wins for today, same as everywhere else */
+  const spot=(live>0)?live:v[n-1];
+  const mean=a=>a.reduce((x,y)=>x+y,0)/a.length;
+  const a90=mean(v.slice(-63)), a200=mean(v.slice(-140));
+  const peak=Math.max.apply(null,v.slice(-252));
+  const lr=[]; for(let i=1;i<n;i++)lr.push(Math.log(v[i]/v[i-1]));
+  const w=lr.slice(-21);
+  if(w.length<15)return null;
+  const m=mean(w);
+  const vol=Math.sqrt(w.reduce((x,y)=>x+(y-m)*(y-m),0)/(w.length-1))*Math.sqrt(252);
+  const R=MRISK&&MRISK.metals&&MRISK.metals[metal];
+  const cuts=(R&&R.volCuts)||null;
+  let band="normal";
+  if(cuts){ const p=vol*100;
+    band = p<cuts[0]?"calm" : p<cuts[1]?"normal" : p<cuts[2]?"busy" : "violent"; }
+  return {spot, a90, a200, peak, days:n, last:S[n-1][0],
+          prem:(spot-a90)/a90, dd:(spot/peak-1), vol, band,
+          aboveLong:spot>=a200, cuts};
+}
+/* WHICH WAY IT HAS BEEN GOING, AND WHETHER TO SAY SOMETHING.
+   Asked for at the counter, and fairly: "can't you at least warn me a trend
+   may be going down and suggest a price, like you do now, and let me take it
+   or not."
+
+   Yes. The rate suggestion has always had a Use button; the trend just was
+   not feeding it. Two readings do the work, both measured above:
+
+     falling  - under the 200-day average AND well off the 12-month peak.
+                Not a prediction that it keeps falling. It is that you are
+                holding a thing whose buyers have been getting cheaper.
+     unsettled- 30-day swing in the top fifth of its own 25-year history.
+
+   The trim it asks for is deliberately SMALL, and the reason matters: the
+   guard price has already taken the big cut off the per-ounce figure. Cut
+   the rate hard on top of that and the same fear gets charged twice, which
+   is how a shop stops writing tickets. So the guard does the heavy lifting
+   and this adds a couple of points of margin for the sitting-on-it risk. */
+function metalTrend(metal){
+  const s2=metalState(metal);
+  if(!s2)return null;
+  const S=metalSeries(metal), v=S.map(r=>r[1]);
+  const m30=v.length>22?(s2.spot/v[v.length-22]-1):0;
+  const falling=(!s2.aboveLong)&&s2.dd<-0.08;
+  const unsettled=s2.band==="violent";
+  const busy=s2.band==="busy";
+  if(!falling&&!unsettled&&!busy)
+    return {dir:"steady",warn:false,cut:0,
+            short:`${s2.aboveLong?"Above":"Below"} its 200-day average, moving at an ordinary pace.`,
+            head:"Nothing unusual in the trend",
+            detail:`${metal==="gold"?"Gold":"Silver"} is ${s2.aboveLong?"above":"below"} its 200-day average and moving at an ordinary pace. No trend reason to change your rate.`};
+  /* VOLATILITY IS PRICED ONCE, AND IT IS PRICED IN THE GUARD.
+     An outside review caught this and the arithmetic backed it up: the
+     guard took 12.1% off the per-ounce figure for a violent market, and
+     then this took another 5 points off the rate for the same violence.
+     Total 17.5% against a measured 60-day tail of 12.1% - five and a half
+     points of the same fear, charged twice.
+
+     So the volatility bands no longer move the rate. They still appear in
+     the warning, because the counter should know the market is moving; the
+     guard below is what answers for it.
+
+     What still moves the rate is DIRECTION. The guard's bands are
+     volatility and price-against-90-day-average; neither sees a metal 21%
+     off its peak and under its 200-day. A falling market is a different
+     fact from a violent one, and it is the only one left here. */
+  let cut=0; const bits=[];
+  if(falling){ cut+=3;
+    bits.push(`it is ${Math.abs(Math.round(s2.dd*100))}% off its 12-month peak and under its 200-day average — the direction has been down, not sideways`); }
+  if(unsettled){
+    bits.push(`it is swinging ${Math.round(s2.vol*100)}% a year, the top fifth of its own history — the guard price below already carries that`); }
+  else if(busy){
+    bits.push(`it is moving faster than usual, though not wildly`); }
+  if(m30<-0.05)bits.push(`and it is down ${Math.abs(Math.round(m30*100))}% in the last month alone`);
+  const head=falling&&unsettled ? `${metal==="gold"?"Gold":"Silver"} is falling, and moving fast`
+           : falling ? `${metal==="gold"?"Gold":"Silver"} has been trending down`
+           : `${metal==="gold"?"Gold":"Silver"} is moving fast right now`;
+  /* One line for the face; the stat tiles under the chart carry the rest,
+     so repeating them in prose was 40 words saying what was already there. */
+  const short=[
+    falling?`${Math.abs(Math.round(s2.dd*100))}% off its 12-month peak, under its 200-day average`:null,
+    (unsettled||busy)?`swinging ${Math.round(s2.vol*100)}% a year`:null,
+    m30<-0.05?`down ${Math.abs(Math.round(m30*100))}% this month`:null
+  ].filter(Boolean).join(", ")+".";
+  return {dir:falling?"falling":"unsettled", warn:true, cut:Math.min(5,cut), head,
+          short, detail:bits.join("; ")+".", m30, dd:s2.dd, vol:s2.vol};
+}
+const PREM_BAND=p => p< -0.05?"under" : p<0.05?"at" : p<0.10?"warm" : p<0.15?"hot" : "spike";
+/* The two guard prices, and the evidence for each. */
+function metalGuard(metal){
+  const st2=metalState(metal), R=MRISK&&MRISK.metals&&MRISK.metals[metal];
+  if(!st2||!R)return null;
+  const byVol=R.byVol&&R.byVol[st2.band];
+  const pb=PREM_BAND(st2.prem), byPrem=R.byPrem&&R.byPrem[pb];
+  /* Volatility is the better-sampled of the two and the bigger lever, so it
+     always counts. The level only overrides it when it is WORSE and has
+     enough independent windows behind it to mean anything - gold's "hot"
+     bucket is five independent windows in twenty-five years and is not
+     something to size a loan off. */
+  let use=byVol, from="how hard it is moving";
+  if(byPrem&&byPrem.indep>=20&&byVol&&byPrem.p5<byVol.p5){ use=byPrem; from="where the price sits"; }
+  if(!use)return null;
+  const cap=x=>Math.max(0,Math.min(30,Math.abs(x)));
+  const lendCut=cap(use.p5), buyCut=cap(use.q5);
+  return {st:st2, band:st2.band, premBand:pb, from, ev:use,
+          lendCut, buyCut,
+          lend:st2.spot*(1-lendCut/100),
+          buy:st2.spot*(1-buyCut/100),
+          fixings:R.fixings, from_:R.from, to:R.to};
+}
+/* The two years behind the number, drawn small enough to live in a column.
+   The counter asked for a trend chart on this page; what makes it worth the
+   space is not the line but the two marks on it - where the 90-day average
+   runs, and where the guard price sits under today. You can see the gap you
+   are lending inside. */
+function metalChartHTML(metal){
+  const S=metalSeries(metal);
+  if(S.length<80)return "";
+  const G=metalGuard(metal), st2=G?G.st:metalState(metal);
+  if(!st2)return "";
+  const v=S.map(r=>r[1]);
+  const W=340,H=96,PL=4,PR=54,PT=8,PB=14;
+  const lo=Math.min.apply(null,v)*0.97, hi=Math.max.apply(null,v)*1.03;
+  const X=i=>PL+i/(v.length-1)*(W-PL-PR);
+  const Y=p=>H-PB-(p-lo)/(hi-lo)*(H-PT-PB);
+  let d="";
+  for(let i=0;i<v.length;i++)d+=(i?"L":"M")+X(i).toFixed(1)+" "+Y(v[i]).toFixed(1);
+  /* the 90-day average as a trailing line, so "above or below" is visible
+     rather than asserted */
+  let a="";
+  for(let i=62;i<v.length;i++){
+    let t=0; for(let k=i-62;k<=i;k++)t+=v[k];
+    a+=(a?"L":"M")+X(i).toFixed(1)+" "+Y(t/63).toFixed(1);
+  }
+  const yGuard=G?Y(G.lend):null;
+  const money0=n=>"$"+Math.round(n).toLocaleString("en-US");
+  const yr=(()=>{ const out=[]; let seen="";
+    for(let i=0;i<S.length;i++){ const m=S[i][0].slice(0,7);
+      if(m.slice(5)==="01"&&m!==seen){ seen=m;
+        out.push(`<text class="mcAx" x="${X(i).toFixed(1)}" y="${H-3}" text-anchor="middle">${S[i][0].slice(0,4)}</text>`); } }
+    return out.join(""); })();
+  return `<div class="mChart">
+    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${metal} price, two years, ${money0(v[0])} to ${money0(st2.spot)} per ounce">
+      ${G&&yGuard!=null&&yGuard<H-PB?`<rect x="${PL}" y="${yGuard.toFixed(1)}" width="${(W-PL-PR).toFixed(1)}" height="${(H-PB-yGuard).toFixed(1)}" class="mcSafe"/>`:""}
+      <path d="${d}" class="mcLine"/>
+      <path d="${a}" class="mcAvg"/>
+      ${G&&yGuard!=null?`<line x1="${PL}" y1="${yGuard.toFixed(1)}" x2="${(W-PR).toFixed(1)}" y2="${yGuard.toFixed(1)}" class="mcGuard"/>
+        <text class="mcLab guard" x="${(W-PR+5)}" y="${(yGuard+3.5).toFixed(1)}">${money0(G.lend)}</text>`:""}
+      <circle cx="${X(v.length-1).toFixed(1)}" cy="${Y(st2.spot).toFixed(1)}" r="3.2" class="mcNow"/>
+      <text class="mcLab now" x="${(W-PR+5)}" y="${(Y(st2.spot)+3.5).toFixed(1)}">${money0(st2.spot)}</text>
+      ${yr}
+    </svg>
+    <div class="mcKey"><span><i class="k1"></i>${metal} fix</span><span><i class="k2"></i>90-day average</span>${G?`<span><i class="k3"></i>lend against</span>`:""}</div>
+  </div>`;
+}
+/* The reading, and the number it produces, with the evidence attached. The
+   counter has to be able to argue with it - so it says what it measured,
+   how many windows are behind it, and what it would say instead if the
+   market were calm. */
+function metalGuardHTML(metal){
+  const G=metalGuard(metal);
+  if(!G)return metalChartHTML(metal);
+  const s2=G.st, ev=G.ev, T=metalTrend(metal);
+  const money0=n=>"$"+Math.round(n).toLocaleString("en-US");
+  const pc=n=>(n>=0?"+":"−")+Math.abs(n).toFixed(1)+"%";
+  const BAND={calm:["Calm","good"],normal:["Normal",""],busy:["Busy","warn"],violent:["Moving fast","bad"]}[G.band]||["",""];
+  const lending=st.deal!=="buy";
+  /* WORDY, and it was: 270 words. The face now carries the reading, the
+     number and the button. The reasoning behind the number is true and
+     worth having, and it is worth having in a fold. */
+  return `<div class="card mGuard">
+    <span class="label">${metal==="gold"?"Gold":"Silver"} &mdash; what the market has been doing</span>
+    ${T?`<div class="mWarn ${T.warn?"on":"off"}">
+      <div class="h">${T.warn?"⚠ ":""}${esc(T.head)}</div>
+      <div class="p">${esc(T.short)}</div>
+      ${(()=>{ const S=suggestRate();
+        if(!(T.cut>0&&S))return "";
+        const on=curRate()===S.pay;
+        return `<div class="ask">Suggested ${lending?"lending":"buy"} rate <b>${S.pay}%</b>, not <b>${S.bare}%</b>, for the direction.
+          How hard it is moving is priced in the guard below, not here &mdash; not the same one twice.
+          ${on?`<span class="ison">You're on it.</span>`:`<button class="ghostBtn" id="useTrend">Use ${S.pay}%</button>`}
+          <span class="no">A suggestion, not a rule &mdash; work off ${S.bare}% if you read it differently.</span></div>`;
+      })()}
+    </div>`:""}
+    ${metalChartHTML(metal)}
+    <div class="mRead">
+      <div class="mStat"><span class="k">30-day swing</span><b class="${BAND[1]}">${Math.round(s2.vol*100)}%</b><span class="s">${BAND[0]}</span></div>
+      <div class="mStat"><span class="k">Off its 12-month peak</span><b>${pc(s2.dd*100)}</b><span class="s">peak ${money0(s2.peak)}</span></div>
+      <div class="mStat"><span class="k">Against the 90-day</span><b>${pc(s2.prem*100)}</b><span class="s">${s2.aboveLong?"above":"below"} its 200-day</span></div>
+    </div>
+    <div class="mVerdict ${lending?"lend":"buy"}">
+      <div class="k">${lending?"Lend against":"Buy against"}</div>
+      <div class="d">${money0(lending?G.lend:G.buy)}<small>/oz</small></div>
+      <div class="s">${(lending?G.lendCut:G.buyCut).toFixed(1)}% off today's ${money0(s2.spot)}</div>
+    </div>
+    <details class="fold iFold"><summary class="foldLine">Where that ${(lending?G.lendCut:G.buyCut).toFixed(1)}% comes from</summary>
+      <div class="iMore">
+        <p>${lending
+          ? `A pawn is 60 days: 30 to maturity, 30 more you must hold it. Across every 60-day stretch since 2000, one in twenty lost more than <b>${Math.abs(ev.p5).toFixed(1)}%</b> when ${metal} was ${G.band==="violent"?"moving this hard":G.band==="busy"?"this busy":G.band==="calm"?"this calm":"moving normally"}. Lend under that and a bad two months still leaves you whole.`
+          : `A buy ships in the next refiner lot, so the exposure is days. Over a 10-day hold in conditions like today's, one in twenty lost more than <b>${Math.abs(ev.q5).toFixed(1)}%</b> &mdash; so a buy can be offered closer to today's price than a loan can.`}</p>
+        <p>From <b>${(G.fixings||0).toLocaleString("en-US")}</b> London fixings, ${G.from_}&ndash;${G.to}. This band matches ${ev.n.toLocaleString("en-US")} days (about ${ev.indep} independent windows); ${ev.down}% ended lower, median ${pc(ev.mid)}, worst ${pc(ev.worst)}. Chosen on ${G.from}.
+        ${ev.indep<20?`<b class="thin">Thin band &mdash; about ${ev.indep} windows. A hint, not a rule.</b>`:""}</p>
+      </div>
+    </details>
+  </div>`;
+}
+function calcMetal(){
+  const g=parseFloat(st.grams); if(!g||g<=0)return null;
+  const spot=spotOf(st.metal), avg=avgOf(st.metal);
+  const purity=st.metal==="gold"?PURITY.find(p=>p.k===st.karat).p:0.925;
+  const melt=(spot/31.1035)*purity*g;
+  const premium=avg>0?(spot-avg)/avg:0;
+  /* THE GUARD PRICE, MEASURED RATHER THAN GUESSED.
+     Was min(spot, 90-day average) with a 10% trim when spot ran hot. That
+     only ever read the LEVEL, so a market that was calm in price and
+     violent in movement got no guard at all. metalGuard() prices the loan
+     off what a 60-day hold has actually cost in conditions like today's,
+     and the buy off what a 10-day hold has cost - because a buy ships and
+     a pawn sits. The old rule stays as the floor: if it is more cautious
+     than the measurement on a given day, it wins. */
+  const G=(typeof metalGuard==="function")?metalGuard(st.metal):null;
+  const oldGuard=Math.min(spot,avg||spot)*(premium>PEAK_OVER?0.9:1);
+  const lendOz=G?Math.min(G.lend,oldGuard):oldGuard;
+  const buyOz=G?Math.min(G.buy,spot):spot;
+  const meltGuard=(lendOz/31.1035)*purity*g;
+  const meltBuy=(buyOz/31.1035)*purity*g;
+  return {melt,buy:meltBuy*(st.payPct/100),loan:meltGuard*(st.loanPct/100),
+          premium,guard:G,lendOz,buyOz,
+          guarded:lendOz<spot,trimmed:buyOz<spot};
+}
+function feedTagHTML(){
+  const days=Math.round((Date.now()-new Date(FEED.date+"T12:00:00").getTime())/86400000);
+  const stale=days>3;
+  if(st.manual) return `<div class="feedTag">Your hand-entered number for today — the morning update takes back over tomorrow.</div>`;
+  return `<div class="feedTag${stale?" stale":""}">${stale
+    ? `Last updated ${days} days ago (${FEED.date}) — check Kitco and type today's number in.`
+    : `<b>Auto-filled ${FEED.date}</b> from ${FEED.source} — updated every morning. Type over it any time; your number wins for the day.`}</div>`;
+}
+/* The centre column used to sit empty. Two things belong there: the arithmetic
+   behind the number (so it can be walked through with a doubtful customer) and,
+   on a loan, what he actually owes to get it back. */
+function meltMathHTML(m){
+  if(!m)return "";
+  const spot=spotOf(st.metal), avg=avgOf(st.metal), g=parseFloat(st.grams);
+  const purity=st.metal==="gold"?PURITY.find(x=>x.k===st.karat).p:0.925;
+  const basis=PAWN()?Math.min(spot,avg||spot):spot;
+  const perG=basis/31.1035, perGk=perG*purity, gross=perGk*g;
+  const rate=curRate(), out=PAWN()?m.loan:m.buy;
+  const row=(k,v)=>`<div class="valRow" style="padding:6px 0"><span style="font-size:13px;color:var(--ink-2)">${k}</span><span class="num" style="font-size:15px">${v}</span></div>`;
+  return `<div class="card"><span class="label">How the number is built</span>
+    ${row("Today's price, per troy ounce","$"+spot.toLocaleString("en-US"))}
+    ${PAWN()&&basis<spot?row("Loans price off the 90-day average","$"+basis.toLocaleString("en-US")):""}
+    ${row("Per gram of pure","$"+perG.toFixed(2))}
+    ${row((st.metal==="gold"?st.karat:".925")+" is "+(purity*100).toFixed(1)+"% metal","$"+perGk.toFixed(2)+" / g")}
+    ${row("\u00d7 "+esc(st.grams)+" grams",money(gross))}
+    ${row("\u00d7 "+rate+"% "+(PAWN()?"lending rate":"buy rate"),`<b style="color:var(--accent)">${money(out)}</b>`)}
+    <div class="cardHint">Walk a doubtful customer down this list. Every line is a number he can check himself.</div>
+  </div>`;
+}
+function metalLadderHTML(m){
+  if(!m||!PAWN())return "";
+  const charge=pawnCharge(m.loan);
+  return `<div class="card"><span class="label">What it costs him to get it back</span>
+    ${pawnRateHTML()}
+    <div class="ladder" id="payLadder" style="margin-top:14px">${ladder(m.loan,charge).map(r=>`<div class="widget rung"><div class="k">${r.k}</div><div class="d">${money(r.due)}</div></div>`).join("")}</div>
+    <div style="font-size:13.5px;line-height:1.5;color:var(--ink-2);margin-top:9px">
+      It is <b style="color:var(--ink)">not</b> ${pawnPct()}% again every month. The charge caps at <b style="color:var(--ink)">twice</b> the
+      30-day amount from day 31 through day 60, then runs <b style="color:var(--ink)">$${(charge/30).toFixed(2)}/day</b>.
+      Past day 60 the metal is already ours \u2014 late redemption is a courtesy you price with that rate.
+    </div>
+    <div class="fine">&sect; 539.001(11) caps the charge at 25% of the amount financed per 30 days, minimum $5.</div>
+  </div>`;
+}
+function metalExtraInner(){
+  const m=calcMetal();
+  return meltMathHTML(m)+metalLadderHTML(m);
+}
+function metalResultHTML(num){
+  /* The step numbers are the ORDER THEY ARE READ IN, and on a phone that
+     is not the order the desk stacks them. The caller hands them out. */
+  const n=(typeof num==="function")?num:(()=>{let i=5;return()=>++i;})();
+  const m=calcMetal();
+  if(!m)return `<div class="card" style="text-align:center;color:var(--ink-3);font-size:13px;padding:28px">Put it on the scale and enter the grams.</div>`;
+  const pawn=st.deal==="pawn";
+  const wt=esc(st.grams)+"g "+(st.metal==="gold"?st.karat:".925");
+  const shown=pawn?m.loan:m.buy;
+  const pctMelt=m.melt>0?Math.round(shown/m.melt*100):st.payPct;
+  return `<div class="card">
+    <span class="label">${n()} &middot; ${pawn?"The loan":"The offer"}</span>
+    ${gauge(pctMelt/100,pawn?"Lend him":"Buy it for",money(shown),wt+" &middot; "+pctMelt+"% of melt","gm")}
+    <div class="tiles">
+      <div class="widget"><div class="l">${pawn?"Or buy it outright":"Or lend against it instead"}</div><div class="v">${money(pawn?m.buy:m.loan)}</div></div>
+      <div class="widget"><div class="l">Full melt value (never pay this)</div><div class="v">${money(m.melt)}</div></div>
+    </div>
+    ${!pawn?`<div class="tagNote"><b style="color:var(--ink)">Once you own it.</b>
+      <b style="color:var(--ink)">Sell it as jewelry:</b> about ${money(Math.round(shown)*JEWELRY_LO)} to ${money(Math.round(shown)*JEWELRY_HI)}.
+      That is what Folmar's in Tallahassee gets &mdash; they sell for ${JEWELRY_LO} to ${JEWELRY_HI} times what they pay.
+      ${(function(){
+        /* Melt is what the metal is worth at the refinery gate, not what the
+           refiner hands back. Read as 90-95% returned; no refiner is lined up
+           yet, so it shows the band rather than pretending to one figure.
+           Change these two when one is. */
+        const meltR=Math.round(m.melt), offR=Math.round(shown);
+        const lo=Math.round(meltR*REFINER_LO), hi=Math.round(meltR*REFINER_HI);
+        const left=`<b style="color:var(--ink)">Scrap it:</b> about ${money(lo)} to ${money(hi)} &mdash; a refiner returns
+          ${Math.round(REFINER_LO*100)}&ndash;${Math.round(REFINER_HI*100)}% of the ${money(meltR)} melt.`;
+        /* Three cases, because a high buy rate can put the offer inside or above
+           the refiner's range, and "leaves $-16 to $25" is not an answer. */
+        if(hi<=offR) return left+` That is less than the ${money(offR)} you would pay, so there is nothing in scrapping at this rate.`;
+        if(lo<offR)  return left+` Against the ${money(offR)} you would pay that is about a wash &mdash; anywhere from ${money(offR-lo)} short to ${money(hi-offR)} ahead. Scrapping is not the way out of this one.`;
+        /* "That leaves $48 to $60 over the $169 you paid" was asked about
+           from the counter, and rightly. "Leaves ... over" reads as a
+           leftover BALANCE rather than the profit it is, and it slipped
+           into the past tense - "you paid" - on a card describing an offer
+           nobody has made yet. The other two branches on this very line
+           say "would pay". Say profit, and say it in the same tense. */
+        return left+` That is <b style="color:var(--ink)">${money(lo-offR)} to ${money(hi-offR)} profit</b> on the ${money(offR)} you would pay.`;
+      })()}</div>`:""}
+    ${pawn&&(m.guarded||m.trimmed)?`<div class="tagNote">${(m.premium>0.05||m.trimmed)
+      ?`<b style="color:var(--ink)">Peak guard is on.</b> ${st.metal==="gold"?"Gold":"Silver"} is ${Math.round(m.premium*100)}% above its 90-day average, so the loan is sized off the average${m.trimmed?" and trimmed another 10%":""} \u2014 as if today's high never happened.`
+      :`<b style="color:var(--ink)">The loan is sized off the 90-day average</b>, not today's spot.`}
+      You may own this metal in 60 days. Sizing the loan low is what keeps it covering the ticket if the market falls first.</div>`:""}
+    ${whyHTML("metal")}
+  </div>
+  <div class="card">
+    <span class="label">${n()} &middot; After the money moves</span>
+    <div class="tagWarn" style="margin-top:0"><b>This does not ship for 30 days.</b> Everything we buy or take in has to sit unaltered, here in Liberty County, for 30 calendar days before it can be sold or disposed of — &sect; 539.001(9)(c). Date-tag it and put it in the hold bin. "Melt" is how we price it, not something we may do to it inside that window.</div>
+  </div>`;
+}
+function renderMetal(){
+  syncPay();
+  const spot=spotOf(st.metal), avg=avgOf(st.metal);
+  /* the pipeline: 1 metal → 2 today's price → 3 the guard → 4 weight → 5 pay rate → 6 THE OFFER → 7 the rules */
+  /* WHICH METAL IS THE FIRST QUESTION, NOT THE SECOND HALF OF ONE.
+     Gold and silver are different jobs - different price, different
+     purity, different fakes, different spec table - and the choice sat
+     under "is he selling it" as though it were a detail of that. Put it
+     first and everything below it is about that metal only. */
+  const metalCard=()=>`<div class="card">
+    <span class="label">${n()} &middot; Gold or silver?</span>
+    <div class="pills${st.metal==="gold"?" mb14":""}" style="border-radius:var(--r-s)">
+      <button class="${st.metal==="gold"?"on":""}" style="flex:1" data-metal="gold">Gold</button>
+      <button class="${st.metal==="silver"?"on":""}" style="flex:1" data-metal="silver">Silver .925</button>
+    </div>
+    ${st.metal==="gold"?`<span class="label">Karat &mdash; read the stamp</span>
+      <div class="pills" style="border-radius:var(--r-s)">${PURITY.map(p=>`<button class="${st.karat===p.k?"on":""}" style="flex:1;padding:7px 4px" data-karat="${p.k}">${p.k}</button>`).join("")}</div>`:""}
+  </div>`;
+  const dealCard=()=>`<div class="card">
+    <span class="label">${n()} &middot; Is he selling it, or pawning it?</span>
+    <div class="pills" style="border-radius:var(--r-s)">
+      <button class="${st.deal==="buy"?"on":""}" style="flex:1" data-deal="buy">Buying it</button>
+      <button class="${st.deal==="pawn"?"on":""}" style="flex:1" data-deal="pawn">Pawn loan</button>
+    </div>
+  </div>`;
+  const spotCard=()=>`<div class="card"><span class="label">${n()} &middot; Today's ${st.metal} price, per troy ounce</span>
+    <input id="spotIn" type="number" inputmode="decimal" value="${spot}" class="numIn">
+    ${feedTagHTML()}
+  </div>`;
+  const avgCard=()=>`<div class="card"><span class="label">${n()} &middot; 90-day average — the peak guard</span>
+    <input id="avgIn" type="number" inputmode="decimal" value="${avg}" class="numIn">
+    <div class="cardHint">Auto-filled by the morning feed. A buy is priced off today's price — scrap ships fast, and the spread is the profit. A loan is a 60-day bet, so it is priced off the LOWER of today's price or this average: if today is a peak, the loan is sized as if the peak never happened.</div>
+  </div>`;
+  const rb=rateBounds();
+  /* THE SCALE COMES FIRST.
+     This used to render the spotting-fakes card above the weight box. The
+     right-hand panel says "put it on the scale and enter the grams" and the
+     box it meant was four checklist rows further down, off the bottom of a
+     1080p screen - the one instruction the page gives you pointed at
+     something you could not see. The checks are what you do WHILE the piece
+     is on the scale, not before you weigh it. */
+  const weightCard=()=>`<div class="card"><span class="label">${n()} &middot; Weight in grams</span>
+    <input id="gramsIn" type="number" inputmode="decimal" placeholder="0.0" value="${esc(st.grams)}" class="numIn big">
+    <div class="cardHint">Pull stones, clasps, and anything that isn't the metal. On a diamond ring, the setting is the money — resale on the stone is 20&ndash;30% of retail.</div>
+  </div>`;
+  const rateCard=()=>`<div class="card"><div class="rateRow"><span class="label">${n()} &middot; ${PAWN()?"What I lend against melt (%)":"What I pay against melt (%)"}</span><input id="payNum" class="numIn rateNum" type="number" inputmode="numeric" min="${rb.min}" max="${rb.max}" value="${curRate()}"></div>
+    <input type="range" min="${rb.min}" max="${rb.max}" value="${curRate()}" id="paySlider">
+    <div id="paySuggest">${suggestHTML()}</div>
+    ${PAWN()?`<div class="cardHint" style="border-top:1px solid rgba(255,255,255,.08);margin-top:10px;padding-top:9px">
+      Your lending rate, kept separate from the buy rate. When ${st.metal} sits above its 90-day average the peak
+      guard trims it, so the money out the door today is <b style="color:var(--accent)">${loanPctOfMelt()}% of melt</b>.
+      </div>`:`<div class="cardHint" style="border-top:1px solid rgba(255,255,255,.08);margin-top:10px;padding-top:9px">
+      Your buy rate. The lending rate is set separately &mdash; switch to <b style="color:var(--ink)">Pawn loan</b> to change it.</div>`}
+  </div>`;
+  const extra=()=>`<div id="metalExtra">${metalExtraInner()}</div>`;
+  /* The trend chart the counter asked for, and the guard price it explains.
+     Empty string until the two data files land, so a cold load or an
+     offline device simply does not show it rather than showing a hole. */
+  const guardCard=()=>(typeof metalGuardHTML==="function")?metalGuardHTML(st.metal):"";
+  /* THE TRADE'S WORDS, ONCE, IN PLAIN ONES.
+     Reported from the counter: "I'm still learning the lingo and rational.
+     I don't know what spot vs loan means." Mine to answer for - the page
+     was using "spot" as though everybody knew it, in a fold whose whole job
+     was explaining something. Every screen says "today's price" now. This
+     card teaches the trade word anyway, because a customer or a dealer WILL
+     say it and it should not be the first time you hear it. Folded shut:
+     read once, then never again. */
+  const wordsCard=()=>`<details class="card fold wordsFold"${st.openWords?" open":""} id="wordsFold">
+    <summary class="foldLine">What the words mean</summary>
+    <dl class="words">
+      <dt>Today's price &mdash; the trade calls it <i>spot</i></dt>
+      <dd>What one troy ounce of pure gold is trading for right now: <b>${money(Math.round(spotOf("gold")))}</b>.
+        Every dealer quotes off it. It is the number in box 3 and up in the header.</dd>
+      <dt>Troy ounce</dt>
+      <dd>How metal is weighed. <b>31.1 grams</b>, not the 28.3 in a kitchen ounce &mdash; about 10% heavier.</dd>
+      <dt>Melt</dt>
+      <dd>What the gold <i>inside</i> the piece is worth at today's price. A 14k ring is 58.5% gold,
+        so its melt is 58.5% of its weight priced as pure. The rest is alloy and worth nothing.</dd>
+      <dt>Buying it, or a pawn loan</dt>
+      <dd><b>Buying</b> &mdash; it is yours when he walks out. It goes in the next refiner lot and the money
+        is back in days. <b>Pawn loan</b> &mdash; he keeps ownership, you hold the piece. Day 30 it matures,
+        day 60 it is yours. So a loan leaves you holding gold for two months, and that is why the loan
+        is priced lower than the buy.</dd>
+    </dl>
+  </details>`;
+
+  /* THE ANSWER SHOULD NOT BE THE FOURTH SCREEN.
+     On the desk these are three columns and the offer is already beside
+     the weight. On a phone they stack, and the order the desk reads
+     left-to-right became 3657px of scroll: the offer started at 2554px,
+     past the fold three times over, with the 908px spotting-fakes
+     checklist sitting between the scale and the number.
+     So the phone gets its own order. The counter's only real inputs are
+     whether he is buying and what it weighs - the spot price and the
+     90-day average are filled in by the morning feed and are reference,
+     not questions. Weigh it, see the number, then tune and read.
+     The numbers are handed out in reading order, so they still count 1,
+     2, 3 down the screen whichever order that is. */
+  /* deskRail() is item-mode only; the metal page needs the WIDTH question. */
+  const phone=!deskWide();
+  let N=0; const n=()=>++N;
+
+  if(phone){
+    /* A GATING SHEET GOES BEFORE THE NUMBER IT GATES.
+       Bullion holds the price until every check is answered, so its
+       checklist belongs above the offer. Jewelry only advises, so it
+       drops below, out of the middle of the workflow. */
+    const gates=(()=>{ const f=fakeState(fakeSheet(null)); return !!(f&&f.sh&&f.sh.gate); })();
+    const parts=[metalCard(), dealCard(), weightCard()];
+    if(gates)parts.push(fakeCardHTML(null));
+    /* the offer and the rules it carries take the next numbers */
+    const res=metalResultHTML(n);
+    parts.push(`<div id="metalResult">${res}</div>`, rateCard(), guardCard(), extra(), spotCard(), avgCard(), wordsCard());
+    if(!gates)parts.push(fakeCardHTML(null));
+    return `<div class="colC">${parts.join("")}</div>`;
+  }
+
+  const left=`<div class="colL">${metalCard()}${dealCard()}${wordsCard()}${spotCard()}${avgCard()}</div>`;
+  const mid=`<div class="colC">${weightCard()}${guardCard()}${fakeCardHTML(null)}${rateCard()}${extra()}</div>`;
+  const right=`<div class="colR"><div id="metalResult">${metalResultHTML(n)}</div></div>`;
+  return left+mid+right;
+}
+function wireMetal(){
+  const v=document.getElementById("view");
+  v.querySelectorAll("[data-deal]").forEach(b=>b.onclick=()=>{st.deal=b.dataset.deal;render();});
+  v.querySelectorAll("[data-metal]").forEach(b=>b.onclick=()=>{st.metal=b.dataset.metal;st.payTouched=false;st.loanTouched=false;render();});
+  v.querySelectorAll("[data-karat]").forEach(b=>b.onclick=()=>{st.karat=b.dataset.karat;render();});
+  const p=document.getElementById("paySlider"), pn=document.getElementById("payNum");
+  function wireSuggest(){
+    /* The trend strip's button and the rate card's button do exactly the
+       same thing - take today's suggestion - so they share the handler
+       rather than growing a second way to set the same number. */
+    const t=document.getElementById("useTrend");
+    if(t)t.onclick=()=>{const s=suggestRate();if(!s)return;
+      setTouched(false);setRate(s.pay);if(p)p.value=s.pay;if(pn)pn.value=s.pay;
+      if(p)paintSlider(p);persist();upd();};
+    const b=document.getElementById("useSuggest");
+    if(b)b.onclick=()=>{const s=suggestRate();if(!s)return;
+      setTouched(false);setRate(s.pay);p.value=s.pay;if(pn)pn.value=s.pay;paintSlider(p);
+      persist();upd();};
+  }
+  const upd=()=>{
+    syncPay();
+    if(p){p.value=curRate();paintSlider(p);}
+    if(pn)pn.value=curRate();
+    document.getElementById("metalResult").innerHTML=metalResultHTML();
+    document.getElementById("paySuggest").innerHTML=suggestHTML();
+    const ex=document.getElementById("metalExtra"); if(ex)ex.innerHTML=metalExtraInner();
+    wireSuggest();
+  };
+  const sIn=document.getElementById("spotIn");
+  sIn.oninput=()=>{makeManual();st.manual.spot[st.metal]=parseFloat(sIn.value)||0;upd();};
+  sIn.onblur=()=>persist();
+  const aIn=document.getElementById("avgIn");
+  aIn.oninput=()=>{makeManual();st.manual.avg90[st.metal]=parseFloat(aIn.value)||0;upd();};
+  aIn.onblur=()=>persist();
+  const gIn=document.getElementById("gramsIn");
+  gIn.oninput=()=>{st.grams=gIn.value;upd();};
+  paintSlider(p);
+  p.oninput=()=>{setTouched(true);setRate(Number(p.value));if(pn)pn.value=p.value;paintSlider(p);upd();};
+  p.onchange=()=>persist();
+  const rb=rateBounds();
+  if(pn)pn.oninput=()=>{let n=parseInt(pn.value);if(isNaN(n))return;n=Math.max(rb.min,Math.min(rb.max,n));
+    setTouched(true);setRate(n);p.value=n;paintSlider(p);upd();};
+  if(pn)pn.onblur=()=>{pn.value=curRate();persist();};
+  wireSuggest();
+  wirePawnRate();
+}
+
+/* ---- building the price list from the tool, not from a terminal ----------
+   The harvester has been a command the whole time, and the counter has said
+   twice now that a command line is not where he works. It runs here instead,
+   on the device that already has the service address and the token: it walks
+   the target list, runs the same searches the green button runs, keeps every
+   listing it finds the same way a lookup does - so the answers are live on
+   this device immediately and reach the phone on the next sync - and hands
+   back a prices.json when it is done, for the copy everyone downloads.
+
+   Stoppable, resumable, and it says what it has spent while it spends it. */
+const HARV_KEY="pawndesk_harvest";
+let HARV=null, harvBusy=false, harvStop=false, harvSeed=null, harvNow="";
+function harvAll(){
+  if(HARV)return HARV;
+  try{ HARV=JSON.parse(localStorage.getItem(HARV_KEY)||"{}")||{}; }catch(e){ HARV={}; }
+  return HARV;
+}
+function harvSave(){ try{ localStorage.setItem(HARV_KEY,JSON.stringify(HARV||{})); }catch(e){} }
+async function harvLoadSeed(){
+  if(harvSeed)return harvSeed;
+  const r=await fetch("tools/seed-models.json",{cache:"no-store"});
+  if(!r.ok)throw new Error("the target list did not load");
+  const j=await r.json();
+  harvSeed=(j&&j.rows)||[];
+  return harvSeed;
+}
+const harvKey=t=>t.ref+"|"+t.name;
+function harvBookFor(ref){
+  for(const c of CATALOG){ const it=c.items.find(i=>i.id===ref); if(it)return it.value; }
+  return 0;
+}
+/* Same band the command-line one uses: a search that came back with parts or
+   the wrong model lands far from what the catalog says the thing is worth. */
+function harvWild(ref,med){
+  const b=harvBookFor(ref); if(!b||!med)return null;
+  const ratio=Math.round((med/b)*100)/100;
+  return {book:b,ratio,wild:ratio>4||ratio<0.25};
+}
+/* A phone locks its screen after half a minute of nobody touching it, and a
+   locked phone throttles the page to a stop mid-run. The run survives it -
+   it is resumable, so pressing the button again carries on - but a counter
+   watching a progress line stop for no reason has been given a fault, not a
+   feature. Hold the screen awake while it works, and let it go after. */
+let harvLock=null;
+async function harvWake(on){
+  try{
+    if(on&&!harvLock&&navigator.wakeLock)harvLock=await navigator.wakeLock.request("screen");
+    else if(!on&&harvLock){ await harvLock.release(); harvLock=null; }
+  }catch(e){ harvLock=null; }
+}
+async function harvRun(ref,count){
+  if(harvBusy||!CAP.sample)return;
+  harvBusy=true; harvStop=false; st.harvErr=""; harvWake(true); render();
+  let seed;
+  try{ seed=await harvLoadSeed(); }
+  catch(e){ harvBusy=false; st.harvErr="Could not load the target list."; render(); return; }
+  const done=harvAll();
+  let todo=seed.filter(t=>!done[harvKey(t)]);
+  if(ref)todo=todo.filter(t=>t.ref===ref);
+  if(count>0)todo=todo.slice(0,count);
+  const pass1={where:"eBay",say:"completed, sold eBay listings - the price it actually went for, not what it was listed at"};
+  const pass2={where:"Shopping",say:"used-condition listings currently for sale on Google Shopping and the marketplaces"};
+  for(let i=0;i<todo.length;i++){
+    if(harvStop)break;
+    const t=todo[i];
+    harvNow=`${i+1} of ${todo.length} — ${t.name}`;
+    const el=document.getElementById("harvNow"); if(el)el.textContent=harvNow; else render();
+    let comps=[];
+    for(const p of [pass1,pass2]){
+      if(harvStop)break;
+      try{ const d=await CAP.sample.json(findPrompt(t.name,p),{search:true});
+           comps=comps.concat(((d&&d.comps)||[]).filter(c=>c&&Number(c.price)>0)); }
+      catch(e){}
+      if(comps.length>=8)break;
+    }
+    const seen={};
+    const uniq=comps.filter(c=>{ const k=Math.round(c.price)+"|"+String(c.where||"").toLowerCase();
+      if(seen[k])return false; seen[k]=1; return true; });
+    const ps=uniq.map(c=>Math.round(Number(c.price))).filter(n=>n>0).sort((a,b)=>a-b);
+    const at=f=>ps[Math.min(ps.length-1,Math.max(0,Math.round(f*(ps.length-1))))];
+    if(ps.length<3){
+      done[harvKey(t)]={ts:Date.now(),ref:t.ref,name:t.name,n:ps.length,date:todayStr(),note:"nothing usable"};
+    }else{
+      const sold=uniq.filter(c=>c.basis==="sold").length, share=sold/ps.length;
+      const w=harvWild(t.ref,at(0.5));
+      done[harvKey(t)]={ts:Date.now(),ref:t.ref,name:t.name,alias:t.alias||"",n:ps.length,sold,
+        lo:at(0.25),hi:at(0.75),med:at(0.5),
+        conf:(ps.length>=6&&share>=0.6)?"h":(ps.length>=4?"m":"l"),
+        date:todayStr(),wild:!!(w&&w.wild),ratio:w?w.ratio:null,book:w?w.book:null,
+        note:`${ps.length} listings, ${sold} sold${share<0.5?" - mostly asks":""}`};
+      /* These used to be filed as ordinary listings. A device keeps 3,000 of
+         those and the shared store 5,000, and 610 models at eight or ten
+         listings apiece is six thousand - so the back half of a full run
+         quietly evicted the front half, and the counter's own lookups with
+         it. The finding itself is the useful part: one row a model, priced
+         off the listings, small enough that the whole list syncs. */
+    }
+    harvSave(); render();
+  }
+  harvBusy=false; harvNow=""; harvWake(false); render();
+  try{ pdSync(); }catch(e){}
+}
+function todayStr(){ const d=new Date(), p=n=>String(n).padStart(2,"0");
+  return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate()); }
+/* The file the site serves, with everything harvested folded in. Downloaded
+   rather than written, because a web page cannot commit to the repository -
+   this is the one step that still needs a person. */
+function harvFile(){
+  const rows=MODEL_PRICES.map(r=>r.slice());
+  const byName=new Map(rows.map((r,i)=>[String(r[1])+"|"+String(r[2]).toLowerCase(),i]));
+  let n=0, added=0, updated=0, held=0, thin=0;
+  const nextId=()=>{ let id; do{ id="h"+(++n); }while(rows.some(r=>r[0]===id)); return id; };
+  for(const f of Object.values(harvAll())){
+    if(!f||!f.n||f.n<4||!(f.lo>0)||!(f.hi>=f.lo)){ thin++; continue; }
+    if(f.wild){ held++; continue; }
+    const row=[null,f.ref,f.name,Math.round(f.lo),Math.round(f.hi),f.conf,f.date,
+      "https://www.ebay.com/sch/i.html?_nkw="+encodeURIComponent(f.name)+"&LH_Sold=1&LH_Complete=1",
+      f.note,f.alias||""];
+    const at=byName.get(f.ref+"|"+f.name.toLowerCase());
+    if(at==null){ row[0]=nextId(); rows.push(row); byName.set(f.ref+"|"+f.name.toLowerCase(),rows.length-1); added++; }
+    else { row[0]=rows[at][0]; rows[at]=row; updated++; }
+  }
+  return {json:JSON.stringify({updated:todayStr(),
+    note:"Resale price list. Refreshed by the weekly task; app.js carries the same rows as a fallback.",
+    rows}),added,updated,held,thin,total:rows.length};
+}
+function harvDownload(){
+  const f=harvFile();
+  try{
+    const b=new Blob([f.json],{type:"application/json"});
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(b); a.download="prices.json";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+  }catch(e){ st.harvErr="This browser would not save the file."; render(); }
+}
+function harvStats(){
+  const all=Object.values(harvAll());
+  return {done:all.length,
+    priced:all.filter(f=>f&&f.n>=4&&f.lo>0&&!f.wild).length,
+    wild:all.filter(f=>f&&f.wild).length,
+    empty:all.filter(f=>!f||!(f.n>=3)).length};
+}
+/* Is the record actually shared between the devices? The service knows - it
+   reports on every sync whether it has a disk to write to - so this asks it
+   and says so plainly, in words, rather than leaving the counter to read an
+   absence of warnings as a yes. Costs nothing: /sync spends no API money. */
+function harvShareHTML(){
+  const when=st.syncSeen?fmtDay(new Date(st.syncSeen).toISOString().slice(0,10)):"";
+  if(st.syncShared==="no")return `<div class="tagWarn" style="background:var(--bad-wash);color:var(--bad-ink)">
+    <b>Not shared \u2014 and not saved.</b> The service says: ${esc(st.syncWarn||"no disk attached to the service")}.
+    Prices built here stay on this device, and the service forgets its copy every time it restarts.
+    In Railway: open the service, <b>Variables and Settings</b>, add a <b>Volume</b> mounted at
+    <b style="font-family:var(--mono)">/data</b>, then redeploy. Do that before paying for a long run.
+    <div style="margin-top:8px"><button class="ghostBtn" id="harvCheck">${syncBusy?"Checking\u2026":"Check again"}</button></div></div>`;
+  if(st.syncShared==="yes")return `<div class="tagNote" style="margin-top:10px">
+    <b style="color:var(--accent)">Saved, and on all your devices.</b> A price you build here shows up on the
+    phone too, and none of it is lost when the service restarts. Nothing to do — this is the way it should read.
+    Last checked ${esc(when)}.
+    <div style="margin-top:8px"><button class="ghostBtn" id="harvCheck" style="padding:5px 11px;font-size:11.5px">${syncBusy?"Checking\u2026":"Check again"}</button></div></div>`;
+  return `<div class="cardHint">Whether these reach your other devices depends on the service having a disk attached.
+    <button class="ghostBtn" id="harvCheck" style="padding:6px 12px;font-size:12px;margin-left:6px">${syncBusy?"Checking\u2026":"Check sharing"}</button>
+    Costs nothing to ask.</div>`;
+}
+function harvCardHTML(){
+  if(!CAP.sample)return "";
+  const S=harvStats(), total=harvSeed?harvSeed.length:610, left=Math.max(0,total-S.done);
+  const f=S.priced?harvFile():null;
+  return `<div class="card"><span class="label">Build the price list</span>
+    <div class="cardHint" style="margin-top:0">The tool ships knowing about ${MODEL_PRICES.length} models. This goes and prices
+      the rest &mdash; ${total} makes and models, the saws and mowers and phones and four-wheelers that actually come through a counter &mdash;
+      using the same searches the green button runs. What it finds is kept as one row a model &mdash; live on this device at once, and
+      on every other device the moment it syncs, so a price found on the phone at a yard sale is on the desk that afternoon.</div>
+    <div class="cardHint"><b style="color:var(--ink)">It costs money.</b> About two searches each, so roughly <b style="color:var(--accent)">4&cent;</b> a model
+      against your Anthropic balance &mdash; ${money(Math.round(total*0.04))} for the lot. Do a few first and look at what comes back.</div>
+    <div class="cardHint">Works the same on the phone &mdash; it holds the screen awake while it runs. If it gets interrupted anyway,
+      nothing is lost or paid for twice: press the button again and it carries on from where it stopped.</div>
+    ${harvBusy?`<div class="tagWarn" style="background:rgba(0,217,255,.10);color:var(--ink-2)">
+        <b style="color:var(--accent-2)">Working…</b> <span id="harvNow">${esc(harvNow)}</span>
+        <div style="margin-top:8px"><button class="ghostBtn" id="harvStop">Stop</button></div></div>`
+      :`<div class="row2" style="gap:8px;flex-wrap:wrap;margin-top:10px">
+        <button class="brassBtn" data-harv="5" style="padding:10px 16px">Price 5</button>
+        <button class="ghostBtn" data-harv="25" style="padding:10px 16px">Price 25</button>
+        <button class="ghostBtn" data-harv="100" style="padding:10px 16px">Price 100</button>
+        <button class="ghostBtn" data-harv="0" style="padding:10px 16px">Price all ${left}</button>
+       </div>`}
+    ${st.harvErr?`<div class="tagWarn" style="background:var(--bad-wash);color:var(--bad-ink)">${esc(st.harvErr)}</div>`:""}
+    ${harvShareHTML()}
+    ${S.done?`<div class="tagNote" style="margin-top:10px">
+      <b style="color:var(--ink)">${S.done} done</b> &middot; ${S.priced} priced${S.wild?` &middot; <span style="color:var(--warn)">${S.wild} looked wrong and were held back</span>`:""}${S.empty?` &middot; ${S.empty} found nothing`:""} &middot; ${left} left.
+      ${f?`<div style="margin-top:9px">To put them in the copy everyone downloads, save the file and send it to me:
+        <button class="ghostBtn" id="harvDl" style="padding:6px 12px;font-size:12px;margin-left:6px">Save prices.json (${f.total} rows)</button></div>`:""}
+      <div style="margin-top:6px"><button class="ghostBtn" id="harvClear" style="padding:5px 11px;font-size:11.5px">Start the list over</button></div>
+    </div>`:""}
+  </div>`;
+}
+/* ---- the master price sheet, back from the spreadsheet ------------------
+   427 numbers is a spreadsheet's job, not a phone screen's. tools/
+   pawn-desk-prices.xlsx carries every one of them, a sheet per kind of
+   thing, and this reads the edited version back in.
+
+   It takes a CSV saved out of Excel or Sheets, or rows pasted straight from
+   either - a paste is tab-separated, a saved file is comma-separated with
+   quotes around anything containing a comma, and both arrive here. Only the
+   YOUR VALUE column is read; a blank means the row was fine as it was. */
+function csvRows(text){
+  const t=String(text||"").replace(/\r\n?/g,"\n");
+  if(!t.trim())return [];
+  /* Tabs mean a paste, commas mean a saved file. Whichever appears more in
+     the first line is the separator - a comma inside a quoted item name
+     cannot outvote the real ones. */
+  const first=t.split("\n")[0];
+  const sep=(first.split("\t").length>first.split(",").length)?"\t":",";
+  const rows=[]; let row=[], cell="", q=false;
+  for(let i=0;i<t.length;i++){
+    const c=t[i];
+    if(q){
+      if(c==='"'){ if(t[i+1]==='"'){ cell+='"'; i++; } else q=false; }
+      else cell+=c;
+    } else if(c==='"') q=true;
+    else if(c===sep){ row.push(cell); cell=""; }
+    else if(c==="\n"){ row.push(cell); rows.push(row); row=[]; cell=""; }
+    else cell+=c;
+  }
+  if(cell.length||row.length){ row.push(cell); rows.push(row); }
+  return rows.filter(r=>r.some(x=>String(x).trim()));
+}
+const shNorm=s=>String(s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+function shMoney(v){
+  const n=Number(String(v==null?"":v).replace(/[$,\s]/g,""));
+  return isFinite(n)&&n>0?Math.round(n):0;
+}
+/* Which column is which, found by name rather than position, so a column
+   moved or a sheet exported with extra ones still reads. */
+function shCols(head){
+  const at=re=>head.findIndex(h=>re.test(shNorm(h)));
+  return {key:at(/^key$/), item:at(/^item$|^make and model$|^model$/),
+          val:at(/^your value/), lo:at(/^your low/), hi:at(/^your high/),
+          note:at(/^your notes?$/), now:at(/^resale now/)};
+}
+function sheetRead(text){
+  const rows=csvRows(text);
+  if(!rows.length)return {err:"There was nothing in that."};
+  let head=-1, C=null;
+  for(let i=0;i<Math.min(rows.length,12);i++){
+    const c=shCols(rows[i]);
+    if(c.key>=0&&(c.val>=0||c.lo>=0)){ head=i; C=c; break; }
+  }
+  if(head<0)return {err:"I couldn’t find the heading row. It needs the Key column and a YOUR VALUE column, exactly as the master sheet has them."};
+  const isModels=C.lo>=0&&C.hi>=0;
+  const items={}, books={}, models={}, changes=[], skipped=[];
+  const bookByName={}; PRICEBOOK.forEach(e=>{ bookByName[shNorm(e[0])]=e; });
+  const itemById={}; CATALOG.forEach(c=>c.items.forEach(i=>{ itemById[i.id]=i; }));
+  for(let i=head+1;i<rows.length;i++){
+    const r=rows[i], key=String(r[C.key]||"").trim();
+    if(!key)continue;
+    const val=C.val>=0?shMoney(r[C.val]):0;
+    const lo=C.lo>=0?shMoney(r[C.lo]):0, hi=C.hi>=0?shMoney(r[C.hi]):0;
+    if(!val&&!(lo&&hi))continue;                 /* blank means keep */
+    const name=C.item>=0?String(r[C.item]||"").trim():key;
+    /* "a1" is both the Range / oven on the appliance sheet and the Remington
+       870 Express on the models sheet - the two lists were numbered
+       separately and nobody noticed they would ever meet. Which list a row
+       belongs to is settled by the sheet it came off: a YOUR LOW and YOUR
+       HIGH pair is the models sheet, a single YOUR VALUE is everything else.
+       Checked the wrong way round, every colliding model row was silently
+       swallowed by an appliance. */
+    if(isModels){
+      const mm=MP_BY_ID[key];
+      if(mm){
+        if(lo>0&&hi>=lo){
+          const cur=st.modelVals&&st.modelVals[key];
+          const wasLo=(cur&&cur.lo)||mm[3], wasHi=(cur&&cur.hi)||mm[4];
+          if(lo!==wasLo||hi!==wasHi){ models[key]={lo,hi};
+            changes.push({what:mm[2],from:wasLo+"\u2013"+wasHi,to:lo+"\u2013"+hi,range:true}); }
+        }
+      } else skipped.push(key+(name&&name!==key?" ("+name+")":""));
+      continue;
+    }
+    if(itemById[key]){
+      if(val>0&&val!==(st.overrides[key]??itemById[key].value)){
+        items[key]=val; changes.push({what:itemById[key].name,from:st.overrides[key]??itemById[key].value,to:val}); }
+      continue;
+    }
+    const b=bookByName[shNorm(key)]||bookByName[shNorm(name)];
+    if(b){
+      const was=bookVal(b);
+      if(val>0&&val!==was){ books[b[0]]=val; changes.push({what:b[0],from:was,to:val}); }
+      continue;
+    }
+    const m=MP_BY_ID[key];
+    if(m){
+      if(lo>0&&hi>=lo){
+        const cur=st.modelVals&&st.modelVals[key];
+        const wasLo=(cur&&cur.lo)||m[3], wasHi=(cur&&cur.hi)||m[4];
+        if(lo!==wasLo||hi!==wasHi){ models[key]={lo,hi};
+          changes.push({what:m[2],from:wasLo+"–"+wasHi,to:lo+"–"+hi,range:true}); }
+      }
+      continue;
+    }
+    skipped.push(key+(name&&name!==key?" ("+name+")":""));
+  }
+  return {items,books,models,changes,skipped,rows:rows.length-head-1};
+}
+function sheetApply(r){
+  Object.keys(r.items).forEach(k=>{ st.overrides[k]=r.items[k]; });
+  st.bookVals=Object.assign({},st.bookVals||{},r.books);
+  st.modelVals=Object.assign({},st.modelVals||{},r.models);
+  persist();
+}
+let shPend=null, shMsg="";
+function sheetCardHTML(){
+  const n=(CATALOG.reduce((a,c)=>a+c.items.length,0))+PRICEBOOK.length+MODEL_PRICES.length;
+  const mine=Object.keys(st.overrides||{}).length+Object.keys(st.bookVals||{}).length+Object.keys(st.modelVals||{}).length;
+  return `<div class="card"><span class="label">Your own prices, from a spreadsheet</span>
+    <div class="cardHint" style="margin-top:0">The tool prices <b style="color:var(--ink)">${n}</b> things, and a spreadsheet
+      beats a phone screen for going through them. <b style="color:var(--ink)">tools/pawn-desk-prices.xlsx</b> in the repository has
+      every one, a sheet per kind of thing. Put what you actually get for it in the <b style="color:var(--ink)">YOUR VALUE</b> column,
+      save that sheet as CSV, and drop it here. Blank rows are left exactly as they are.</div>
+    ${mine?`<div class="tagNote" style="margin-top:9px"><b style="color:var(--accent)">${mine}</b> of them are already carrying your numbers rather than the built-in ones.</div>`:""}
+    <div class="row2" style="gap:9px;flex-wrap:wrap;margin-top:10px">
+      <label class="brassBtn" style="cursor:pointer;margin:0;padding:11px 18px">Choose the CSV
+        <input id="shFile" type="file" accept=".csv,.tsv,.txt,text/csv" style="display:none"></label>
+      <button class="ghostBtn" id="shPasteGo" style="padding:11px 16px">or paste the rows</button>
+    </div>
+    ${st.shPaste?`<textarea id="shPaste" placeholder="Select the rows in Excel or Sheets, copy, and paste them here — headings included."
+      style="width:100%;margin-top:9px;min-height:110px;background:var(--well);color:var(--ink);border:1px solid var(--e2);border-radius:10px;padding:10px;font-family:var(--mono);font-size:12px"></textarea>
+      <div class="row2" style="margin-top:8px"><button class="ghostBtn" id="shPasteRead">Read what I pasted</button></div>`:""}
+    ${shMsg?`<div class="cardHint" style="color:var(--warn)">${esc(shMsg)}</div>`:""}
+    ${shPend?sheetPreviewHTML():""}
+  </div>`;
+}
+/* Nothing is applied until the counter has seen every line of it. */
+function sheetPreviewHTML(){
+  const r=shPend;
+  if(!r.changes.length)return `<div class="tagNote" style="margin-top:10px">Read ${r.rows} rows and none of them differ from what the tool already uses. Nothing to change.</div>`;
+  const rows=r.changes.slice(0,40).map(c=>`<div style="display:flex;gap:10px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+      <span style="flex:1">${esc(c.what)}</span>
+      <span style="font-family:var(--mono);color:var(--ink-3)">${c.range?esc(String(c.from)):money(c.from)}</span>
+      <span style="color:var(--ink-3)">&rarr;</span>
+      <span style="font-family:var(--mono);color:var(--accent);font-weight:600">${c.range?esc(String(c.to)):money(c.to)}</span>
+    </div>`).join("");
+  return `<div class="tagNote" style="margin-top:12px">
+    <b style="color:var(--ink)">${r.changes.length} price${r.changes.length===1?"":"s"} would change</b> out of ${r.rows} rows read.
+    <div style="margin-top:8px;max-height:280px;overflow:auto">${rows}</div>
+    ${r.changes.length>40?`<div class="cardHint">…and ${r.changes.length-40} more.</div>`:""}
+    ${r.skipped.length?`<div class="cardHint" style="color:var(--warn)">${r.skipped.length} row${r.skipped.length===1?"":"s"} I could not match and ignored: ${esc(r.skipped.slice(0,6).join(", "))}${r.skipped.length>6?"…":""}. Check the Key column on those.</div>`:""}
+    <div class="row2" style="gap:9px;margin-top:11px">
+      <button class="brassBtn" id="shApply" style="padding:10px 18px">Use these ${r.changes.length}</button>
+      <button class="ghostBtn" id="shCancel" style="padding:10px 16px">Cancel</button>
+    </div></div>`;
+}
+/* ---------------- device + flags tabs ---------------- */
+/* Everything about this copy of the tool rather than about an item: which
+   build it is running, how the pricing page is laid out, and moving the
+   shelf record by hand. None of it is part of buying or lending. */
+function renderSetup(){
+  return `<div class="narrow">
+
+  <div class="card"><span class="label">This copy of the tool</span>
+    <div class="cardHint" style="margin-top:0">Running <b style="color:var(--ink);font-family:var(--mono)">${APP_BUILD}</b>${st.newBuild
+      ?` &mdash; the site has <b style="color:var(--warn);font-family:var(--mono)">${esc(st.newBuild)}</b>, so this device is behind. Fetch it.`
+      :` &mdash; the newest there is.`} The same number sits beside SYS.OK at the top, so you can tell at a glance what a device is actually running.</div>
+    <div class="row2" style="margin-top:9px"><button class="ghostBtn" id="pdFresh">Get the newest version</button></div>
+  </div>
+  ${pdServer()?harvCardHTML():""}
+  ${sheetCardHTML()}
+  ${pdServer()&&window.PHONE?`<div class="card"><span class="label">Connected</span>
+    <div class="cardHint" style="margin-top:0"><b style="color:var(--accent)">This phone is on.</b> It can look up what things sold for, and the camera works \u2014 the card for it is on the <b style="color:var(--ink)">Check a price</b> tab, headed <i>Snap it</i>.</div>
+  </div>`:""}
+  ${window.PHONE||!pdServer()?"":`<div class="card"><span class="label">Switching another device on</span>
+    <div class="cardHint" style="margin-top:0">This computer is connected. Every phone and tablet keeps its own copy, so each one has to be told once \u2014 point its camera at the code below, or type these two lines into it.</div>
+    ${pdServer()?`<span class="label" style="margin-top:12px">Service address</span>
+    <div class="roOut" style="user-select:all">${esc(pdServer())}</div>
+    <span class="label" style="margin-top:10px">Token</span>
+    <div class="roOut" style="user-select:all">${esc(pdToken()||"(none set)")}</div>
+    ${typeof qrSVG==="function"?`<div style="margin-top:12px;display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+      <div style="background:#fff;padding:9px;border-radius:10px;line-height:0">${qrSVG(pdHandoffLink(),196)}</div>
+      <div class="cardHint" style="margin:0;flex:1;min-width:190px">Open the phone\u2019s camera and point it at this. Tap the link it offers and the phone switches itself on \u2014 nothing to type, and the token never goes into a text message.<br><br>The link works once per device and wipes itself out of the phone\u2019s address bar as soon as it is read.</div>
+    </div>`:""}
+    <div class="row2" style="margin-top:9px"><button class="ghostBtn" id="pdCopyConn" title="Copy both lines so you can send them to yourself">Copy both</button></div>
+    <div class="cardHint" style="font-size:12.5px">Treat the token like a key to the shop. If a phone goes missing, change PAWN_TOKEN in Railway and switch each device on again.</div>`:""}
+  </div>`}
+  ${pdServer()?"":pdConnectHTML()}
+  ${pdServer()?`<div class="card"><span class="label">Is the service working?</span>
+    <div class="cardHint" style="margin-top:0">Switched on and pointing at <b style="color:var(--ink)">${esc(pdServer())}</b>. This sends a real request the same way the camera does and says exactly what comes back &mdash; or exactly what is wrong.</div>
+    <div class="row2" style="margin-top:9px"><button class="brassBtn" id="pdConnTest" style="padding:11px 18px">Test the connection</button>
+      <button class="ghostBtn" id="pdConnOff">Disconnect</button></div>
+    <div class="cardHint" id="pdConnMsg" style="min-height:16px"></div>
+  </div>`:""}
+  <div class="card"><span class="label">Move the shelf record between devices</span>
+    <div class="cardHint" style="margin-top:0">${seenAll().length} tag${seenAll().length===1?"":"s"} on this device. With the service on, <b style="color:var(--ink)">Sync</b> on the pricing page does this by itself &mdash; these are for moving the record by hand, or keeping a copy.</div>
+    <div class="row2" style="margin-top:9px;gap:8px;flex-wrap:wrap">
+      <button class="ghostBtn" id="seenOut" title="Save every recorded tag to a file">Export</button>
+      <label class="ghostBtn" style="margin:0;cursor:pointer" title="Load tags from a file exported on another device">Import<input id="seenImp" type="file" accept="application/json,.json" style="display:none"></label>
+    </div>
+  </div>
+${window.PHONE?"":`  <div class="card"><span class="label">How the pricing page is laid out</span>
+    <div class="pills mb14" style="border-radius:var(--r-s);margin-top:8px;flex-wrap:wrap">
+      <button class="${stepFlow()==="ask"?"on":""}" style="flex:1;padding:9px 6px;font-size:12px;min-width:110px" data-flow="ask">One question at a time</button>
+      <button class="${stepFlow()==="pages"?"on":""}" style="flex:1;padding:9px 6px;font-size:12px;min-width:110px" data-flow="pages">One page at a time</button>
+      <button class="${stepFlow()==="steps"?"on":""}" style="flex:1;padding:9px 6px;font-size:12px;min-width:110px" data-flow="steps">One step at a time</button>
+      <button class="${stepFlow()==="all"?"on":""}" style="flex:1;padding:9px 6px;font-size:12px;min-width:110px" data-flow="all">Everything open</button>
+    </div>
+    <div class="cardHint" style="margin-top:0"><b style="color:var(--ink)">One question at a time</b> is the questionnaire: one question on the screen, big answers, and answering it moves to the next by itself. The specifics &mdash; how many batteries, whether it is all there &mdash; are questions in the run rather than fields buried under it. Back, or tap any dot, to go anywhere.<br><b style="color:var(--ink)">One page at a time</b> puts one job on the screen &mdash; what it is, what it is worth, condition, your offer &mdash; with a bar to move between them and the price always on top. The default, because everything at once is thirteen cards.<br><b style="color:var(--ink)">One step at a time</b> shows the step you are on and folds the rest to a line carrying its answer &mdash; click any line to open it. The way the phone works, and it puts an item on about one screen.<br><b style="color:var(--ink)">Everything open</b> is the old layout, every step expanded at once.</div>
+    <div class="cardHint" style="font-size:12.5px">Throws away everything this browser has cached and reloads from the site. Nothing you have recorded is touched &mdash; the shelf tags, listings and deal log are kept separately.</div>
+  </div>`}
+  <details class="card foldCard" id="rulesFold"${st.openRules?" open":""}>
+    <summary><span class="label" style="margin:0">Walk away, and what goes to the sheriff</span><span class="foldSub">the red flags, what we don't take, and the reporting deadlines</span></summary>
+    ${flagsInner()}
+  </details>
+</div>`;
+}
+/* Taking in a phone: what to check before money changes hands. Setup does
+   not belong on this tab - it is a counter checklist, not a settings drawer. */
+function renderDevice(){
+  return `<div class="narrow">
+  <div class="card"><p style="font-size:14px;line-height:1.6;margin:0;color:var(--ink-2)">Do all of this before money changes hands. A locked phone is worth nothing and there is no fixing it afterward.</p></div>
+  ${DEVICE_STEPS.map((s,i)=>
+    `<div class="card step"><div style="display:flex;gap:12px;align-items:flex-start"><span class="n">${String(i+1).padStart(2,"0")}</span><div><div class="t">${s.t}</div><div class="d">${s.d}</div></div></div></div>`).join("")}</div>`;
+}
+function flagsInner(){
+  return `<div class="card"><p style="font-size:14px;line-height:1.6;margin:0;color:var(--ink-2)">Any one of these and the answer is no. A stolen item costs you the loan, the goods, and a conversation with the sheriff.</p></div>
+  ${FLAGS.map(f=>`<div class="card flag" style="display:flex;gap:12px;align-items:center"><span class="x">&times;</span><span>${f}</span></div>`).join("")}
+  <div class="card"><span class="label">Things we don't take, whatever the price</span>
+    <div class="cardHint" style="margin-top:0">Nothing wrong with the customer &mdash; these just cost more than they make. They are kept off the price lists on purpose, so nothing here quotes you a number for one.</div>
+    ${NO_TAKE.map(n=>`<div class="rules sect"><span class="hd"><b>${n[0]}</b></span> ${n[1]}</div>`).join("")}
+  </div>
+  <div class="card">
+    <div class="rules">Every transaction goes to the sheriff's office on the approved state form. Photo ID, <b>right</b> thumbprint, serial numbers, full description — no exceptions, no favors, no matter who's standing there.</div>
+    <div class="rules sect"><span class="hd"><b>By the end of the next business day.</b></span> Yesterday's forms go to the sheriff today — &sect; 539.001(9)(a). Keep our copies on the premises a year, and don't destroy any of them for three.</div>
+    <div class="rules sect"><span class="hd"><b>If a hold order lands on something:</b></span> it runs 90 days. When it expires, we send the sheriff a certified letter, return receipt. If no court extends it within 10 days of them receiving that letter, the item becomes ours. Nothing else starts that clock — if nobody sends the letter, we simply lose it.</div>
+  </div>`;
+}
+
+/* ================= RUNTIME CAPABILITIES =================================
+   Photo reading and the deal log are OPTIONAL. Every one of them resolves
+   late, or resolves to nothing at all (older viewer, permission declined,
+   page opened outside a Claude viewer). Nothing below is allowed to be
+   load-bearing: when a capability is absent its whole card is hidden and
+   the counter tool behaves exactly as it did before any of this existed. */
+/* ---- the shop's own price service ----------------------------------------
+   A static page cannot hold an API key and cannot read another website, so
+   photo identification and the new-price lookup need a small service of the
+   shop's own. Its address and token live in this device's storage, never in
+   the page and never in the repository: nothing here ships a secret, and a
+   phone that is lost takes only its own copy. */
+const PD_SRV="pawndesk_server", PD_TOK="pawndesk_token";
+function pdServer(){ try{ return localStorage.getItem(PD_SRV)||""; }catch(e){ return ""; } }
+function pdToken(){ try{ return localStorage.getItem(PD_TOK)||""; }catch(e){ return ""; } }
+function pdSetServer(u,t){ try{ if(u){ localStorage.setItem(PD_SRV,u); localStorage.setItem(PD_TOK,t||""); }
+                                 else { localStorage.removeItem(PD_SRV); localStorage.removeItem(PD_TOK); } }catch(e){} }
+function pdErr(c,why){ const e=new Error(c); e.code=c; if(why)e.why=why; return e; }
+function pdBase(){ return pdServer().replace(/\/+$/,""); }
+function pdPart(f){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onerror=()=>rej(pdErr("image_rejected"));
+    r.onload=()=>{ const s=String(r.result||""), i=s.indexOf(",");
+                   res({media_type:f.type||"image/jpeg", data:i>=0?s.slice(i+1):""}); };
+    r.readAsDataURL(f);
+  });
+}
+async function pdLimits(){
+  try{ const r=await fetch(pdBase()+"/limits"); return await r.json(); }
+  catch(e){ return {images:{mediaTypes:["image/jpeg","image/png","image/webp"],maxCount:4,maxBytes:5242880}}; }
+}
+/* eBay's own listing data, through the service. This is the only source the
+   desk can reach that is able to say what something SOLD for - everything
+   else, this tool's own web searches included, can only see listings that
+   are still up, and the overpriced one that sat for six months is still up
+   while the one that sold in a day is gone. Averaging what is left reads
+   high, and high is the wrong direction to be wrong in when a loan is
+   riding on it.
+
+   It costs nothing to call. No model, no search, no balance - so the
+   lookup tries it first, and when it comes back full the searches below it
+   are never paid for at all.
+
+   It throws like the rest of the service calls, and the caller falls
+   through to the searches. A shop with no eBay keyset set on the service
+   gets exactly what it got before. */
+/* WHAT THE SERVICE SAID ABOUT THE LAST LOOKUP, AND WHY.
+   /ebay answers with basis ("sold" or "asking"), the source it actually
+   reached, and a warning saying why it is not the better one - "sold-price
+   quota spent for the month, fell back to asking prices" is the live case
+   today. All three were read for one thing, a single word on the tally
+   strip, and then dropped on the floor: the tally is gone the moment the
+   price lands and the card moves on, so by the time anybody is deciding,
+   the screen had no idea where its own number came from.
+   It is kept here and carried onto the price itself. */
+let LAST_EBAY=null;
+const EBAY_SOURCE_NAME={soldcomps:"SoldComps", marketplace_insights:"eBay sold prices",
+                        browse:"eBay listings"};
+async function pdEbayComps(q,signal){
+  if(!pdServer())throw pdErr("no_server");
+  const ctl=new AbortController();
+  const stop=()=>ctl.abort();
+  if(signal){ if(signal.aborted)stop(); else signal.addEventListener("abort",stop); }
+  /* eBay answers in a second or two. Anything past half a minute is a
+     service that is not coming back, and the searches are still waiting. */
+  const timer=setTimeout(stop,30000);
+  let r;
+  try{
+    r=await fetch(pdBase()+"/ebay",{method:"POST",
+      headers:{"content-type":"application/json","x-pawn-token":pdToken()},
+      body:JSON.stringify({q:String(q||"").slice(0,120),limit:40}),signal:ctl.signal});
+  }catch(e){ throw pdErr("upstream_error"); }
+  finally{ clearTimeout(timer); if(signal)signal.removeEventListener("abort",stop); }
+  let j=null; try{ j=await r.json(); }catch(e){}
+  if(!r.ok||!j||!j.ok)throw pdErr((j&&j.code)||"upstream_error");
+  LAST_EBAY={basis:j.basis==="sold"?"sold":"asking",
+             source:String(j.source||""), warning:String(j.warning||""), ts:Date.now()};
+  return j;
+}
+async function pdJSON(prompt,opts){
+  if(!pdServer())throw pdErr("no_server");
+  opts=opts||{};
+  let imgs=opts.images||[]; if(imgs&&!Array.isArray(imgs))imgs=[imgs];
+  const parts=[]; for(const f of imgs){ if(f)parts.push(await pdPart(f)); }
+  /* There was no timeout here at all. If the service stopped answering - it
+     had died, Railway was asleep, the phone lost signal mid-read - the fetch
+     sat there until the browser gave up minutes later, and what came back
+     was an anonymous failure. A read that has not answered in this long is
+     not going to. Searching is allowed longer because it really does go and
+     read pages. */
+  const MS=opts.search?120000:90000;
+  let r, timedOut=false;
+  const ctl=new AbortController();
+  const timer=setTimeout(()=>{ timedOut=true; ctl.abort(); },MS);
+  const onCancel=()=>ctl.abort();
+  if(opts.signal){ if(opts.signal.aborted)ctl.abort();
+                   else opts.signal.addEventListener("abort",onCancel,{once:true}); }
+  try{
+    r=await fetch(pdBase()+"/json",{method:"POST",
+      headers:{"content-type":"application/json","x-pawn-token":pdToken()},
+      body:JSON.stringify({prompt:String(prompt||""),images:parts,search:!!opts.search}),
+      signal:ctl.signal});
+  }catch(e){
+    /* "Failed to fetch" is all a browser gives for a blocked request, a dead
+       host and a dropped connection alike - but the wording differs a little
+       between them, and it is the only clue there is. Carry it. */
+    const why=String((e&&e.name)||"")+": "+String((e&&e.message)||e||"");
+    throw pdErr(timedOut?"timeout"
+      :(e&&e.name==="AbortError")?"cancelled"
+      :"no_answer", why);
+  }finally{
+    clearTimeout(timer);
+    if(opts.signal)opts.signal.removeEventListener("abort",onCancel);
+  }
+  let j=null; try{ j=await r.json(); }catch(e){}
+  if(!j||!j.ok)throw pdErr((j&&j.code)||"upstream_error");
+  return j.data;
+}
+/* The counter's own new-price lookup: no tab opens, the number comes back here. */
+let retailBusy=false;
+/* Asked in one place, because the sweep wants the same answer the button
+   does. Returns the number or nothing; it sets no state of its own. */
+async function retailFetch(q,signal){
+  try{
+    const d=await CAP.sample.json(
+      'What does a new "'+q+'" cost today at a United States retailer? Search the web for current prices. '+
+      'Reply with JSON and nothing else: {"price": <number, the typical new retail price in US dollars>, '+
+      '"where": "<retailer>", "note": "<8 words or fewer>"}. '+
+      'If there is no real new price for it, reply {"price": 0, "where": "", "note": "not found"}.',
+      {search:true,signal});
+    const n=Math.round(Number(d&&d.price));
+    return n>0?{price:n,where:String((d&&d.where)||"").slice(0,40)}:null;
+  }catch(e){ return null; }
+}
+async function retailLookup(){
+  if(retailBusy||!CAP.sample)return;
+  const x=calcItem(), q=compQuery(x);
+  retailBusy=true; render();
+  const say=t=>{ const el=document.getElementById("pdRetMsg"); if(el)el.textContent=t; };
+  {
+    const got=await retailFetch(q);
+    const n=got?got.price:0, d=got?{where:got.where}:null;
+    retailBusy=false;
+    if(n>0){
+      const p=retailPct(x);
+      st.market={kind:"retail",key:mkKey(),retail:n,pct:p,where:String((d&&d.where)||"").slice(0,40),
+                 mid:Math.max(5,Math.round(n*p/100/5)*5)};
+      render(); return;
+    }
+    render(); say("No new price found for that. Type one in.");
+  }
+}
+/* A device is switched on by opening a link the desk drew as a QR code. The
+   settings ride in the hash, which never leaves the browser - it is not sent
+   to GitHub Pages or anywhere else - and it is wiped from the address bar and
+   from history the instant it is read, so the token does not sit in a
+   bookmark or a back button. */
+function pdReadHandoff(){
+  try{
+    const h=String(location.hash||"");
+    const m=h.match(/[#&]pd=([A-Za-z0-9+/=_-]+)/);
+    if(!m)return false;
+    const txt=decodeURIComponent(escape(atob(m[1].replace(/-/g,"+").replace(/_/g,"/"))));
+    const [srv,tok]=txt.split("\n");
+    if(!/^https?:\/\//.test(srv||""))return false;
+    pdSetServer(srv.trim(),(tok||"").trim());
+    history.replaceState(null,"",location.pathname+location.search);
+    return true;
+  }catch(e){ return false; }
+}
+function pdHandoffLink(){
+  const t=pdServer()+"\n"+pdToken();
+  const b64=btoa(unescape(encodeURIComponent(t))).replace(/\+/g,"-").replace(/\//g,"_");
+  return location.origin+location.pathname.replace(/[^/]*$/,"")+"phone.html#pd="+b64;
+}
+function pdConnectHTML(){
+  if(window.claude&&window.claude.use)return "";
+  const on=!!pdServer();
+  /* Named for the camera for a long time, and that was wrong twice over.
+     "Connect" read as "connect a camera", and there is none to buy - it uses
+     the one in the device. Worse, the camera is the SMALLEST thing behind
+     this switch: what it really turns on is the shop's service, and the
+     service is what looks up sold prices. Somebody who did not want to
+     photograph anything read "Camera and photo lookups" as optional and
+     left the price lookups switched off. */
+  /* The headline used to say "not connected" even when `on` was true - so a
+     device that WAS switched on and had merely lost the service for a moment
+     was told it had never been set up, under a button reading "Switch it on".
+     The headline follows the state now.
+
+     The prose under it was four paragraphs deep, 250px of it, and on a phone
+     that pushed the two fields and the search box off the bottom of the
+     screen. What someone setting this up needs is the consequence in a line
+     and then the boxes. */
+  return '<div class="card" id="pdConnCard" style="border:1px dashed var(--e2-hi)"><span class="label">'+(on
+      ? "Switched on, but the shop&rsquo;s service is not answering"
+      : "This device is not connected to the shop&rsquo;s service")+'</span>'+
+    '<div class="cardHint">'+(on
+      ? "Check that it is running, then test the connection below."
+      : "No <b style=\"color:var(--ink)\">sold-price lookups</b> until it is. Two lines, pasted once.")+'</div>'+
+    /* These used to be two browser prompt() boxes. A prompt is torn down the
+       moment the tab loses focus - and the token lives in another tab, so
+       going to fetch it closed the box you were pasting into. Fields on the
+       page survive switching tabs, which is the whole job. */
+    '<span class="label" style="margin-top:12px">Service address</span>'+
+    '<input id="pdSrvIn" class="numIn" type="url" inputmode="url" autocomplete="off" spellcheck="false" '+
+      'style="font-family:var(--mono);font-size:14px" placeholder="https://your-service.up.railway.app" value="'+esc(pdServer()||"")+'">'+
+    '<span class="label" style="margin-top:10px">Token</span>'+
+    '<input id="pdTokIn" class="numIn" type="text" autocomplete="off" spellcheck="false" '+
+      'style="font-family:var(--mono);font-size:14px" placeholder="the PAWN_TOKEN you set in Railway" value="'+esc(pdToken()||"")+'">'+
+    '<div class="cardHint" style="font-size:12.5px">Switch tabs to copy &mdash; what you typed stays put.'+
+      (window.PHONE?" Both are under <b style=\"color:var(--ink)\">Setup</b> on the counter computer.":"")+'</div>'+
+    '<div class="row2" style="margin-top:8px"><button class="brassBtn" id="pdConnBtn" style="padding:10px 18px">'+
+      (on?"Save and reconnect":"Switch it on")+'</button>'+
+      '<button class="ghostBtn" id="pdConnTest">Test the connection</button>'+
+      (on?'<button class="ghostBtn" id="pdConnOff">Disconnect</button>':'')+'</div>'+
+    '<div class="cardHint" id="pdConnMsg" style="min-height:16px"></div></div>';
+}
+/* "Couldn't reach the service" has three quite different causes and the
+   browser reports all of them the same way: a thrown fetch. This tells them
+   apart and says which, instead of leaving the counter to guess.
+
+   A no-cors request still completes when the server is alive but refusing
+   the browser's origin - so if the plain request dies and the opaque one
+   lives, it is CORS, which means ALLOW_ORIGIN, not a dead service. */
+async function pdTestConn(){
+  const out=document.getElementById("pdConnMsg");
+  const srvEl=document.getElementById("pdSrvIn"), tokEl=document.getElementById("pdTokIn");
+  let u=String((srvEl&&srvEl.value)||pdServer()||"").trim().replace(/\/+$/,"");
+  const tok=String((tokEl&&tokEl.value)||pdToken()||"").trim();
+  const say=(tone,t)=>{ if(out)out.innerHTML='<span style="color:'+tone+'">'+t+'</span>'; };
+  if(!u){ say("var(--warn)","Put the service address in first."); return; }
+  if(!/^https?:\/\//i.test(u))u="https://"+u;
+  if(/^http:\/\//i.test(u)&&location.protocol==="https:"){
+    say("var(--bad)","That address starts with <b>http://</b>. This page is https, so the phone blocks it before it leaves. Change it to <b>https://</b>.");
+    return; }
+  say("var(--ink-3)","Testing\u2026");
+  /* 1. is anything there at all? */
+  let limits=null, threw=null;
+  try{
+    const r=await fetch(u+"/limits",{signal:AbortSignal.timeout(15000)});
+    limits={status:r.status}; try{ limits.body=await r.json(); }catch(e){}
+  }catch(e){ threw=e; }
+  if(threw){
+    let opaque=false;
+    try{ await fetch(u+"/limits",{mode:"no-cors",signal:AbortSignal.timeout(15000)}); opaque=true; }catch(e){}
+    if(opaque) say("var(--bad)","The service is <b>alive</b> but refusing this page. That is <b>ALLOW_ORIGIN</b> in Railway \u2014 set it to <b>"+esc(location.origin)+"</b> and redeploy.");
+    else       say("var(--bad)","<b>Nothing answered at that address.</b> Either it is wrong, or the service is not running. Open <b>"+esc(u)+"/limits</b> in this phone's browser: a line of JSON means it is alive, an error page means Railway is down or asleep.");
+    return;
+  }
+  if(limits.status!==200||!limits.body||!limits.body.ok){
+    say("var(--bad)","Something answered at that address, but it is not the pawn service (HTTP "+limits.status+"). Check the address.");
+    return; }
+  /* 2. it is there - does it accept the token? */
+  if(!tok){ say("var(--warn)","The service is up and reachable. Now put the token in."); return; }
+  const post=async(body,ms)=>{
+    const r=await fetch(u+"/json",{method:"POST",
+      headers:{"content-type":"application/json","x-pawn-token":tok},
+      body:JSON.stringify(body),signal:AbortSignal.timeout(ms||45000)});
+    return await r.json().catch(()=>({ok:false,code:"http_"+r.status}));
+  };
+  try{
+    const j=await post({prompt:'Reply with JSON and nothing else: {"ok":1}',images:[]},30000);
+    if(!j||!j.ok){ const c=(j&&j.code)||"upstream_error";
+      say("var(--bad)","Reached it, but it answered <b>"+esc(c)+"</b>. "+esc(photoErrCopy(c))); return; }
+  }catch(e){ say("var(--bad)","Reached the service, but a plain request timed out. Railway may be waking up \u2014 try once more."); return; }
+
+  /* 3. and with a PICTURE on it? This is the ONLY difference between the
+        request the camera makes and the one above, so when plain requests
+        work and photographs do not, the answer is in here. Two sizes: a tiny
+        one to prove pictures are handled at all, then one the size of a real
+        phone photo to prove the upload survives the trip. */
+  say("var(--ink-3)","Plain requests work. Trying one with a small picture\u2026");
+  const madeJPEG=px=>new Promise(res=>{
+    const c=document.createElement("canvas"); c.width=c.height=px;
+    const g=c.getContext("2d");
+    for(let y=0;y<px;y+=8)for(let x=0;x<px;x+=8){
+      g.fillStyle="rgb("+((x*7)%256)+","+((y*11)%256)+","+((x*y)%256)+")"; g.fillRect(x,y,8,8); }
+    c.toBlob(b=>res(b),"image/jpeg",0.9);
+  });
+  const asPart=blob=>new Promise(res=>{ const r=new FileReader();
+    r.onload=()=>{ const t=String(r.result||""),i=t.indexOf(","); res({media_type:"image/jpeg",data:i>=0?t.slice(i+1):""}); };
+    r.readAsDataURL(blob); });
+  const tryImg=async px=>{
+    const blob=await madeJPEG(px); const part=await asPart(blob);
+    const kb=Math.round(part.data.length/1024);
+    try{
+      const j=await post({prompt:'Reply with JSON and nothing else: {"ok":1}',images:[part]},60000);
+      if(j&&j.ok)return {ok:true,kb};
+      return {ok:false,kb,code:(j&&j.code)||"upstream_error"};
+    }catch(e){ return {ok:false,kb,threw:String((e&&e.name)||"")+": "+String((e&&e.message)||e)}; }
+  };
+  const small=await tryImg(64);
+  if(!small.ok){
+    say("var(--bad)","Plain requests work, but one carrying even a tiny picture ("+small.kb+"KB) "+
+      (small.threw?("died on the way: <b>"+esc(small.threw)+"</b>. Something between this phone and the service refuses requests with a picture on them.")
+                  :("was answered <b>"+esc(small.code)+"</b>. "+esc(photoErrCopy(small.code)))));
+    return; }
+  /* Climb until something refuses it. Knowing the ceiling is the difference
+     between "photographs sometimes fail" and a number to shrink to. */
+  let lastOK=small.kb, firstBad=null, badWhy="";
+  for(const px of [1400,2000,2600,3200]){
+    say("var(--ink-3)","Pictures work so far ("+lastOK+"KB). Trying a bigger one\u2026");
+    const r=await tryImg(px);
+    if(r.ok){ lastOK=r.kb; continue; }
+    firstBad=r.kb; badWhy=r.threw||("answered "+r.code); break;
+  }
+  if(firstBad==null){
+    /* Everything above answers in about a second. A real photo read takes
+       Claude ten to thirty seconds to think, and nothing so far has tested
+       whether the connection survives that wait - which is the one thing
+       left that differs between a request that works and one that does not.
+       So do the real thing, with the real prompt, and time it. */
+    say("var(--ink-3)","Every size arrives. Now the slow part \u2014 a full read, the way the camera does it. This takes 10 to 30 seconds\u2026");
+    const blob=await madeJPEG(1200), part=await asPart(blob);
+    const t0=Date.now();
+    try{
+      const j=await post({prompt:photoPrompt(),images:[part]},120000);
+      const secs=((Date.now()-t0)/1000).toFixed(1);
+      if(j&&j.ok) say("var(--accent)","<b>All good, including the slow part.</b> A full read came back in "+secs+"s. Photographs arrive up to "+lastOK+"KB and the connection holds while Claude thinks.");
+      else say("var(--bad)","Pictures arrive, but a full read answered <b>"+esc((j&&j.code)||"upstream_error")+"</b> after "+secs+"s. "+esc(photoErrCopy((j&&j.code)||"upstream_error")));
+    }catch(e){
+      const secs=((Date.now()-t0)/1000).toFixed(1);
+      say("var(--bad)","<b>Found it.</b> Pictures arrive at any size, but a full read \u2014 the one the camera makes \u2014 died after <b>"+secs+"s</b> ("+esc(String((e&&e.name)||"")+": "+String((e&&e.message)||e))+"). Nothing is wrong with the picture or the service: the connection is being cut while Claude is still thinking.");
+    }
+  }else{
+    say("var(--warn)","<b>Found the ceiling.</b> Pictures up to <b>"+lastOK+"KB</b> get through; <b>"+firstBad+"KB</b> does not ("+esc(badWhy)+"). Photos are now shrunk to sit under that, so this should not bite \u2014 but it is worth knowing.");
+  }
+}
+document.addEventListener("click",e=>{
+  const tst=e.target&&e.target.closest?e.target.closest("#pdConnTest"):null;
+  if(tst){ pdTestConn(); return; }
+  const so=e.target&&e.target.closest?e.target.closest("#pinNew"):null;
+  if(so){ startOver(); return; }
+  const fr=e.target&&e.target.closest?e.target.closest("#pdFresh"):null;
+  if(fr){ fr.textContent="Fetching\u2026"; fr.disabled=true;
+    forceUpdate((msg)=>{
+      /* Back where it was, with the reason beside it. A button that has
+         visibly given up is kinder than one still saying "Fetching..." */
+      fr.textContent="Get the newest version"; fr.disabled=false;
+      let n=fr.parentNode&&fr.parentNode.querySelector(".freshMsg");
+      if(!n&&fr.parentNode){ n=document.createElement("div");
+        n.className="cardHint freshMsg"; n.style.flexBasis="100%";
+        fr.parentNode.appendChild(n); }
+      if(n)n.textContent=msg;
+    });
+    return; }
+  const pv=e.target&&e.target.closest?e.target.closest("[data-page],[data-pgmove]"):null;
+  if(pv){
+    if(pv.dataset.page)return goPage(pv.dataset.page);
+    const v=document.getElementById("view"), pages=livePages(v);
+    const at=pages.findIndex(p=>p[0]===st.page)+Number(pv.dataset.pgmove);
+    if(pages[at])goPage(pages[at][0]);
+    return;
+  }
+  const sf=e.target&&e.target.closest?e.target.closest("#specFold>summary"):null;
+  if(sf){ st.specOpen=!st.specOpen; return; }   /* the browser toggles it; just remember */
+  const f=e.target&&e.target.closest?e.target.closest("[data-fake],[data-mkind],[data-flow],#fakeClear"):null;
+  if(f){
+    if(f.id==="fakeClear"){ st.fakeAns={}; st.fakeKey=mkKey(); st.specIn={}; st.specPick=""; render(); return; }
+    if(f.dataset.mkind){ st.metalKind=f.dataset.mkind; st.fakeAns={}; st.fakeKey=mkKey(); render(); return; }
+    if(f.dataset.flow){ st.flow=f.dataset.flow; try{ persist(); }catch(e){} render(); return; }
+    const [id,i,v]=String(f.dataset.fake).split(":"); fakeSet(id,i,v); return;
+  }
+  const b=e.target&&e.target.closest?e.target.closest("#pdConnBtn,#pdConnOff,#pdRetGo"):null; if(!b)return;
+  if(b.id==="pdRetGo"){ retailLookup(); return; }
+  if(b.id==="pdConnOff"){ pdSetServer("",""); location.reload(); return; }
+  const si=document.getElementById("pdSrvIn"), ti=document.getElementById("pdTokIn");
+  const msg=document.getElementById("pdConnMsg");
+  const say=t=>{ if(msg)msg.innerHTML='<span style="color:var(--warn)">'+esc(t)+'</span>'; };
+  let u=String((si&&si.value)||"").trim().replace(/\/+$/,"");
+  const t=String((ti&&ti.value)||"").trim();
+  if(!u){ say("Put the service address in first."); if(si)si.focus(); return; }
+  if(!/^https?:\/\//i.test(u))u="https://"+u;
+  /* A trailing /limits is the address people have in a tab from testing it. */
+  u=u.replace(/\/(limits|sync|json)$/i,"");
+  pdSetServer(u,t);
+  location.reload();
+});
+const CAP = {sample:null, images:false, imgLimits:null, db:null, dbErr:""};
+let DEALS = [];        /* the shop's own sold history — newest first */
+let dealsReady = false;
+
+(async function bootCaps(){
+  const use = (window.claude && window.claude.use) ? window.claude.use : null;
+  if(!use){ setTimeout(()=>{ if(window.standaloneBoot)window.standaloneBoot(); },0); return; }   /* its own website */
+  try{
+    CAP.sample = await use("sample");
+    if(CAP.sample){
+      const lim = await CAP.sample.limits().catch(()=>null);
+      CAP.images = !!(lim && lim.images);
+      CAP.imgLimits = (lim && lim.images) || null;
+    }
+  }catch(e){ CAP.sample=null; }
+  try{ CAP.db = await use("db"); }catch(e){ CAP.db=null; }
+  if(CAP.db) watchDeals();
+  try{ render(); }catch(e){}
+})();
+
+/* ---------------- the shop's own comps ----------------
+   Every priced deal can be logged. Item facts only — never a name, never an
+   ID number, never anything off the state form. That record belongs in the
+   POS; this is a price book that teaches itself. */
+function watchDeals(){
+  try{
+    CAP.db.collection("deals").orderBy("ts","desc").limit(400)
+      .onSnapshot(snap=>{
+        DEALS = snap.docs.map(d=>Object.assign({_id:d.id}, d.data()||{}));
+        dealsReady = true;
+        try{ refreshDealViews(); }catch(e){}
+      }, err=>{ CAP.dbErr = (err&&err.code)||"unavailable"; });
+  }catch(e){ CAP.dbErr="invalid_argument"; }
+}
+function refreshDealViews(){
+  if(st.mode==="log"){ const v=document.getElementById("view"); v.innerHTML=renderLog(); wireLog(); return; }
+  const oc=document.getElementById("ownComps"); if(oc)oc.innerHTML=ownCompsInner(calcItem());
+  const lg=document.getElementById("logCard");
+  if(lg){ lg.innerHTML=logCardInner(calcItem()); wireLogButton(); }
+}
+/* A price-book pick lands in the category's one custom slot, so every book
+   item in a category would otherwise share an id — and share a sales history
+   that isn't theirs. Key them by the book name instead. */
+function isCustom(){ return String(st.itemId||"").indexOf("cust-")===0; }
+function itemKey(){ return st.itemId + (isCustom()&&st.bookName ? "|"+st.bookName : ""); }
+function displayName(x){ return (isCustom()&&st.bookName) ? st.bookName : x.item.name; }
+/* "Microsoft microsoft surface book". The make is prefixed to the item's
+   name, which is right for "Microsoft laptop" and wrong the moment the name
+   is the counter's own words - because those words are where the make was
+   read FROM. Say it once. */
+function dedupeMake(make,name){
+  const n=String(name||"").toLowerCase().trim(), m=String(make||"").toLowerCase().trim();
+  if(!m)return n;
+  return n.indexOf(m)>=0 ? n : m+" "+n;
+}
+function dealsFor(key){ return DEALS.filter(d=>(d.key||d.itemId)===key); }
+function soldStats(key){
+  const sold=dealsFor(key).filter(d=>d.status==="sold"&&Number(d.soldPrice)>0).map(d=>Number(d.soldPrice));
+  if(!sold.length)return null;
+  const avg=sold.reduce((a,b)=>a+b,0)/sold.length;
+  return {n:sold.length, avg, lo:Math.min.apply(null,sold), hi:Math.max.apply(null,sold)};
+}
+function ownCompsInner(x){
+  if(!CAP.db) return "";
+  const k=itemKey(), s=soldStats(k), open=dealsFor(k).filter(d=>d.status==="open").length;
+  if(!s&&!open) return `<div class="cardHint" style="margin-top:9px">No sales of your own yet.</div>`;
+  let h=`<div class="tagNote" style="margin-top:10px">`;
+  if(s){
+    h+=`<b style="color:var(--ink)">Your own sales: ${s.n}</b> — average <b style="color:var(--accent)">${money(s.avg)}</b>`;
+    h+=(s.n>1?`, range ${money(s.lo)}&ndash;${money(s.hi)}`:``)+`. `;
+    h+=`This is Bristol money, not eBay money. <button id="useOwn" class="ghostBtn" style="padding:6px 12px;font-size:12.5px;margin-left:4px">Use ${money(s.avg)}</button>`;
+  }
+  if(open)h+=`${s?" ":""}${open} still on the shelf or in loan.`;
+  return h+`</div>`;
+}
+function ownCompsHTML(x){ return `<div id="ownComps">${ownCompsInner(x)}</div>`; }
+
+/* ---------------- the price book, searchable from anywhere ----------------
+   The category lists hold the everyday walk-ins. The book behind this search
+   holds the rest. Nothing in either one? The last row of every item list lets
+   the counter set its own number, which is the honest answer for a one-off. */
+function bookHitsHTML(){
+  const q=String(st.bookQ||"").trim();
+  if(q.length<3)return "";
+  const hits=searchBook(q);
+  if(!hits.length)return `<div class="cardHint" style="margin-top:7px">Nothing in the book for that. Use <b style="color:var(--ink)">Not on any list</b> at the bottom and put in what you'd sell it for &mdash; then log the deal, and next time the tool remembers.</div>`;
+  return hits.map((e,i)=>`<button class="itemBtn" data-bookhit="${i}" style="margin-top:6px"><span style="flex:1">${esc(e[0])}</span><span class="price" style="color:var(--accent-2)">${money(e[1])} &middot; ${CATLABEL[e[2]]}</span></button>`).join("");
+}
+/* A price-book row had nowhere to keep a number of its own. Picking one
+   dropped the book's figure into the category's single custom slot, which the
+   next book row overwrote - so "what this shop really gets for a chainsaw"
+   could not be recorded against the row it belonged to. It can now, and the
+   master price sheet writes straight into it. */
+/* WHAT THE HARVEST FOUND FOR A ONE-OFF.
+   A price-book row is the generic kind of thing - "Wheelbarrow", "Grease
+   gun" - and it has no model number in its name. Both of the routes a
+   measured price normally travels, mpAuto and harvFind, require a token
+   with a DIGIT in it before they will pin a row, because a model number is
+   the one part of a name that cannot be coincidence. So a harvested
+   wheelbarrow could never have reached the counter: the lookup would have
+   been paid for and thrown away.
+   These get their own lane instead. prices.json may carry a "book" map of
+   name to value, and it sits between the baked-in guess and the counter's
+   own figure - published measurement beats my estimate, and what the
+   counter typed beats both, because they are holding the thing. */
+let BOOK_PRICES={};
+function bookVal(e){
+  const mine=Number(st.bookVals&&st.bookVals[e[0]]);
+  if(mine>0)return Math.round(mine);
+  const pub=Number(BOOK_PRICES[e[0]]);
+  if(pub>0)return Math.round(pub);
+  return e[1];
+}
+/* Is this row still the figure nobody checked? The screens say so, and the
+   answer has to survive a harvest landing. */
+function bookChecked(name){ return Number(BOOK_PRICES[name])>0; }
+function pickBookEntry(e){
+  st.catId=e[2]; st.itemId=custId(e[2]); st.bookName=e[0]; st.overrides[custId(e[2])]=bookVal(e);
+  st.liq=e[3]; st.brand="mid"; st.brandTyped="";st.brandQ=""; st.brandSet=false; st.model=""; st.detail="";
+  st.complete=true;st.completeSet=false;st.struck="";st.askEdit=false; st.editing=false; st.specSel={};
+  persist(); render();
+}
+function wireBookSearch(){
+  const b=document.getElementById("bookIn");
+  if(!b)return;
+  b.oninput=()=>{
+    st.bookQ=b.value;
+    const box=document.getElementById("bookHits");
+    if(box){ box.innerHTML=bookHitsHTML(); wireBookHits(); }
+  };
+  wireBookHits();
+}
+function wireBookHits(){
+  const hits=searchBook(String(st.bookQ||"").trim());
+  document.querySelectorAll("[data-bookhit]").forEach(btn=>{
+    btn.onclick=()=>{ const e=hits[Number(btn.dataset.bookhit)]; if(e)pickBookEntry(e); };
+  });
+}
+
+/* ---------------- comp searches ----------------
+   The page cannot reach these sites itself — it is sandboxed. These open the
+   right search in a new tab, and print the search text so it can be copied
+   onto a phone when the tab is blocked.
+   WatchCount is the main one: eBay's own sold listings, searched without an
+   eBay sign-in, and it shows the price a Best Offer sale actually closed at
+   instead of the crossed-out list price. It only opens the search; it never
+   pulls prices back into this page (the site blocks automated readers). */
+/* A few spec answers split the market so hard that searching without them
+   pools two different tools into one price. A bare drill is 0.52 of a kit
+   and a combo is 1.64 of it, so a search that says neither returns a blend
+   of all three and the counter reads the blend as the answer. Those
+   options carry a `q` - the words a seller actually types in the title,
+   "tool only" and "combo kit" - and only those. Every other answer stays
+   out: the voltage is already in the model number, and each extra word
+   narrows an eBay search that is thin to begin with. */
+function specQuery(){
+  return (SPEC_CHOICES[st.itemId]||[]).map((g,gi)=>{
+    const o=g.options[st.specSel[st.itemId+":"+gi]??specBase(g)];
+    return (o&&o.q)||"";
+  }).filter(Boolean).join(" ");
+}
+function compQuery(x){
+  /* THE ROW'S OWN NAME WAS WRECKING THE SEARCH.
+     Once the make and the model are known, the kind of thing is already
+     implied by them, and tacking the catalog row's description on the end
+     turns a good search into a different product. Measured on the live
+     service: "DJI Osmo Action 4" returns seven real SOLD listings with
+     the Action 4 itself at $165 and $181; "DJI Osmo Action 4 Gimbal /
+     pocket camera" falls off sold prices altogether and comes back with
+     Osmo POCKETS, a different camera, at asking prices. Nobody searching
+     eBay by hand would type the category after the model.
+     With no model, the row name is the only description there is, so it
+     stays. */
+  const named=!!(String(st.brandTyped||"").trim()&&String(st.model||"").trim());
+  const bits=named
+    ? [st.brandTyped, st.model, st.detail||"", specQuery()]
+    : [st.brandTyped||"", st.model||"", displayName(x).replace(/\s*—.*$/,""),
+       st.detail||"", specQuery()];
+  return bits.map(s=>String(s).trim()).filter(Boolean).join(" ").slice(0,120);
+}
+/* GunWatcher looks a gun up by model name. The category word the keyword
+   searches want - "Pump shotgun" on the end of "Remington 870 Express" - only
+   blurs it, and so does the gauge. Brand and model, nothing else. When a
+   built-in price row is in play its own name is better still: that is the
+   name GunWatcher published the sold prices under. */
+function gunQuery(x){
+  const row=st.mpPin&&MP_BY_ID[st.mpPin.id];
+  if(row)return String(row[2]).slice(0,80);
+  if(String(st.model||"").trim())
+    return [st.brandTyped||"",st.model||""].map(t=>String(t).trim()).filter(Boolean).join(" ").slice(0,80);
+  return compQuery(x);
+}
+function watchCountUrl(q){
+  /* WatchCount puts the search words in the path, so a slash would split it
+     into the wrong route — turn slashes into spaces (10/22 still finds 10/22). */
+  const kw=String(q).replace(/[\/\\]+/g," ").replace(/\s+/g," ").trim().toLowerCase()||"-";
+  return "https://www.watchcount.com/sold/"+encodeURIComponent(kw)+"/-/all?site=EBAY_US";
+}
+/* THE ONE LINE TO CHANGE IF THE WORTHPOINT LINK EVER LANDS WRONG.
+   Their search path is blocked to crawlers, so this could not be verified
+   from outside the way the eBay and GunBroker links were - it is written
+   from the shape their site uses, not from a page anyone here loaded. If a
+   click lands somewhere useless, do ONE search on worthpoint.com, copy what
+   the address bar says up to and including the "=", and paste it here. The
+   comps card has a Copy button for the search words, so the fallback is a
+   paste into their own search box and nothing is ever a dead end. */
+const WORTHPOINT_SEARCH="https://www.worthpoint.com/worthopedia/search?query=";
+/* Marketplace has no public API and Facebook will not serve a page to
+   anything that is not a signed-in browser, so this URL could not be
+   checked from here any more than WorthPoint's could. It is the shape their
+   search uses and it opens in the counter's own signed-in session, which is
+   also what keeps the results local - Marketplace searches around wherever
+   that account is set, and these devices are set to Bristol.
+   If a tap lands somewhere useless: do ONE search on facebook.com, copy the
+   address bar up to and including the "=", and paste it here. The comps
+   card has a Copy button for the search words, so it is never a dead end. */
+const FB_MARKETPLACE_SEARCH="https://www.facebook.com/marketplace/search/?query=";
+/* Where it earns its keep. Not a blanket button: everywhere else has a
+   model number and eBay is better at those. */
+const WORTHPOINT_CATS={jewel:1,coll:1,music:1};
+function compTargets(x){
+  const q=compQuery(x), e=encodeURIComponent(q), t=[], guns=(st.catId==="guns");
+  if(guns){
+    t.push({id:"gw",name:"GunWatcher",sub:"sold prices, no sign-in",
+      url:"https://gunwatcher.com/gun-value-sold-information/market-price?itemName="+encodeURIComponent(gunQuery(x)).replace(/%20/g,"+")});
+    t.push({id:"gb",name:"GunBroker",sub:"tick Completed",
+      url:"https://www.gunbroker.com/All/search?Keywords="+e});
+  }
+  t.push({id:"wc",name:"WatchCount",
+    sub:guns?"eBay parts &amp; optics only":"eBay sold, no sign-in",
+    url:watchCountUrl(q)});
+  /* This used to be the plain sold search, ?LH_Sold=1&LH_Complete=1. It
+     reaches back 90 days and no further, so anything that sells a few times
+     a year comes back empty - a Kobalt string trimmer returns nothing at
+     all, and an empty page reads as "worthless" when it means "not this
+     quarter". Seller Hub research covers a full year and gives an average
+     rather than a list to eyeball. It needs a seller sign-in, which the
+     desk has; WatchCount above is the no-sign-in lane and is unchanged. */
+  t.push({id:"ebay",name:"eBay Seller Hub",
+    sub:"sold, a full year &mdash; sign in",
+    url:"https://www.ebay.com/sh/research?marketplace=EBAY-US&keywords="+e
+       +"&dayRange=365&categoryId=0&offset=0&limit=50&tabName=SOLD&sorting=-sold"});
+
+  /* WORTHPOINT, AND ONLY WHERE IT BEATS EBAY.
+     eBay reaches back 90 days and indexes by model number. That is the
+     wrong shape for an item whose identity is a hallmark, a pattern name
+     or a maker's mark and which sells a few times a decade - the run that
+     put designer jewellery on the blind list found nothing usable across
+     five makers. WorthPoint is a sold-price database for exactly those,
+     going back years.
+     It is a LINK OUT and nothing more. WorthPoint's terms forbid automated
+     access and their robots.txt blocks the search path, so the desk can
+     never read a number back off it: no auto-fill, no row in the book.
+     A person clicking through to a site they subscribe to is ordinary use;
+     a program fetching it is not, and this stays on the right side of that
+     line. See tools/source-findings.md.
+     Jewelry, collectibles and instruments only - a DeWalt drill has a model
+     number and eBay prices it fine. */
+  /* WHERE "PRICE IT LOCALLY" ACTUALLY GOES.
+     Eighteen aisles carry a notice saying the desk will not look this up
+     and to price it locally, and then offered four buttons all pointing at
+     eBay - the one place the notice just said does not carry it. The
+     instruction was right and there was nowhere to follow it to.
+
+     These are ASKING prices and they are labelled as such. That is not a
+     step down here: on a mower, a window unit or a generator there is no
+     sold data anywhere a program can reach, and a neighbour's asking price
+     forty miles away is a truer read on what one brings in Liberty County
+     than a national average of carburettors.
+
+     Link-outs only, on purpose. Facebook's terms forbid automated
+     collection and Marketplace has no public listings API; a person tapping
+     through to a site they already use is ordinary, a scraper is not - the
+     same line WorthPoint sits on. Nothing reads a number back, so nothing
+     enters the book by this route. See tools/source-findings.md. */
+  /* Not guns: Facebook bans firearms outright, so that search comes back
+     empty or full of holsters, and GunWatcher above is the real comp. */
+  if(ebayBlind(x)&&!guns){
+    t.push({id:"fbm",name:"Facebook Marketplace",sub:"asking, near here",
+      url:FB_MARKETPLACE_SEARCH+e});
+    t.push({id:"cl",name:"Craigslist \u2014 Tallahassee",sub:"asking, the panhandle",
+      url:"https://tallahassee.craigslist.org/search/sss?query="+e});
+  }
+  if(WORTHPOINT_CATS[st.catId])
+    t.push({id:"wp",name:"WorthPoint",
+      sub:"marks &amp; makers \u2014 paid sign-in",
+      url:WORTHPOINT_SEARCH+encodeURIComponent(q)});
+  return t;
+}
+function compsCardHTML(x){
+  const q=compQuery(x), guns=(st.catId==="guns");
+  return `<div class="card" id="compsCard"><span class="label">Check it against the market</span>
+    <div class="compGrid">${compTargets(x).map(t=>
+      `<a class="compBtn" data-compsite="${t.id}" data-url="${esc(t.url)}" data-label="${t.name}" href="${esc(t.url)}" target="_blank" rel="opener" referrerpolicy="no-referrer"><span>${t.name}</span><span class="cs">${t.sub}</span></a>`
+    ).join("")}</div>
+    <div class="cardHint" id="compMsg" style="min-height:18px;margin-top:9px"></div>
+    <div id="compFallback"></div>
+    ${shotZoneHTML(x)}
+    <span class="label" style="margin-top:8px">What those buttons search for</span>
+    <div class="row2"><input id="compQ" class="roOut" readonly tabindex="-1" aria-label="What those buttons search for" value="${esc(q)}" style="flex:1;min-width:0;font-size:13px"><button id="compCopy" class="ghostBtn" style="padding:10px 15px">Copy</button></div>
+    <div class="cardHint">Sold prices, not asking prices. An item listed at $400 that nobody bought is worth nothing to you. On WatchCount, a Best Offer sale shows what the seller actually took &mdash; use that number, never the crossed-out one.${guns?" eBay doesn't sell guns &mdash; GunBroker completed auctions is the only real firearm comp.":""}</div>
+  </div>`;
+}
+/* The ones the number was built from.
+ *
+ * A count and a median are a claim; these are the evidence. The counter is
+ * holding the actual item, and twelve pictures of what the median was made
+ * of is the fastest way to see that three of them are a different
+ * generation, or the wrong colour, or came with the case this one is
+ * missing. Cheapest first, so the two ends of the band are the two ends of
+ * the strip and an outlier is obvious where a list of numbers hides it.
+ *
+ * Sales before asks - a sale is the better evidence and should be the first
+ * thing in the eye. Sold ones carry the date; an ask has none to carry.
+ */
+/* The strip on its own card, for beside the number rather than beside the
+   question. Same pictures, its own box. */
+function thumbStripCard(rows){
+  const inner=thumbStripHTML(rows,true);
+  return inner?`<div class="card wCard" style="margin-top:8px">${inner}</div>`:"";
+}
+function thumbStripHTML(rows,bare){
+  const withPics=(rows||[]).filter(r=>r&&r.img&&r.price>0)
+    .sort((a,b)=>(a.basis==="sold"?0:1)-(b.basis==="sold"?0:1)||a.price-b.price)
+    .slice(0,12);
+  if(withPics.length<3)return "";
+  const cell=(r)=>{
+    const when=r.basis==="sold"&&r.ts?fmtDay(new Date(r.ts).toISOString().slice(0,10)):"";
+    const cap=`${money(r.price)}${when?" \u00b7 "+when:""}`;
+    /* No signal in somebody's driveway means eBay's image host is
+       unreachable, and twelve broken-image boxes are worse than no strip
+       at all - they read as a fault in the desk. A picture that will not
+       load takes its whole cell with it, and if none load the card is
+       empty and the count below it still tells the truth. */
+    const inner=`<img src="${esc(r.img)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="var t=this.closest('.thumb'); if(t)t.remove();">`
+      +`<span class="tPrice">${esc(cap)}</span>`
+      +`<span class="tWhat">${esc(r.what||"")}</span>`;
+    return r.url
+      ? `<a class="thumb${r.basis==="sold"?" sold":""}" href="${esc(r.url)}" target="_blank" rel="noopener" referrerpolicy="no-referrer" title="${esc(r.what||"")}">${inner}</a>`
+      : `<span class="thumb${r.basis==="sold"?" sold":""}" title="${esc(r.what||"")}">${inner}</span>`;
+  };
+  const sold=withPics.filter(r=>r.basis==="sold").length;
+  return `<div class="label" style="${bare?"margin:0":"margin-top:12px"}">What that number is made of</div>
+    <div class="thumbStrip">${withPics.map(cell).join("")}</div>
+    <div class="cardHint" style="margin-top:6px">${withPics.length} of them, cheapest first${sold?`, ${sold} sold`:""}. Tap one to open the listing &mdash; if several are not the same thing you are holding, the number is not yours.</div>`;
+}
+function setCompMsg(txt,kind){
+  const el=document.getElementById("compMsg"); if(!el)return;
+  const c = kind==="bad"?"var(--warn)" : kind==="ok"?"var(--accent)" : "var(--ink-2)";
+  el.innerHTML = txt ? `<span style="color:${c}">${esc(txt)}</span>` : "";
+}
+async function copyText(v){
+  try{ if(navigator.clipboard&&navigator.clipboard.writeText){ await navigator.clipboard.writeText(v); return true; } }catch(e){}
+  try{ return !!document.execCommand("copy"); }catch(e){ return false; }
+}
+function flashBtn(b,word,back){
+  b.textContent=word; setTimeout(()=>{b.textContent=back;},1800);
+}
+function wireCopy(btnId,inputId,back){
+  const b=document.getElementById(btnId); if(!b)return;
+  b.onclick=async()=>{
+    const i=document.getElementById(inputId); if(!i)return;
+    i.focus(); i.select(); try{ i.setSelectionRange(0,9999); }catch(e){}
+    flashBtn(b, (await copyText(i.value)) ? "Copied" : "Selected \u2014 press copy", back);
+  };
+}
+/* The page is sandboxed, so a new tab can be refused with no error and no
+   navigation — which looks exactly like a dead button. Open it ourselves so
+   we know whether it worked, and hand over the link when it didn't. */
+function wireComps(){
+  document.querySelectorAll("[data-compsite]").forEach(a=>{
+    /* NO preventDefault. A scripted window.open from this sandboxed page makes
+       a sandboxed tab, and GunBroker refuses to render into one — that is the
+       ERR_BLOCKED_BY_RESPONSE the counter sees. Letting the real anchor
+       navigate gives the browser its best chance. The copy-link box below is
+       the guaranteed path: a pasted URL is a clean top-level load. */
+    a.onclick=()=>{
+      const url=a.dataset.url, label=a.dataset.label;
+      pasteTo="shot";
+      const fb=document.getElementById("compFallback");
+      a.classList.add("pending");
+      setTimeout(()=>a.classList.remove("pending"),500);
+      setCompMsg("Opening "+label+"\u2026","");
+      if(fb){
+        fb.innerHTML=`<div class="tagWarn"><b>Blank tab, or "blocked / refused to connect"?</b>
+          That is ${esc(label)} turning away the page, not a broken button. Copy this link into a
+          fresh browser tab &mdash; pasted links always load.
+          <input class="numIn" id="compUrl" readonly value="${esc(url)}" style="margin-top:9px;font-family:var(--mono);font-size:11px;padding:9px 11px">
+          <button id="compUrlCopy" class="ghostBtn" style="margin-top:9px;padding:8px 14px">Copy link</button></div>`;
+        wireCopy("compUrlCopy","compUrl","Copy link");
+      }
+    };
+  });
+  wireCopy("compCopy","compQ","Copy");
+}
+
+/* ---------------- photo read ----------------
+   Identification only. It never sets a price: the number stays yours. */
+let photoFile=null, photoBusy=false, photoCtl=null;
+function photoCardHTML(){
+  if(!CAP.sample||!CAP.images){
+    /* The full connect card is five hundred pixels of setup copy and two
+       inputs. On the start screen and under Setup that is right. In the
+       middle of pricing something, on a desk, it was holding the centre
+       column while SWITCHED OFF - half a screen given to a thing nobody is
+       using, pushing the actual questions below the fold. Once an item is
+       on the go it collapses to a line saying what is missing and where to
+       fix it. The phone still gets the full card: it is the phone's main
+       move, and there is no second column to lose. */
+    if(!window.PHONE && st.picked) return `<div class="card" id="photoCard">
+      <span class="label" style="margin:0">Not connected &mdash; no sold-price lookups on this device</span>
+      <div class="cardHint" style="margin:5px 0 0">Connect it to the shop's service and it can look up what things sold for, photograph an item and price it, and read another shop's tag.
+        <button class="ghostBtn" data-gotab="setup" type="button" style="padding:5px 12px;font-size:12px;margin-left:6px">Set it up</button></div>
+    </div>`;
+    return pdConnectHTML();
+  }
+  const r=st.photoRead;
+  /* Leading the phone's start screen, this is the main move and is dressed
+     as one. Once an item is on the go it is a tool among tools again. */
+  const lead=window.PHONE&&!st.picked;
+  let h=`<div class="card${lead?" camLead":""}" id="photoCard"><span class="label">${lead
+      ?"Snap it &mdash; I'll work out what it is"
+      :"Photograph it &mdash; I'll fill in what I can see"}</span>
+    <div class="row2" style="gap:9px;flex-wrap:wrap">
+      ${camButtonHTML(lead)}
+      <label class="ghostBtn" style="display:inline-block;cursor:pointer;margin:0">
+        ${photoFile?"Choose another":"Choose photo"}
+        <input id="photoIn" type="file" accept="image/jpeg,image/png,image/webp" style="display:none">
+      </label>
+      ${photoFile?`<button id="photoGo" class="ghostBtn" style="padding:9px 18px" ${photoBusy?"disabled":""}>${photoBusy?"Looking…":(st.photoRead?"Identify again":"Identify it")}</button>`:""}
+      ${photoBusy?`<button id="photoStop" class="ghostBtn" style="padding:9px 14px">Stop</button>`:""}
+    </div>
+    ${photoFile?`<div class="photoWrap"><img id="photoPrev" alt="the item"></div>`:""}
+    ${photoErrHTML()}${photoLookHTML()}
+    <div class="cardHint" id="photoMsg">${photoBusy?"Reading the picture — 10 to 30 seconds."
+      :(isTouch()?"The photo goes straight in - nothing else to press. ":"Choose a photo, or drag one onto this card. ")
+        +"Fill the frame and get the model plate or barrel stamp in focus."
+        +(lead?" Or type it in the box below if you already know what it is.":"")}</div>`;
+  if(r){
+    h+=`<div class="tagWarn" style="background:rgba(0,217,255,.10);color:var(--ink-2)">
+      <b style="color:var(--accent-2)">Read from the photo &mdash; check every field.</b>
+      ${r.what?` It looks like <b style="color:var(--ink)">${esc(r.what)}</b>.`:""}
+      ${r.confidence?` Confidence: <b style="color:var(--ink)">${esc(r.confidence)}</b>.`:""}
+      ${r.note?`<br>${esc(r.note)}`:""}
+      <br><span style="color:var(--ink-3)">It has not touched the price. Step 4 is still your number.</span></div>`;
+    if(r.concerns&&r.concerns.length){
+      h+=`<div class="tagWarn" style="background:var(--bad-wash);color:var(--bad-ink)"><b>Look closer at:</b><br>${r.concerns.map(c=>"&bull; "+esc(c)).join("<br>")}</div>`;
+    }
+  }
+  return h+`</div>`;
+}
+function catalogText(){
+  return CATALOG.map(c=>c.id+" ("+c.label+"): "+c.items.map(i=>i.id+"="+i.name).join("; ")).join("\n");
+}
+function specMenuText(){
+  return Object.keys(SPEC_CHOICES).map(id=>
+    id+" | "+SPEC_CHOICES[id].map(g=>g.label+": "+g.options.map(o=>o.t).join(" / ")).join(" | ")
+  ).join("\n");
+}
+/* What the counter can tell it that the camera could not: words stamped on
+   the thing, a number, how big it is, what it is made of. A second look with
+   these in hand lands far more often than the first, and they cost nothing
+   to collect - the counter is holding the object. */
+function photoHintText(){
+  const h=st.photoHints||{};
+  const rows=[["words","Words, names or logos on it"],["nums","Numbers or a model stamped on it"],
+              ["size","Roughly how big it is"],["made","What it is made of"],["extra","Anything else"]];
+  const said=rows.filter(([k])=>String(h[k]||"").trim());
+  if(!said.length)return "";
+  return ["","THE COUNTER IS HOLDING THE ITEM AND SAYS:",
+    ...said.map(([k,l])=>"- "+l+": "+String(h[k]).trim().slice(0,160)),
+    "Trust these over your own reading of the photograph - they can turn it over and you cannot.",""].join("\n");
+}
+function photoPrompt(){
+  return [
+"You are helping the counter at a small pawn shop in Bristol, Florida identify an item a customer has just set on the counter. You are looking at one photograph of that item.",
+"",
+"Your job is IDENTIFICATION ONLY. Do not estimate any price, value, or loan amount — the shop has its own price book and its own market. A price in your answer is a wrong answer.",
+"",
+"What matters most, in order:",
+"1. The maker and the exact model, read off the item — a stamp, a plate, a barrel roll mark, a label. This is the single most valuable thing you can give the counter, because it is what they will type into a completed-auction search.",
+"2. Which row of the shop's catalog this item belongs in.",
+"3. The spec answers the shop's pricing form asks for.",
+"4. Anything visible that should slow the deal down.",
+"",
+"CATALOG — pick one catId and one itemId from this list:",
+catalogText(),
+"",
+"SPEC OPTIONS — if the itemId you chose appears here, answer its questions using ONLY the exact option strings listed for it:",
+specMenuText(),
+"",
+"If nothing in the catalog fits, leave catId and itemId empty and instead name the item plainly in \"what\".",
+photoHintText(),
+"",
+"CONDITION — one of: new (sealed), exc (barely used), good (normal wear), fair (heavy wear), rough (needs work). Judge only what the photo shows.",
+"",
+"CONCERNS — short phrases, only when the photo actually shows them: a serial number that looks ground, filed or scratched; retail packaging or security tags still attached; visible damage, rust, cracks; missing parts; a screen showing an activation lock. Say nothing you cannot see.",
+"",
+"Reply with ONLY this JSON:",
+'{"what":"plain name of the item","catId":"","itemId":"","brand":"","model":"","detail":"short spec text for the ticket","cond":"good","specs":[{"label":"Gauge","choice":"12 ga"}],"concerns":[],"confidence":"high|medium|low","note":"one sentence on what you could and could not make out"}'
+  ].join("\n");
+}
+/* ---- pictures put by ----------------------------------------------------
+   A photograph nobody could place is still worth keeping: at a yard sale you
+   move on, and the research happens that evening. localStorage cannot hold
+   photographs - a few of them would blow its quota - so these live in
+   IndexedDB, on the device, and never go anywhere. */
+const SHOT_DB="pawndesk_shots";
+function shotDB(){
+  return new Promise((res,rej)=>{
+    let rq; try{ rq=indexedDB.open(SHOT_DB,1); }catch(e){ return rej(e); }
+    rq.onupgradeneeded=()=>{ const d=rq.result;
+      if(!d.objectStoreNames.contains("shots"))d.createObjectStore("shots",{keyPath:"id"}); };
+    rq.onsuccess=()=>res(rq.result); rq.onerror=()=>rej(rq.error);
+  });
+}
+async function shotSave(blob,meta){
+  try{
+    const d=await shotDB();
+    const rec=Object.assign({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+                             ts:Date.now(),blob},meta||{});
+    await new Promise((res,rej)=>{ const t=d.transaction("shots","readwrite");
+      t.objectStore("shots").put(rec); t.oncomplete=res; t.onerror=()=>rej(t.error); });
+    return rec.id;
+  }catch(e){ return null; }
+}
+async function shotAll(){
+  try{
+    const d=await shotDB();
+    return await new Promise((res,rej)=>{ const t=d.transaction("shots","readonly");
+      const rq=t.objectStore("shots").getAll();
+      rq.onsuccess=()=>res((rq.result||[]).sort((a,b)=>b.ts-a.ts)); rq.onerror=()=>rej(rq.error); });
+  }catch(e){ return []; }
+}
+async function shotDrop(id){
+  try{ const d=await shotDB();
+    await new Promise((res,rej)=>{ const t=d.transaction("shots","readwrite");
+      t.objectStore("shots").delete(id); t.oncomplete=res; t.onerror=()=>rej(t.error); });
+  }catch(e){}
+}
+let SHOTS=[];
+async function shotsRefresh(){ SHOTS=await shotAll(); try{ render(); }catch(e){} }
+
+async function runPhotoRead(){
+  if(!CAP.sample||!photoFile||photoBusy)return;
+  photoBusy=true; photoCtl=new AbortController(); st.photoErr=null; st.photoLook=null; st.shotKept=false; render();
+  try{
+    const r=await CAP.sample.json(photoPrompt(),{
+      images:photoFile, modelTier:"default", signal:photoCtl.signal
+    });
+    photoBusy=false;
+    applyPhotoRead(r||{});
+  }catch(err){
+    photoBusy=false;
+    const code=(err&&err.code)||"upstream_error";
+    if(code==="cancelled"){ render(); return; }
+    /* This used to be written straight into #photoMsg - a node that only
+       exists on the desk's photo card. The phone's snap screen has no such
+       node, so a failed read wrote its reason into nothing and the screen
+       just went back to the camera button, having explained itself to no
+       one. It goes into state instead, and one function renders it, so no
+       screen can quietly drop it again. The code is shown as well: it is
+       the one thing that separates an out-of-credit key from a refused
+       picture from a service that never answered. */
+    st.photoRead=null; st.photoErr={code,text:photoErrCopy(code),why:(err&&err.why)||""}; render();
+  }
+}
+function photoErrHTML(){
+  const e=st.photoErr; if(!e)return "";
+  const i=st.photoInfo, mb=n=>(n/1e6).toFixed(2)+"MB";
+  return `<div class="tagWarn" style="border-left-color:var(--bad);background:var(--bad-wash);color:var(--bad-ink);margin-top:9px">
+    <b>The photo didn\u2019t read.</b> ${esc(e.text)}
+    <div style="font-family:var(--mono);font-size:11.5px;opacity:.75;margin-top:6px">reason code: ${esc(e.code)}${e.why?"<br>browser said: "+esc(e.why):""}
+    ${i?`<br>photo: ${esc(i.type)} &middot; ${mb(i.was)} \u2192 ${mb(i.sent)} sent${i.shrunk?"":" (NOT shrunk)"}`:""}
+    <br>from: ${esc(location.origin)}<br>to: ${esc(pdServer()||"(none)")}</div></div>`;
+}
+function photoErrCopy(code){
+  switch(code){
+    case "not_granted": case "sampling_disabled": return "This tablet isn't allowed to use Claude — fill the form in by hand.";
+    case "rate_limited": return "Too many reads too fast. Give it a minute.";
+    case "image_rejected": return "Couldn't use that picture — try another, under 20MB.";
+    case "invalid_json": return "The answer came back garbled. Try the photo again.";
+    case "session_expired": return "Signed out — sign back in and try again.";
+    case "refused": return "It wouldn't read that picture. Try another angle.";
+    case "no_key": return "The service has no API key, or Anthropic rejected it. Check ANTHROPIC_API_KEY in Railway, and that the balance isn't empty.";
+    case "bad_token": case "unauthorized": case "forbidden": return "The service refused the token. Check PAWN_TOKEN in Railway matches what you typed in.";
+    case "too_big": return "That photo was too large for the service. Try a smaller one.";
+    case "timeout": case "upstream_timeout": return "The service took too long and gave up. Try again - if it keeps happening, Railway may be asleep or overloaded.";
+    case "server_error": return "The service hit an error reading it. Try again, then look at the Railway logs.";
+    case "no_answer": return "Couldn't reach the service at all. Check the phone has signal, and that the address under Setup is right.";
+    case "no_server": return "No service address saved on this device. Switch it on under Setup.";
+    case "no_credit": return "The Anthropic account behind the service is out of credit. Top it up at platform.claude.com \u2014 nothing is wrong with the tool.";
+    case "not_allowed": return "Anthropic refused the key for this call. Check the key is active and the account has access to the model set in PHOTO_MODEL.";
+    case "upstream_error": return "The service answered, but the read failed upstream. Usually an empty Anthropic balance or a bad key - check Railway.";
+    default: return "The read failed. Fill the form in by hand — the tool works fine without it.";
+  }
+}
+/* ---- when the lists cannot place it, go and look it up ------------------
+   The photo reader is told not to shop: it names what it can see and stops
+   there, which is right for a drill and useless for a charging case with one
+   word on the lid. When nothing on the lists fits, this takes what was read
+   off the thing - the maker, the model, the words on the label - and
+   searches the web the way the counter would, then places the answer. It
+   runs only on a read nothing could place, so the ordinary photo still costs
+   one call. */
+let photoLookBusy=false;
+function photoLookPrompt(r,withImg){
+  return [
+"An item is on the counter at a small pawn shop in Bristol, Florida. A photograph of it has just been read, and the reader could not place it on the shop's lists.",
+(withImg?"The photograph itself is attached above. Look at it as well as at what the reader made of it.":""),
+"",
+"WHAT THE PHOTO READER SAW:",
+'what: "'+String(r.what||"").slice(0,120)+'"',
+'brand: "'+String(r.brand||"").slice(0,60)+'"   model: "'+String(r.model||"").slice(0,60)+'"',
+'its own note: "'+String(r.note||"").slice(0,200)+'"',
+photoHintText(),
+"",
+"Search the web and work out exactly what this is - the maker, the product line, what the thing actually does. The words read off it are what to search for.",
+"",
+"Then place it, in this order:",
+"1. CATALOG - if one of these is what it is, give its catId and itemId:",
+catalogText(),
+"",
+"2. PRICE BOOK - if the catalog has nothing but one of these rows is what it is, put that row's name, spelled exactly as it appears here, in \"book\":",
+PRICEBOOK.map(e=>e[0]).join("; "),
+"",
+"3. Neither fits - leave itemId and book empty, still give the catId of the kind of thing it is, and put in \"resale\" what a used one really sells for in the United States, in dollars: completed sales and used listings, never new retail. Name the source in \"where\".",
+"",
+"Reply with ONLY this JSON:",
+'{"what":"plain name of the item","catId":"","itemId":"","book":"","resale":0,"where":"","brand":"","model":"","detail":"short spec text for the ticket","cond":"good","concerns":[],"confidence":"high|medium|low","note":"one sentence: what it is and how you know"}'
+  ].join("\n");
+}
+async function photoWebLookup(r){
+  if(photoLookBusy||!CAP.sample)return;
+  st.photoLast=r; photoLookBusy=true; st.photoLook={busy:true}; render();
+  let d=null;
+  /* The picture goes with it. The first read is told not to shop, so it
+     gives up the moment the lists run out - this pass gets to look at the
+     thing and search at the same time, which is what the counter would do
+     with their own phone.
+
+     If that combination is what fails - a service that will carry a picture
+     or a search but baulks at both, a picture that pushes the request over a
+     limit, a slow read that runs out of time - it goes again on the words
+     alone rather than reporting defeat. Searching on what was read off the
+     thing is most of the value; the picture is the bonus. */
+  const RETRY=/^(image_rejected|too_big|timeout|upstream_error|server_error|unreadable)$/;
+  let err=null;
+  for(const withImg of (photoFile?[true,false]:[false])){
+    try{ d=await CAP.sample.json(photoLookPrompt(r,withImg),
+           {search:true,images:withImg?[photoFile]:[]}); err=null; break; }
+    catch(e){ err=e; if(!RETRY.test(String((e&&e.code)||"")))break; }
+  }
+  if(err){ const e=err;
+    photoLookBusy=false;
+    st.photoLook={err:photoErrCopy((e&&e.code)||"upstream_error"),
+                   code:(e&&e.code)||"upstream_error",why:(e&&e.why)||""};
+    keepShot(r); render(); return;
+  }
+  photoLookBusy=false; st.photoLook=null;
+  d=d||{};
+  const cat=CATALOG.find(c=>c.id===String(d.catId||""));
+  const it=cat?cat.items.find(i=>i.id===String(d.itemId||"")):null;
+  const row=(d.book&&bookRow(d.book))||photoBook(String(d.what||""));
+  /* Anything it could place goes back through the ordinary path, so a web
+     answer and a photo answer behave the same from here on. A catId with no
+     item is not a placement - left alone it lands on whatever happens to be
+     first in that category, which is how you sell a drone as a chainsaw. */
+  if(it||row){
+    applyPhotoRead(Object.assign({},d,{catId:it?cat.id:"",itemId:it?it.id:"",
+      book:row?row[0]:"",web:true}));
+    if(st.photoRead)st.photoRead=Object.assign({},st.photoRead,
+      {note:String(st.photoRead.note||"")+" (found on the web)"});
+    render(); return;
+  }
+  const price=Math.round(Number(d.resale));
+  if(cat&&price>0){
+    const id=custId(cat.id), where=String(d.where||"").slice(0,40);
+    st.catId=cat.id; st.itemId=id; st.bookName=String(d.what||r.what||"").slice(0,60);
+    st.overrides[id]=price; st.liq="normal"; st.specSel={}; st.editing=false; st.market=null;
+    st.model=tidyModel(d.model);
+    st.detail=String(d.detail||"").slice(0,80);
+    st.brandTyped=String(d.brand||"").slice(0,40);
+    const bh=st.brandTyped?brandLookup(st.catId,st.brandTyped):null;
+    st.brand=bh?bh.tier:"mid";
+    const c2=CONDITIONS.find(c=>c.id===String(d.cond||"")); if(c2)st.cond=c2.id;
+    st.photoRead={webPrice:{price,where},what:String(d.what||"").slice(0,90),confidence:String(d.confidence||"").slice(0,10),
+      note:"Not on any list — priced at "+money(price)+" from what used ones sell for"
+        +(where?" ("+where+")":"")+". Change it if that is wrong. "+String(d.note||"").slice(0,160),
+      concerns:(Array.isArray(d.concerns)?d.concerns:[]).slice(0,6).map(c=>String(c).slice(0,120))};
+    persist(); render(); return;
+  }
+  st.photoLook={err:"I looked it up and still couldn’t pin it down.",code:"no_match"};
+  keepShot(r); render();
+}
+/* Nobody could place it and the web did not know it either: put the picture
+   on the shelf without being asked. At a yard sale you move on - the
+   research happens that evening, and only if the photograph is still there. */
+async function keepShot(r){
+  if(st.shotKept||!photoFile||typeof shotSave!=="function")return;
+  st.shotKept=true;
+  try{
+    await shotSave(photoFile,{what:String((r&&r.what)||""),hints:Object.assign({},st.photoHints)});
+    if(typeof shotsRefresh==="function")shotsRefresh();
+  }catch(e){}
+}
+function photoLookHTML(){
+  const l=st.photoLook; if(!l)return "";
+  if(l.busy)return `<div class="tagWarn" style="background:rgba(0,217,255,.10);color:var(--ink-2)">
+    <b style="color:var(--accent-2)">Looking it up on the web…</b> Searching on what was read off it — this one takes 10 to 40 seconds.</div>`;
+  /* The same rule the failed read follows: say which failure it was. "It
+     didn’t work" sends us both guessing; a code says whether the service
+     never answered, the key is dry, or the web simply had nothing. */
+  return `<div class="tagWarn" style="background:rgba(255,201,143,.12)"><b>The web didn’t settle it.</b> ${esc(l.err||"")}
+    <div style="font-family:var(--mono);font-size:11.5px;opacity:.75;margin-top:6px">reason code: ${esc(l.code||"unknown")}${l.why?"<br>browser said: "+esc(l.why):""}<br>build ${esc(BUILD||"unknown")}</div>
+    ${st.photoLast?`<button class="ghostBtn" id="lookAgain" style="padding:6px 12px;font-size:12px;margin-left:6px">Search the web again</button>`:""}</div>`;
+}
+function wireLook(){
+  const b=document.getElementById("lookAgain");
+  if(b)b.onclick=()=>{ if(st.photoLast)photoWebLookup(st.photoLast); };
+}
+/* A photograph that landed on a row is not a price yet. The row is a class
+   of thing - "Wireless earbuds" covers AirPods and a $20 pair alike - and the
+   read usually knows the exact make and model. So having placed it, go and
+   find what that make and model actually sells for, without being asked: the
+   whole point of a photograph is not having to press anything. The phone has
+   done this since the snap screen was built; the desk was still waiting to be
+   told, which made the built-in list look like the tool's final answer when
+   it was only its first. */
+/* THE LOOKUP ONLY EVER FIRED AFTER A PHOTO.
+   autoPriceAfterPhoto is the only thing that ever started a search on its
+   own, so the camera path got live sold prices and the path everybody
+   actually uses - type it, pick it off the list - got the book figure and
+   a button to press. Nothing said so; the number just sat there dated
+   whenever the harvest last ran.
+
+   It fires on a pick now, but only where the query is worth spending on:
+   a make AND a model, which is what an "mp" row or a recognised model
+   name gives. A bare category pick ("Laptop - Sony") is deliberately
+   left alone - the search would be the word "laptop" and would come back
+   with screens and batteries, which is exactly what the "you set it"
+   column in the list is telling you. Same reason it is not wired to
+   typing: one lookup per keystroke against a 2,000-a-month quota.
+
+   priceFind already refuses where eBay is blind, so a television or a
+   quad costs nothing here. */
+let pickChase=false, pickLast="";
+function autoPriceOnPick(){
+  if(pickChase||findBusy||!CAP.sample||!st.picked)return;
+  if(!String(st.brandTyped||"").trim()||!String(st.model||"").trim())return;
+  const x=calcItem();
+  /* NOT x.checked. "Checked" is true the moment the desk has ANY figure,
+     and the book price list is a figure - so a DeWalt DCD791, which the
+     book knows, was gated out of the very lookup it most needs. That is
+     the whole complaint: the row says "as of Sep 23" and nothing goes and
+     refreshes it.
+
+     What must not be re-run is a LIVE result: a search already done, a
+     sold page photographed, the counter's own sales or shelf tags. A
+     book row and a worked-back retail figure are exactly what a live
+     lookup is meant to replace. */
+  const k=x.market&&x.market.kind;
+  if(k==="found"||k==="harvest"||k==="shot"||k==="own"||k==="seen"||k==="hand")return;
+  if(ebayBlind(x))return;
+  const q=compQuery(x); if(!q||q===pickLast)return;
+  pickLast=q; pickChase=true;
+  setTimeout(async()=>{
+    const ctl=new AbortController();
+    const t=setTimeout(()=>ctl.abort(),60000);
+    try{ await priceFind(ctl.signal,true); }catch(e){}
+    clearTimeout(t); pickChase=false;
+    try{ render(); }catch(e){}
+  },0);
+}
+let photoChase=false;
+function autoPriceAfterPhoto(){
+  if(photoChase||findBusy||!CAP.sample||!st.picked)return;
+  const x=calcItem(); if(x.checked)return;
+  photoChase=true;
+  /* A deadline, because this one nobody asked for. Each pass is allowed two
+     minutes on its own, so a search that hangs used to leave "the live price
+     lands in a moment" on screen for four - which reads as broken, and is.
+     A minute, then the built-in number stands and says so. */
+  setTimeout(async()=>{
+    const ctl=new AbortController();
+    const t=setTimeout(()=>ctl.abort(),60000);
+    try{ await priceFind(ctl.signal,true); }catch(e){}
+    clearTimeout(t);
+    photoChase=false;
+    try{ render(); }catch(e){}
+  },0);
+}
+function applyPhotoRead(r){
+  let cat=CATALOG.find(c=>c.id===String(r.catId||""));
+  /* nothing in the catalog fits — try the price book on what it says the thing is */
+  if(!cat&&(r.what||r.book)){
+    /* There used to be a second try here on the last two words of the read,
+       from when matching needed every word to appear in the row name. With
+       the words scored it is no longer a rescue, it is a trap: the last two
+       words of "Logitech wireless optical mouse (computer peripheral)" are
+       "computer peripheral", and "computer" is a synonym the desktop PC row
+       owns - so a mouse was priced as a $110 gaming PC. The whole sentence,
+       or nothing. */
+    const hit=(r.book&&bookRow(r.book))||photoBook(String(r.what||""));
+    if(hit){
+      st.catId=hit[2]; st.itemId=custId(hit[2]); st.bookName=hit[0]; st.overrides[custId(hit[2])]=bookVal(hit);
+      st.liq=hit[3]; st.specSel={}; st.editing=false;
+      cat=CATALOG.find(c=>c.id===hit[2]);
+      st.model=tidyModel(r.model);
+      st.detail=String(r.detail||"").slice(0,80);
+      st.brandTyped=String(r.brand||"").slice(0,40);
+      const h2=st.brandTyped?brandLookup(st.catId,st.brandTyped):null;
+      st.brand=h2?h2.tier:"mid";
+      const c2=CONDITIONS.find(c=>c.id===String(r.cond||""));
+      if(c2)st.cond=c2.id;
+      st.photoRead={what:String(r.what||"").slice(0,90),confidence:String(r.confidence||"").slice(0,10),
+        note:"Not on the main lists — priced from the book as "+hit[0]+". "+String(r.note||"").slice(0,160),
+        concerns:(Array.isArray(r.concerns)?r.concerns:[]).slice(0,6).map(c=>String(c).slice(0,120))};
+      persist(); render(); autoPriceAfterPhoto(); return;
+    }
+  }
+  /* A read that came back fine but matched nothing used to fall through
+     here: no category, so no itemId, so nothing counted as picked, so the
+     screen quietly returned to the camera button having said nothing at all.
+     A successful call that produces silence is worse than a failure - at
+     least a failure explains itself. Say what was read and let the counter
+     place it. */
+  if(!cat){
+    const what=String(r.what||"").trim();
+    st.photoRead={what:what.slice(0,90),confidence:String(r.confidence||"").slice(0,10),
+      unplaced:true,
+      note:String(r.note||"").slice(0,160),
+      concerns:(Array.isArray(r.concerns)?r.concerns:[]).slice(0,6).map(c=>String(c).slice(0,120))};
+    /* Put what it read into the search box so one tap finishes the job. */
+    if(what)st.omniQ=what;
+    render();
+    /* ...and meanwhile go and look it up, which is what the counter would do
+       next anyway. Not on a web answer that already failed to place, or it
+       would search itself in a circle. */
+    if(what&&!r.web&&CAP.sample)photoWebLookup(r);
+    return;
+  }
+  {
+    st.catId=cat.id;
+    const it=cat.items.find(i=>i.id===String(r.itemId||""));
+    st.itemId = it ? it.id : cat.items[0].id;
+    st.bookName=""; st.liq=null; st.specSel={};
+  }
+  st.model = tidyModel(r.model);
+  st.detail = String(r.detail||"").slice(0,80);
+  st.brandTyped = String(r.brand||"").slice(0,40);
+  st.complete = true; st.completeSet=false;
+  if(st.brandTyped){
+    const hit=brandLookup(st.catId,st.brandTyped);
+    st.brand = hit ? hit.tier : "mid";
+  } else st.brand="mid";
+  const cond=CONDITIONS.find(c=>c.id===String(r.cond||""));
+  if(cond)st.cond=cond.id;
+  /* map the spec answers onto this item's pickers, by exact option text */
+  const groups=SPEC_CHOICES[st.itemId];
+  if(groups&&Array.isArray(r.specs)){
+    r.specs.forEach(sp=>{
+      const lbl=String((sp&&sp.label)||"").trim().toLowerCase();
+      const ch=String((sp&&sp.choice)||"").trim().toLowerCase();
+      groups.forEach((g,gi)=>{
+        if(g.label.trim().toLowerCase()!==lbl)return;
+        const oi=g.options.findIndex(o=>o.t.trim().toLowerCase()===ch);
+        if(oi>=0)st.specSel[st.itemId+":"+gi]=oi;
+      });
+    });
+  }
+  st.photoRead={
+    what:String(r.what||"").slice(0,90),
+    confidence:String(r.confidence||"").slice(0,10),
+    note:String(r.note||"").slice(0,220),
+    concerns:(Array.isArray(r.concerns)?r.concerns:[]).slice(0,6).map(c=>String(c).slice(0,120))
+  };
+  st.editing=false;
+  render();
+  autoPriceAfterPhoto();
+}
+function wirePhoto(){
+  const inp=document.getElementById("photoIn");
+  if(inp)inp.onchange=()=>{ const f=(inp.files&&inp.files[0])||null; inp.value=""; if(f)setPhoto(f); };
+  const cam=document.getElementById("photoCam");
+  if(cam)cam.onchange=()=>{ const f=(cam.files&&cam.files[0])||null; cam.value=""; if(f)setPhoto(f); };
+  const live=document.getElementById("camLive"); if(live)live.onclick=openCam;
+  const pc=document.getElementById("photoCard");
+  if(pc){ pc.onpointerdown=()=>{ pasteTo="photo"; };
+    pc.ondragover=e=>{ e.preventDefault(); };
+    pc.ondrop=e=>{ e.preventDefault(); const f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0]; if(f&&/^image\//.test(f.type))setPhoto(f); }; }
+  const prev=document.getElementById("photoPrev");
+  if(prev&&photoFile){ try{ prev.src=URL.createObjectURL(photoFile); }catch(e){} }
+  const go=document.getElementById("photoGo");
+  if(go)go.onclick=runPhotoRead;
+  wireLook();
+  const stop=document.getElementById("photoStop");
+  if(stop)stop.onclick=()=>{ if(photoCtl)photoCtl.abort(); };
+}
+
+/* ---------------- logging a deal ---------------- */
+function logCardInner(x){
+  if(!CAP.db){
+    return `<div class="card"><span class="label">Deal log</span>
+      <div class="cardHint">Not available on this device. Every deal you log builds the shop's own price book, which beats any outside comp inside a year.</div></div>`;
+  }
+  if(!x.checked)return `<div class="card"><span class="label">Deal log</span>
+      <div class="cardHint" style="font-size:13.5px;color:var(--ink-2)">Check the market first (step 4), so the log only keeps real numbers.</div></div>`;
+  const s=soldStats(itemKey());
+  /* The ticket number is the one thing that ties this record to the pawn
+     system, and it is the only number on a ticket that is not about the
+     customer - no name, no address, no ID. Without it, matching a row here
+     to the item in Bravo means going by the date and the description. */
+  return `<div class="card"><span class="label">Deal log</span>
+    ${struckHTML(x)}
+    <div class="row2" style="margin:9px 0"><input id="logTicket" class="numIn" type="text" inputmode="numeric"
+      autocomplete="off" placeholder="Ticket # (optional)" value="${esc(st.ticket||"")}"
+      style="flex:1;min-width:0;font-family:var(--mono);font-size:14px"></div>
+    <button id="logDeal" class="brassBtn" title="Saves the item, your estimate, the offer and the ticket number. Mark it Sold later and the next one is priced from what this one actually brought." style="width:100%;padding:11px 0">Log this deal</button>
+    <div class="cardHint" id="logMsg">Records the item, your estimate, the offer and the ticket number &mdash; nothing else off the ticket. No name, no address, no ID. Mark it sold later and it teaches the next appraisal.${s?` You've sold ${s.n} of these.`:""}</div>
+  </div>`;
+}
+function logCardHTML(x){ return `<div id="logCard">${logCardInner(x)}</div>`; }
+async function saveDeal(){
+  if(!CAP.db)return;
+  const x=calcItem();
+  const _k=struckAmt(x);
+  const msg=document.getElementById("logMsg");
+  const specTxt=(SPEC_CHOICES[st.itemId]||[]).map((g,gi)=>{
+    const o=g.options[st.specSel[st.itemId+":"+gi]??specBase(g)]||g.options[specBase(g)];
+    return g.label+": "+o.t;
+  }).join(" · ");
+  try{
+    if(msg)msg.textContent="Saving…";
+    await CAP.db.collection("deals").add({
+      ts: Date.now(), day: new Date().toISOString().slice(0,10),
+      catId: st.catId, catLabel: x.cat.label,
+      itemId: x.item.id, key: itemKey(), itemName: displayName(x),
+      brand: st.brandTyped||"", tier: st.brand, model: st.model||"", detail: st.detail||"",
+      specs: specTxt, cond: st.cond, complete: !!st.complete, liq: x.liqId,
+      market: x.market?x.market.kind:"", marketMid: x.market?x.market.mid:null,
+      /* `loan` is what was actually handed over, not the suggestion - that
+         is kept beside it as `suggested` so the two can be compared later. */
+      resale: Math.round(x.resale), ltv: x.ltv,
+      loan: _k.amt, dealKind: _k.kind, struck: _k.typed, suggested: Math.round(x.target),
+      charge: _k.kind==="loan"?Math.round(pawnCharge(_k.amt)):0, pawnPct: pawnPct(),
+      ticket: String((document.getElementById("logTicket")||{}).value||"").trim().slice(0,24),
+      status: "open", soldPrice: null, soldTs: null
+    });
+    st.struck="";
+    if(msg)msg.textContent=(_k.kind==="buy"?"Logged \u2014 bought for ":"Logged \u2014 lent ")+money(_k.amt)
+      +". It sits under Not settled yet in the Deal log until you mark it Sold or Redeemed.";
+    const si=document.querySelectorAll(".struckIn"); si.forEach(e=>{ e.value=""; });
+    document.querySelectorAll(".struckNote").forEach(n=>{ n.innerHTML=struckNoteHTML(calcItem()); });
+  }catch(err){
+    const code=(err&&err.code)||"unavailable";
+    if(msg)msg.innerHTML=`<span style="color:var(--warn)">${esc(code==="quota_exceeded"?"The log is full — clear out old deals.":"Couldn't save that one. Try again.")}</span>`;
+  }
+}
+/* Two instances can be on screen at once - the one that ends the run and the
+   one beside the Log button - so they are found by class, kept in step by
+   hand, and the note repaints without a render so the cursor stays put. */
+function wireStruck(){
+  document.querySelectorAll("[data-struckkind]").forEach(b=>b.onclick=()=>{
+    st.struckKind=b.dataset.struckkind==="buy"?"buy":"loan"; render(); });
+  document.querySelectorAll("[data-struckset]").forEach(b=>b.onclick=()=>{
+    st.struck=Number(b.dataset.struckset)||""; render(); });
+  document.querySelectorAll(".struckIn").forEach(el=>{
+    el.oninput=()=>{ st.struck=el.value;
+      document.querySelectorAll(".struckIn").forEach(o=>{ if(o!==el)o.value=el.value; });
+      const x=calcItem();
+      document.querySelectorAll(".struckNote").forEach(n=>{ n.innerHTML=struckNoteHTML(x); }); };
+  });
+}
+function wireLogButton(){
+  wireStruck();
+  const tk=document.getElementById("logTicket");
+  if(tk)tk.oninput=()=>{ st.ticket=tk.value; };
+  const b=document.getElementById("logDeal");
+  if(b)b.onclick=saveDeal;
+}
+
+/* ---------------- deal log tab ---------------- */
+function renderLog(){
+  /* Shelf tags are a record of what other shops ask, kept for later. They
+     were sitting in the middle of pricing an item, where they have nothing
+     to do with the thing in your hand. This is where the shop's own
+     records live, so this is where they go. */
+  const shelf=seenCardHTML();
+  const wrap=(inner)=>`<div class="narrow">${inner}${shelf}</div>`;
+  if(!CAP.db){
+    return wrap(`<div class="card"><p style="font-size:14px;line-height:1.6;margin:0;color:var(--ink-2)">The deal log isn't available on this device. Open the page from the Claude app on the counter tablet.</p></div>`);
+  }
+  if(!dealsReady){
+    return wrap(`<div class="card" style="text-align:center;color:var(--ink-3);padding:26px">Loading the log…</div>`);
+  }
+  if(!DEALS.length){
+    return wrap(`<div class="card"><p style="font-size:14px;line-height:1.6;margin:0;color:var(--ink-2)">Nothing logged yet. Price something on the first tab and hit <b style="color:var(--ink)">Log this deal</b>. After a few months this list is worth more than any outside price guide &mdash; it is the only record of what things actually bring in Bristol.</p></div>`);
+  }
+  const open=DEALS.filter(d=>d.status==="open"), done=DEALS.filter(d=>d.status!=="open");
+  const row=d=>{
+    const title=[d.brand,d.model,d.itemName].filter(Boolean).join(" ");
+    return `<div class="card" style="padding:12px">
+      <div class="valRow" style="align-items:flex-start">
+        <div style="min-width:0">
+          <div style="font-weight:700;font-size:14px">${esc(title)}</div>
+          <div class="feedTag" style="margin-top:3px">${esc(d.day||"")}${d.ticket?` &middot; <b style="color:var(--ink-2)">#${esc(d.ticket)}</b>`:""} &middot; ${esc(d.catLabel||"")}${d.specs?" &middot; "+esc(d.specs):""}</div>
+          <div class="feedTag" style="margin-top:2px">Est. resale ${money(d.resale||0)} &middot; lent ${money(d.loan||0)}${d.status==="sold"&&d.soldPrice?` &middot; <b style="color:var(--accent)">sold ${money(d.soldPrice)}</b>`:""}${d.status==="redeemed"?` &middot; <b style="color:var(--accent-2)">redeemed</b>`:""}</div>
+        </div>
+        <button class="ghostBtn" style="padding:6px 12px;font-size:11.5px" data-del="${esc(d._id)}">Delete</button>
+      </div>
+      ${d.status==="open"?`<div class="row2" style="margin-top:9px;gap:7px;flex-wrap:wrap">
+        <input class="numIn" type="number" inputmode="decimal" placeholder="Sold for $" data-price="${esc(d._id)}" style="flex:1;min-width:110px;font-size:15px;padding:9px 11px">
+        <button class="brassBtn" style="padding:9px 15px" data-sold="${esc(d._id)}">Sold</button>
+        <button class="ghostBtn" style="padding:9px 15px" data-red="${esc(d._id)}">Redeemed</button>
+      </div>`:""}
+    </div>`;
+  };
+  return wrap(`
+    <div class="card"><p style="font-size:14px;line-height:1.6;margin:0;color:var(--ink-2)">Your own sold history. Item facts only &mdash; no names, no ID numbers, nothing off the state form. That record lives in the pawn system, not here.</p></div>
+    ${open.length?`<div class="card" style="padding:12px 15px"><span class="label" style="margin:0">Not settled yet &mdash; ${open.length}</span>
+      <div class="cardHint" style="margin-top:4px;font-size:12.5px">Logged, and nothing has happened since. On a pawn that means your money is still out; on a buy it means the item has not sold. Close it with <b style="color:var(--ink)">Sold</b> or <b style="color:var(--ink)">Redeemed</b> and it starts teaching the next appraisal.</div></div>${open.map(row).join("")}`:""}
+    ${done.length?`<div class="card" style="padding:12px 15px"><span class="label" style="margin:0">Settled &mdash; ${done.length}</span>
+      <div class="cardHint" style="margin-top:4px;font-size:12.5px">Sold, or redeemed by the customer. These are what the next price is built from.</div></div>${done.map(row).join("")}`:""}
+  `);
+}
+function wireLog(){
+  const v=document.getElementById("view");
+  if(!v||!CAP.db)return;
+  v.querySelectorAll("[data-sold]").forEach(b=>b.onclick=async()=>{
+    const id=b.dataset.sold;
+    const inp=v.querySelector('[data-price="'+id+'"]');
+    const p=parseFloat(inp&&inp.value);
+    if(!(p>0)){ if(inp)inp.focus(); return; }
+    b.disabled=true;
+    try{ await CAP.db.doc("deals/"+id).update({status:"sold",soldPrice:p,soldTs:Date.now()}); }
+    catch(e){ b.disabled=false; }
+  });
+  v.querySelectorAll("[data-red]").forEach(b=>b.onclick=async()=>{
+    b.disabled=true;
+    try{ await CAP.db.doc("deals/"+b.dataset.red).update({status:"redeemed",soldTs:Date.now()}); }
+    catch(e){ b.disabled=false; }
+  });
+  v.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{
+    b.disabled=true;
+    try{ await CAP.db.doc("deals/"+b.dataset.del).delete(); }
+    catch(e){ b.disabled=false; }
+  });
+}
+
+
+/* ================= THE SEARCH BAR =================
+   Type anything: "stihl 271", "remington 870 12 gauge", "kayak", "14k ring".
+   It pulls the brand, the model and the specs out of what was typed, offers
+   the closest lines from the lists and the price book, and one tap fills
+   steps 1-3. It never sets a price by itself. */
+st.omniQ=""; st.omniHl=0; st.omniDone=""; st.compRead=null;
+
+const ITEM_SYN={
+ g1:"pump shotgun scattergun gun firearm",g2:"semi auto semiauto autoloader shotgun gun firearm",
+ g3:"bolt rifle deer rifle hunting rifle gun firearm",g4:"lever action rifle 30-30 3030 cowboy gun firearm",
+ g5:"ar ar15 m4 carbine black rifle msr gun firearm",g6:"22 rimfire 22lr squirrel rifle gun firearm",
+ g7:"pistol handgun semi auto sidearm carry gun firearm",g8:"revolver wheelgun six shooter handgun gun firearm",
+ g9:"muzzleloader muzzle loader black powder blackpowder inline gun firearm",
+ g10:"semi auto semiauto autoloading rifle woodsmaster 7400 750 742 four bar browning mini-14 mini14 mini-30 sks m1a garand hunting rifle gun firearm",
+ p1:"chainsaw chain saw",p2:"string trimmer weed eater weedeater weed wacker weedwacker whacker",
+ p3:"backpack blower leaf blower",p4:"push mower lawn mower lawnmower",
+ p5:"riding mower rider lawn tractor riding lawnmower",p6:"pressure washer power washer",p7:"generator genny",
+ t1:"cordless drill driver impact driver kit",t2:"impact wrench impact gun",t3:"angle grinder cut off",
+ t4:"pancake air compressor",t5:"air compressor upright shop compressor",t6:"mig welder wire feed flux core",
+ t7:"rolling tool box toolbox tool chest roll cabinet",t8:"framing nailer nail gun",
+ h1:"rifle scope optic",h2:"binoculars binos",h3:"rangefinder range finder",
+ h4:"trail camera trail cam game camera deer camera",h5:"compound bow archery",h6:"crossbow cross bow",
+ h7:"rod reel combo fishing pole fishing rod",h8:"trolling motor",h9:"outboard boat motor",
+ e1:"tv television smart flat screen",e2:"laptop notebook computer chromebook",e3:"tablet",
+ e4:"smartphone phone cell cellphone android",e5:"game console gaming playstation xbox",
+ e6:"bluetooth speaker",e7:"car audio amp sub subwoofer",
+ j1:"rolex omega cartier submariner datejust daytona seamaster speedmaster tudor breitling luxury watch wristwatch",
+ j2:"seiko citizen tissot tag heuer movado bulova fossil timex invicta watch watches wristwatch chronograph dive quartz automatic eco-drive ecodrive kinetic",
+ j3:"tiffany david yurman pandora james avery van cleef bulgari designer jewelry necklace bracelet cuff pendant earrings ring charm",
+ j4:"diamond engagement bridal wedding solitaire halo gia certified stone ring",
+ a1:"range oven stove cooktop cook top electric range gas range appliance kitchen",
+ a2:"refrigerator fridge icebox freezer side by side french door appliance kitchen",
+ a3:"washer washing machine clothes washer front load top load appliance laundry",
+ a4:"dryer clothes dryer gas dryer electric dryer appliance laundry",
+ a5:"washer dryer pair set matching laundry pair appliance laundry",
+ a6:"chest freezer deep freeze deep freezer upright freezer appliance",
+ a7:"window air conditioner ac unit window unit window ac air conditioner appliance",
+ a8:"microwave over the range countertop appliance kitchen",
+ a9:"sewing machine serger singer brother embroidery machine",
+ a10:"vacuum cleaner vac shop vac upright vacuum dyson bissell hoover",
+ f1:"treadmill running machine walking pad",
+ f2:"exercise bike spin bike stationary bike peloton recumbent",
+ f3:"elliptical cross trainer",
+ f4:"weight bench workout bench incline bench press bench",
+ f5:"dumbbells dumbells weights weight set barbell plates kettlebell free weights",
+ f6:"home gym power rack squat rack smith machine cage universal",
+ f7:"golf clubs golf set irons driver putter callaway taylormade ping",
+ c1:"sports card graded card slab psa bgs sgc rookie baseball football basketball topps bowman panini",
+ c2:"card lot pokemon pokémon cards magic gathering yugioh trading cards collection binder",
+ c3:"comic books comics long box marvel dc golden age silver age cgc",
+ c4:"coin collection numismatic morgan peace wheat penny proof set mint set silver dollar bullion",
+ c5:"zippo lighter collectible lighter ronson dupont",
+ m1:"acoustic guitar",m2:"electric guitar",m3:"amplifier guitar amp",
+ r1:"utility trailer",r2:"atv four wheeler 4 wheeler fourwheeler quad"};
+const BOOK_SYN={"Reciprocating saw":"sawzall saws all recip saw",
+ "Scooter / moped":"scooter moped vespa 50cc ruckus",
+ "Pop-up camper":"camper pop up popup travel trailer rv teardrop",
+ "Boat anchor & rode":"anchor rode boat anchor",
+ "Flat-top griddle \u2014 Blackstone class":"blackstone griddle flat top flattop grill",
+ "Pellet grill / smoker":"traeger pit boss pellet smoker bbq barbeque barbecue",
+ "Offset smoker":"smoker bbq barbeque barbecue stick burner",
+ "Gas grill":"bbq barbeque barbecue propane grill weber char broil",
+ "Charcoal grill / kettle":"weber kettle charcoal bbq barbeque barbecue",
+ "Propane tank \u2014 20lb, full":"propane tank bottle lp gas",
+ "Hard cooler \u2014 Yeti class":"yeti cooler rtic igloo coleman ice chest",
+ "Soft cooler / tote":"soft cooler bag tote",
+ "Pressure cooker \u2014 Instant Pot class":"instant pot instapot pressure cooker crock pot crockpot slow cooker ninja foodi",
+ "Air fryer":"airfryer ninja air fryer",
+ "Box fan / tower fan":"box fan tower fan pedestal fan floor fan",
+ "TV stand / entertainment center":"tv stand entertainment center media console",
+ "Dining table & chairs":"dining table kitchen table dinette table and chairs",
+ "Dresser / chest of drawers":"dresser chest of drawers bureau armoire",
+ "Sofa / couch":"sofa couch loveseat sectional futon",
+ "Recliner":"recliner lazy boy lazyboy la-z-boy armchair easy chair",
+ "Gun cabinet \u2014 wood":"gun cabinet gun case wood cabinet rack",
+ "Post hole digger \u2014 gas":"post hole digger posthole auger fence post",
+ "Earth auger \u2014 one man":"auger earth drill ice auger",
+ "Sprayer tank \u2014 25 to 55 gal":"sprayer tank boom sprayer atv sprayer spot sprayer",
+ "Fence charger":"fence charger electric fence fencer energizer",
+ "Livestock water trough":"trough stock tank water tank cattle",
+ "Chicken coop":"chicken coop hen house rabbit hutch",
+ "Paint sprayer \u2014 airless":"paint sprayer airless graco wagner titan",
+ "OBD scan tool":"obd obd2 scanner scan tool code reader diagnostic autel",
+ "Mechanic's creeper":"creeper mechanic crawler",
+ "Battery charger / jump box":"battery charger jump box jump starter booster trickle charger",
+ "Transfer pump \u2014 gas":"transfer pump water pump trash pump utility pump",
+ "Grease gun":"grease gun lube gun",
+ "Wet tile saw":"wet saw tile saw wet tile",
+ "Drywall lift":"drywall lift panel lift sheetrock",
+ "Scaffolding \u2014 section":"scaffolding scaffold baker frame",
+ "Laser level":"laser level rotary laser self leveling",
+ "Ring / smart doorbell":"ring doorbell smart doorbell video doorbell nest hello blink",
+ "Dash camera":"dash cam dashcam backup camera reverse camera",
+ "Security camera system":"security camera nvr dvr surveillance cctv blink arlo wyze",
+ "Wifi router / modem":"wifi router modem netgear eero orbi mesh internet",
+ "Printer \u2014 all in one":"printer all in one scanner copier inkjet laser hp epson brother canon",
+ "Record player / turntable set":"record player turntable vinyl victrola crosley",
+ "Karaoke machine":"karaoke singing machine",
+ "E-reader \u2014 Kindle class":"kindle ereader e reader nook paperwhite",
+ "Power wheels / ride-on toy":"power wheels ride on toy kids electric car battery car",
+ "Bowling ball":"bowling ball",
+ "Paddle board \u2014 SUP":"paddle board paddleboard sup stand up paddle",
+ "Life jackets \u2014 set":"life jacket life vest pfd float coat",
+ "Camp chairs \u2014 pair":"camp chair folding chair lawn chair",
+ "Tent \u2014 4 to 6 person":"tent camping tent pop up tent canopy",
+ "Sleeping bag":"sleeping bag bedroll",
+ "Camp stove":"camp stove coleman stove propane stove backpacking stove",
+ "Dishwasher":"dishwasher",
+ "Garbage disposal":"garbage disposal insinkerator disposer",
+ "Portable air conditioner":"portable ac portable air conditioner rolling ac",
+ "Dehumidifier":"dehumidifier",
+ "Space heater":"space heater electric heater kerosene heater mr heater",
+ "Ukulele":"ukulele uke",
+ "Cello":"cello",
+ "French horn":"french horn",
+ "Trombone":"trombone",
+ "Clarinet":"clarinet",
+ "Flute":"flute piccolo",
+ "Surfboard":"surfboard surf board",
+ "Skateboard":"skateboard skate board longboard",
+ "Wireless earbuds":"airpods air pods earbuds buds earphones galaxy buds",
+ /* The maker is in here on purpose: the music book already carries a
+    "Keyboard - 61 key", and a bare "keyboard" reaches that one first because
+    its name is a single word. "Logitech" is what tells the two apart. */
+ "Wireless mouse \u2014 computer":"mouse mice trackball logitech computer",
+ "Computer keyboard":"keyboard mechanical keys logitech","DSLR / mirrorless camera":"dslr slr mirrorless canon nikon sony rebel eos t6 t7 d3500 alpha","Band saw \u2014 benchtop":"bandsaw band saw","Audio mixer \u2014 PA board":"mixer mixing board soundboard sound board zed behringer yamaha mackie","TIG / stick welder":"tig stick arc welder weldpro everlast","Zero-turn mower":"zero turn zturn ztr","Golf cart":"golf cart","Kayak — sit-on-top":"kayak yak",
+ "Jon boat — 12ft, no motor":"jon boat johnboat","UTV / side-by-side":"utv side by side sxs","Dirt bike":"motorcycle",
+ "E-bike":"ebike electric bike","Camera drone":"drone",
+ "Gaming laptop":"gaming laptop rgb omen nitro legion katana alienware predator tuf rog zephyrus blade raider stealth",
+ "Video game — sports title":"madden nba 2k fifa fc college football nhl mlb the show ufc sports game",
+ "Video game — Nintendo title":"mario zelda pokemon smash splatoon animal crossing kirby metroid donkey kong nintendo game",
+ "Gimbal / pocket camera":"osmo gimbal pocket camera ronin stabilizer action cam","Smartwatch \u2014 Apple / Galaxy":"smartwatch smart watch apple watch galaxy watch fitbit","Handheld game console":"handheld",
+ "Gaming desktop PC":"desktop pc computer tower","Air rifle / pellet gun":"bb gun pellet air rifle",
+ "AK-pattern rifle":"ak ak47 ak-47","Deer feeder — barrel":"feeder","Cellular game camera":"cellular trail cam cell cam",
+ "Fish finder":"depth finder sonar","Stand mixer — KitchenAid class":"kitchenaid mixer","Log splitter":"wood splitter",
+ "Truck rims & tires — set":"wheels rims tires","Two-way radios — pair":"walkie talkie radios",
+ "Wristwatch — quartz, name brand":"watch wristwatch","Inverter generator — 2kW":"inverter generator genny",
+ "Gun safe":"safe","Climbing tree stand":"treestand tree stand climber","Ladder stand":"treestand tree stand",
+ "Monitor — 27in":"monitor","Extension ladder":"ladder","Jack stands — pair":"jackstands"};
+
+const omniNorm=s=>String(s||"").toLowerCase().replace(/[—–’']/g," ").replace(/[^a-z0-9.&\/+\- ]+/g," ").replace(/\s+/g," ").trim();
+const omniWords=s=>Array.from(new Set(omniNorm(s).replace(/[\/\-]/g," ").split(" ").map(w=>w.replace(/^\.+|\.+$/g,"")).filter(w=>w&&(w.length>1||/\d/.test(w)))));
+const omniEsc=s=>s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+const pretty=s=>String(s||"").trim().split(/\s+/).filter(Boolean).map(w=>/[\d&]/.test(w)||w.length<=2?w.toUpperCase():w.charAt(0).toUpperCase()+w.slice(1)).join(" ");
+
+const OMNI_IDX=(function(){
+  const out=[];
+  CATALOG.forEach(c=>c.items.forEach(it=>out.push({kind:"item",catId:c.id,itemId:it.id,name:it.name,value:it.value,liq:it.liq,
+    words:omniWords(it.name+" "+(ITEM_SYN[it.id]||""))})));
+  PRICEBOOK.forEach(e=>out.push({kind:"book",catId:e[2],name:e[0],value:e[1],liq:e[3],
+    words:omniWords(e[0]+" "+(BOOK_SYN[e[0]]||""))}));
+  return out;
+})();
+function findEntry(ref){
+  if(!ref)return null;
+  return /^[a-z]\d$/.test(ref) ? OMNI_IDX.find(e=>e.kind==="item"&&e.itemId===ref)||null
+                               : OMNI_IDX.find(e=>e.kind==="book"&&e.name===ref)||null;
+}
+
+/* brands: every name in the brand book, the per-item brand lists, and a few
+   the book doesn't tier (four-wheelers, golf carts, fish finders) */
+const EXTRA_BRANDS=[
+ ["Polaris","rolling",["r2","UTV / side-by-side"]],["Can-Am","rolling",["r2","UTV / side-by-side"]],
+ ["Arctic Cat","rolling",["r2","UTV / side-by-side"]],["Kawasaki","rolling",["r2","UTV / side-by-side","Dirt bike"]],
+ ["Honda","rolling",["r2","UTV / side-by-side","Dirt bike"]],["Yamaha","rolling",["r2","UTV / side-by-side","Dirt bike","Golf cart"]],
+ ["Suzuki","rolling",["r2","Dirt bike"]],["KTM","rolling",["Dirt bike"]],["Club Car","rolling",["Golf cart"]],
+ ["EZGO","rolling",["Golf cart"]],["Humminbird","hunt",["Fish finder"]],["Lowrance","hunt",["Fish finder"]],
+ /* DJI was mapped to "Camera drone" outright, so every DJI thing became a
+    drone - and Osmo is not one. Osmo is the gimbal and pocket-camera line,
+    Ronin and RS are gimbals, Mic is a microphone; the drones are Mavic,
+    Mini, Air, Avata, Neo, Phantom and Inspire. A DJI Osmo Pocket 3 landed
+    on a $300 drone row and then searched as one. The rows are listed in
+    the order the model word picks them. */
+ ["DJI","elec",["Camera drone","Gimbal / pocket camera"]],["GoPro","elec",["GoPro / action camera"]],["Thompson Center","guns",["g9"]],
+ ["Howa","guns",["g3"]],["Mossberg","guns",null]];
+const BRAND_ALIAS=[[/\bsmith\s*(and|&|n)\s*wesson\b/,"smith & wesson"],[/\bsig\b(?!\s*sauer)/,"sig sauer"],
+ [/\bh\s*&\s*k\b/,"heckler & koch"],[/\b(jd|deere)\b/,"john deere"],[/\bez\s*-?\s*go\b|\be\s*-\s*z\s*-\s*go\b/,"ezgo"],
+ [/\bcan\s*am\b/,"can-am"],[/\bhi\s*point\b/,"hi-point"],[/\bkel\s*tec\b/,"kel-tec"],[/\bharbor\s*freight\b/,"harbor freight"]];
+const BRAND_IDX=(function(){
+  const m=new Map();
+  const add=(name,cat,tier,items)=>{
+    if(/^no name$/i.test(name))return;
+    const k=name.toLowerCase(); if(!m.has(k))m.set(k,{name,cats:[]});
+    const e=m.get(k); let c=e.cats.find(x=>x.cat===cat);
+    if(!c){ e.cats.push({cat,tier,items:items?items.slice():null}); return; }
+    if(c.items&&items)items.forEach(i=>{if(c.items.indexOf(i)<0)c.items.push(i);}); else c.items=null;
+  };
+  Object.keys(BRANDBOOK).forEach(cat=>["hi","mid","lo"].forEach(t=>BRANDBOOK[cat][t].forEach(b=>add(b,cat,t,null))));
+  Object.keys(ITEM_OVERRIDES).forEach(id=>{const ov=ITEM_OVERRIDES[id]; if(!ov.brands)return;
+    const cat=CATALOG.find(c=>c.items.some(i=>i.id===id)); if(!cat)return;
+    ["hi","mid","lo"].forEach(t=>(ov.brands[t]||[]).forEach(b=>{ if(!m.has(b.toLowerCase())||!m.get(b.toLowerCase()).cats.some(c=>c.cat===cat.id&&!c.items)) add(b,cat.id,t,[id]); }));});
+  /* THE MAKE QUESTION READS A DIFFERENT BOOK FROM THE ROUTER.
+     These seventeen were registered here, for routing, and nowhere else -
+     so brandLookup and brandHits, which read BRANDBOOK, had never heard of
+     DJI, GoPro, Polaris, Honda-in-powersports, Lowrance or any of them.
+     At the counter that is a dead end: the make question asks who makes
+     it, the box already says DJI, and there is nothing to tap and nothing
+     that recognises what is typed. The router knew all along.
+     They go into the book too, at the tier they were declared with, so
+     one list answers both. */
+  EXTRA_BRANDS.forEach(([n,cat,items])=>{
+    add(n,cat,"mid",items);
+    const bk=BRANDBOOK[cat];
+    if(bk&&bk.mid&&!["hi","mid","lo"].some(t=>(bk[t]||[]).some(x=>x.toLowerCase()===n.toLowerCase())))
+      bk.mid.push(n);
+  });
+  return Array.from(m.values()).map(e=>Object.assign(e,{re:new RegExp("(^|[^a-z0-9])"+omniEsc(e.name.toLowerCase())+"(?=$|[^a-z0-9])")}))
+    .sort((a,b)=>b.name.length-a.name.length);
+})();
+/* WHAT A MAKE ACTUALLY SELLS.
+ *
+ * A brand carries a category, not a product list, so typing one alone
+ * offered every item in its category: Garmin proposed a compound bow and
+ * a crossbow, Leupold a trolling motor, Shimano a rifle scope, Bowtech a
+ * rod and reel. Forty-one of the fifty-five hunting makes had no list at
+ * all, which is most of the shelf.
+ *
+ * BRAND_FIRST below is an ordering hint and stays one - restricting on it
+ * would hide a Mossberg rifle behind its shotguns. This is the stricter
+ * statement: these makes sell THESE THINGS AND NOTHING ELSE, so anything
+ * else in the category is not offered. Only written where it is plainly
+ * true; a make that really does span its category simply is not listed
+ * here and behaves as before. */
+const OPTICS=["h1","h2","h3","Spotting scope","Red dot sight"];
+const RODS=["h7","Offshore rod & reel","Fly rod & reel"];
+const BRAND_ONLY={
+  /* glass */
+  "leupold":OPTICS,"vortex":OPTICS,"zeiss":OPTICS,"swarovski":OPTICS,"bushnell":OPTICS,
+  "nikon":OPTICS,"burris":OPTICS,"athlon":OPTICS,"primary arms":OPTICS,"tasco":OPTICS,
+  "simmons":OPTICS,"bsa":OPTICS,"cvlife":OPTICS,"pinty":OPTICS,"truglo":OPTICS,
+  "sig sauer optics":OPTICS,"trijicon":OPTICS,"aimpoint":["Red dot sight"],"eotech":["Red dot sight"],
+  "nightforce":["h1","Spotting scope"],
+  /* bows and crossbows */
+  "mathews":["h5"],"hoyt":["h5"],"bowtech":["h5"],"bear archery":["h5"],"pse":["h5"],"diamond":["h5"],
+  "ravin":["h6","Crossbow bolts & broadheads — lot"],"tenpoint":["h6","Crossbow bolts & broadheads — lot"],
+  "barnett":["h6","Crossbow bolts & broadheads — lot"],"excalibur":["h6","Crossbow bolts & broadheads — lot"],
+  "wicked ridge":["h6","Crossbow bolts & broadheads — lot"],"centerpoint":["h6","Crossbow bolts & broadheads — lot"],
+  /* rods, reels and what pushes the boat */
+  "shimano":RODS,"g loomis":RODS,"st. croix":RODS,"abu garcia":RODS,"penn":RODS,"lew's":RODS,
+  "13 fishing":RODS,"ugly stik":RODS,"daiwa":RODS,"zebco":RODS,"shakespeare":RODS,"south bend":RODS,
+  "minn kota":["h8"],"motorguide":["h8"],
+  /* sonar. Garmin also makes watches, which live in electronics and are
+     reached from there - this is the hunting half of what it sells. */
+  "humminbird":["Fish finder"],"lowrance":["Fish finder"],
+  "garmin":["Fish finder","h3","Smartwatch — Apple / Galaxy"],
+  /* cameras in the woods */
+  "wildgame innovations":["h4","Cellular game camera"],"stealth cam":["h4","Cellular game camera"],
+  "tactacam":["h4","Cellular game camera"],"moultrie":["h4","Cellular game camera"],
+  "spypoint":["h4","Cellular game camera"],"browning trail cameras":["h4","Cellular game camera"]
+};
+/* when a brand is typed alone, these items go to the top of its list */
+const BRAND_FIRST={"weed eater":["p2"],"glock":["g7"],"sig sauer":["g7"],"canik":["g7"],"kimber":["g7"],"staccato":["g7"],"hi-point":["g7","g5"],
+ "sccy":["g7"],"charter arms":["g8"],"benelli":["g2","g1"],"mossberg":["g1","g2"],"henry":["g4","g6"],"marlin":["g4","g6"],"cva":["g9"],
+ "traditions":["g9"],"tikka":["g3"],"bergara":["g3"],"minn kota":["h8"],"mathews":["h5"],"hoyt":["h5"],"ravin":["h6"],"tenpoint":["h6"],
+ "leupold":["h1"],"nightforce":["h1"],"trijicon":["h1","Red dot sight"],"aimpoint":["Red dot sight"],"eotech":["Red dot sight"],
+ "holosun":["Red dot sight"],"moultrie":["h4"],"tactacam":["h4"],"spypoint":["h4"],"reconyx":["h4"],"generac":["p7"],"champion":["p7"],
+ "predator":["p7"],"exmark":["Zero-turn mower","p5"],"scag":["Zero-turn mower"],"bad boy":["Zero-turn mower"],"gravely":["Zero-turn mower"],
+ "apple":["e4","e3","e2"],"nintendo":["e5","Handheld game console"],"xbox":["e5"],"gibson":["m2","m1"],"martin":["m1"],"taylor":["m1"],
+ "fender":["m2","m3","Bass guitar"],"squier":["m2","Bass guitar"],"epiphone":["m2"],"marshall":["m3"],"mesa boogie":["m3"],"orange":["m3"]};
+function brandEntry(name){ const k=String(name||"").toLowerCase(); return BRAND_IDX.find(b=>b.name.toLowerCase()===k)||null; }
+function findBrand(text){
+  let best=null,pos=1e9,hit=null;
+  for(const b of BRAND_IDX){ const mm=b.re.exec(text); if(mm&&mm.index<pos){best=b;pos=mm.index;hit=mm;} }
+  return best?{b:best,m:hit}:null;
+}
+
+/* THE MODEL BOOK — the models that walk in most. A hit fills brand, model and
+   item in one go. "loose" = a bare number, ignored when another brand was typed. */
+const MB=(re,brand,item,o)=>Object.assign({re,brand,item},o||{});
+const pick=(m,map,dflt)=>{ const s=m[0]; for(const k in map){ if(new RegExp(k).test(s))return map[k]; } return dflt; };
+const MODELBOOK=[
+ /* YAMAHA MAKES PIANOS, AND THE DESK CALLED THEM ALL OUTBOARD MOTORS.
+    Same shape as DJI: the brand is registered against powersports, so a
+    model name the book did not recognise fell through to the brand's
+    category and came out an outboard. Every one of these was wrong - a
+    P-125 digital piano, a PSR keyboard, a Clavinova, an FG800 acoustic,
+    a YAS-23 alto sax, HS8 monitors, an RX-V385 receiver. Yamaha's
+    instruments are among the commonest things across a pawn counter and
+    the tool had no idea what any of them were.
+    The rows all already existed; nothing pointed at them. */
+ MB(/\b(yamaha\s*)?(clavinova|clp|cvp|csp)\s*-?\s*\d*\b/,"Yamaha","Digital piano — 88 key"),
+ MB(/\b(yamaha\s*)?p\s*-\s*(45|71|85|105|115|121|125|143|145|225|255|515|525)\b/,"Yamaha","Digital piano — 88 key",
+    {label:m=>"P-"+m[2]}),
+ MB(/\b(yamaha\s*)?psr\s*-?\s*\w*\d+\w*/,"Yamaha","Keyboard — 61 key"),
+ MB(/\b(yamaha\s*)?(fg|fs|apx|ll|ls|csf|storia)\s*-?\s*\d{2,3}\w*/,"Yamaha","m1"),
+ MB(/\b(yamaha\s*)?pacifica\s*\d*\b/,"Yamaha","m2"),
+ MB(/\b(yamaha\s*)?yas\s*-?\s*\d+\b/,"Yamaha","Alto saxophone"),
+ MB(/\b(yamaha\s*)?hs\s*-?\s*(5|7|8)\b/,"Yamaha","Powered PA speaker"),
+ MB(/\b(yamaha\s*)?(rx\s*-?\s*[va]|tsr|aventage)\s*-?\s*\d*\w*/,"Yamaha","AV receiver"),
+ MB(/\b(yamaha\s*)?(mg|emx)\s*-?\s*\d+\w*/,"Yamaha","Audio mixer — PA board"),
+ MB(/\b(yamaha\s*)?dtx\s*-?\s*\d*\w*/,"Yamaha","Full drum set"),
+ /* Thompson Center. The brand pointed at the muzzleloader row outright,
+    so a Compass and a Venture - both plain bolt-action centrefire rifles -
+    came back as muzzleloaders. The Encore and Contender are left alone:
+    those really are made in both forms, and guessing either way would be
+    the same mistake in the other direction. */
+ MB(/\b(thompson\s*center\s*|t\/?c\s*)?(compass|venture)\b/,"Thompson Center","g3"),
+ /* DJI. The brand alone used to mean "Camera drone", so an Osmo Pocket 3
+    landed on a $300 drone row and then searched as a drone. Osmo, Ronin
+    and RS are the gimbal and pocket-camera lines; Mavic, Mini, Air,
+    Avata, Neo, Phantom and Inspire are the aircraft. */
+ /* The generation number has to be CAPTURED, not just matched past. It
+    was falling outside the groups, so "dji osmo action 4" came back
+    labelled "Osmo action" - and a search for that returns Action 3s, 4s
+    and 5s together. The number is most of the model. */
+ MB(/\b(dji\s*)?osmo\s*(pocket|action|mobile|nano)?\s*(\d+)?\s*(pro|plus|se)?\b/,"DJI","Gimbal / pocket camera",
+    {label:m=>("Osmo "+(m[2]?pretty(m[2]):"")+" "+(m[3]||"")+" "+(m[4]?pretty(m[4]):"")).replace(/\s+/g," ").trim()}),
+ MB(/\b(dji\s*)?(ronin|rs)\s*-?\s*\d*\b/,"DJI","Gimbal / pocket camera"),
+ MB(/\b(dji\s*)?(mavic|avata|phantom|inspire|neo)\b/,"DJI","Camera drone"),
+ /* shotguns */
+ MB(/\b(mossberg\s*)?maverick\s*88\b/,"Mossberg","g1"),
+ MB(/\bmossberg\s*(500|590|835|535|930|940|sa\s*-?\s*(20|28|410))\w*/,"Mossberg",m=>/9[34]0|sa/.test(m[1])?"g2":"g1"),
+ MB(/\b(remington\s*)?870(\s*(express|wingmaster|tactical|marine|super\s*mag|fieldmaster))?\b/,"Remington","g1"),
+ MB(/\bwingmaster\b/,"Remington","g1"),
+ MB(/\b(remington\s*)?(1100|11\s*-\s*87|1187)\b/,"Remington","g2"),
+ MB(/\bremington\s*(v3|versa\s*max)\b/,"Remington","g2"),
+ MB(/\bbenelli\s*(m2|m4|sbe(\s*(ii|iii|3|2))?|super\s*black\s*eagle(\s*\w+)?|montefeltro|ethos|vinci|legacy)\b/,"Benelli","g2"),
+ MB(/\b(benelli\s*)?(super\s*)?nova\b/,"Benelli","g1"),
+ MB(/\b(beretta\s*)?a(300|400)(\s*(outlander|xtreme|xplor|ultima))?\b/,"Beretta","g2"),
+ MB(/\b(browning\s*)?(a5|auto\s*-?\s*5|maxus|silver\s*hunter)\b/,"Browning","g2"),
+ MB(/\b(browning\s*)?bps\b/,"Browning","g1"),
+ MB(/\b(winchester\s*)?sx[34]\b/,"Winchester","g2"),
+ MB(/\b(winchester\s*)?sxp\b/,"Winchester","g1"),
+ MB(/\bstoeger\s*(m3000|m3500|p3000|p350)\b/,"Stoeger",m=>/^m/.test(m[1])?"g2":"g1"),
+ MB(/\b(kel-tec\s*)?ksg\b/,"Kel-Tec","g1"),
+ /* rifles */
+ MB(/\b(remington|model)\s*700(\s*(adl|bdl|sps|cdl|vtr|5r))?\b/,"Remington","g3"),
+ MB(/\b(winchester\s*(model\s*)?70|model\s*70)\b/,"Winchester","g3",{label:"Model 70"}),
+ MB(/\bsavage\s*(110|111|112|116|10|11|12|16|axis(\s*ii)?|arrow)\b|\baxis\s*ii\b/,"Savage","g3"),
+ MB(/\bruger\s*(american(\s*(rifle|predator|ranch|hunter|compact|gen\s*2))?|m77|hawkeye|precision\s*rifle|rpr)\b/,"Ruger","g3"),
+ MB(/\b(tikka\s*)?t3x?(\s*(lite|hunter|ctr|superlite))?\b/,"Tikka","g3"),
+ MB(/\b(browning\s*)?x\s*-?\s*bolt\b/,"Browning","g3",{label:"X-Bolt"}),
+ MB(/\b(browning\s*)?blr\b/,"Browning","g4"),
+ MB(/\b(weatherby\s*)?(vanguard|mark\s*v)\b/,"Weatherby","g3"),
+ MB(/\b(bergara\s*)?b\s*-?\s*14\b/,"Bergara","g3",{label:"B-14"}),
+ MB(/\bhowa\s*1500\b/,"Howa","g3"),
+ MB(/\bmarlin\s*(336|1894|1895|444)\w*\b/,"Marlin","g4"),MB(/\b(336|1894|1895)\w*\b/,"Marlin","g4",{loose:true}),
+ MB(/\bmarlin\s*(model\s*)?(60|795)\b/,"Marlin","g6"),
+ MB(/\b(winchester\s*(model\s*)?94|model\s*94)\b/,"Winchester","g4",{label:"Model 94"}),
+ MB(/\b(henry\s*)?(big\s*boy|golden\s*boy|long\s*ranger|h001|h009|side\s*gate)\b/,"Henry","g4"),
+ MB(/\b(rossi\s*)?r92\b/,"Rossi","g4"),
+ MB(/\b(ruger\s*)?ar\s*-?\s*556\b/,"Ruger","g5",{label:"AR-556"}),
+ MB(/\b(smith\s*&\s*wesson\s*|s&w\s*)?(m&p\s*-?\s*15|mp\s*-?\s*15)\w*/,"Smith & Wesson","g5",{label:"M&P15"}),
+ MB(/\b(springfield\s*(armory\s*)?)?saint\b/,"Springfield Armory","g5"),
+ MB(/\b(kel-tec\s*)?sub\s*-?\s*2000\b/,"Kel-Tec","g5",{label:"Sub-2000"}),
+ MB(/\bar\s*-?\s*15\b/,"","g5",{label:"AR-15"}),MB(/\bar\s*-?\s*10\b/,"","g5",{label:"AR-10"}),MB(/\bm4\b/,"","g5",{label:"M4"}),
+ MB(/\b(ruger\s*)?(10\s*\/\s*22|1022|10\s+22)(\s*(takedown|carbine|tactical|target|sporter))?\b/,"Ruger","g6",{label:m=>"10/22"+(m[3]?" "+pretty(m[3]):"")}),
+ MB(/\bsavage\s*(mark\s*ii|93r17|a22|64)\w*/,"Savage","g6"),
+ /* handguns */
+ MB(/\bglock\s*(17|19x?|20|21|22|23|26|27|29|30|34|40|42|43x?|44|45|47|48)(\s*(gen\s*\d|mos))?\b|\bg(17|19x?|26|43x?|48)\b/,"Glock","g7",{label:m=>"G"+(m[1]||m[4]).toUpperCase()+(m[2]?" "+pretty(m[2]):"")}),
+ MB(/\b(sig\s*sauer\s*)?p\s*(365|320|226|229|938|238|210|239|250)(\s*(xl|x\s*-?\s*macro|macro|sas|x\s*-?\s*carry|x\s*-?\s*five|compact|carry|legion|spectre))?\b/,"Sig Sauer","g7",{label:m=>"P"+m[2]+(m[3]?" "+pretty(m[3]):"")}),
+ MB(/\b(springfield\s*(armory\s*)?)?(hellcat(\s*pro)?|xd[sme]?(\s*mod\s*\.?\s*2)?|echelon|prodigy)\b/,"Springfield Armory","g7"),
+ MB(/\bcolt\s*(1911|government|commander|defender|series\s*70|gold\s*cup)\b/,"Colt","g7"),
+ MB(/\b1911\b/,"","g7",{label:"1911",loose:true}),
+ MB(/\b(taurus\s*)?(g2c|g2s|g3c?|g3x|gx4|th9|pt\s*-?\s*111|pt\s*-?\s*709|tx22)\b/,"Taurus","g7"),
+ MB(/\b(taurus\s*)?(judge|raging\s*bull|public\s*defender)\b|\btaurus\s*(605|856|tracker|692)\b/,"Taurus","g8"),
+ MB(/\b(ruger\s*)?(lcp(\s*(ii|max|2))?|lc9s?|lc380|security\s*-?\s*9|max\s*-?\s*9|sr9c?|sr22|ec9s)\b|\bruger\s*(mark\s*(ii|iii|iv)|22\s*\/\s*45|p89|p95|57)\b/,"Ruger","g7"),
+ MB(/\b(ruger\s*)?(gp\s*-?\s*100|sp\s*-?\s*101|lcr\w*|super\s*blackhawk|blackhawk|single\s*-?\s*six|wrangler|super\s*redhawk|redhawk|vaquero)\b/,"Ruger","g8"),
+ MB(/\b(smith\s*&\s*wesson\s*|s&w\s*)?m&p\s*(9|40|45|380|22)?(\s*(shield(\s*(plus|ez))?|2\.0|m2\.0|compact|ez))?(?![\w&])|\b(shield\s*(plus|ez)|bodyguard|csx|sd9ve?|sd40)\b/,"Smith & Wesson","g7",{label:m=>pretty(m[0].replace(/smith\s*&\s*wesson|s&w/,""))}),
+ MB(/\b(smith\s*&\s*wesson|s&w)\s*(model\s*)?(686|629|642|637|638|617|586|610|66|19|10|36|60|500|460)\b|\bmodel\s*(686|629|642|637|638|617|586|66|19|10|36)\b/,"Smith & Wesson","g8",{label:m=>"Model "+(m[3]||m[4])}),
+ MB(/\b(686|629|642|637|638|617|586)(\s*plus)?\b/,"Smith & Wesson","g8",{label:m=>"Model "+m[1]+(m[2]?" Plus":""),loose:true}),
+ MB(/\b(colt\s*)?(python|anaconda|king\s*cobra|detective\s*special|official\s*police)\b/,"Colt","g8"),
+ MB(/\bcz\s*(75\w*|shadow\s*2|p\s*-?\s*10\s*\w*|p\s*-?\s*09|p\s*-?\s*07|scorpion)\b|\b(shadow\s*2)\b/,"CZ","g7"),
+ MB(/\b(beretta\s*)?(92\s*(fs|x|a1)|m9a?\d?|px4(\s*storm)?|apx(\s*a1)?)\b/,"Beretta","g7"),
+ MB(/\b(kel-tec\s*)?(pf\s*-?\s*9|p\s*-?\s*3at|p\s*-?\s*32|p\s*-?\s*17|pmr\s*-?\s*30|p50)\b/,"Kel-Tec","g7"),
+ MB(/\b(canik\s*)?(tp\s*-?\s*9\w*|mete\s*\w*)\b/,"Canik","g7"),
+ /* muzzleloaders */
+ MB(/\bcva\s*(optima|accura|wolf|paramount)\b/,"CVA","g9"),
+ MB(/\b(thompson(\s*center)?|t\/c|tc)\s*(encore|impact|omega|triumph|pro\s*hunter)\b/,"Thompson Center","g9",{label:m=>pretty(m[3])}),
+ MB(/\btraditions\s*(pursuit|vortek|buckstalker|nitrofire)\b/,"Traditions","g9"),
+ /* four-wheelers, side-by-sides, carts, bikes — before the saw numbers */
+ MB(/\bhonda\s*(rancher|foreman|recon|rubicon|fourtrax|pioneer|talon|trx\s*\d+\w*)(\s*\d+\w*)?\b|\b(foreman|rubicon|fourtrax|trx\s*\d{3}\w*)\b/,"Honda",m=>/pioneer|talon/.test(m[0])?"UTV / side-by-side":"r2"),
+ MB(/\b(polaris\s*)?(sportsman|scrambler)(\s*\d+\w*)?\b|\brzr(\s*\w+)?\b/,"Polaris",m=>/rzr/.test(m[0])?"UTV / side-by-side":"r2"),
+ MB(/\bpolaris\s*(ranger|general)(\s*\d+\w*)?\b/,"Polaris","UTV / side-by-side"),
+ MB(/\b(can-am\s*)?(outlander|renegade)(\s*\d+\w*)?\b/,"Can-Am","r2"),
+ MB(/\bcan-am\s*(defender|maverick|commander)(\s*\w+)?\b/,"Can-Am","UTV / side-by-side"),
+ MB(/\b(yamaha\s*)?(grizzly|kodiak|raptor|wolverine|viking|rhino|yfz\s*\d*)(\s*\d+\w*)?\b/,"Yamaha",m=>/wolverine|viking|rhino/.test(m[0])?"UTV / side-by-side":"r2"),
+ MB(/\byamaha\s*drive\s*2?\b/,"Yamaha","Golf cart"),
+ MB(/\b(kawasaki\s*)?(brute\s*force|mule|teryx|kfx)(\s*\d+\w*)?\b/,"Kawasaki",m=>/mule|teryx/.test(m[0])?"UTV / side-by-side":"r2"),
+ MB(/\b(john\s*deere\s*)?gator(\s*\w+)?\b/,"John Deere","UTV / side-by-side"),
+ MB(/\bclub\s*car(\s*(precedent|onward|ds|tempo))?\b/,"Club Car","Golf cart",{label:m=>pretty((m[1]||"").trim())}),
+ MB(/\bezgo(\s*(txt|rxv|s4|l6))?\b/,"EZGO","Golf cart",{label:m=>pretty((m[1]||"").trim())}),
+ MB(/\b(kx|crf|yz|rm|klx|ttr|xr|cr|drz|wr|exc)\s*-?\s*\d{2,3}\s*[a-z]{0,2}\b/,"","Dirt bike"),
+ /* outdoor power */
+ MB(/\b(stihl\s*)?ms\s*-?\s*(\d{3}\s*c?(\s*-?\s*[a-z]{1,3})?)(\s*farm\s*boss)?\b/,"Stihl","p1",{label:m=>"MS "+m[2].replace(/\s+/g,"").toUpperCase()+(m[4]?" Farm Boss":"")}),
+ MB(/\bfarm\s*boss\b/,"Stihl","p1",{label:"Farm Boss"}),
+ MB(/\b(stihl\s*)?(fsa|fs|km)\s*-?\s*(\d{2,3}\s*r?c?)\b/,"Stihl","p2",{label:m=>m[2].toUpperCase()+" "+m[3].replace(/\s+/g,"").toUpperCase(),spec:m=>m[2]==="fsa"?{Power:"Battery — with battery & charger"}:null}),
+ MB(/\b(stihl\s*)?br\s*-?\s*(\d{3})\b/,"Stihl","p3",{label:m=>"BR "+m[2]}),
+ MB(/\bstihl\s*(1[78]0|1[89]1|2[5-9]1|250|311|362|391|400|4[56][12]|500i|661|880)\s*(c)?\b/,"Stihl","p1",{label:m=>"MS "+m[1].toUpperCase()+(m[2]?"C":"")}),
+ MB(/\b(echo\s*)?cs\s*-?\s*(\d{3,4})\w*|\btimber\s*wolf\b/,"Echo","p1"),
+ MB(/\b(echo\s*)?srm\s*-?\s*(\d{3,4})\w*/,"Echo","p2"),
+ MB(/\b(echo\s*)?pb\s*-?\s*(\d{3,4})\w*/,"Echo","p3"),
+ MB(/\b(husqvarna\s*)?(125|150|350|360|570|580)\s*b(t|ts|vx)?\b/,"Husqvarna","p3"),
+ MB(/\b(husqvarna\s*)?(435|440|445|450|455|460|545|550|562|565|572|372|365|390|395)\s*(xp|rancher|xpg)?\b/,"Husqvarna","p1",{loose:true}),
+ MB(/\b(honda\s*)?eu\s*-?\s*(1000|2000|2200|3000|7000)\s*i?\w*/,"Honda","p7",{label:m=>"EU"+m[2]+"i",spec:{Type:"Inverter"},detail:m=>m[2]+"W inverter"}),
+ MB(/\b(honda\s*)?(eb|em|eg)\s*-?\s*(2800|3000|3500|4000|5000|6500|7000)\s*i?\b/,"Honda","p7",{label:m=>m[2].toUpperCase()+m[3],detail:m=>m[3]+"W"}),
+ MB(/\b(honda\s*)?hr[xnrcu]\s*-?\s*\d*\w*/,"Honda","p4",{spec:{Drive:"Self-propelled"}}),
+ MB(/\b(john\s*deere\s*)?z\s*-?\s*(3\d\d|5\d\d|9\d\d)\s*[a-z]?\b/,"John Deere","Zero-turn mower",{loose:true}),
+ MB(/\b(john\s*deere\s*)?(d1\d\d|e1\d\d|x3\d\d|x5\d\d|x7\d\d|la1\d\d|s1\d\d|l1\d\d|gt\s*235|stx\s*38)\b/,"John Deere","p5",{loose:true}),
+ /* tools */
+ MB(/\b(dewalt\s*)?dcd\s*-?\s*(\d{3,4})\w*/,"DeWalt","t1",{label:m=>"DCD"+m[2],spec:{"Battery platform":"18 / 20V"}}),
+ MB(/\b(dewalt\s*)?dcf\s*-?\s*(\d{3,4})\w*/,"DeWalt",m=>/^(89|9)/.test(m[2])?"t2":"t1",{label:m=>"DCF"+m[2],spec:{"Battery platform":"18 / 20V"}}),
+ MB(/\b(dewalt\s*)?dcg\s*-?\s*(\d{3,4})\w*/,"DeWalt","t3",{label:m=>"DCG"+m[2],spec:{Power:"Cordless — with battery"}}),
+ MB(/\b(milwaukee\s*)?m18(\s*fuel)?\b/,"Milwaukee",null,{spec:{"Battery platform":"18 / 20V"}}),
+ MB(/\b(milwaukee\s*)?m12(\s*fuel)?\b/,"Milwaukee",null,{spec:{"Battery platform":"12V"}}),
+ MB(/\b(dewalt\s*)?(20\s*v\s*max|flexvolt|atomic)\b/,"DeWalt",null,{spec:m=>/flex/.test(m[0])?{"Battery platform":"36V+"}:{"Battery platform":"18 / 20V"}}),
+ MB(/\b(makita\s*)?(lxt|xgt)\b/,"Makita",null,{spec:m=>/xgt/.test(m[0])?{"Battery platform":"36V+"}:{"Battery platform":"18 / 20V"}}),
+ MB(/\b(ryobi\s*)?one\s*\+(\s*hp)?/,"Ryobi",null,{label:"ONE+",spec:{"Battery platform":"18 / 20V"}}),
+ /* hunting & fishing */
+ MB(/\b(leupold\s*)?vx\s*-?\s*(1|2|3i?|3hd|5hd|6hd|6|r|freedom)\b/,"Leupold","h1",{label:m=>"VX-"+pretty(m[2])}),
+ MB(/\bvortex\s*(crossfire(\s*ii)?|diamondback(\s*tactical)?|viper(\s*pst)?|strike\s*eagle|razor(\s*hd)?|venom|golden\s*eagle|triumph|ranger(\s*\d+)?|impact(\s*\d+)?)\b/,"Vortex",m=>/ranger|impact/.test(m[1])?"h3":null),
+ MB(/\b(minn\s*kota\s*)?(terrova|ultrex|ulterra|riptide|endura|traxxis|powerdrive|maxxum)\b/,"Minn Kota","h8",
+   {spec:m=>/terrova|ultrex|ulterra/.test(m[2])?{Class:"GPS / spot-lock",Mount:"Bow mount"}:/powerdrive|maxxum|riptide/.test(m[2])?{Mount:"Bow mount"}:null}),
+ MB(/\b(garmin\s*)?(striker(\s*(plus|vivid|cast))?|echomap\w*|livescope|panoptix)\b/,"Garmin","Fish finder"),
+ MB(/\b(humminbird\s*)?(helix(\s*\d+)?|solix|piranhamax)\b/,"Humminbird","Fish finder"),
+ MB(/\blowrance\s*(hook\w*(\s*reveal)?|elite\w*|hds\w*)\b|\bhook\s*reveal\b/,"Lowrance","Fish finder"),
+ MB(/\b(tactacam\s*)?reveal(\s*(x|xb|pro|sk|ultra|x\s*pro))?\b/,"Tactacam","h4",{spec:{Type:"Cellular"}}),
+ MB(/\bspypoint\s*(link\w*|flex\w*|force\w*)\b/,"Spypoint","h4",{spec:{Type:"Cellular"}}),
+ MB(/\bmathews\s*(v3x?|phase\s*4|lift(\s*\d+)?|halon(\s*\d+)?|vxr(\s*\d+)?|triax|traverse|z7|dxt|switchback|creed|chill|avail|vertix)\b|\b(v3x|halon|triax|traverse|switchback|vxr)\b/,"Mathews","h5"),
+ MB(/\b(hoyt\s*)?(rx\s*-?\s*\d|carbon\s*rx|ventum|torrex|axius|hyperforce)\b/,"Hoyt","h5"),
+ MB(/\b(ravin\s*)?r\s*-?\s*(10|15|20|26|29|500)x?\b/,"Ravin","h6",{loose:true}),
+ /* electronics */
+ MB(/\biphone\s*(\d{1,2}|se|xs|xr|x)?(\s*(pro\s*max|pro|plus|mini|max|e))?\b/,"Apple","e4",{label:m=>"iPhone"+(m[1]?" "+m[1].toUpperCase():"")+(m[2]?" "+pretty(m[2]):"")}),
+ MB(/\bgalaxy\s*tab(\s*[a-z]?\d+\w*)?(\s*(ultra|plus|\+|fe))?\b/,"Samsung","e3",{label:m=>"Galaxy Tab"+(m[1]?" "+m[1].trim().toUpperCase():"")+(m[2]?" "+pretty(m[2]):"")}),
+ MB(/\bgalaxy\s*watch(\s*\d+)?\b/,"Samsung","Smartwatch \u2014 Apple / Galaxy",{label:m=>"Galaxy Watch"+(m[1]||"")}),
+ MB(/\bgalaxy\s*(s\d{1,2}|note\s*\d{1,2}|z\s*(fold|flip)\s*\d*|a\d{2})(\s*(ultra|plus|\+|fe))?\b/,"Samsung","e4",{label:m=>"Galaxy "+pretty(m[1])+(m[3]?" "+pretty(m[3]):"")}),
+ MB(/\bapple\s*watch(\s*(series\s*\d+|ultra\s*\d*|se))?\b/,"Apple","Smart watch",{label:m=>"Apple Watch"+(m[1]?" "+pretty(m[1]):"")}),
+ MB(/\bpixel\s*\d{1,2}a?(\s*(pro\s*xl|pro|xl|fold))?\b/,"Google","e4"),
+ MB(/\bipad(\s*(pro|air|mini))?(\s*\d+)?\b/,"Apple","e3",{label:m=>"iPad"+(m[1]?" "+pretty(m[1]):"")+(m[3]||"")}),
+ MB(/\bmacbook(\s*(pro|air))?(\s*m\d)?\b/,"Apple","e2",{label:m=>"MacBook"+(m[1]?" "+pretty(m[1]):"")+(m[3]?" "+m[3].trim().toUpperCase():"")}),
+ /* SURFACE IS FOUR DIFFERENT MACHINES AND THE DESK KNEW NONE OF THEM.
+    "microsoft surface" found the laptop rows fine, but "surface book" and
+    "surface pro" - the two names anybody actually says - found nothing:
+    Surface Book went to COMIC BOOKS on the strength of the word "book",
+    and Surface Pro offered a coin collection and a gas grill off "pro".
+    A Book, a Laptop and a Studio are laptops; a Pro and a Go are tablets. */
+ MB(/\bsurface\s*(book|laptop|studio)(\s*\d+)?\b/,"Microsoft","e2",{label:m=>"Surface "+pretty(m[1])+(m[2]||"")}),
+ MB(/\bsurface\s*(pro|go)(\s*\d+)?\b/,"Microsoft","e3",{label:m=>"Surface "+pretty(m[1])+(m[2]||"")}),
+ MB(/\b(sony\s*)?(ps5|ps4|playstation\s*\d?)(\s*(pro|slim|digital))?\b/,"Sony","e5",{label:m=>pretty(m[2].replace("playstation","PlayStation"))+(m[3]?" "+pretty(m[3]):""),
+   spec:m=>/ps4|playstation\s*4/.test(m[0])?{Version:"Previous gen"}:/digital/.test(m[0])?{Version:"Current gen, digital"}:null}),
+ MB(/\bxbox(\s*(series\s*[xs]|one\s*[xs]?|one|360))?\b/,"Microsoft","e5",{label:m=>"Xbox"+(m[1]?" "+pretty(m[1]):""),
+   spec:m=>/one|360/.test(m[0])?{Version:"Previous gen"}:/series\s*s/.test(m[0])?{Version:"Current gen, digital"}:null}),
+ MB(/\b(nintendo\s*)?switch(\s*(oled|lite|2))?\b/,"Nintendo",m=>/lite/.test(m[0])?"Handheld game console":"e5",{label:m=>"Switch"+(m[2]?" "+pretty(m[2]):"")}),
+ MB(/\bsteam\s*deck\b/,"","Handheld game console",{label:"Steam Deck"}),
+ MB(/\brog\s*ally\b/,"ASUS","Handheld game console",{label:"ROG Ally"}),
+ MB(/\bgopro(\s*hero\s*\d+(\s*black)?|\s*max)?\b|\bhero\s*\d{1,2}\s*black\b/,"GoPro","GoPro / action camera",{label:m=>pretty(m[0].replace("gopro",""))}),
+ MB(/\b(dji\s*)?(mavic\s*\w*|phantom\s*\d|avata\s*\d?)\b|\bdji\s*(mini|air)\s*\d\w*(\s*pro)?\b/,"DJI","Camera drone",{label:m=>pretty(m[0].replace("dji",""))}),
+ MB(/\b(meta\s*|oculus\s*)?quest\s*(2|3s?|pro)\b|\boculus\b/,"Meta","VR headset"),
+ MB(/\bjbl\s*(charge|flip|boombox|xtreme|partybox|clip|go)(\s*\d+)?\b/,"JBL","e6",{spec:m=>/boombox|partybox/.test(m[0])?{Size:"Party-size"}:null}),
+ /* instruments */
+ MB(/\b(fender\s*)?(blues\s*junior|blues\s*jr|hot\s*rod\s*deluxe|hot\s*rod\s*deville|deluxe\s*reverb|twin\s*reverb)\b/,"Fender","m3",{spec:{Type:"Tube amp"}}),
+ MB(/\b(fender\s*)?(precision\s*bass|p\s*-?\s*bass|jazz\s*bass|j\s*-?\s*bass)\b/,"Fender","Bass guitar"),
+ MB(/\b(fender\s*)?(strat(ocaster)?|tele(caster)?|jazzmaster)\b/,"Fender","m2",{label:m=>/strat/.test(m[2])?"Stratocaster":/tele/.test(m[2])?"Telecaster":"Jazzmaster"}),
+ MB(/\b(gibson\s*)?(j\s*-?\s*45|hummingbird)\b/,"Gibson","m1"),
+ MB(/\b(gibson\s*)?(les\s*paul(\s*(standard|studio|custom|junior|special|classic|tribute))?|sg(\s*(standard|special|junior))?|es\s*-?\s*335|flying\s*v)\b/,"Gibson","m2",{label:m=>pretty(m[2]).replace(/^Sg/,"SG").replace(/^Es/,"ES")}),
+ MB(/\b(martin\s*)?(d\s*-?\s*(18|28|35|45|15m?|10e|x1e|x2e)|dx\s*-?\s*1\w*|000\s*-?\s*\d+\w*|lx1\w*)\b/,"Martin","m1",{loose:true}),
+ MB(/\b(taylor\s*)?([1-8]1[0-9]|[1-8][0-2]4)\s*(ce|e)\b|\btaylor\s*\d{3}\w*|\bgs\s*mini\w*\b|\bbig\s*baby\b/,"Taylor","m1"),
+ MB(/\b(boss\s*)?katana(\s*\w+)?\b/,"Boss","m3")
+];
+function modelHit(text,typedBrand){
+  for(const pass of[false,true]) for(const m of MODELBOOK){
+    if(!!m.loose!==pass)continue;
+    const mm=text.match(m.re); if(!mm)continue;
+    if(m.loose&&typedBrand&&m.brand&&typedBrand.toLowerCase()!==m.brand.toLowerCase())continue;
+    return {m,mm};
+  }
+  return null;
+}
+
+/* spec words typed anywhere → the matching picker button */
+const SPEC_AUTO=[
+ {g:"Gauge",re:/\b12\s*(ga|gauge|gage)\b/,o:"12 ga"},{g:"Gauge",re:/\b20\s*(ga|gauge|gage)\b/,o:"20 ga"},
+ {g:"Gauge",re:/\b16\s*(ga|gauge|gage)\b/,o:"16 ga"},{g:"Gauge",re:/\b28\s*(ga|gauge|gage)\b/,o:"28 ga"},
+ {g:"Gauge",re:/(^|\s)\.?410\b/,o:".410"},
+ {g:"Caliber",re:/\b(10\s*mm|45\s*-?\s*70|\.?357)\b/,o:"Desirable (10mm, .45-70…)"},
+ {g:"Caliber",re:/\b(9\s*mm|\.?223|5\.56|\.?308|30\s*-?\s*06|\.?243|6\.5|\.?270|\.?380|\.?45\s*acp|\.?40\s*s&w)\b/,o:"Common (9mm, .223, .308…)"},
+ {g:"Battery platform",re:/\b12\s*v\b|\bm12\b/,o:"12V"},{g:"Battery platform",re:/\b(18|20)\s*v\b|\bm18\b|\blxt\b|\bone\s*\+/,o:"18 / 20V"},
+ {g:"Battery platform",re:/\b(36|40|56|60|80)\s*v\b|\bflexvolt\b|\bxgt\b/,o:"36V+"},
+ {g:"Type",re:/\binverter\b/,o:"Inverter"},{g:"Drive",re:/\bself\s*-?\s*propelled\b/,o:"Self-propelled"},
+ {g:"Type",re:/\btube\b/,o:"Tube amp"},{g:"Orientation",re:/\b(left\s*-?\s*handed|lefty)\b/,o:"Left-handed"},
+ {g:"Type",re:/\bcellular\b/,o:"Cellular"},{g:"Cocking",re:/\bcrank\b/,o:"Crank-cocking"},
+ {g:"Title",re:/\bno\s*title\b/,o:"NO title"},{g:"Stroke",re:/\b2\s*-?\s*stroke\b/,o:"2-stroke"},
+ {g:"Stage",re:/\btwo\s*-?\s*stage\b/,o:"Two-stage"},{g:"Mount",re:/\bbow\s*mount\b/,o:"Bow mount"},
+ {g:"Pressure",re:/\b(3,?[2-9]\d{2}|[4-9],?\d{3})\s*psi\b/,o:"3,200 PSI +"},{g:"Pressure",re:/\b(1,?\d{3}|2,?[0-4]\d{2}|\d{3})\s*psi\b/,o:"Under 2,500 PSI"},
+ {g:"Screen size",re:/\b(6[6-9]|[7-9]\d|100)\s*(in|inch|")/,o:"66 in +"},{g:"Screen size",re:/\b(5\d|6[0-5])\s*(in|inch|")/,o:"50–65 in"},
+ {g:"Screen size",re:/\b(4[3-9])\s*(in|inch|")/,o:"43–49 in"},{g:"Screen size",re:/\b([12]\d|3\d|4[0-2])\s*(in|inch|")/,o:"Under 43 in"},
+ /* WHAT THE COUNTER ALREADY TYPED. Picking a suggestion fills in the make
+    and the model and then asked for things the same sentence had already
+    said: "remington 870 express 12 gauge 28 inch" answered the gauge and
+    still asked the barrel back; "stihl ms 271 20 inch bar" asked the bar
+    length. Every group below existed with no rule pointing at it.
+    Safe by construction: a rule only fires on a group that actually
+    carries the option it names, so a shotgun's inches cannot answer a
+    revolver's barrel question or a television's screen size. */
+ {g:"Barrel",re:/\b(3\d|[4-9]\d)\s*(in|inch|")/,o:"Extra-long (30 in +)"},
+ {g:"Barrel",re:/\b(2[4-8])\s*(in|inch|")/,o:"Field length (24\u201328 in)"},
+ {g:"Barrel",re:/\b(1[89]|20)\s*(in|inch|")/,o:"Short / home-defense (18\u201320 in)"},
+ {g:"Barrel",re:/\bsnub\b|\b2\s*(in|inch|")/,o:"Snub 2 in"},
+ {g:"Barrel",re:/\b([7-9]|1\d)\s*(in|inch|")/,o:"7 in + hunter"},
+ {g:"Barrel",re:/\b[3-6]\s*(in|inch|")/,o:"3\u20136 in"},
+ {g:"Bar length",re:/\b(19|[2-9]\d)\s*(in|inch|")/,o:"19 in +"},
+ {g:"Bar length",re:/\b(1[678])\s*(in|inch|")/,o:"16\u201318 in"},
+ {g:"Bar length",re:/\b(\d|1[0-5])\s*(in|inch|")/,o:"Under 16 in"},
+ {g:"Class",re:/\b(gaming|workstation|rgb)\b/,o:"Gaming / workstation"},
+ {g:"Version",re:/\bdigital\b/,o:"Current gen, digital"},
+ {g:"Version",re:/\bdisc\b/,o:"Current gen, disc"},
+ /* A model year, turned into whichever age band this item happens to use.
+    The bands differ - a phone ages faster than a tablet - so the label is
+    read off the group rather than written down twice. */
+ {g:"Age",re:/\b(19|20)\d{2}\b/,o:function(t,g){
+   var m=String(t).match(/\b((?:19|20)\d{2})\b/); if(!m)return null;
+   var yr=Number(m[1]), age=(new Date()).getFullYear()-yr;
+   if(age<0||age>40)return null;
+   var has=function(x){ return g.options.some(function(z){return z.t===x;})?x:null; };
+   if(age<2)return has("Under 2 yr, flagship-class")||has("Under 3 yr");
+   if(age<3)return has("2\u20133 yr")||has("Under 3 yr");
+   if(age<5)return has("3\u20135 yr")||has("3\u20136 yr");
+   if(age<6)return has("3\u20136 yr")||has("5 yr +");
+   return has("5 yr +")||has("6 yr +");
+ }}];
+const DETAIL_RE=[/\b(10|12|16|20|28)\s*(ga|gauge|gage)\b/g,/(^|\s)\.410(\s*(ga|gauge|bore))?\b/g,/\b410\s*(ga|gauge|bore)\b/g,
+ /\b\d{1,2}\s*mm\b/g,/\b(22\s*lr|22\s*mag|22\s*wmr|30\s*-?\s*06|45\s*-?\s*70|6\.5\s*(creedmoor|cm|prc)|300\s*(win\s*mag|blackout|blk|wsm|prc)|5\.56|7\.62\s*(x\s*39)?|9\s*x\s*19)\b/g,
+ /(^|\s)\.(17|22|223|243|25|257|270|30|308|32|35|357|38|380|40|44|45|50)\b(\s*(lr|wmr|mag|magnum|special|spl|acp|auto|win|rem|colt))?/g,
+ /\b\d{2}\s*v(olt)?s?\b/g,/\b\d+(\.\d+)?\s*kw\b/g,/\b\d{3,5}\s*(w|watts?)\b/g,/\b\d{1,3}\s*(in|inch)\b/g, /* one digit too: a revolver barrel is 2, 4 or 6 inches, and "4 inch" was being dropped before the spec matcher ever saw it *//\b\d+(\.\d+)?\s*hp\b/g,
+ /\b\d{2,4}\s*cc\b/g,/\b\d{1,2},?\d{3}\s*psi\b/g,/\b\d{1,2}\s*-\s*\d{1,2}\s*x\s*\d{0,2}\b/g,/\b\d{2,4}\s*(gb|tb)\b/g,/\b\d+\s*(ft|foot)\b/g,/\b\d+\s*lbs?\b/g,
+ /\b(19|20)\d{2}\b/g,/\b\d+\s*x\s*\d+\b/g,
+ /\b(inverter|cellular|self\s*-?\s*propelled|tube|left\s*-?\s*handed|lefty|crank|bow\s*mount|no\s*title|two\s*-?\s*stage|[24]\s*-?\s*stroke)\b/g];
+const COND_RE=[[/\b(new\s*in\s*box|nib|sealed|brand\s*new)\b/,"new"],[/\b(excellent|mint|like\s*new|barely\s*used)\b/,"exc"],
+ [/\b(good\s*(shape|condition))\b/,"good"],[/\b(fair|worn|heavy\s*wear)\b/,"fair"],
+ [/\b(rough|broken|needs\s*work|not\s*working|doesn\s*t\s*work|won\s*t\s*(start|run)|for\s*parts|parts\s*only)\b/,"rough"]];
+const INCOMPLETE_RE=/\b(missing\s*\w+|no\s*(battery|charger|case|mag|magazine)|bare\s*tool|tool\s*only)\b/;
+const STOP=new Set(["a","an","the","for","with","and","or","of","on","to","my","his","her","some","old","used","nice","w","w/","it","one","this","that","has","have","came","comes"]);
+/* Built from the jewellery brand book, so adding a maker there is enough. */
+const NAMED_JEWEL=new RegExp("\\b("+["Rolex","Cartier","Omega","Tiffany","Patek","Audemars","Van Cleef","Bulgari","David Yurman","Tudor","Breitling","Seiko","Citizen","Tissot","TAG","Longines","Movado","James Avery","Pandora","John Hardy","Kendra Scott","Swarovski","Fossil","Michael Kors","Invicta","Shinola","Hamilton","Bulova"]
+  .map(b=>b.toLowerCase().replace(/[^a-z0-9 ]/g,"")).join("|")+")\\b","i");
+const NOT_METAL=/\b(ring\s*(doorbell|camera|cam|light|alarm|security|video|floodlight)|(door|key|tow|snap|piston|boxing|lifting|split|o|d)\s*-?\s*rings?|ring\s*gear|coin\s*(op|operated|machine|laundry|counter|sorter)|silver\s*(bullet|lake)|gold\s*(gym|club\s*member))\b/;
+const METAL_RE=/\b(gold|silver|sterling|925|karat|carat|ring|rings|necklace|bracelet|earrings?|jewelry|jewellery|pendant|bullion|scrap|coin|coins|(10|14|18|22|24)\s*(k|kt|karat))\b/;
+
+function omniParse(q){
+  const raw=omniNorm(q);
+  const P={raw,brand:"",brandCats:[],modelLabel:"",modelItem:null,spec:{},detail:[],words:[],left:[],cond:null,complete:true,metal:null,karat:null,hints:[]};
+  if(!raw)return P;
+  let t=" "+raw+" ";
+  /* "bracelet" alone is metal on a scale. "tiffany bracelet" is not: the name
+     is most of what it is worth, and weighing it would under-value it badly.
+     A named maker from the jewellery book wins over the scale - unless the
+     karat is spelled out, which is someone weighing a marked piece. */
+  const byName=(NAMED_JEWEL.test(t)||/\b(diamond|engagement|bridal|solitaire|halo)\b/i.test(t))
+    &&!/\b(10|14|18|22|24)\s*(k|kt|karat)\b/.test(t);
+  /* "ring" and "coin" carry the scale page with them, which is right for a
+     class ring and wrong for a Ring doorbell or a coin-operated washer. The
+     compounds below are the item, not the metal in it. */
+  if(METAL_RE.test(t)&&!byName&&!NOT_METAL.test(t)){
+    P.metal=/silver|sterling|925/.test(t)?"silver":"gold";
+    const k=t.match(/\b(10|14|18|22|24)\s*(k|kt|karat)\b/); if(k)P.karat=k[1]+"k";
+  }
+  BRAND_ALIAS.forEach(([re,canon])=>{ if(re.test(t)&&t.indexOf(canon)<0)t=t.replace(re," "+canon+" "); });
+  for(const [re,c] of COND_RE){ if(re.test(t)){ P.cond=P.cond||c; t=t.replace(re," "); } }
+  if(INCOMPLETE_RE.test(t)){ P.complete=false; t=t.replace(INCOMPLETE_RE," "); }
+  const pre=findBrand(t);
+  const mh=modelHit(t,pre?pre.b.name:"");
+  if(mh){
+    const m=mh.m, mm=mh.mm;
+    P.modelItem=typeof m.item==="function"?m.item(mm):m.item;
+    let lbl=m.label!=null?(typeof m.label==="function"?m.label(mm):m.label)
+           :pretty(mm[0].replace(new RegExp(omniEsc((m.brand||"~").toLowerCase()),"g"),""));
+    P.modelLabel=String(lbl||"").trim();
+    const sp=typeof m.spec==="function"?m.spec(mm):m.spec; if(sp)Object.assign(P.spec,sp);
+    if(m.detail)P.detail.push(typeof m.detail==="function"?m.detail(mm):m.detail);
+    t=t.replace(mm[0]," ");
+    if(m.brand){ P.brand=m.brand; const be=brandEntry(m.brand); P.brandCats=be?be.cats:[]; }
+  }
+  const fb=findBrand(t);
+  if(fb){
+    const me=P.modelItem?findEntry(P.modelItem):null;
+    if(!me||!P.brand||fb.b.cats.some(c=>c.cat===me.catId)){ P.brand=fb.b.name; P.brandCats=fb.b.cats; }
+    t=t.replace(fb.b.re,"$1 ");
+  }
+  DETAIL_RE.forEach(re=>{ t=t.replace(re,(s)=>{ const v=s.trim(); if(v)P.detail.push(v); return " "; }); });
+  omniWords(t).forEach(w=>{
+    if(STOP.has(w))return;
+    if(OMNI_IDX.some(e=>wordHit(w,e.words)))P.words.push(w);
+    else if(!(P.metal&&METAL_RE.test(" "+w+" ")))P.left.push(w);
+  });
+  return P;
+}
+const WORD_END=/^(s|es|ed|ing|er|ers|s\u2019|'s)$/;
+function wordHit(tok,words){
+  let best=0;
+  for(const w of words){
+    if(w===tok)return 3;
+    if(tok.length>=3&&w.startsWith(tok))best=Math.max(best,2);
+    /* The typed word running past a catalog word is meant for word endings -
+       "chainsaws" reaching "chainsaw", "drills" reaching "drill". Any old
+       remainder let "cello" reach "cell" and put a Smartphone at the top of
+       the list for a musical instrument. Only real endings count. */
+    else if(tok.length>=4&&w.length>=4&&tok.startsWith(w)&&WORD_END.test(tok.slice(w.length)))best=Math.max(best,1);
+  }
+  return best;
+}
+const OMNI_MAX=16;
+function omniRows(q){
+  const P=omniParse(q), rows=[];
+  /* Did anything really match what was typed - a known model, a price-list
+     row, or an entry carrying every word? Brand-only listings do not count:
+     typing "apple airpods pro" lists what Apple things the catalog has,
+     which is how a projector ends up answering for earbuds. */
+  let strong=false;
+  if(P.raw.length<2)return {P,rows};
+  const model=[P.modelLabel].concat(P.modelLabel?[]:P.left.map(w=>pretty(w))).filter(Boolean).join(" ");
+  const KEEP=/^(impact|hammer|digital|pro|max|plus|lite|oled|slim|xl|compact|magnum)$/;
+  const detail=P.detail.concat(P.modelLabel?P.left:[]).concat(P.words.filter(w=>KEEP.test(w))).join(" ");
+  const base={brand:P.brand,model,detail,spec:P.spec,cond:P.cond,complete:P.complete};
+  /* Eight was too few once the price list started answering too: typing
+     "remington" spent five rows on models and had three left for the ten
+     kinds of firearm Remington makes, so lever-action, the AR, the .22, the
+     pistol, the revolver and the muzzleloader never appeared. The list
+     scrolls; the cap only needs to stop it running away. */
+  const add=(e,extra)=>{ if(!e||rows.length>=OMNI_MAX)return;
+    if(rows.some(r=>r.kind===e.kind&&r.name===e.name&&r.catId===e.catId))return;
+    rows.push(Object.assign({},e,base,extra||{})); };
+  if(P.metal&&!P.modelItem)rows.push({kind:"metal",metal:P.metal,karat:P.karat,q});
+  if(P.modelItem){ add(findEntry(P.modelItem),{strong:true}); strong=true; }
+  { const bw=omniWords(P.brand||"");
+    /* TYPING BOTH THE MAKER AND ITS LINE MUST NOT DEMAND BOTH IN THE NAME.
+       "fender squier" read Squier as the make, took it out of the words,
+       and then required "fender" to appear in the row name - so every
+       "Squier Affinity Stratocaster" was dropped by the word its own maker
+       is called. The same shape as the Xbox fault, one level down.
+       When the query names a line AND its parent, the parent is redundant:
+       the row is named after the line. */
+    const qw=omniWords(q);
+    const parentSaid=new Set();
+    for(const w of qw){ const par=MP_FAMILY[w]; if(par&&qw.indexOf(par)>=0)parentSaid.add(par); }
+    const mq=qw.filter(w=>!STOP.has(w)&&bw.indexOf(w)<0&&!parentSaid.has(w));
+    /* The brand words come out so that "husqvarna 455" is matched on 455
+       rather than made to carry the brand into every comparison. When the
+       brand is ALL that was typed there is nothing left to search with, and
+       this step used to be skipped - so typing the whole brand showed fewer
+       models than typing half of it. With nothing left, search the brand. */
+    /* When every word was a brand word, the search falls back to the brand.
+       But the brand book's own label can be richer than the row name - the
+       music shelf calls it "Fender Squier", while the rows are named
+       "Squier Affinity Stratocaster". Requiring both words drops them all.
+       So the fallback keeps the LINE and lets the parent go. */
+    const bwKeys=bw.filter(w=>!parentSaid.has(w));
+    const keys=mq.length?mq:(bwKeys.length?bwKeys:bw);
+    if(keys.length){
+      const r0=rows[0], strongId=r0&&r0.strong?((mpFor(r0.kind==="item"?r0.itemId:r0.name,[r0.brand,r0.model,r0.detail].join(" "))||[])[0]):null;
+      /* These rows are measured prices for a NAMED tool, and the maker is
+         most of what they are worth. Nothing here compared that maker to
+         the one typed, so "milwaukee drill" put the DeWalt row on top with
+         the Milwaukee row third - $65-110 offered for a tool the desk's
+         own row prices at $150-220. "black & decker drill" was handed a
+         DeWalt (+40%), and "john deere mower" a Honda, which is not even
+         the same kind of machine.
+         A row carrying a maker the counter did not type is a different
+         product, so it is dropped rather than demoted - the plain catalog
+         row underneath answers properly, and reads the typed make itself.
+         Rows that name no maker are left alone; so is a query that names
+         none. */
+      const qb=omniNorm(P.brand||"");
+      const rowBrand=r=>{ const e=findEntry(String(r[1]).split("|")[0]);
+        const h=e?brandInText(e.catId,r[2]):null; return h?omniNorm(h.name):""; };
+      MODEL_PRICES.map(r=>{ const nw=omniWords(r[2]); let s=0; for(const w of keys){ const h=wordHit(w,nw); if(!h)return null; s+=h; } if(omniNorm(r[2]).indexOf(omniNorm(q))>=0)s+=5;
+          if(qb){ const rb=rowBrand(r);
+            if(rb&&!sameMaker(rb,qb))return null;
+            if(rb)s+=6; }
+          return {r,s}; })
+        .filter(Boolean).sort((a,b)=>b.s-a.s||a.r[2].length-b.r[2].length).slice(0,5)
+        .forEach(({r})=>{ if(rows.length>=OMNI_MAX||r[0]===strongId)return; const e=findEntry(String(r[1]).split("|")[0]); if(!e)return;
+          rows.push(Object.assign({},e,{kind:"mp",base:e.kind,mp:r,brand:"",model:"",detail:"",spec:{},cond:P.cond,complete:P.complete}));   strong=true; });
+    } }
+  const inBrand=e=>P.brandCats.some(c=>c.cat===e.catId&&(!c.items||c.items.indexOf(e.kind==="item"?e.itemId:e.name)>=0));
+  if(P.words.length){
+    let sc=[];
+    const score=(e,and)=>{ let s=0; for(const w of P.words){ const h=wordHit(w,e.words); if(!h&&and)return 0; s+=h; } return s; };
+    /* The maker is taken out of the words before scoring, so on "seiko watch"
+       only "watch" is left and the two watch rows tie - and the tie-break,
+       shorter name first, handed a Seiko to the luxury row. An entry that
+       names the maker itself is the better answer. */
+    const brandW=omniWords(P.brand||"");
+    const namesBrand=e=>brandW.length&&brandW.some(w=>wordHit(w,e.words)>=2);
+    OMNI_IDX.forEach(e=>{ const s=score(e,true); if(s)sc.push({e,s:s+(inBrand(e)?3:0)+(namesBrand(e)?4:0)+(e.kind==="item"?.5:0)}); });
+    /* Nothing matched every word, so fall back to matching any of them - but
+       remember that we did. A loose match is how "airpods pro" reaches
+       Projector on the strength of three letters, and it must not sit above
+       the words the counter actually typed. */
+    /* The parser hands this pass only what is left after the brand and the
+       model are taken out, so a match here can rest on one generic noun:
+       "skil band saw bw9501" arrives as "saw" and lands on Tile saw, having
+       quietly dropped "band". A match counts as strong only if the entry
+       carries every distinguishing word - or if the parser recognised a model
+       and therefore understood the whole thing. */
+    if(sc.length){
+      const bw=omniWords(P.brand||"");
+      /* A word the parser already PLACED is not a word the entry has to
+         carry. "samsung 55 inch tv" was built from the raw query, so 55
+         and inch counted as unmatched, the TV row was called a miss and
+         "not on the lists" went above it - on the commonest thing in the
+         shop, and the make was dropped along with the row. The TV row is
+         named "any size" and asks the screen size itself; the size is an
+         answer to that question, not evidence of a different item. */
+      const placed=omniWords(P.detail.join(" ")+" "+Object.values(P.spec||{}).join(" "));
+      const need=omniWords(q).filter(w=>!STOP.has(w)&&bw.indexOf(w)<0&&placed.indexOf(w)<0);
+      const top=sc.slice().sort((a,b)=>b.s-a.s)[0].e;
+      strong=!!P.modelLabel||!need.length||need.every(w=>wordHit(w,top.words));
+    }
+    else OMNI_IDX.forEach(e=>{ const s=score(e,false); if(s)sc.push({e,s:s+(inBrand(e)?3:0)}); });
+    sc.sort((a,b)=>b.s-a.s||a.e.name.length-b.e.name.length).forEach(x=>add(x.e));
+  } else if(P.brandCats.length&&!P.modelItem){
+    (BRAND_FIRST[P.brand.toLowerCase()]||[]).forEach(ref=>add(findEntry(ref)));
+    const order={hi:0,mid:1,lo:2};
+    const only=BRAND_ONLY[String(P.brand||"").toLowerCase()];
+    P.brandCats.slice().sort((a,b)=>order[a.tier]-order[b.tier]).forEach(c=>{
+      if(c.items)c.items.forEach(ref=>add(findEntry(ref)));
+      else if(only)only.forEach(ref=>add(findEntry(ref)));
+      else OMNI_IDX.filter(e=>e.kind==="item"&&e.catId===c.cat).forEach(e=>add(e));
+    });
+  } else if(!P.modelItem&&P.detail.length){
+    const d=P.detail.join(" "), refs=[];
+    if(/ga|gauge|gage|410/.test(d))refs.push("g1","g2","Single-shot shotgun");
+    else if(/mm|\.\d|lr|acp|magnum|special|5\.56|30\s*-?\s*06|creedmoor|blackout/.test(d))refs.push("g7","g8","g3","g5","g6");
+    if(/\d\s*v\b|volt/.test(d))refs.push("t1","t2","t3");
+    if(/kw|\d\s*w\b|watt|inverter/.test(d))refs.push("p7","Inverter generator — 2kW");
+    if(/\d\s*(in|inch)\b/.test(d))refs.push("e1");
+    if(/hp\b/.test(d))refs.push("h9");
+    if(/cc\b/.test(d))refs.push("r2","Dirt bike");
+    refs.forEach(r=>add(findEntry(r)));
+  }
+  if(!rows.some(r=>r.kind==="item"||r.kind==="book")&&P.brandCats.length){
+    const cat=P.brandCats[0].cat;
+    rows.push(Object.assign({kind:"custom",catId:cat,name:pretty(q).slice(0,60)},base,{model:""}));
+  }
+  const guns=rows.length?rows.some(r=>r.catId==="guns")&&rows.filter(r=>r.catId&&r.catId!=="guns").length===0:false;
+  const qq=String(q).trim().slice(0,100);
+  rows.push({kind:"sold",q:qq,guns,url:guns?"https://www.gunbroker.com/All/search?Keywords="+encodeURIComponent(qq):watchCountUrl(qq)});
+  /* Whatever was typed is always something the counter can price. No button
+     for it: type, and either the catalog has it or those words become the
+     item. It goes above the matches when they are only loose ones, since a
+     wrong category is worse than no category. */
+  { const t=String(q||"").trim();
+    if(t.length>=3&&!P.metal){
+      const own={kind:"own",q:t.slice(0,60)};
+      const before=rows.findIndex(r=>r.kind==="sold");
+      rows.splice(strong?(before<0?rows.length:before):0,0,own);
+    } }
+  return {P,rows};
+}
+
+function isTouch(){ try{ return matchMedia("(pointer:coarse)").matches; }catch(e){ return false; } }
+function omniHintHTML(){
+  /* The box holds what was chosen now, so this stopped saying it twice. */
+  if(st.omniDone)return `Follow <b>Next step</b> below. Type here again to price something else.`;
+  /* The desk lists the same four examples as buttons directly underneath
+     now, so naming them here printed them twice - once as something to
+     press and once as something to copy out by hand. The phone has no
+     buttons, so it keeps the words. */
+  if(!window.PHONE)return isTouch()?"":`Just start typing &mdash; the box takes focus on its own.`;
+  return `Try <b>${esc(START_TRY[0])}</b>, <b>${esc(START_TRY[1])}</b>, <b>${esc(START_TRY[4])}</b> or <b>${esc(START_TRY[5])}</b>.`;
+}
+const SEARCH_SVG=`<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="var(--accent-ink)" stroke-width="2.6"/><path d="M15.5 15.5L21 21" stroke="var(--accent-ink)" stroke-width="2.6" stroke-linecap="round"/></svg>`;
+function omniHTML(){
+  return `<div class="omni" id="omni"><div class="omniWrap">
+    <div class="omniBox">${SEARCH_SVG}<input id="omniIn" type="text" inputmode="search" enterkeyhint="search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+      placeholder="What's on the counter? Type a brand, model or item" value="${esc(st.omniQ||"")}" aria-label="Search items" aria-controls="omniList" aria-expanded="false"><button class="omniClr" id="omniClr" type="button" aria-label="Clear the search">&times;</button></div>
+    <div class="omniList" id="omniList" role="listbox" hidden></div></div>
+    <div class="omniHint" id="omniHint">${omniHintHTML()}</div></div>`;
+}
+let omniRowsCache=[];
+function omniRowHTML(r,i){
+  const hl=i===st.omniHl?" hl":"";
+  if(r.kind==="own")return `<button type="button" class="omniRow${hl}" data-omni="${i}" role="option"><span class="ot"><span class="on1">Price &ldquo;${esc(r.q)}&rdquo;</span><span class="on2">not on the lists &mdash; pick what kind of thing it is, then what it sells for</span></span><span class="ov">&rsaquo;</span></button>`;
+  if(r.kind==="mp")return `<button type="button" class="omniRow${hl}" data-omni="${i}" role="option"><span class="ot"><span class="on1">${esc(r.mp[2])}</span><span class="on2">${esc(r.name)} &middot; resale value from ${esc(srcName(r.mp[7]))}, ${esc(fmtDay(r.mp[6]))}</span></span><span class="ov">${money(r.mp[3])}&ndash;${money(r.mp[4])}<small>resale</small></span></button>`;
+  if(r.kind==="metal")return `<button type="button" class="omniRow${hl}" data-omni="${i}" role="option"><span class="ot"><span class="on1">Gold &amp; silver &mdash; price it by weight</span><span class="on2">${r.metal==="silver"?"Sterling .925":esc(r.karat||"Gold")} &middot; opens the scale-and-spot page</span></span><span class="ov">&rsaquo;</span></button>`;
+  if(r.kind==="sold")return `<a class="omniRow sold${hl}" data-omni="${i}" role="option" href="${esc(r.url)}" target="_blank" rel="opener" referrerpolicy="no-referrer"><span class="ot"><span class="on1">Check sold prices for &ldquo;${esc(r.q)}&rdquo;</span><span class="on2">${r.guns?"GunBroker &mdash; tick Completed":"WatchCount &mdash; eBay sold"} &middot; opens a new tab</span></span><span class="ov">&#8599;</span></a>`;
+  const cat=CATLABEL[r.catId]||"";
+  const who=[r.brand,r.model].filter(Boolean).join(" ");
+  const head=r.strong&&who?who:r.name;
+  const bits=[];
+  if(r.strong&&who)bits.push(r.name); else if(who)bits.push(who);
+  bits.push(cat);
+  if(r.detail)bits.push(r.detail);
+  const mp=(r.kind==="item"||r.kind==="book")?mpFor(r.kind==="item"?r.itemId:r.name,[r.brand,r.model,r.detail,r.kind==="book"?r.name:""].join(" ")):null;
+  if(r.kind==="book")bits.push("price book");
+  if(r.kind==="custom")bits.push("not on any list &mdash; you set the price");
+  /* The column always says something. A price means the desk has a
+     researched figure for this one; "you set it" means it knows the KIND
+     of thing and the number comes out of the run. Leaving the slot empty
+     on the second sort made the difference an absence, and an absence is
+     not something you can scan a list for. */
+  const val=mp
+    ? `<span class="ov">${money(mp[3])}&ndash;${money(mp[4])}<small>resale</small></span>`
+    : `<span class="ov none">&mdash;<small>you set it</small></span>`;
+  return `<button type="button" class="omniRow${hl}" data-omni="${i}" role="option"><span class="ot"><span class="on1">${esc(head)}</span><span class="on2">${bits.map(b=>b.indexOf("&mdash;")>=0?b:esc(b)).join(" &middot; ")}</span></span>${val}</button>`;
+}
+/* Which row, if any, Enter should take. Typing a brand is not choosing a
+   model: "husq" brings up four Husqvarnas and arming the first of them makes
+   a backpack blower look like something already picked - the same thing the
+   old shotgun default did. So a row is armed only when the typing actually
+   points at one: a model number, or a single thing on the list that matches.
+   Otherwise nothing is highlighted and the arrows are there to choose with. */
+function omniArm(rows,q){
+  const isPick=r=>!!r&&(r.kind==="item"||r.kind==="book"||r.kind==="mp"||r.kind==="metal"||r.kind==="custom");
+  const first=rows.findIndex(isPick); if(first<0)return -1;
+  if(/\d/.test(q))return first;
+  return rows.filter(isPick).length===1?first:-1;
+}
+function omniShow(){
+  const list=document.getElementById("omniList"), inp=document.getElementById("omniIn"); if(!list||!inp)return;
+  const q=st.omniQ||"";
+  if(q.trim().length<2){ list.hidden=true; inp.setAttribute("aria-expanded","false"); omniRowsCache=[]; return; }
+  const rows=omniRows(q).rows; omniRowsCache=rows;
+  if(st.omniHl===null)st.omniHl=omniArm(rows,q);
+  if(st.omniHl>=rows.length)st.omniHl=omniArm(rows,q);
+  const real=rows.some(r=>r.kind!=="sold");
+  list.innerHTML=(real?"":`<div class="omniEmpty">Nothing on the lists or in the price book for that. Pick a category on the left and tap <b>Not on any list</b>, or see what it sold for:</div>`)
+    +rows.map(omniRowHTML).join("");
+  list.hidden=false; inp.setAttribute("aria-expanded","true");
+  list.querySelectorAll("[data-omni]").forEach(el=>{
+    el.onmousedown=e=>e.preventDefault();
+    el.onclick=e=>{
+      const r=omniRowsCache[Number(el.dataset.omni)]; if(!r)return;
+      if(r.kind==="sold"){ pasteTo="shot"; setTimeout(()=>{ list.hidden=true; },0); return; }
+      e.preventDefault(); omniPick(r);
+    };
+  });
+}
+function omniHlPaint(){
+  const list=document.getElementById("omniList"); if(!list)return;
+  list.querySelectorAll("[data-omni]").forEach(el=>{ const on=Number(el.dataset.omni)===st.omniHl; el.classList.toggle("hl",on); if(on&&el.scrollIntoView)el.scrollIntoView({block:"nearest"}); });
+}
+function applySpecPicks(spec,text){
+  const groups=SPEC_CHOICES[st.itemId]; if(!groups)return;
+  const t=" "+omniNorm(text)+" ";
+  groups.forEach((g,gi)=>{
+    let want=spec&&spec[g.label];
+    if(want&&!g.options.some(o=>o.t===want))want=null;
+    if(!want)for(const r of SPEC_AUTO){
+      if(r.g!==g.label||!r.re.test(t))continue;
+      /* A year is not a fixed answer - 2023 means a different band every
+         January - so an entry may compute its label from what was typed. */
+      const o=(typeof r.o==="function")?r.o(t,g):r.o;
+      if(o&&g.options.some(z=>z.t===o)){want=o;break;}
+    }
+    if(!want)return;
+    const oi=g.options.findIndex(o=>o.t===want); if(oi>=0)st.specSel[st.itemId+":"+gi]=oi;
+  });
+}
+/* Back to an empty counter. Everything about the thing being priced goes -
+   what it is, what it is worth, its condition, the fake-check answers, the
+   asking price. What belongs to the shop stays: the rates, the shelf record,
+   the listings, the deal log, and the service this device is connected to. */
+function startOver(){
+  st.omniQ=""; st.omniDone=""; st.omniHl=null;
+  st.mode="item";                 /* from the scale too, not just the item page */
+  st.picked=false; st.bookName=""; st.brandTyped="";st.brandQ=""; st.model=""; st.detail="";
+  st.brand="mid"; st.brandSet=false; st.liq=null; st.market=null; st.mpPin=null; st.mpNone=false;
+  st.cond="good"; st.condSet=false; st.complete=true;st.completeSet=false;st.struck="";st.askEdit=false; st.specSel={}; st.editing=false;
+  st.ask=0; st.askKey=""; st.ticket=""; st.needKind=false; st.photoRead=null; st.compRead=null;
+  st.fakeAns={}; st.fakeKey=""; st.stepAt=0; st.openS3=st.openS4=st.openS5=false;
+  photoFile=null; findMsg="";
+  render();
+  const o=document.getElementById("omniIn"); if(o)o.focus();
+}
+/* PICKING SOMETHING ENDS THE TYPING.
+   Reported from the counter: "when I'm typing in the top text box then
+   select something from the drop down or hit enter, it should no longer
+   let me type in that text box - it should complete the typing unless I
+   click back into it."
+   The box gives up the focus here, and the list closes with it. That half
+   is easy. The half that actually mattered is below, on the document-wide
+   "start typing anywhere" handler - letting go of the focus achieves
+   nothing while the next keystroke hands it straight back, which is why
+   the state looked right and the keyboard still did the wrong thing.
+   I had a guard in render() here too, on the theory that its focus-restore
+   would undo this. It would not: this blur runs BEFORE that render, so the
+   restore sees an unfocused box and does nothing. Taking the fix out one
+   piece at a time is what showed it was dead, and dead code with a comment
+   claiming it matters is worse than none. Clicking back into the box works
+   exactly as before. */
+function omniPick(r){
+  if(!r||r.kind==="sold")return;
+  { const i=document.getElementById("omniIn"), l=document.getElementById("omniList");
+    if(i){ try{ i.blur(); }catch(e){} i.setAttribute("aria-expanded","false"); }
+    if(l)l.hidden=true; }
+  if(r.kind==="own"){
+    /* Before anything else: if the words name a make the desk knows, and
+       only one aisle carries it, that is the aisle. */
+    const g=guessCat(r.q);
+    if(g)st.catId=g;
+    st.omniQ=r.q; st.omniHl=0; st.mode="item";
+    /* Before settling for a custom row, see whether the make names the
+       thing: a Tactacam is a trail camera, a Mathews is a compound bow, a
+       Minn Kota is a trolling motor. Landing on the real item brings its
+       own brand tiers, its own detail hint and the book rows filed under
+       it - all of which a custom row has none of. */
+    const kindFromMake=g?itemFromBrand(g,r.q):null;
+    st.itemId=kindFromMake||custId(st.catId);
+    st.bookName=kindFromMake?"":r.q;
+    st.mpNone=!kindFromMake;
+    const bh=g?brandFromName(g,r.q):null;
+    st.brandTyped=bh?bh.name:""; st.brandQ=st.brandTyped; st.brand=bh?bh.tier:"mid"; st.brandSet=!!bh;
+    st.model=""; st.detail=""; st.liq=null; st.market=null;
+    /* The lookup's last word belongs to the item it was about. Left set, the
+       rail told the counter about listings on file for the thing before. */
+    findMsg="";
+    st.mpPin=null; st.condSet=false; st.phKindsOpen=true; st.omniDone=r.q;
+    /* A guess that came off a make the desk actually carries is not a
+       silent one - the aisle shows in the breadcrumb and the make step
+       shows the maker it was read from, which is the evidence for it. Only
+       when the words say nothing does the run stop and ask. */
+    st.needKind=!g;
+    render();
+    const k=document.querySelector(".phKinds"); if(k&&k.scrollIntoView)k.scrollIntoView({block:"center"});
+    return;
+  }
+  if(r.kind==="mp"){ const row=r.mp; omniPick(Object.assign({},r,{kind:r.base,model:row[2]})); st.mpPin={id:row[0],model:st.model}; render(); return; }
+  st.omniQ=""; st.omniHl=0;
+  if(r.kind==="metal"){
+    st.mode="metal";
+    /* Arriving from words that name bullion - "silver eagle", "krugerrand" -
+       starts on the coin check rather than making the counter say so. */
+    const bl=FAKES&&FAKES.sheets.find(z=>z.id==="bullion");
+    if(bl){ const t=" "+String(r.q||st.omniQ||"").toLowerCase()+" ";
+      st.metalKind=bl.match.some(w=>t.indexOf(w)>=0)?"bullion":"jewelry"; }
+    if(st.metal!==r.metal){ st.metal=r.metal; st.payTouched=false; st.loanTouched=false; }
+    if(r.metal==="gold"&&r.karat&&PURITY.some(p=>p.k===r.karat))st.karat=r.karat;
+    st.omniDone=""; render(); return;
+  }
+  st.mode="item"; st.catId=r.catId; st.bookQ="";
+  if(r.kind==="item"){ st.itemId=r.itemId; st.bookName=""; st.liq=null; }
+  else if(r.kind==="book"){ st.itemId=custId(r.catId); st.bookName=r.name;
+    st.overrides[custId(r.catId)]=bookVal([r.name,r.value,r.catId,r.liq]); st.liq=r.liq; persist(); }
+  else { st.itemId=custId(r.catId); st.bookName=r.name; st.liq=null; }
+  st.needKind=false;
+  /* Same rule one path over: when the matched row carries no make of its
+     own, read one out of what was actually typed before settling for the
+     standard tier. */
+  st.brandTyped=r.brand||"";
+  st.brandSet=false;
+  let hit=st.brandTyped?brandLookup(st.catId,st.brandTyped):null;
+  if(!hit){
+    const fromWords=brandFromName(st.catId,String(r.q||st.omniQ||r.name||""));
+    if(fromWords){ hit=fromWords; st.brandTyped=fromWords.name; st.brandSet=true; }
+  }
+  st.brand=hit?hit.tier:"mid";
+  st.model=r.model||""; st.detail=r.detail||"";
+  st.complete=r.complete!==false; st.completeSet=true;
+  if(r.cond)st.cond=r.cond;
+  st.specSel={}; applySpecPicks(r.spec,st.detail+" "+st.model);
+  st.editing=(r.kind==="custom");
+  st.photoRead=null; st.compRead=null; st.market=null; st.mpPin=null; st.mpNone=false; st.condSet=!!r.cond; if(!r.cond)st.cond="good";
+  findMsg="";   /* the last lookup's word belonged to the last item */
+  /* Leave the chosen thing in the box. Emptying it and saying underneath what
+     was filled in meant reading a sentence to learn what the box could have
+     just shown. Clicking it selects the lot, so typing still replaces. */
+  st.omniQ=[r.brand||"",r.model||"",r.name||""].map(t=>String(t).trim()).filter(Boolean).join(" ").slice(0,80);
+  st.omniDone=[r.brand,r.model,r.name].filter(Boolean).join(" ");
+  /* LAND ON THE FIRST THING IT DOES NOT KNOW.
+     Picking "dewalt dcd791 drill" out of the box opened on "1 of 7 - What
+     make is it?" with DeWalt already read off the name, and a wheelbarrow
+     opened on a make question it does not even ask for. The strip beside
+     it said what was actually outstanding while the run marched from the
+     top through everything it had already worked out.
+     The answered ones are still there - the dots reach them, Back reaches
+     them, a make read off a name can still be overruled - they are just
+     not where the run starts. */
+  st.askAt=firstOpenAsk(calcItem());
+  render();
+  try{ autoPriceOnPick(); }catch(e){}
+  if(st.editing){ const vi=document.getElementById("valIn"); if(vi)vi.focus(); }
+  else if(!matchMedia("(min-width:1080px)").matches){ const c=document.getElementById("nextStep")||document.querySelector(".colC"); if(c&&c.scrollIntoView)c.scrollIntoView({behavior:"smooth",block:"start"}); }
+}
+function wireOmni(){
+  const inp=document.getElementById("omniIn"); if(!inp)return;
+  inp.oninput=()=>{
+    st.omniQ=inp.value; st.omniHl=null;   /* omniShow decides what, if anything, is armed */
+    if(st.omniDone){ st.omniDone=""; const h=document.getElementById("omniHint"); if(h)h.innerHTML=omniHintHTML(); }
+    omniShow();
+  };
+  inp.onfocus=()=>{ if(st.omniDone||!st.omniQ)inp.select(); omniShow(); };
+  inp.onblur=()=>setTimeout(()=>{ const l=document.getElementById("omniList"), i2=document.getElementById("omniIn");
+    if(l&&document.activeElement!==i2){ l.hidden=true; if(i2)i2.setAttribute("aria-expanded","false"); } },150);
+  inp.onkeydown=e=>{
+    const n=omniRowsCache.length, list=document.getElementById("omniList"), open=list&&!list.hidden;
+    const hl=st.omniHl==null?-1:st.omniHl;
+    if(e.key==="ArrowDown"&&open&&n){ e.preventDefault(); st.omniHl=hl<0?0:(hl+1)%n; omniHlPaint(); }
+    else if(e.key==="ArrowUp"&&open&&n){ e.preventDefault(); st.omniHl=hl<0?n-1:(hl-1+n)%n; omniHlPaint(); }
+    else if(e.key==="Enter"&&open&&n){
+      e.preventDefault();
+      /* Nothing armed: Enter highlights rather than picks, so a brand name
+         cannot become an item by reflex. A second Enter takes it. */
+      if(hl<0){ st.omniHl=0; omniHlPaint(); return; }
+      const r=omniRowsCache[hl];
+      if(r&&r.kind==="sold"){ const a=list.querySelector('[data-omni="'+hl+'"]'); if(a)a.click(); } else omniPick(r);
+    }
+    else if(e.key==="Escape"){ if(inp.value){ st.omniQ=""; inp.value=""; omniShow(); } else inp.blur(); }
+  };
+  const clr=document.getElementById("omniClr");
+  /* With something priced, the X was clearing the words and leaving the item,
+     its price, its condition and its checks standing - so there was no way
+     back to a clean start short of reloading. It clears the deal now. */
+  if(clr){ clr.onmousedown=e=>e.preventDefault();
+    clr.onclick=()=>{ st.omniQ=""; inp.value=""; if(st.picked)startOver(); else { inp.focus(); omniShow(); } }; }
+}
+/* on a computer: start typing anywhere on the START page and it lands in
+   the search bar.
+   ONLY the start page. It used to be the whole item page, and that is the
+   real reason the box went on taking letters after a pick: releasing the
+   focus was not enough, because the next keystroke handed it straight
+   back. Reported from the counter - "it should no longer let me type in
+   that text box, it should complete the typing unless I click back into
+   it" - and the feature only ever made sense on an empty screen, where
+   the box is the single thing to do. With something on the counter the
+   counter is answering questions, and a stray letter belongs nowhere near
+   the search. The screen already says so: "Type here again to price
+   something else."
+   "/" still works either way, because that is a deliberate reach for the
+   search rather than an accident. */
+document.addEventListener("keydown",e=>{
+  if(st.mode!=="item"||e.ctrlKey||e.metaKey||e.altKey||e.isComposing)return;
+  const a=document.activeElement;
+  if(a&&(a.tagName==="INPUT"||a.tagName==="TEXTAREA"||a.tagName==="SELECT"||a.isContentEditable))return;
+  if(document.getElementById("camModal"))return;
+  const inp=document.getElementById("omniIn"); if(!inp)return;
+  if(e.key==="/"){ e.preventDefault(); inp.focus(); return; }
+  if(st.picked)return;
+  if(e.key.length===1&&/\S/.test(e.key)){ inp.focus({preventScroll:true}); try{ const n=inp.value.length; inp.setSelectionRange(n,n); }catch(x){} }
+});
+
+/* ================= SOLD-PRICE SCREENSHOTS =================
+   The page can't reach WatchCount, eBay or GunBroker: it is sandboxed and
+   those sites block automated readers. So the counter screenshots the sold
+   results and drops them here. Claude only reads the listings off the
+   picture; the low / middle / high math happens on this page. */
+let shotFiles=[], shotBusy=false, shotCtl=null, pasteTo="shot";
+const IMG_OK=["image/jpeg","image/png","image/webp","image/gif"];
+function imgAccept(){ const t=CAP.imgLimits&&CAP.imgLimits.mediaTypes; return (t&&t.length?t:IMG_OK).join(","); }
+function shotMax(){ const n=CAP.imgLimits&&CAP.imgLimits.maxCount; return Math.max(1,Math.min(4,n||4)); }
+/* Every phone photo is shrunk before it is sent, and that is not a nicety.
+
+   This used to hand anything under 15MB straight through. A modern phone
+   takes 3-12MB pictures; base64 adds a third; the service stops reading at
+   8MB and kills the connection, so the browser saw a dead socket rather than
+   an answer and reported that it could not reach the service at all. A photo
+   read failed while a price search from the same phone worked, because a
+   search sends no picture.
+
+   Nothing is lost by shrinking. Claude never sees more than 2576px on the
+   long edge - anything past that is discarded at the far end after being
+   paid for in upload time on a phone signal. 2600px at quality 0.85 lands
+   around half a megabyte. */
+/* A pixel cap alone is not enough: something between a phone and the service
+   can refuse a body over a few hundred KB, and a 2600px photo of a detailed
+   scene sails past that. So shrink to a BYTE budget, stepping the quality and
+   then the size down until it fits. 380KB encodes to about 500KB of base64,
+   which is comfortably inside what was measured to get through. */
+/* The byte budget above was set for a phone on a cell signal at a yard sale,
+   and it was the right call there. On the desk it was throttling the tool by
+   forty times: the service accepts an 8MB body, and the page was shrinking
+   every photograph to fit 200KB - which on a busy shot means stepping the
+   ladder down to about 1500px. Claude can see 2576, so half the detail in a
+   model plate was being thrown away before it was ever sent.
+
+   So the budget forks. A real desk - no touch screen, not the phone page -
+   gets 1.5MB, which at 2576px lands on the first rung of the ladder and
+   sends the picture at full size. Everything else keeps the tight budget,
+   because a tablet in the yard is still a tablet in the yard.
+
+   The cap comes down from 2600 to 2576 on both. Nothing is lost: the far end
+   discards anything past 2576 anyway, and the extra 24px were paid for in
+   upload time and then thrown away. */
+const IMG_MAX_EDGE=2576;
+function imgDesk(){ try{ return !window.PHONE && !isTouch(); }catch(e){ return false; } }
+function imgMaxBytes(){ return imgDesk()?1.5e6:200e3; }
+async function normImage(f){
+  const IMG_MAX_BYTES=imgMaxBytes();
+  try{
+    /* from-image so a picture taken sideways arrives the right way up. */
+    let b=null;
+    try{ b=await createImageBitmap(f,{imageOrientation:"from-image"}); }
+    catch(e){ b=await createImageBitmap(f); }
+    const big=Math.max(b.width,b.height);
+    if(big<=IMG_MAX_EDGE&&f.size<=IMG_MAX_BYTES&&IMG_OK.indexOf(f.type)>=0)return f;
+    /* Wider steps first (quality is cheap), then narrower (pixels cost more).
+       Stops at the first that fits, so a clean photo keeps its detail and only
+       a busy one gets cut down. */
+    const steps=[[IMG_MAX_EDGE,0.85],[2000,0.8],[1800,0.75],[1600,0.7],[1400,0.65],[1200,0.6],[1000,0.55],[800,0.5]];
+    let best=null;
+    for(const [edge,q] of steps){
+      const k=Math.min(1,edge/big);
+      const c=document.createElement("canvas");
+      c.width=Math.max(1,Math.round(b.width*k)); c.height=Math.max(1,Math.round(b.height*k));
+      c.getContext("2d").drawImage(b,0,0,c.width,c.height);
+      const out=await new Promise(r=>c.toBlob(r,"image/jpeg",q));
+      if(!out)continue;
+      best=out;
+      if(out.size<=IMG_MAX_BYTES)break;
+    }
+    return best?new File([best],"image.jpg",{type:"image/jpeg"}):f;
+  }catch(e){ return f; }
+}
+/* Claude sees each picture at about 1.2 megapixels. A tall phone screenshot
+   or a wide monitor shrinks until the prices blur, so cut big ones into
+   overlapping bands, top to bottom, and send the bands. */
+async function prepShots(files){
+  const max=Math.max(1,(CAP.imgLimits&&CAP.imgLimits.maxCount)||4), metas=[];
+  for(const f of files){ let bmp=null; try{ bmp=await createImageBitmap(f); }catch(e){}
+    metas.push({f,bmp,want:bmp?Math.max(1,Math.ceil(bmp.width*bmp.height/1.3e6)):1,need:1}); }
+  let left=max-metas.length, gave=true;
+  while(left>0&&gave){ gave=false;
+    metas.slice().sort((a,b)=>(b.want-b.need)-(a.want-a.need)).forEach(m=>{ if(left>0&&m.need<m.want){ m.need++; left--; gave=true; } }); }
+  const out=[];
+  for(const m of metas){
+    if(!m.bmp||m.need<=1){ out.push(m.f); continue; }
+    const W=m.bmp.width,H=m.bmp.height,k=m.need,band=Math.ceil(H/k),ov=Math.round(band*0.08)+16;
+    for(let i=0;i<k;i++){
+      const y0=Math.max(0,i*band-ov), y1=Math.min(H,(i+1)*band+ov), h=y1-y0;
+      const c=document.createElement("canvas"); c.width=W; c.height=h;
+      c.getContext("2d").drawImage(m.bmp,0,y0,W,h,0,0,W,h);
+      const b=await new Promise(r=>c.toBlob(r,"image/jpeg",0.92)); if(b)out.push(b);
+    }
+  }
+  return out.slice(0,max);
+}
+function shotPrompt(x){
+  const what=[st.brandTyped,st.model,displayName(x),st.detail].filter(Boolean).join(" ");
+  return [
+"You are reading screenshots of SOLD listings for the counter at a small pawn shop in Bristol, Florida.",
+"The item being priced: \""+what+"\" (category: "+x.cat.label+").",
+"The screenshots come from WatchCount (eBay sold listings), eBay's own sold search, or GunBroker completed auctions. When there are several images they may be bands cut from one tall screenshot, in top-to-bottom order, overlapping a little. List each listing only once.",
+"",
+"For every listing you can read, give:",
+"- title: the listing title, cut to 80 characters",
+"- price: what it SOLD for in US dollars, as a plain number. Leave out shipping. If a Best Offer was accepted and the accepted price is shown, use the accepted price. If a Best Offer sale shows only a crossed-out or list price, give that number and set offerHidden to true.",
+"- offerHidden: true or false",
+"- condition: \"new\", \"used\", \"parts\" (parts, not working, for repair), or \"\" when not shown",
+"- match: \"same\" when it is the same kind of item as the one being priced (and the same maker and model, when those are given); \"close\" when it is the same kind of item in a different model, size or version that is still fair to compare; \"different\" when it is something else: parts only, broken, a lot of several, an accessory, a box or manual, a toy, or another product",
+"- why: for close or different, 2 to 5 words saying why (\"lot of 3\", \"different model\", \"bare tool, no battery\"). Empty for same.",
+"",
+"Only listings that actually SOLD. eBay marks them \"Sold\" with a date; GunBroker completed auctions show a winning bid. If the pictures show items still FOR SALE, set soldOnly to false and return no listings. Never invent a listing or a price you cannot read. Do not estimate a value; the page does the math.",
+"",
+"Reply with ONLY this JSON:",
+'{"site":"WatchCount","soldOnly":true,"listings":[{"title":"","price":0,"offerHidden":false,"condition":"used","match":"same","why":""}],"note":"one short sentence on anything that limits the read"}'
+  ].join("\n");
+}
+function pct(a,q){ if(a.length===1)return a[0]; const i=(a.length-1)*q, lo=Math.floor(i), hi=Math.ceil(i); return a[lo]+(a[hi]-a[lo])*(i-lo); }
+function crunchComps(res){
+  const L=Array.isArray(res&&res.listings)?res.listings:[], seen=new Set(), kept=[], out=[];
+  L.forEach(l=>{
+    if(!l||typeof l!=="object")return;
+    const title=String(l.title||"").replace(/\s+/g," ").trim().slice(0,90);
+    const price=Math.round(Number(String(l.price==null?"":l.price).replace(/[^0-9.]/g,""))||0);
+    const k=title.toLowerCase()+"|"+price; if(seen.has(k))return; seen.add(k);
+    const match=String(l.match||"").toLowerCase(), cond=String(l.condition||"").toLowerCase();
+    let why="";
+    if(!(price>0))why="no price shown";
+    else if(match==="different")why=String(l.why||"not the same item").slice(0,40);
+    else if(l.offerHidden===true)why="Best Offer, real price hidden";
+    else if(cond==="parts")why="parts / not working";
+    if(why){ out.push({title,price,why}); return; }
+    kept.push({title,price,cond,why:match==="close"?String(l.why||"close match").slice(0,40):""});
+  });
+  let pool=kept;
+  const used=kept.filter(k=>k.cond!=="new");
+  if(used.length>=3&&used.length<kept.length){ kept.filter(k=>k.cond==="new").forEach(k=>out.push({title:k.title,price:k.price,why:"new in box"})); pool=used; }
+  let p=pool.map(k=>k.price).sort((a,b)=>a-b);
+  if(p.length>=5){
+    const q1=pct(p,.25),q3=pct(p,.75),iqr=q3-q1,lo=q1-1.5*iqr,hi=q3+1.5*iqr;
+    pool=pool.filter(k=>{ if(k.price<lo||k.price>hi){ out.push({title:k.title,price:k.price,why:k.price>hi?"way above the rest":"way below the rest"}); return false; } return true; });
+    p=pool.map(k=>k.price).sort((a,b)=>a-b);
+  }
+  const allNew=pool.length>0&&pool.every(k=>k.cond==="new");
+  if(!p.length)return {stats:null,kept:[],out};
+  return {stats:{n:p.length,lo:Math.round(pct(p,.25)),mid:Math.round(pct(p,.5)),hi:Math.round(pct(p,.75)),allNew},
+          kept:pool.slice().sort((a,b)=>a.price-b.price),out};
+}
+function leftOutText(r){
+  if(!r.out.length)return "";
+  const g={}, lbl={}; r.out.forEach(o=>{ const k=o.why.toLowerCase(); g[k]=(g[k]||0)+1; if(!lbl[k])lbl[k]=o.why; });
+  const parts=Object.keys(g).sort((a,b)=>g[b]-g[a]).slice(0,4).map(k=>g[k]+" "+lbl[k]);
+  return `Left out ${r.out.length}: ${parts.map(esc).join(", ")}.`;
+}
+function compReadHTML(r,x){
+  if(r.msg)return `<div class="tagWarn">${esc(r.msg)}</div>`;
+  if(!r.stats)return `<div class="tagWarn">No usable sold prices in that screenshot. ${leftOutText(r)} Try a screenshot of just the sold list, zoomed in so the prices are sharp.</div>`;
+  const s=r.stats, onNow=!!(st.market&&st.market.kind==="shot"&&st.market.key===mkKey()&&st.market.mid===s.mid);
+  return `<div class="compRead">
+    <div class="tiles" style="grid-template-columns:1fr 1fr 1fr;margin-top:12px">
+      <div class="widget"><div class="l">Low</div><div class="v">${money(s.lo)}</div></div>
+      <div class="widget" style="box-shadow:inset 0 1px 0 rgba(255,255,255,.13),inset 0 0 0 2px var(--accent)"><div class="l">Middle</div><div class="v">${money(s.mid)}</div></div>
+      <div class="widget"><div class="l">High</div><div class="v">${money(s.hi)}</div></div>
+    </div>
+    <div class="cardHint" style="color:var(--ink)">From ${s.n} ${s.n===1?"sale":"sales"} on ${esc(r.site)}.${s.n<4?" That's thin &mdash; treat it as a rough guide.":""} ${leftOutText(r)}</div>
+    ${s.allNew?`<div class="tagWarn">These all sold new in the box. A used one brings less &mdash; lean toward Low.</div>`:""}
+    ${r.note?`<div class="cardHint">${esc(r.note)}</div>`:""}
+    ${!onNow?`<button id="useComp" class="brassBtn" style="width:100%;padding:12px 0;margin-top:11px;font-size:14px">Use ${money(s.mid)} as the market price</button>`
+      :`<div class="cardHint" style="color:var(--accent);font-weight:600">Step 4 is using the middle sold price.</div>`}
+    <div class="cardHint">Middle means half sold for more and half for less, so one odd sale can't drag it. Set condition in step 5 against a typical used one.</div>
+    <details class="shotList"><summary>See the ${r.kept.length} ${r.kept.length===1?"sale":"sales"} it used</summary>
+      ${r.kept.map(k=>`<div class="shotLi"><span>${esc(k.title)}${k.why?` <i>${esc(k.why)}</i>`:""}</span><b>${money(k.price)}</b></div>`).join("")}
+      ${r.out.length?`<div class="shotSub">Left out</div>${r.out.map(k=>`<div class="shotLi out"><span>${esc(k.title||"(no title)")} <i>${esc(k.why)}</i></span><b>${k.price?money(k.price):"&mdash;"}</b></div>`).join("")}`:""}
+    </details></div>`;
+}
+function shotZoneHTML(x){
+  if(!CAP.sample||!CAP.images)return "";
+  const r=(st.compRead&&st.compRead.key===itemKey())?st.compRead:null, touch=isTouch();
+  return `<div class="shotZone" id="shotZone">
+    <span class="label" style="color:var(--ink);margin-bottom:6px">Bring the sold prices back</span>
+    <div class="cardHint" style="margin-top:0">${touch
+      ?"Screenshot the sold results, then tap <b style=\"color:var(--ink)\">Add screenshot</b>. It's your newest photo."
+      :"Screenshot the sold list (<b style=\"color:var(--ink)\">Windows + Shift + S</b>, drag over the results), then press <b style=\"color:var(--ink)\">Ctrl + V</b> anywhere on this page. Or drag the picture in here."}</div>
+    <div class="row2" style="gap:9px;flex-wrap:wrap;margin-top:10px">
+      <label class="ghostBtn" style="margin:0;cursor:pointer">${shotFiles.length?"Add another":"Add screenshot"}<input id="shotIn" type="file" accept="${imgAccept()}" multiple style="display:none"></label>
+      ${shotFiles.length?`<button id="shotGo" class="brassBtn" style="padding:10px 18px" ${shotBusy?"disabled":""}>${shotBusy?"Reading…":(r?"Read again":"Read the prices")}</button>`:""}
+      ${shotBusy?`<button id="shotStop" class="ghostBtn">Stop</button>`:""}
+    </div>
+    ${shotFiles.length?`<div class="shotThumbs">${shotFiles.map((s,i)=>`<div class="shotT"><img data-shotimg="${i}" alt="screenshot ${i+1}"><button class="shotX" type="button" data-shotx="${i}" aria-label="Remove screenshot ${i+1}">&times;</button></div>`).join("")}</div>`:""}
+    <div class="cardHint" id="shotMsg">${shotBusy?"Reading the prices. Usually 15 to 40 seconds.":(shotFiles.length&&!r?"Each read uses a little of your Claude usage.":"")}</div>
+    ${r?compReadHTML(r,x):""}
+  </div>`;
+}
+function refreshShots(){
+  const z=document.getElementById("shotZone"); if(!z)return;
+  const tmp=document.createElement("div"); tmp.innerHTML=shotZoneHTML(calcItem());
+  const nz=tmp.firstElementChild; if(nz){ z.replaceWith(nz); wireShots(); }
+}
+async function addShots(files){
+  const ok=(files||[]).filter(f=>f&&/^image\//.test(f.type||""));
+  if(!ok.length)return;
+  for(const f0 of ok){ if(shotFiles.length>=shotMax())break; const f=await normImage(f0); shotFiles.push({file:f,url:URL.createObjectURL(f)}); }
+  refreshShots();
+  const z=document.getElementById("shotZone"); if(z&&z.scrollIntoView)z.scrollIntoView({block:"nearest",behavior:"smooth"});
+}
+function shotErrCopy(code){
+  switch(code){
+    case "not_granted": case "sampling_disabled": return "This device isn't allowed to use Claude. Type the sold number into step 4 yourself.";
+    case "rate_limited": return "Too many reads too fast. Give it a minute.";
+    case "image_rejected": case "images_unavailable": return "Couldn't use that picture. Try a PNG or JPG screenshot.";
+    case "invalid_json": return "The answer came back garbled. Tap Read the prices again.";
+    case "session_expired": return "Signed out. Sign back in and try again.";
+    default: return "The read failed. Type the sold number into step 4 yourself.";
+  }
+}
+async function runShotRead(){
+  if(!CAP.sample||!shotFiles.length||shotBusy)return;
+  const x=calcItem(), key=itemKey();
+  shotBusy=true; shotCtl=new AbortController(); refreshShots();
+  try{
+    const imgs=await prepShots(shotFiles.map(s=>s.file));
+    const res=await CAP.sample.json(shotPrompt(x),{images:imgs,modelTier:"default",signal:shotCtl.signal});
+    const c=crunchComps(res||{});
+    st.compRead=Object.assign({key,site:String((res&&res.site)||"the screenshot").slice(0,24),note:String((res&&res.note)||"").slice(0,200)},c);
+    if(res&&res.soldOnly===false&&!c.stats)st.compRead.msg="Those are items still for sale, not sold ones. On eBay turn on Sold Items (under Filter or All Filters), then screenshot again.";
+  }catch(err){
+    const code=(err&&err.code)||"upstream_error";
+    shotBusy=false; refreshShots();
+    if(code!=="cancelled"){ const m=document.getElementById("shotMsg"); if(m)m.innerHTML=`<span style="color:var(--warn)">${esc(shotErrCopy(code))}</span>`; }
+    return;
+  }
+  shotBusy=false; refreshShots();
+}
+function useCompMid(){
+  const r=st.compRead; if(!r||!r.stats)return;
+  st.market={kind:"shot",key:mkKey(),mid:r.stats.mid,lo:r.stats.lo,hi:r.stats.hi,n:r.stats.n,site:r.site};
+  st.editing=false; render();
+}
+function wireShots(){
+  const z=document.getElementById("shotZone"); if(!z)return;
+  const inp=document.getElementById("shotIn");
+  if(inp)inp.onchange=()=>{ const f=Array.from(inp.files||[]); inp.value=""; addShots(f); };
+  const go=document.getElementById("shotGo"); if(go)go.onclick=runShotRead;
+  const stop=document.getElementById("shotStop"); if(stop)stop.onclick=()=>{ if(shotCtl)shotCtl.abort(); };
+  z.querySelectorAll("[data-shotimg]").forEach(im=>{ const s=shotFiles[Number(im.dataset.shotimg)]; if(s)im.src=s.url; });
+  z.querySelectorAll("[data-shotx]").forEach(b=>b.onclick=()=>{
+    const i=Number(b.dataset.shotx), s=shotFiles[i]; if(s){ try{ URL.revokeObjectURL(s.url); }catch(e){} }
+    shotFiles.splice(i,1); refreshShots(); });
+  const u=document.getElementById("useComp"); if(u)u.onclick=useCompMid;
+  z.ondragover=e=>{ e.preventDefault(); z.classList.add("drag"); };
+  z.ondragleave=()=>z.classList.remove("drag");
+  z.ondrop=e=>{ e.preventDefault(); z.classList.remove("drag"); addShots(Array.from((e.dataTransfer&&e.dataTransfer.files)||[])); };
+  const card=document.getElementById("compsCard"); if(card)card.onpointerdown=()=>{ pasteTo="shot"; };
+}
+/* Ctrl+V a screenshot anywhere on the item page */
+document.addEventListener("paste",e=>{
+  if(st.mode!=="item"||!CAP.sample||!CAP.images)return;
+  const cd=e.clipboardData; if(!cd)return;
+  let files=Array.from(cd.files||[]).filter(f=>/^image\//.test(f.type));
+  if(!files.length)files=Array.from(cd.items||[]).filter(i=>i.kind==="file"&&/^image\//.test(i.type)).map(i=>i.getAsFile()).filter(Boolean);
+  if(!files.length)return;
+  e.preventDefault();
+  if(pasteTo==="photo"&&document.getElementById("photoCard")){ setPhoto(files[0]); return; }
+  addShots(files);
+});
+
+/* ================= CAMERA =================
+   Tablet or phone: "Take picture" opens the camera itself, no photo roll.
+   Computer with a webcam or a counter camera: a live view with a button,
+   only where the Claude viewer lets the page use the camera. Either way the
+   picture goes straight into the reader. */
+let camStream=null, camDevices=[], camIdx=-1, camFailed=false;
+function camLiveOK(){
+  if(camFailed||isTouch()||!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return false;
+  /* Ask the permissions policy only if the browser has one to ask. It used to
+     fall through to false when it did not, which is every browser but Chrome
+     - so a camera plugged into the desk was never offered there at all. If
+     it cannot be checked, offer it: getUserMedia says no soon enough, and a
+     refusal sets camFailed and takes the button away. */
+  try{ const pol=document.permissionsPolicy||document.featurePolicy;
+       if(pol&&typeof pol.allowsFeature==="function")return !!pol.allowsFeature("camera"); }catch(e){}
+  return true;
+}
+/* lead: this is the phone's first move, so the target is thumb-sized. The
+   padding is set here rather than in a stylesheet rule because the inline
+   style on this label would win over one anyway. */
+function camButtonHTML(lead){
+  if(isTouch())return `<label class="brassBtn camBtn${lead?" camBtnLead":""}" style="cursor:pointer;margin:0;padding:${lead?"18px 24px":"10px 18px"};display:inline-flex;align-items:center;justify-content:center;${lead?"flex:1;min-width:190px;font-size:17px;":""}">${lead?"\uD83D\uDCF7 Take a picture":"Take picture"}<input id="photoCam" type="file" accept="image/*" capture="environment" style="display:none"></label>`;
+  if(camLiveOK())return `<button id="camLive" class="brassBtn" style="padding:10px 18px">Use camera</button>`;
+  return "";
+}
+async function setPhoto(f){
+  if(!f)return;
+  photoFile=await normImage(f);
+  /* Kept so a failure can say what it was carrying. A read that dies without
+     saying how big the picture was, or what format it was in, costs another
+     round trip to find out - and HEIC from a phone camera is exactly the
+     case that slips through the shrinking step untouched. */
+  st.photoInfo={type:f.type||"(unknown)",was:f.size,sent:(photoFile&&photoFile.size)||0,
+                shrunk:!!(photoFile&&photoFile!==f)};
+  st.photoRead=null; render();
+  runPhotoRead();
+}
+async function openCam(){
+  closeCam();
+  const m=document.createElement("div"); m.id="camModal"; m.className="camModal"; m.setAttribute("role","dialog"); m.setAttribute("aria-label","Camera");
+  m.innerHTML=`<div class="camBox"><video id="camVid" autoplay playsinline muted></video>
+    <div class="camMsg" id="camMsg">Starting the camera…</div>
+    <div class="row2" style="gap:10px;justify-content:center;flex-wrap:wrap;margin-top:14px">
+      <button id="camSnap" class="brassBtn" style="padding:14px 28px;font-size:16px" disabled>Take picture</button>
+      <button id="camSwap" class="ghostBtn" style="padding:12px 18px;font-size:14px" hidden>Switch camera</button>
+      <button id="camX" class="ghostBtn" style="padding:12px 18px;font-size:14px">Cancel</button></div></div>`;
+  document.body.appendChild(m);
+  document.getElementById("camX").onclick=closeCam;
+  document.getElementById("camSnap").onclick=snapCam;
+  document.getElementById("camSwap").onclick=()=>{ if(camDevices.length>1){ camIdx=(camIdx+1)%camDevices.length; startCam(); } };
+  m.addEventListener("keydown",e=>{ if(e.key==="Escape")closeCam(); if(e.key===" "||e.key==="Enter"){ if(e.target&&e.target.id==="camSnap")return; } });
+  await startCam();
+}
+async function startCam(){
+  const msg=document.getElementById("camMsg");
+  if(camStream){ camStream.getTracks().forEach(t=>t.stop()); camStream=null; }
+  let saved=null; try{ saved=localStorage.getItem("pawndesk:cam"); }catch(e){}
+  /* 1080p was asked for on every machine, so a 4K camera on an arm over the
+     table handed back 1080p and the extra sensor did nothing. "ideal" is a
+     preference, not a demand - a 1080p webcam still answers 1080p - so the
+     desk asks for 4K and takes whatever it gets. The phone stays at 1080p:
+     it is holding the thing in one hand, and the frame is already full. */
+  const want=imgDesk()?{width:{ideal:3840},height:{ideal:2160}}
+                      :{width:{ideal:1920},height:{ideal:1080}};
+  const video=want, dev=camDevices[camIdx];
+  if(dev)video.deviceId={exact:dev.deviceId}; else if(saved)video.deviceId={ideal:saved}; else video.facingMode={ideal:"environment"};
+  try{
+    camStream=await navigator.mediaDevices.getUserMedia({video,audio:false});
+    const v=document.getElementById("camVid");
+    if(!v){ camStream.getTracks().forEach(t=>t.stop()); camStream=null; return; }
+    v.srcObject=camStream; try{ await v.play(); }catch(e){}
+    const snap=document.getElementById("camSnap"); if(snap){ snap.disabled=false; snap.focus(); }
+    if(msg)msg.textContent="Fill the frame. Get the model plate or stamp in focus.";
+    const all=(await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==="videoinput"); camDevices=all;
+    const tr=camStream.getVideoTracks()[0], s=tr&&tr.getSettings?tr.getSettings():null;
+    if(s&&s.deviceId){ camIdx=Math.max(0,all.findIndex(d=>d.deviceId===s.deviceId)); try{ localStorage.setItem("pawndesk:cam",s.deviceId); }catch(e){} }
+    const sw=document.getElementById("camSwap"); if(sw)sw.hidden=all.length<2;
+  }catch(err){
+    camFailed=true;
+    if(msg)msg.innerHTML=`<span style="color:var(--warn)">${esc(err&&err.name==="NotAllowedError"?"The camera is blocked here. Close this and use Choose photo.":"Couldn't start the camera. Close this and use Choose photo.")}</span>`;
+  }
+}
+function snapCam(){
+  const v=document.getElementById("camVid"); if(!v||!v.videoWidth)return;
+  const c=document.createElement("canvas"); c.width=v.videoWidth; c.height=v.videoHeight; c.getContext("2d").drawImage(v,0,0);
+  c.toBlob(b=>{ if(!b)return; closeCam(); setPhoto(new File([b],"counter-photo.jpg",{type:"image/jpeg"})); },"image/jpeg",0.92);
+}
+function closeCam(){
+  if(camStream){ camStream.getTracks().forEach(t=>t.stop()); camStream=null; }
+  const m=document.getElementById("camModal"); if(m)m.remove();
+  if(camFailed){ try{ render(); }catch(e){} }
+}
+
+/* the tab icon, for when the page is opened on its own */
+(function(){ try{
+  /* The icon is the app's own dial, in the app's own colours - graphite
+     ring, electric-blue arc. It is pinned rather than read off the page
+     because the palette is pinned: there is one, and it is dark. */
+  const paper="#15171C", track="#2A2F3A", arc="#3B82F6";
+  const svg="<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='16' fill='"+paper+"'/><circle cx='32' cy='32' r='19' fill='none' stroke='"+track+"' stroke-width='8'/><path d='M18.6 45.4A19 19 0 1 1 45.4 45.4' fill='none' stroke='"+arc+"' stroke-width='8' stroke-linecap='round'/></svg>";
+  const href="data:image/svg+xml,"+encodeURIComponent(svg), head=document.head||document.documentElement;
+  const put=(rel,h,type)=>{ let l=document.querySelector('link[rel="'+rel+'"]'); if(!l){ l=document.createElement("link"); l.rel=rel; head.appendChild(l); } if(type)l.type=type; l.href=h; };
+  put("icon",href,"image/svg+xml");
+  let tc=document.querySelector('meta[name="theme-color"]'); if(!tc){ tc=document.createElement("meta"); tc.name="theme-color"; head.appendChild(tc); } tc.content=paper;
+}catch(e){} })();
+
+
+
+/* ================= MODEL PRICE LIST — refreshed weekly by a scheduled task =================
+   What a USED one in good working shape really sells for: the middle half of recent
+   sales, whole dollars. Row: [id, item(s) it belongs to, name, low, high, confidence
+   h/m/l, date checked, source page, what moves the price]. The weekly task rewrites
+   only the low, high, confidence, date and source values. It never adds or removes rows. */
+let MODEL_PRICES=[
+ ["a1","g1","Remington 870 Express",300,400,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=remington+870+express","Super Mag or extra barrels add; rust lowers"],
+ ["a2","g1","Remington 870 Wingmaster",450,625,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=remington+870+wingmaster","Bluing and wood; 16, 28 and .410 bring far more"],
+ ["a3","g1","Mossberg 500",225,325,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=mossberg+500","Combo barrels and chokes add"],
+ ["a4","g1","Mossberg 590 / 590A1",380,550,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=mossberg+590a1","590A1 heavy barrel on top; plain 590 less"],
+ ["a5","g1","Maverick 88",150,210,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=maverick+88","Extra barrel adds a little"],
+ ["a6","g1","Mossberg 835 Ulti-Mag",250,350,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=mossberg+835+ulti-mag","Camo turkey or waterfowl combos on top"],
+ ["a7","g1","Benelli Nova / SuperNova",290,410,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=benelli+nova","SuperNova and camo bring more"],
+ ["a8","g1","Browning BPS",525,725,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=browning+bps","Walnut over synthetic; small gauges far more"],
+ ["a9","g2","Remington 1100",450,675,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=remington+1100","Plain 12 ga lowest; LT-20 and small gauges higher"],
+ ["a10","g2","Remington 11-87",550,750,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=remington+11-87","Premier walnut over synthetic; slug barrels add"],
+ ["a11","g2","Beretta A300 Outlander",525,675,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=beretta+a300+outlander","Camo and wood over black synthetic"],
+ ["a12","g2","Beretta A400",1175,1500,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=beretta+a400","Xtreme Plus higher; base Xplor Action lower"],
+ ["a13","g2","Benelli M2",875,1150,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=benelli+m2","Field camo and 20 ga higher; worn guns lower"],
+ ["a14","g2","Benelli Super Black Eagle",1075,1450,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=benelli+super+black+eagle+3","SBE 3 about $1,350+; SBE II $1,000–1,200"],
+ ["a15","g2","Browning A5",1050,1300,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=browning+a5+hunter","Hunter walnut and Wicked Wing above Stalker"],
+ ["a16a","g2","Mossberg 930",400,500,"l","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=mossberg+930","Waterfowl camo on top"],
+ ["a16b","g2","Mossberg 940",575,700,"l","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=mossberg+940","JM Pro brings the top end"],
+ ["a17","g2","Stoeger M3000 / M3500",350,450,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=stoeger+m3500","M3500 camo over M3000 synthetic"],
+ ["a18","g2","Winchester SX4",625,800,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=winchester+sx4","Waterfowl camo and 20 ga Field bring more"],
+ ["a19","g3","Remington 700",450,700,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=remington+700+bdl","Older walnut BDL highest; SPS synthetic lowest"],
+ ["a20","g3","Winchester Model 70",750,975,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=winchester+model+70","Featherweight walnut higher; synthetic lower"],
+ ["a21","g3","Savage Axis",240,325,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=savage+axis","Axis II AccuTrigger adds"],
+ ["a22","g3","Savage 110",375,525,"l","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=savage+110","Newer AccuFit and Apex higher; old plain 110s lower"],
+ ["a23","g3","Ruger American Rifle",340,450,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=ruger+american+rifle","Gen II and magnum calibers higher"],
+ ["a24","g3","Tikka T3x",650,825,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=tikka+t3x","Stainless and Roughtech higher"],
+ ["a25","g3","Browning X-Bolt",700,900,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=browning+x-bolt","Medallion walnut and stainless bring more"],
+ ["a26","g4","Marlin 336",575,800,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=marlin+336","JM-stamped walnut on top; Remington-era lower"],
+ ["a27","g4","Winchester Model 94",500,700,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=winchester+94+30-30","Commemoratives vary; 1964–71 guns lower"],
+ ["a28","g4","Henry Big Boy",650,775,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=henry+big+boy","Side gate slightly higher; scratched brass lower"],
+ ["a29","g4","Henry lever .22 (H001 / Golden Boy)",325,475,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=henry+golden+boy","Golden Boy $450–500; plain H001 $325–375"],
+ ["a30","g6","Ruger 10/22",215,300,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=ruger+10%2F22+carbine","Walnut, older or stainless higher"],
+ ["a31","g6","Marlin Model 60",175,250,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=marlin+model+60","Feed tube condition matters"],
+ ["a32","g5","AR-15, entry-level",375,500,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=psa+ar-15","Optic, mags and free-float rail add; unknown builds lower"],
+ ["a33","g5","S&W M&P15 Sport II",425,525,"l","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=m%26p15+sport+ii","M-LOK versions and extra mags help"],
+ ["a34","g5","Ruger AR-556",425,500,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=ruger+ar-556","Free-float MPR higher"],
+ ["a35","SKS rifle","SKS",450,625,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=sks","Matching Chinese over Yugo; sporterized much lower"],
+ ["a36","AK-pattern rifle","AK-pattern rifle",625,825,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=wasr-10","WASR-10 and forged builds higher"],
+ ["a37a","g9","CVA Accura",400,525,"l","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=cva+accura","Scope and case add"],
+ ["a37b","g9","CVA Optima",190,260,"l","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=cva+optima","Scope and case add"],
+ ["a37c","g9","CVA Wolf",125,175,"l","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=cva+wolf","Entry-level; scope adds a little"],
+ ["a38a","g9","Thompson/Center Encore",550,700,"l","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=encore+209x50","Pro Hunter on top"],
+ ["a38b","g9","Thompson/Center Impact",175,250,"l","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=thompson+center+impact","Entry-level break-action"],
+ ["b1","g7","Glock 17",370,440,"m","2026-09-19","https://gunwatcher.com/glock-17-gen-5-value-sold-information/market-price","Gen 5 and MOS on top; police trade-ins lower"],
+ ["b2","g7","Glock 19",390,470,"h","2026-09-19","https://gunwatcher.com/glock-19-gen-5-value-sold-information/market-price","Gen 5 about $50 over Gen 4; night sights add"],
+ ["b3","g7","Glock 26",370,440,"m","2026-09-19","https://gunwatcher.com/glock-26-value-sold-information/market-price","Gen 5 and extra mags on top"],
+ ["b4","g7","Glock 43 / 43X",350,430,"m","2026-09-19","https://gunwatcher.com/glock-43x-value-sold-information/market-price","43X and MOS on top; G43 about $50 less"],
+ ["b5","g7","Glock 48",360,425,"m","2026-09-19","https://gunwatcher.com/glock-48-value-sold-information/market-price","MOS and two-tone bring more"],
+ ["b6","g7","Glock 22 / 23 (.40)",300,370,"m","2026-09-19","https://gunwatcher.com/glock-23-value-sold-information/market-price",".40 is soft; lots of police trade-ins"],
+ ["b7","g7","Sig Sauer P365",375,475,"m","2026-09-19","https://gunwatcher.com/sig-sauer-p365-value-sold-information/market-price","XL, X-Macro or optic on top"],
+ ["b8","g7","Sig Sauer P320",360,440,"m","2026-09-19","https://gunwatcher.com/sig-sauer-p320-value-sold-information/market-price","Trade-ins and holster wear cheaper"],
+ ["b9","g7","Sig Sauer P226 / P229",575,800,"m","2026-09-19","https://gunwatcher.com/sig-sauer-p226-value-sold-information/market-price","Police trade-ins $450–650; Legion much higher"],
+ ["b10","g7","S&W M&P9 2.0",320,400,"m","2026-09-19","https://gunwatcher.com/smith-wesson-m-p9-value-sold-information/market-price","Optics-ready on top; 1.0 models lower"],
+ ["b11","g7","S&W M&P Shield / Shield Plus",260,340,"m","2026-09-19","https://gunwatcher.com/smith-wesson-m-p-shield-plus-value-sold-information/market-price","Shield Plus about $50 over the original"],
+ ["b12","g7","S&W Bodyguard 380",220,280,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=bodyguard+380","Laser adds; Bodyguard 2.0 higher"],
+ ["b13","g7","Springfield Hellcat",340,410,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=hellcat","OSP, Pro or a mounted optic on top"],
+ ["b14","g7","Springfield XD / XDs",240,310,"m","2026-09-19","https://gunwatcher.com/springfield-xd-value-sold-information/market-price","XD Mod.2 and Elite above"],
+ ["b15","g7","Taurus G2C / G3C",130,185,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=taurus+g3c","Cheap new price caps it; G3C over G2C"],
+ ["b16","g7","Taurus G3 / GX4",145,210,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=taurus+gx4","GX4 above G3; optic cut adds"],
+ ["b17","g7","Ruger LCP",170,230,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=ruger+lcp+max","LCP MAX on top; original LCP bottom"],
+ ["b18","g7","Ruger Security-9 / Max-9",185,245,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=ruger+max-9","Max-9 edges Security-9"],
+ ["b19","g7","Ruger Mark IV",370,490,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=ruger+mark+iv","Target, Hunter and Lite above 22/45"],
+ ["b20","g7","Canik TP9",265,335,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=canik+tp9sf+elite","SFx, Mete and Rival on top"],
+ ["b21a","g7","CZ P-10",330,400,"l","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=cz+p-10","Optics-ready adds"],
+ ["b21b","g7","CZ 75",550,700,"l","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=cz+75+b","SP-01 and Shadow on top"],
+ ["b22","g7","Beretta 92FS / M9",450,575,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=beretta+92fs","Italian and Inox on top; police trade-ins near $400"],
+ ["b23","g7","1911 (Rock Island, Tisas, Springfield Mil-Spec)",330,480,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=rock+island+1911","Tisas and RIA $300–400; Springfield $450–550"],
+ ["b24","g7","Hi-Point C9",110,150,"l","2026-09-19","https://gunwatcher.com/hi-point-c9-value-sold-information/market-price","Low new price caps it"],
+ ["b25","g7","SCCY CPX",100,140,"l","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=sccy+cpx-2","New CPX-2 near $130 caps it"],
+ ["b26","g8","S&W 686",625,800,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=smith+wesson+686","Pre-lock, 686 Plus and 6 in bring more"],
+ ["b27","g8","S&W 642 / 638",320,400,"h","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=smith+wesson+642","No-lock and laser grips add"],
+ ["b28","g8","Ruger GP100",540,660,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=ruger+gp100","Wiley Clapp, Match Champion and 10mm above base"],
+ ["b29","g8","Ruger SP101",450,560,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=ruger+sp101","3 in and 4 in above 2.25 in"],
+ ["b30","g8","Ruger LCR",370,450,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=ruger+lcr",".357 and laser above .38 or .22"],
+ ["b31","g8","Ruger Blackhawk / Single-Six",400,575,"l","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=ruger+blackhawk","Blackhawk above Single-Six; convertibles add"],
+ ["b32","g8","Taurus Judge",320,400,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=taurus+judge","Public Defender, stainless and Magnum above basic"],
+ ["b33","g8","Colt Python (2020+)",950,1200,"m","2026-09-19","https://www.webuyguns.com/valuations/colt/python","New retail near $1,100 caps it; older Pythons far more"],
+ ["c1","p1","Stihl MS 170 / 180",170,230,"m","2026-09-22","shelf tags photographed 19 Sep 2026, Bristol area","MS 180 slightly more; easy start and good chain"],
+ ["c3","p1","Stihl MS 271 Farm Boss",300,420,"m","2026-09-22","https://www.tractorhouse.com/listings/for-sale/stihl/ms/chainsaws/1186","20 in bar, low hours"],
+ ["c6","p1","Stihl MS 461 / 462",780,1020,"m","2026-09-22","https://opeforum.com/threads/ms462.32595/","MS 462 more; piston condition"],
+ ["c7","p1","Husqvarna 450 / 445",210,290,"m","2026-09-22","shelf tags photographed 19 Sep 2026, Bristol area","450 over 445"],
+ ["c10","p1","Echo CS-400 / CS-4010",130,210,"l","2026-09-22","","Thin sales data; CS-4010 is newer"],
+ ["c11","p1","Echo CS-590 Timber Wolf",265,385,"l","2026-09-22","https://www.treetrader.com/listings/for-sale/echo/cs590-timber-wolf/chainsaws-outdoor-power/1186","Bar and chain included matters a lot"],
+ ["c12","p2","Stihl FS 56 / FS 91",110,215,"l","2026-09-22","https://used.equipmentshare.com/products/stihl-fs-91-r-563012","FS 91 about double the FS 56"],
+ ["c13","p2","Stihl FS 131",240,360,"l","2026-09-22","","Bike-handle and blade kits add"],
+ ["c14","p2","Echo SRM-225",100,170,"l","2026-09-22","","Starts easily; head and shaft condition"],
+ ["c16","p3","Stihl BR 800",425,575,"m","2026-09-22","shelf tags photographed 19 Sep 2026, Bristol area","Hours and landscaper wear"],
+ ["c17","p3","Echo PB-580T",230,330,"l","2026-09-22","https://opeforum.com/threads/need-backpack-blower-asap-please.26602/","Lawn-crew wear lowers price"],
+ ["c18","p3","Echo PB-770T",330,450,"l","2026-09-22","https://opeforum.com/threads/would-you-buy-a-used-echo-pb-770t.8184/","Hours and carb history"],
+ ["c19","p3","Husqvarna 350BT",255,345,"m","2026-09-22","shelf tags photographed 19 Sep 2026, Bristol area","Homeowner grade; starting condition"],
+ ["c20","p7|Inverter generator — 2kW","Honda EU2200i",780,1020,"m","2026-09-22","https://www.machinerytrader.com/listings/for-sale/honda/eu2200i/construction-equipment","Hours and stale fuel"],
+ ["c21","p7","Honda EU3000iS",1380,1920,"m","2026-09-22","https://www.machinerytrader.com/listings/for-sale/honda/eu3000is/construction-equipment","Hours; electric start working"],
+ ["c22","p4","Honda HRX / HRN mower",270,450,"l","2026-09-22","https://www.tractorhouse.com/listings/used-honda-hrx217vka-lawn-mowers-outdoor-power-for-sale/?Category=1188&Manufacturer=HONDA&ModelGroup=HRX217VKA&Condition=USED","HRX over HRN; drive working"],
+ ["c23","p5","John Deere E100–E130 / S100–S130",1140,1800,"m","2026-09-22","https://www.tractorhouse.com/listings/for-sale/john-deere/e130/riding-lawn-mowers/1170","Hours, deck rust, transmission"],
+ ["c24","p5","John Deere X350 / X380",2400,3480,"m","2026-09-22","https://www.machinerypete.com/lawn-and-garden/lawn-mowers/john-deere/x350","X380 and 48–54 in deck higher"],
+ ["c25","Zero-turn mower","Residential zero-turn, 48–54 in",1700,2700,"m","2026-09-19","https://www.tractorhouse.com/listings/for-sale/husqvarna/z254/zero-turn-lawn-mowers/1191","Deere highest; hours and deck rust"],
+ ["c26","t1","DeWalt 20V drill kit",65,110,"m","2026-09-19","https://www.underpriced.app/blog/where-to-sell-used-power-tools","Brushless DCD791 over DCD771; battery size"],
+ ["c27","t1","DeWalt 20V impact driver kit",75,115,"l","2026-09-19","https://www.underpriced.app/blog/where-to-sell-used-power-tools","2Ah vs 5Ah battery drives most of it"],
+ ["c28","t1","Milwaukee M18 Fuel drill kit",150,220,"m","2026-09-19","https://www.underpriced.app/blog/where-to-sell-used-power-tools","Hammer drill and 5Ah batteries on top"],
+ ["c29","t1","Milwaukee M18 Fuel impact driver kit",120,180,"m","2026-09-19","https://www.underpriced.app/blog/where-to-sell-used-power-tools","5Ah packs add $35–55"],
+ ["c30","t2","Milwaukee M18 Fuel 1/2 in impact wrench",185,250,"l","2026-09-19","https://www.underpriced.app/blog/where-to-sell-used-power-tools","Bare tool $150–190 plus a 5Ah pack"],
+ ["c31","t1","Makita 18V LXT drill kit",60,100,"l","2026-09-19","https://www.underpriced.app/blog/where-to-sell-used-power-tools","Brushless and battery size"],
+ ["c32","t1","Ryobi ONE+ drill kit",30,55,"m","2026-09-19","https://lambertpawn.com/the-power-tool-brands-that-hold-their-value-best-and-why-pawn-shops-love-them/","Low resale; brushless lifts it"],
+ ["d1","h1","Leupold VX-3HD",425,595,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Leupold%20VX-3HD&LH_Sold=1&LH_Complete=1","10 eBay sales in the last 90 days",""],
+ ["d2","h1","Leupold VX-Freedom",155,220,"m","2026-09-19","https://www.hunttalk.com/threads/leupold-vx-freedom-3-9x40-matte-duplex.326600/","CDS version up to about $275"],
+ ["d3","h1","Vortex Crossfire II",65,100,"m","2026-09-19","https://rokslide.com/forums/threads/vortex-crossfire-ii-3-9x40.363828/","New on sale near $130 caps it"],
+ ["d4","h1","Vortex Diamondback scope",100,150,"m","2026-09-19","https://www.hunttalk.com/threads/vortex-diamondback-4-12x40.322162/","Tactical version a bit more"],
+ ["d5","h1","Vortex Viper PST Gen II",550,750,"m","2026-09-19","https://rokslide.com/forums/threads/vortex-viper-pst-gen-ii-5x25x50-550.355234/","FFP and like-new with box higher"],
+ ["d6","h3","Vortex Ranger 1800",130,175,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Vortex%20Ranger%201800&LH_Sold=1&LH_Complete=1","19 eBay sales in the last 90 days",""],
+ ["d7","h2","Vortex Diamondback HD 10x42",120,144,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Vortex%20Diamondback%20HD%2010x42&LH_Sold=1&LH_Complete=1","11 eBay sales in the last 90 days",""],
+ ["d8","h8","Minn Kota Terrova",850,1350,"l","2026-09-19","https://www.in-depthoutdoors.com/community/forums/topic/whats-my-terrova-worth/","i-Pilot Link, shaft length and year"],
+ ["d9","h8","Minn Kota Endura",80,150,"l","2026-09-19","","30 lb near low end, 55 lb near high"],
+ ["d10","h4|Cellular game camera","Tactacam Reveal X",50,75,"l","2026-09-19","https://www.trailcampro.com/products/used-tactacam-reveal-x-gen-2","Needs a working plan"],
+ ["d11","h5","Mathews V3X",800,1450,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Mathews%20V3X&LH_Sold=1&LH_Complete=1","27 eBay sales in the last 90 days",""],
+ ["d12","h5","Hoyt RX-7",800,1080,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Hoyt%20RX-7&LH_Sold=1&LH_Complete=1","20 eBay sales in the last 90 days",""],
+ ["d13","h6","Ravin R10 / R26",600,950,"l","2026-09-19","https://ravincrossbows.com/crossbows/crossbow-series/reconditioned","R26 over R10"],
+ ["d14","h6","TenPoint crossbow",450,750,"l","2026-09-19","https://www.tenpointcrossbows.com/product-category/certified-pre-owned-crossbows/","Titan low, Viper S400 high; ACUdraw adds"],
+ ["d15","Fish finder","Garmin Striker Vivid",170,290,"l","2026-09-19","","7cv over 5cv; must include transducer"],
+ ["d16","Fish finder","Humminbird Helix 7",300,550,"l","2026-09-19","","Generation and Mega SI imaging"],
+ ["d17","m2","Fender Player Stratocaster",480,620,"h","2026-09-19","https://axedb.com/fender/stratocaster/player","Player II launch pushed prices down"],
+ ["d18a","m2","Squier Affinity Stratocaster",150,200,"m","2026-09-19","https://axedb.com/squier/affinity-series-stratocaster-with-maple-fretboard","Pack amps add little"],
+ ["d18b","m2","Squier Classic Vibe Stratocaster",290,370,"m","2026-09-19","https://axedb.com/brand/squier","About double an Affinity"],
+ ["d19","m2","Gibson Les Paul Standard",1750,2100,"h","2026-09-19","https://axedb.com/gibson/les-paul/standard-50s","Case, finish and top figure"],
+ ["d20","m2","Epiphone Les Paul Standard",320,500,"m","2026-09-19","https://axedb.com/epiphone/les-paul/standard","2020+ models sell higher"],
+ ["d21","m1","Martin D-28",2300,2900,"m","2026-09-19","https://axedb.com/martin/d-28/standard","Original case, no cracks or neck reset"],
+ ["d22a","m1","Taylor 114ce",550,700,"m","2026-09-19","https://axedb.com/brand/taylor","Case helps"],
+ ["d22b","m1","Taylor 214ce",800,1050,"m","2026-09-19","https://treblemakers.shop/instruments/taylor-214ce","Case helps"],
+ ["d23","m3","Fender Blues Junior",450,560,"m","2026-09-19","https://reverb.com/p/fender-blues-junior-iv-15-watt-1x12-guitar-combo","Special editions higher"],
+ ["e1","e4","iPhone 13",162,216,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=iPhone%2013&LH_Sold=1&LH_Complete=1","9 eBay sales in the last 90 days",""],
+ ["e2","e4","iPhone 14",255,330,"h","2026-09-19","https://swappa.com/prices/apple-iphone-14","Battery health; unlocked adds about $20"],
+ ["e3","e4","iPhone 15",350,430,"h","2026-09-19","https://swappa.com/prices/apple-iphone-15","Unlocked and battery health"],
+ ["e4a","e4","iPhone 15 Pro",440,530,"m","2026-09-19","https://swappa.com/prices/apple-iphone-15-pro","Storage and battery health"],
+ ["e4b","e4","iPhone 15 Pro Max",540,640,"m","2026-09-19","https://swappa.com/prices/apple-iphone-15-pro-max","Storage and battery health"],
+ ["e5","e4","iPhone 16",480,580,"h","2026-09-19","https://swappa.com/prices/apple-iphone-16","Carrier-locked sells lower"],
+ ["e6a","e4","iPhone 16 Pro",600,700,"m","2026-09-19","https://swappa.com/prices/apple-iphone-16-pro","Storage and battery health"],
+ ["e6b","e4","iPhone 16 Pro Max",700,800,"m","2026-09-19","https://swappa.com/prices/apple-iphone-16-pro-max","Storage and battery health"],
+ ["e7","e4","iPhone 17",660,770,"m","2026-09-19","https://swappa.com/prices/apple-iphone-17","Still the current base model"],
+ ["e8","e4","Galaxy S23",210,265,"m","2026-09-19","https://swappa.com/prices/samsung-galaxy-s23","Screen burn-in and carrier lock"],
+ ["e9","e4","Galaxy S24",290,370,"m","2026-09-19","https://swappa.com/prices/samsung-galaxy-s24","Unlocked brings noticeably more"],
+ ["e10","e4","Galaxy S25",380,470,"m","2026-09-19","https://swappa.com/prices/samsung-galaxy-s25","256GB adds about $80"],
+ ["e11","e3","iPad 9th gen",140,185,"m","2026-09-19","https://swappa.com/prices/apple-ipad-9th-gen","Cheap refurbs cap it"],
+ ["e12","e3","iPad 10th gen",220,300,"m","2026-09-19","https://swappa.com/prices/apple-ipad-10th-gen","Cheap refurbs drag it down"],
+ ["e13","e5","PlayStation 5 (disc)",370,460,"h","2026-09-19","https://www.pricecharting.com/game/playstation-5/playstation-5-console-disc-version","Slim about $40 over original"],
+ ["e14","e5","PlayStation 5 digital",329,430,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=PlayStation%205%20digital&LH_Sold=1&LH_Complete=1","14 eBay sales in the last 90 days",""],
+ ["e15","e5","PlayStation 4",90,140,"h","2026-09-19","https://www.pricecharting.com/console/playstation-4?genre-name=systems","PS4 Pro runs $150–200"],
+ ["e16","e5","Xbox Series X",470,560,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Xbox%20Series%20X&LH_Sold=1&LH_Complete=1","23 eBay sales in the last 90 days",""],
+ ["e17","e5","Xbox Series S",210,305,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Xbox%20Series%20S&LH_Sold=1&LH_Complete=1","28 eBay sales in the last 90 days",""],
+ ["e18","e5","Xbox One S / One X",100,170,"m","2026-09-19","https://www.pricecharting.com/console/xbox-one?genre-name=systems","One X $140–180"],
+ ["e19","e5","Nintendo Switch OLED",175,190,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Nintendo%20Switch%20OLED&LH_Sold=1&LH_Complete=1","16 eBay sales in the last 90 days",""],
+ ["e20","e5","Nintendo Switch",135,180,"h","2026-09-19","https://www.pricecharting.com/console/nintendo-switch?genre-name=systems","Needs dock and Joy-Cons; drift cuts value"],
+ ["e21","e5|Handheld game console","Nintendo Switch Lite",95,130,"h","2026-09-19","https://www.pricecharting.com/console/nintendo-switch?genre-name=systems","Special editions $140–160"],
+ ["e22","e5","Nintendo Switch 2",169,449,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Nintendo%20Switch%202&LH_Sold=1&LH_Complete=1","11 eBay sales in the last 90 days",""],
+ ["e23","Handheld game console","Steam Deck",400,520,"m","2026-09-19","https://www.pricecharting.com/game/pc-games/steam-deck-256-gb","512GB and case add"],
+ ["e24","e2","MacBook Air M1",320,410,"m","2026-09-19","https://swappa.com/prices/macbook-air-2020-13","Battery cycles; 16GB adds"],
+ ["e25","e2","MacBook Air M2",540,660,"m","2026-09-19","https://swappa.com/prices/macbook-air-2022-13","512GB or 16GB adds about $100"],
+ ["e26","GoPro / action camera","GoPro Hero 11 / 12",180,270,"m","2026-09-19","https://swappa.com/prices/gopro-hero12","Extra batteries add"],
+ ["e27a","Camera drone","DJI Mini 3",330,420,"l","2026-09-19","https://swappa.com/drones/price/dji-mini-3","Fly More combo adds"],
+ ["e27b","Camera drone","DJI Mini 4 Pro",690,850,"l","2026-09-19","https://swappa.com/drones/price/dji-mini-4-pro","Fly More combo adds"],
+ ["e28","VR headset","Meta Quest 3",170,330,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Meta%20Quest%203&LH_Sold=1&LH_Complete=1","23 eBay sales in the last 90 days",""],
+ ["e29","Smart watch","Apple Watch Series 8 / 9",120,190,"m","2026-09-19","https://swappa.com/prices/apple-watch-series-9-45mm","Battery health; 45mm adds"],
+ ["f1","r2","Honda Rancher 420",3800,5400,"m","2026-09-19","https://www.jdpower.com/motorcycles/2020/honda/trx420fm1-ft-rnchr-4x4-420cc/values","Newer years and EPS/DCT trims on top"],
+ ["f2","r2","Honda Foreman 520",4200,5900,"m","2026-09-19","https://www.jdpower.com/motorcycles/2020/honda/trx520fm1-ft-frmn-4x4-518cc/values","EPS and low hours add"],
+ ["f3","r2","Polaris Sportsman 570",3600,5200,"m","2026-09-19","https://www.jdpower.com/motorcycles/2020/polaris/sportsman-570-567cc/values","EPS and Premium trims add"],
+ ["f4","r2","Can-Am Outlander 570",3800,5500,"m","2026-09-19","https://www.jdpower.com/motorcycles/2020/can-am/outlander-570-570cc/values","DPS and XT trims add $700–1,500"],
+ ["f5","r2","Yamaha Grizzly 700",5400,7400,"m","2026-09-19","https://www.jdpower.com/motorcycles/2020/yamaha/grizzly-eps-4wd-686cc/values","SE trims and low hours add"],
+ ["f6","r2","Kawasaki Brute Force 750",4900,6900,"m","2026-09-19","https://www.jdpower.com/motorcycles/2020/kawasaki/kvf750glf-bruteforce-4x4i-749cc/values","EPS adds about $800"],
+ ["f7a","UTV / side-by-side","Polaris Ranger 570",5800,8000,"m","2026-09-19","https://www.jdpower.com/motorcycles/2020/polaris/ranger-570-567cc/values","Full-size and EPS add"],
+ ["f7b","UTV / side-by-side","Polaris Ranger 1000",8300,10500,"l","2026-09-19","https://www.jdpower.com/motorcycles/2020/polaris/ranger-1000-eps-999cc/values","Crew and Premium trims add"],
+ ["f8","UTV / side-by-side","Polaris RZR 900 / XP 1000",7500,11500,"l","2026-09-19","https://www.jdpower.com/motorcycles/2020/polaris/rzr-900-eps-875cc/values","RZR 900 low end, XP 1000 top"],
+ ["f9","UTV / side-by-side","Kawasaki Mule",4300,7000,"m","2026-09-19","https://www.jdpower.com/motorcycles/2020/kawasaki/kaf620mlf-mule-4010-4x4-617cc/values","Mule SX low end; 4010 4x4 top"],
+ ["f10","UTV / side-by-side","John Deere Gator XUV",8500,13500,"l","2026-09-19","https://www.machinerypete.com/other/atvs-and-utility-vehicles/john-deere/xuv590m","835 and cab push the top"],
+ ["f11","Golf cart","Club Car Precedent",3800,5800,"m","2026-09-19","https://golfcartsearch.com/golf-cart-value-calculator/club-car/precedent","Lithium or new batteries add $1,500+"],
+ ["f12","Golf cart","EZGO TXT",3300,5000,"m","2026-09-19","https://golfcartsearch.com/golf-cart-value-calculator/ezgo/txt","Battery age, lift and seats"],
+ ["f13","Golf cart","Yamaha Drive2",4500,6800,"m","2026-09-19","https://golfcartsearch.com/golf-cart-value-calculator/yamaha/drive","Gas QuieTech and lithium bring more"],
+ ["h2","e3","Samsung Galaxy Tab A8",61,116,"m","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Samsung%20Galaxy%20Tab%20A8&LH_Sold=1&LH_Complete=1","5 eBay sales in the last 90 days",""],
+ ["h4","e5","PlayStation 5 disc",400,449,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=PlayStation%205%20disc&LH_Sold=1&LH_Complete=1","16 eBay sales in the last 90 days",""],
+ ["h7","e5","PlayStation 5 Slim",360,462,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=PlayStation%205%20Slim&LH_Sold=1&LH_Complete=1","17 eBay sales in the last 90 days",""],
+ ["h9","e5","PlayStation 4 Pro",125,180,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=PlayStation%204%20Pro&LH_Sold=1&LH_Complete=1","19 eBay sales in the last 90 days",""],
+ ["h11","e5","PlayStation 4 Slim",100,135,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=PlayStation%204%20Slim&LH_Sold=1&LH_Complete=1","27 eBay sales in the last 90 days",""],
+ ["h14","Headphones — over-ear","Sony WH-1000XM4",95,150,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Sony%20WH-1000XM4&LH_Sold=1&LH_Complete=1","18 eBay sales in the last 90 days",""],
+ ["h16","Headphones — over-ear","Sony WH-1000XM5",109,128,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Sony%20WH-1000XM5&LH_Sold=1&LH_Complete=1","20 eBay sales in the last 90 days",""],
+ ["h18","Headphones — over-ear","Sony WH-CH720N",35,55,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Sony%20WH-CH720N&LH_Sold=1&LH_Complete=1","16 eBay sales in the last 90 days",""],
+ ["h20","Headphones — over-ear","Bose QuietComfort 45",85,100,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Bose%20QuietComfort%2045&LH_Sold=1&LH_Complete=1","19 eBay sales in the last 90 days",""],
+ ["h22","Headphones — over-ear","Bose QuietComfort Ultra",143,209,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Bose%20QuietComfort%20Ultra&LH_Sold=1&LH_Complete=1","7 eBay sales in the last 90 days",""],
+ ["h24","Headphones — over-ear","Bose QuietComfort 35 II",47,100,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Bose%20QuietComfort%2035%20II&LH_Sold=1&LH_Complete=1","29 eBay sales in the last 90 days",""],
+ ["h26","Wireless earbuds","Apple AirPods 4",60,108,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Apple%20AirPods%204&LH_Sold=1&LH_Complete=1","12 eBay sales in the last 90 days",""],
+ ["h28","Wireless earbuds","Apple AirPods Pro",50,97,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Apple%20AirPods%20Pro&LH_Sold=1&LH_Complete=1","10 eBay sales in the last 90 days",""],
+ ["h30","Wireless earbuds","Apple AirPods Pro 2",60,80,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Apple%20AirPods%20Pro%202&LH_Sold=1&LH_Complete=1","7 eBay sales in the last 90 days",""],
+ ["h32","Game controller","Xbox Wireless Controller Series X|S",17,49,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Xbox%20Wireless%20Controller%20Series%20X%7CS&LH_Sold=1&LH_Complete=1","17 eBay sales in the last 90 days",""],
+ ["h34","Game controller","Xbox Elite Series 2",40,65,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Xbox%20Elite%20Series%202&LH_Sold=1&LH_Complete=1","11 eBay sales in the last 90 days",""],
+ ["h36","Game controller","Xbox Elite Series 2 Core",45,68,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Xbox%20Elite%20Series%202%20Core&LH_Sold=1&LH_Complete=1","10 eBay sales in the last 90 days",""],
+ ["h38","Game controller","Xbox One Wireless Controller",15,26,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Xbox%20One%20Wireless%20Controller&LH_Sold=1&LH_Complete=1","22 eBay sales in the last 90 days",""],
+ ["h40","Game controller","Sony DualSense",35,80,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Sony%20DualSense&LH_Sold=1&LH_Complete=1","15 eBay sales in the last 90 days",""],
+ ["h42","Game controller","Sony DualSense Edge",89,140,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Sony%20DualSense%20Edge&LH_Sold=1&LH_Complete=1","14 eBay sales in the last 90 days",""],
+ ["h44","Headphones — over-ear","Bose 700",78,90,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Bose%20700&LH_Sold=1&LH_Complete=1","9 eBay sales in the last 90 days",""],
+ ["h46","Headphones — over-ear","Beats Studio3",30,60,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Beats%20Studio3&LH_Sold=1&LH_Complete=1","19 eBay sales in the last 90 days",""],
+ ["h48","Headphones — over-ear","Beats Studio Pro",60,79,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Beats%20Studio%20Pro&LH_Sold=1&LH_Complete=1","13 eBay sales in the last 90 days",""],
+ ["h50","Headphones — over-ear","Beats Solo 3",34,55,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Beats%20Solo%203&LH_Sold=1&LH_Complete=1","16 eBay sales in the last 90 days",""],
+ ["h52","Headphones — over-ear","Beats Solo 4",60,76,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Beats%20Solo%204&LH_Sold=1&LH_Complete=1","18 eBay sales in the last 90 days",""],
+ ["h54","Headphones — over-ear","Sennheiser HD 450BT",35,50,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Sennheiser%20HD%20450BT&LH_Sold=1&LH_Complete=1","9 eBay sales in the last 90 days",""],
+ ["h56","Headphones — over-ear","Sennheiser Momentum 4",110,140,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Sennheiser%20Momentum%204&LH_Sold=1&LH_Complete=1","14 eBay sales in the last 90 days",""],
+ ["h58","Headphones — over-ear","Audio-Technica ATH-M50x",60,95,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Audio-Technica%20ATH-M50x&LH_Sold=1&LH_Complete=1","22 eBay sales in the last 90 days",""],
+ ["h60","Headphones — over-ear","Audio-Technica ATH-M20x",28,40,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Audio-Technica%20ATH-M20x&LH_Sold=1&LH_Complete=1","20 eBay sales in the last 90 days",""],
+ ["h62","Headphones — over-ear","JBL Tune 760NC",25,36,"m","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=JBL%20Tune%20760NC&LH_Sold=1&LH_Complete=1","5 eBay sales in the last 90 days",""],
+ ["h64","Headphones — over-ear","JBL Live 660NC",20,36,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=JBL%20Live%20660NC&LH_Sold=1&LH_Complete=1","19 eBay sales in the last 90 days",""],
+ ["h66","Headphones — over-ear","Skullcandy Crusher Evo",63,80,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Skullcandy%20Crusher%20Evo&LH_Sold=1&LH_Complete=1","13 eBay sales in the last 90 days",""],
+ ["h68","Headphones — over-ear","Marshall Major IV",35,52,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Marshall%20Major%20IV&LH_Sold=1&LH_Complete=1","14 eBay sales in the last 90 days",""],
+ ["h70","Wireless earbuds","Samsung Galaxy Buds2",22,40,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Samsung%20Galaxy%20Buds2&LH_Sold=1&LH_Complete=1","7 eBay sales in the last 90 days",""],
+ ["h72","Wireless earbuds","Samsung Galaxy Buds2 Pro",40,50,"m","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Samsung%20Galaxy%20Buds2%20Pro&LH_Sold=1&LH_Complete=1","5 eBay sales in the last 90 days",""],
+ ["h74","Wireless earbuds","Samsung Galaxy Buds FE",22,34,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Samsung%20Galaxy%20Buds%20FE&LH_Sold=1&LH_Complete=1","8 eBay sales in the last 90 days",""],
+ ["h76","Wireless earbuds","Samsung Galaxy Buds Live",40,80,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Samsung%20Galaxy%20Buds%20Live&LH_Sold=1&LH_Complete=1","14 eBay sales in the last 90 days",""],
+ ["h78","Wireless earbuds","Samsung Galaxy Buds3",40,58,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Samsung%20Galaxy%20Buds3&LH_Sold=1&LH_Complete=1","9 eBay sales in the last 90 days",""],
+ ["h80","Wireless earbuds","Sony WF-1000XM4",45,60,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Sony%20WF-1000XM4&LH_Sold=1&LH_Complete=1","12 eBay sales in the last 90 days",""],
+ ["h82","Wireless earbuds","Sony WF-1000XM5",90,106,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Sony%20WF-1000XM5&LH_Sold=1&LH_Complete=1","15 eBay sales in the last 90 days",""],
+ ["h84","Wireless earbuds","Sony WF-C500",21,29,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Sony%20WF-C500&LH_Sold=1&LH_Complete=1","11 eBay sales in the last 90 days",""],
+ ["h86","Wireless earbuds","Sony LinkBuds S",32,46,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Sony%20LinkBuds%20S&LH_Sold=1&LH_Complete=1","10 eBay sales in the last 90 days",""],
+ ["h88","Wireless earbuds","Bose QuietComfort Earbuds II",45,100,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Bose%20QuietComfort%20Earbuds%20II&LH_Sold=1&LH_Complete=1","17 eBay sales in the last 90 days",""],
+ ["h90","Wireless earbuds","Bose Sport Earbuds",50,70,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Bose%20Sport%20Earbuds&LH_Sold=1&LH_Complete=1","12 eBay sales in the last 90 days",""],
+ ["h92","Wireless earbuds","Beats Fit Pro",33,54,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Beats%20Fit%20Pro&LH_Sold=1&LH_Complete=1","13 eBay sales in the last 90 days",""],
+ ["h94","Wireless earbuds","Beats Studio Buds",25,60,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Beats%20Studio%20Buds&LH_Sold=1&LH_Complete=1","12 eBay sales in the last 90 days",""],
+ ["h96","Wireless earbuds","Beats Powerbeats Pro",55,70,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Beats%20Powerbeats%20Pro&LH_Sold=1&LH_Complete=1","9 eBay sales in the last 90 days",""],
+ ["h98","Wireless earbuds","Jabra Elite 75t",43,55,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Jabra%20Elite%2075t&LH_Sold=1&LH_Complete=1","9 eBay sales in the last 90 days",""],
+ ["h100","Wireless earbuds","Jabra Elite 85t",30,79,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Jabra%20Elite%2085t&LH_Sold=1&LH_Complete=1","16 eBay sales in the last 90 days",""],
+ ["h102","Wireless earbuds","Jabra Elite 4",50,60,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Jabra%20Elite%204&LH_Sold=1&LH_Complete=1","7 eBay sales in the last 90 days",""],
+ ["h104","Wireless earbuds","Google Pixel Buds Pro",80,105,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Google%20Pixel%20Buds%20Pro&LH_Sold=1&LH_Complete=1","7 eBay sales in the last 90 days",""],
+ ["h106","Wireless earbuds","Google Pixel Buds A-Series",22,45,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Google%20Pixel%20Buds%20A-Series&LH_Sold=1&LH_Complete=1","10 eBay sales in the last 90 days",""],
+ ["h108","Wireless earbuds","JBL Tune 230NC",20,26,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=JBL%20Tune%20230NC&LH_Sold=1&LH_Complete=1","11 eBay sales in the last 90 days",""],
+ ["h110","Wireless earbuds","Anker Soundcore Liberty 4",40,70,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Anker%20Soundcore%20Liberty%204&LH_Sold=1&LH_Complete=1","13 eBay sales in the last 90 days",""],
+ ["h112","Wireless earbuds","Anker Soundcore Life P3",29,40,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Anker%20Soundcore%20Life%20P3&LH_Sold=1&LH_Complete=1","7 eBay sales in the last 90 days",""],
+ ["h114","Wireless earbuds","Skullcandy Indy Evo",15,20,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Skullcandy%20Indy%20Evo&LH_Sold=1&LH_Complete=1","11 eBay sales in the last 90 days",""],
+ ["h116","Wireless earbuds","Raycon Everyday",33,40,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Raycon%20Everyday&LH_Sold=1&LH_Complete=1","16 eBay sales in the last 90 days",""],
+ ["h118","Game controller","Sony DualShock 4",15,35,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Sony%20DualShock%204&LH_Sold=1&LH_Complete=1","22 eBay sales in the last 90 days",""],
+ ["h120","Game controller","Nintendo Switch Pro Controller",16,48,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Nintendo%20Switch%20Pro%20Controller&LH_Sold=1&LH_Complete=1","13 eBay sales in the last 90 days",""],
+ ["h122","Game controller","Nintendo Joy-Con pair",25,30,"m","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Nintendo%20Joy-Con%20pair&LH_Sold=1&LH_Complete=1","5 eBay sales in the last 90 days",""],
+ ["h124","Game controller","Nintendo Switch 2 Pro Controller",25,60,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Nintendo%20Switch%202%20Pro%20Controller&LH_Sold=1&LH_Complete=1","6 eBay sales in the last 90 days",""],
+ ["h126","Game controller","8BitDo Pro 2",20,30,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=8BitDo%20Pro%202&LH_Sold=1&LH_Complete=1","12 eBay sales in the last 90 days",""],
+ ["h128","Game controller","8BitDo Ultimate",18,34,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=8BitDo%20Ultimate&LH_Sold=1&LH_Complete=1","13 eBay sales in the last 90 days",""],
+ ["h130","Game controller","Scuf Instinct Pro",46,80,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Scuf%20Instinct%20Pro&LH_Sold=1&LH_Complete=1","17 eBay sales in the last 90 days",""],
+ ["h132","Game controller","Razer Wolverine V2",20,60,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Razer%20Wolverine%20V2&LH_Sold=1&LH_Complete=1","18 eBay sales in the last 90 days",""],
+ ["h134","Game controller","PowerA Enhanced Wired",13,20,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=PowerA%20Enhanced%20Wired&LH_Sold=1&LH_Complete=1","15 eBay sales in the last 90 days",""],
+ ["h136","Game controller","Turtle Beach Recon Controller",7,16,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Turtle%20Beach%20Recon%20Controller&LH_Sold=1&LH_Complete=1","20 eBay sales in the last 90 days",""],
+ ["h138","Game controller","Hori Split Pad Pro",12,19,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Hori%20Split%20Pad%20Pro&LH_Sold=1&LH_Complete=1","20 eBay sales in the last 90 days",""],
+ ["h141","e5","Xbox One X",120,410,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Xbox%20One%20X&LH_Sold=1&LH_Complete=1","26 eBay sales in the last 90 days",""],
+ ["h143","e5","Xbox One S",80,100,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Xbox%20One%20S&LH_Sold=1&LH_Complete=1","23 eBay sales in the last 90 days",""],
+ ["h146","e5","Nintendo Switch V2",103,140,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Nintendo%20Switch%20V2&LH_Sold=1&LH_Complete=1","12 eBay sales in the last 90 days",""],
+ ["h148","e5","Nintendo Switch Lite",95,109,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Nintendo%20Switch%20Lite&LH_Sold=1&LH_Complete=1","17 eBay sales in the last 90 days",""],
+ ["h150","e5","Xbox One",71,99,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Xbox%20One&LH_Sold=1&LH_Complete=1","24 eBay sales in the last 90 days",""],
+ ["h152","e5","Xbox 360",60,110,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Xbox%20360&LH_Sold=1&LH_Complete=1","18 eBay sales in the last 90 days",""],
+ ["h154","e5","PlayStation 3",70,290,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=PlayStation%203&LH_Sold=1&LH_Complete=1","16 eBay sales in the last 90 days",""],
+ ["h156","e5","Nintendo Wii U",65,160,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Nintendo%20Wii%20U&LH_Sold=1&LH_Complete=1","20 eBay sales in the last 90 days",""],
+ ["h158","e5","Nintendo Wii",45,160,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Nintendo%20Wii&LH_Sold=1&LH_Complete=1","17 eBay sales in the last 90 days",""],
+ ["h161","e5","Xbox Series X Digital",265,470,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Xbox%20Series%20X%20Digital&LH_Sold=1&LH_Complete=1","24 eBay sales in the last 90 days",""],
+ ["h163","Handheld game console","Nintendo Switch Lite",91,105,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Nintendo%20Switch%20Lite&LH_Sold=1&LH_Complete=1","21 eBay sales in the last 90 days",""],
+ ["h165","Handheld game console","Nintendo Switch OLED",175,190,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Nintendo%20Switch%20OLED&LH_Sold=1&LH_Complete=1","16 eBay sales in the last 90 days",""],
+ ["h167","Handheld game console","Steam Deck 256GB",400,440,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Steam%20Deck%20256GB&LH_Sold=1&LH_Complete=1","11 eBay sales in the last 90 days",""],
+ ["h169","Handheld game console","Steam Deck OLED",630,700,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Steam%20Deck%20OLED&LH_Sold=1&LH_Complete=1","9 eBay sales in the last 90 days",""],
+ ["h171","Handheld game console","Nintendo 3DS XL",180,280,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Nintendo%203DS%20XL&LH_Sold=1&LH_Complete=1","21 eBay sales in the last 90 days",""],
+ ["h173","Handheld game console","New Nintendo 2DS XL",193,279,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=New%20Nintendo%202DS%20XL&LH_Sold=1&LH_Complete=1","15 eBay sales in the last 90 days",""],
+ ["h175","Handheld game console","Sony PS Vita",128,193,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Sony%20PS%20Vita&LH_Sold=1&LH_Complete=1","16 eBay sales in the last 90 days",""],
+ ["h177","Handheld game console","Anbernic RG35XX",47,60,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Anbernic%20RG35XX&LH_Sold=1&LH_Complete=1","9 eBay sales in the last 90 days",""],
+ ["h179","Handheld game console","Analogue Pocket",281,420,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Analogue%20Pocket&LH_Sold=1&LH_Complete=1","12 eBay sales in the last 90 days",""],
+ ["h181","VR headset","Meta Quest 2",55,200,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Meta%20Quest%202&LH_Sold=1&LH_Complete=1","29 eBay sales in the last 90 days",""],
+ ["h184","VR headset","Meta Quest 3S",100,199,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Meta%20Quest%203S&LH_Sold=1&LH_Complete=1","22 eBay sales in the last 90 days",""],
+ ["h186","VR headset","Meta Quest Pro",300,445,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Meta%20Quest%20Pro&LH_Sold=1&LH_Complete=1","23 eBay sales in the last 90 days",""],
+ ["h188","VR headset","Sony PlayStation VR2",189,284,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Sony%20PlayStation%20VR2&LH_Sold=1&LH_Complete=1","28 eBay sales in the last 90 days",""],
+ ["h190","VR headset","Sony PlayStation VR",170,284,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Sony%20PlayStation%20VR&LH_Sold=1&LH_Complete=1","26 eBay sales in the last 90 days",""],
+ ["h192","VR headset","Valve Index",115,375,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Valve%20Index&LH_Sold=1&LH_Complete=1","19 eBay sales in the last 90 days",""],
+ ["h194","VR headset","Pico 4",378,579,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Pico%204&LH_Sold=1&LH_Complete=1","8 eBay sales in the last 90 days",""],
+ ["h196","Smartwatch — Apple / Galaxy","Samsung Galaxy Watch 5",56,135,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Samsung%20Galaxy%20Watch%205&LH_Sold=1&LH_Complete=1","7 eBay sales in the last 90 days",""],
+ ["h198","Smartwatch — Apple / Galaxy","Samsung Galaxy Watch 6",65,70,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Samsung%20Galaxy%20Watch%206&LH_Sold=1&LH_Complete=1","8 eBay sales in the last 90 days",""],
+ ["h200","Smartwatch — Apple / Galaxy","Samsung Galaxy Watch 7",85,99,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Samsung%20Galaxy%20Watch%207&LH_Sold=1&LH_Complete=1","8 eBay sales in the last 90 days",""],
+ ["h202","Smartwatch — Apple / Galaxy","Fitbit Versa 4",42,55,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Fitbit%20Versa%204&LH_Sold=1&LH_Complete=1","12 eBay sales in the last 90 days",""],
+ ["h204","Smartwatch — Apple / Galaxy","Fitbit Sense 2",50,61,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Fitbit%20Sense%202&LH_Sold=1&LH_Complete=1","17 eBay sales in the last 90 days",""],
+ ["h206","Smartwatch — Apple / Galaxy","Garmin Forerunner 265",270,285,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Garmin%20Forerunner%20265&LH_Sold=1&LH_Complete=1","9 eBay sales in the last 90 days",""],
+ ["h208","Smartwatch — Apple / Galaxy","Garmin Venu 2",61,180,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Garmin%20Venu%202&LH_Sold=1&LH_Complete=1","11 eBay sales in the last 90 days",""],
+ ["h210","Monitor — 27in","Dell S2721DGF",100,179,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Dell%20S2721DGF&LH_Sold=1&LH_Complete=1","13 eBay sales in the last 90 days",""],
+ ["h212","Monitor — 27in","Dell U2720Q",130,200,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Dell%20U2720Q&LH_Sold=1&LH_Complete=1","20 eBay sales in the last 90 days",""],
+ ["h214","Monitor — 27in","LG 27GL83A-B",32,110,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=LG%2027GL83A-B&LH_Sold=1&LH_Complete=1","21 eBay sales in the last 90 days",""],
+ ["h216","Monitor — 27in","LG 27GN800",95,115,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=LG%2027GN800&LH_Sold=1&LH_Complete=1","11 eBay sales in the last 90 days",""],
+ ["h218","Monitor — 27in","Samsung Odyssey G5",95,129,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Samsung%20Odyssey%20G5&LH_Sold=1&LH_Complete=1","18 eBay sales in the last 90 days",""],
+ ["h220","Monitor — 27in","Samsung Odyssey G7",139,250,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Samsung%20Odyssey%20G7&LH_Sold=1&LH_Complete=1","20 eBay sales in the last 90 days",""],
+ ["h222","Monitor — 27in","AOC 24G2",67,99,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=AOC%2024G2&LH_Sold=1&LH_Complete=1","9 eBay sales in the last 90 days",""],
+ ["h224","Monitor — 27in","HP 24mh",44,75,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=HP%2024mh&LH_Sold=1&LH_Complete=1","16 eBay sales in the last 90 days",""],
+ ["h226","e6","JBL Flip 5",40,60,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=JBL%20Flip%205&LH_Sold=1&LH_Complete=1","12 eBay sales in the last 90 days",""],
+ ["h228","e6","JBL Flip 6",37,49,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=JBL%20Flip%206&LH_Sold=1&LH_Complete=1","9 eBay sales in the last 90 days",""],
+ ["h230","e6","JBL Charge 4",35,65,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=JBL%20Charge%204&LH_Sold=1&LH_Complete=1","20 eBay sales in the last 90 days",""],
+ ["h232","e6","JBL Charge 5",70,90,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=JBL%20Charge%205&LH_Sold=1&LH_Complete=1","12 eBay sales in the last 90 days",""],
+ ["h234","e6","JBL Xtreme 3",41,150,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=JBL%20Xtreme%203&LH_Sold=1&LH_Complete=1","8 eBay sales in the last 90 days",""],
+ ["h236","e6","Bose SoundLink Flex",58,80,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Bose%20SoundLink%20Flex&LH_Sold=1&LH_Complete=1","14 eBay sales in the last 90 days",""],
+ ["h238","e6","Bose SoundLink Revolve",40,105,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Bose%20SoundLink%20Revolve&LH_Sold=1&LH_Complete=1","21 eBay sales in the last 90 days",""],
+ ["h240","e6","Ultimate Ears Boom 3",40,54,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Ultimate%20Ears%20Boom%203&LH_Sold=1&LH_Complete=1","21 eBay sales in the last 90 days",""],
+ ["h242","e6","Ultimate Ears Megaboom 3",50,64,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Ultimate%20Ears%20Megaboom%203&LH_Sold=1&LH_Complete=1","10 eBay sales in the last 90 days",""],
+ ["h244","e6","Sony SRS-XB13",20,30,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Sony%20SRS-XB13&LH_Sold=1&LH_Complete=1","21 eBay sales in the last 90 days","xb-13 xb13"],
+ ["h246","e6","Sony SRS-XB43",128,169,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Sony%20SRS-XB43&LH_Sold=1&LH_Complete=1","20 eBay sales in the last 90 days","xb-43 xb43"],
+ ["h248","e6","Anker Soundcore Motion Boom",60,82,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Anker%20Soundcore%20Motion%20Boom&LH_Sold=1&LH_Complete=1","17 eBay sales in the last 90 days",""],
+ ["h250","e6","Anker Soundcore Flare 2",26,35,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Anker%20Soundcore%20Flare%202&LH_Sold=1&LH_Complete=1","14 eBay sales in the last 90 days",""],
+ ["h252","e6","Marshall Emberton",60,80,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Marshall%20Emberton&LH_Sold=1&LH_Complete=1","11 eBay sales in the last 90 days",""],
+ ["h254","e6","JBL Clip 4",16,32,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=JBL%20Clip%204&LH_Sold=1&LH_Complete=1","10 eBay sales in the last 90 days",""],
+ ["h256","e6","JBL Go 3",15,20,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=JBL%20Go%203&LH_Sold=1&LH_Complete=1","8 eBay sales in the last 90 days",""],
+ ["h258","e6","Bose SoundLink Micro",34,50,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Bose%20SoundLink%20Micro&LH_Sold=1&LH_Complete=1","14 eBay sales in the last 90 days",""],
+ ["h260","e6","Sony SRS-XG300",77,105,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Sony%20SRS-XG300&LH_Sold=1&LH_Complete=1","17 eBay sales in the last 90 days",""],
+ ["h262","e6","Anker Soundcore 3",26,60,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Anker%20Soundcore%203&LH_Sold=1&LH_Complete=1","10 eBay sales in the last 90 days",""],
+ ["h264","e6","Marshall Willen",48,60,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Marshall%20Willen&LH_Sold=1&LH_Complete=1","9 eBay sales in the last 90 days",""],
+ ["h266","e7","Rockford Fosgate R500X1D",100,120,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Rockford%20Fosgate%20R500X1D&LH_Sold=1&LH_Complete=1","17 eBay sales in the last 90 days",""],
+ ["h268","e7","Kicker 46CXA8001",115,150,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Kicker%2046CXA8001&LH_Sold=1&LH_Complete=1","21 eBay sales in the last 90 days",""],
+ ["h270","e7","JL Audio 12W3v3",105,349,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=JL%20Audio%2012W3v3&LH_Sold=1&LH_Complete=1","19 eBay sales in the last 90 days",""],
+ ["h272","e7","JL Audio JX1000/1D",200,300,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=JL%20Audio%20JX1000%2F1D&LH_Sold=1&LH_Complete=1","9 eBay sales in the last 90 days","jx-1000 jx1000"],
+ ["h274","e7","Pioneer GM-D8601",78,90,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Pioneer%20GM-D8601&LH_Sold=1&LH_Complete=1","7 eBay sales in the last 90 days","d-8601 d8601"],
+ ["h276","e7","Sundown SA-12",220,342,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Sundown%20SA-12&LH_Sold=1&LH_Complete=1","6 eBay sales in the last 90 days","sa-12 sa12"],
+ ["h278","e4","iPhone 12",105,200,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=iPhone%2012&LH_Sold=1&LH_Complete=1","12 eBay sales in the last 90 days",""],
+ ["h281","e4","OnePlus 10T",125,155,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=OnePlus%2010T&LH_Sold=1&LH_Complete=1","6 eBay sales in the last 90 days",""],
+ ["h283","Video game — current title","NBA 2K24",4,10,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=NBA%202K24&LH_Sold=1&LH_Complete=1","6 eBay sales in the last 90 days",""],
+ ["h285","Video game — current title","EA Sports FC 25",11,15,"m","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=EA%20Sports%20FC%2025&LH_Sold=1&LH_Complete=1","5 eBay sales in the last 90 days",""],
+ ["h287","Video game — current title","EA Sports FC 24",9,13,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=EA%20Sports%20FC%2024&LH_Sold=1&LH_Complete=1","7 eBay sales in the last 90 days",""],
+ ["h289","Video game — current title","Mario Kart 8 Deluxe",25,32,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Mario%20Kart%208%20Deluxe&LH_Sold=1&LH_Complete=1","9 eBay sales in the last 90 days",""],
+ ["h291","Video game — current title","Pokemon Scarlet",35,70,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Pokemon%20Scarlet&LH_Sold=1&LH_Complete=1","10 eBay sales in the last 90 days",""],
+ ["h293","Video game — current title","Red Dead Redemption 2",10,15,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Red%20Dead%20Redemption%202&LH_Sold=1&LH_Complete=1","7 eBay sales in the last 90 days",""],
+ ["h295","Video game — current title","Baldur's Gate 3",49,58,"m","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Baldur's%20Gate%203&LH_Sold=1&LH_Complete=1","5 eBay sales in the last 90 days",""],
+ ["h297","e3","Lenovo Tab M10",50,75,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Lenovo%20Tab%20M10&LH_Sold=1&LH_Complete=1","11 eBay sales in the last 90 days","m-10 m10"],
+ ["h299","e3","onn. 10 Tablet Pro",40,50,"m","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=onn.%2010%20Tablet%20Pro&LH_Sold=1&LH_Complete=1","5 eBay sales in the last 90 days",""],
+ ["h301","e1","Samsung TU7000 55in",50,150,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Samsung%20TU7000%2055in&LH_Sold=1&LH_Complete=1","6 eBay sales in the last 90 days","tu-7000 tu7000"],
+ ["h303","e2","Dell Inspiron 15 3520",135,255,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Dell%20Inspiron%2015%203520&LH_Sold=1&LH_Complete=1","6 eBay sales in the last 90 days",""],
+ ["h305","e2","HP Pavilion 15",99,230,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=HP%20Pavilion%2015&LH_Sold=1&LH_Complete=1","8 eBay sales in the last 90 days",""],
+ ["h307","e2","HP Envy x360 15",250,450,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=HP%20Envy%20x360%2015&LH_Sold=1&LH_Complete=1","9 eBay sales in the last 90 days","x-360 x360"],
+ ["h309","e2","Lenovo Legion 5 15",450,600,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Lenovo%20Legion%205%2015&LH_Sold=1&LH_Complete=1","6 eBay sales in the last 90 days",""],
+ ["h311","e2","Asus TUF Gaming A15",600,750,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Asus%20TUF%20Gaming%20A15&LH_Sold=1&LH_Complete=1","7 eBay sales in the last 90 days","a-15 a15"],
+ ["h313","e2","Acer Aspire 5",272,391,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Acer%20Aspire%205&LH_Sold=1&LH_Complete=1","8 eBay sales in the last 90 days",""],
+ ["h315","e2","Microsoft Surface Laptop 4",165,225,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Microsoft%20Surface%20Laptop%204&LH_Sold=1&LH_Complete=1","21 eBay sales in the last 90 days",""],
+ ["h317","e2","Acer Swift 3",258,522,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Acer%20Swift%203&LH_Sold=1&LH_Complete=1","8 eBay sales in the last 90 days",""],
+ ["h319","e3","Samsung Galaxy Tab S6 Lite",110,150,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Samsung%20Galaxy%20Tab%20S6%20Lite&LH_Sold=1&LH_Complete=1","6 eBay sales in the last 90 days",""],
+ ["h321","e3","Samsung Galaxy Tab A7 Lite",40,65,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Samsung%20Galaxy%20Tab%20A7%20Lite&LH_Sold=1&LH_Complete=1","6 eBay sales in the last 90 days",""],
+ ["h284","Video game — sports title","NBA 2K24",4,10,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=NBA%202K24&LH_Sold=1&LH_Complete=1","6 eBay sales in the last 90 days",""],
+ ["h288","Video game — sports title","EA Sports FC 25",11,15,"m","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=EA%20Sports%20FC%2025&LH_Sold=1&LH_Complete=1","5 eBay sales in the last 90 days",""],
+ ["h292","Video game — sports title","EA Sports FC 24",9,13,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=EA%20Sports%20FC%2024&LH_Sold=1&LH_Complete=1","7 eBay sales in the last 90 days",""],
+ ["h296","Video game — Nintendo title","Mario Kart 8 Deluxe",25,32,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Mario%20Kart%208%20Deluxe&LH_Sold=1&LH_Complete=1","9 eBay sales in the last 90 days",""],
+ ["h300","Video game — Nintendo title","Pokemon Scarlet",35,70,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Pokemon%20Scarlet&LH_Sold=1&LH_Complete=1","10 eBay sales in the last 90 days",""],
+ ["h320","Gaming laptop","Lenovo Legion 5 15",450,600,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Lenovo%20Legion%205%2015&LH_Sold=1&LH_Complete=1","6 eBay sales in the last 90 days",""],
+ ["h323","Gaming laptop","Asus TUF Gaming A15",600,750,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Asus%20TUF%20Gaming%20A15&LH_Sold=1&LH_Complete=1","7 eBay sales in the last 90 days","a-15 a15"],
+ ["h45","Video game — sports title","Madden NFL 25",2,7,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Madden%20NFL%2025&LH_Sold=1&LH_Complete=1","9 eBay sales in the last 90 days",""],
+ ["h310","Video game — current title","Grand Theft Auto V",4,9,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Grand%20Theft%20Auto%20V&LH_Sold=1&LH_Complete=1","10 eBay sales in the last 90 days",""],
+ ["h331","Gaming laptop","HP Omen 16",450,1450,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=HP%20Omen%2016&LH_Sold=1&LH_Complete=1","10 eBay sales in the last 90 days",""],
+ ["h334","Gaming laptop","Alienware m15 R7",675,1134,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Alienware%20m15%20R7&LH_Sold=1&LH_Complete=1","7 eBay sales in the last 90 days",""],
+ ["h336","Gaming laptop","MSI Katana 15",680,900,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=MSI%20Katana%2015&LH_Sold=1&LH_Complete=1","10 eBay sales in the last 90 days",""],
+ ["h335","e2","Lenovo ThinkPad T14",240,430,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Lenovo%20ThinkPad%20T14&LH_Sold=1&LH_Complete=1","9 eBay sales in the last 90 days","t-14 t14"],
+ ["h341","e2","Microsoft Surface Laptop 5",180,249,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Microsoft%20Surface%20Laptop%205&LH_Sold=1&LH_Complete=1","16 eBay sales in the last 90 days",""],
+ ["h344","j1","Rolex Datejust 36",4999,6450,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Rolex%20Datejust%2036&LH_Sold=1&LH_Complete=1","12 eBay sales in the last 90 days",""],
+ ["h346","j1","Rolex Explorer",5900,8299,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Rolex%20Explorer&LH_Sold=1&LH_Complete=1","8 eBay sales in the last 90 days",""],
+ ["h348","j1","Omega Seamaster 300M",1800,3200,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Omega%20Seamaster%20300M&LH_Sold=1&LH_Complete=1","7 eBay sales in the last 90 days",""],
+ ["h350","j1","Omega Speedmaster Professional",1975,4101,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Omega%20Speedmaster%20Professional&LH_Sold=1&LH_Complete=1","20 eBay sales in the last 90 days",""],
+ ["h352","j1","Tudor Black Bay 58",3900,4200,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Tudor%20Black%20Bay%2058&LH_Sold=1&LH_Complete=1","7 eBay sales in the last 90 days","bay-58 bay58"],
+ ["h354","j1","Cartier Tank Must",1395,2900,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Cartier%20Tank%20Must&LH_Sold=1&LH_Complete=1","22 eBay sales in the last 90 days",""],
+ ["h356","j1","Breitling Navitimer",3250,3950,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Breitling%20Navitimer&LH_Sold=1&LH_Complete=1","10 eBay sales in the last 90 days",""],
+ ["h358","j1","TAG Heuer Carrera",449,1820,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=TAG%20Heuer%20Carrera&LH_Sold=1&LH_Complete=1","16 eBay sales in the last 90 days",""],
+ ["h360","j1","TAG Heuer Aquaracer",575,1199,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=TAG%20Heuer%20Aquaracer&LH_Sold=1&LH_Complete=1","15 eBay sales in the last 90 days",""],
+ ["h362","f1","NordicTrack Commercial 1750",60,280,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=NordicTrack%20Commercial%201750&LH_Sold=1&LH_Complete=1","14 eBay sales in the last 90 days",""],
+ ["h364","f1","Bowflex Treadmill 10",100,150,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Bowflex%20Treadmill%2010&LH_Sold=1&LH_Complete=1","8 eBay sales in the last 90 days",""],
+ ["h366","t6","Lincoln Power MIG 140C",240,470,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Lincoln%20Power%20MIG%20140C&LH_Sold=1&LH_Complete=1","8 eBay sales in the last 90 days","mig-140c mig140c"],
+ ["h368","a3","LG WM3400CW washer",40,75,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=LG%20WM3400CW%20washer&LH_Sold=1&LH_Complete=1","5 eBay sales in the last 90 days","wm-3400cw wm3400cw"],
+ ["h370","t7","Snap-on KRA tool box",36,170,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Snap-on%20KRA%20tool%20box&LH_Sold=1&LH_Complete=1","28 eBay sales in the last 90 days",""],
+ ["h372","a1","Whirlpool WFE505W0HS range",80,125,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Whirlpool%20WFE505W0HS%20range&LH_Sold=1&LH_Complete=1","15 eBay sales in the last 90 days",""],
+ ["h374","f2","Peloton Bike",190,350,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Peloton%20Bike&LH_Sold=1&LH_Complete=1","18 eBay sales in the last 90 days",""],
+ ["h376","f2","Peloton Bike Plus",200,350,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Peloton%20Bike%20Plus&LH_Sold=1&LH_Complete=1","21 eBay sales in the last 90 days",""],
+ ["h378","f2","NordicTrack S22i",85,375,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=NordicTrack%20S22i&LH_Sold=1&LH_Complete=1","10 eBay sales in the last 90 days","s-22i s22i"],
+ ["h380","f2","Schwinn IC4",179,450,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Schwinn%20IC4&LH_Sold=1&LH_Complete=1","14 eBay sales in the last 90 days",""],
+ ["h382","f2","Schwinn 170",23,110,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Schwinn%20170&LH_Sold=1&LH_Complete=1","10 eBay sales in the last 90 days",""],
+ ["h384","f2","Keiser M3i",305,650,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Keiser%20M3i&LH_Sold=1&LH_Complete=1","5 eBay sales in the last 90 days",""],
+ ["h386","f3","Sole E25",100,300,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Sole%20E25&LH_Sold=1&LH_Complete=1","5 eBay sales in the last 90 days","e-25 e25"],
+ ["h388","f3","Schwinn 470",99,150,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Schwinn%20470&LH_Sold=1&LH_Complete=1","5 eBay sales in the last 90 days",""],
+ ["h390","f7","Callaway Strata complete set",275,325,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Callaway%20Strata%20complete%20set&LH_Sold=1&LH_Complete=1","12 eBay sales in the last 90 days",""],
+ ["h392","f7","TaylorMade SIM2 iron set",385,473,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=TaylorMade%20SIM2%20iron%20set&LH_Sold=1&LH_Complete=1","6 eBay sales in the last 90 days",""],
+ ["h394","f7","TaylorMade M4 iron set",349,360,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=TaylorMade%20M4%20iron%20set&LH_Sold=1&LH_Complete=1","11 eBay sales in the last 90 days",""],
+ ["h396","f7","Mizuno JPX 921 iron set",420,550,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Mizuno%20JPX%20921%20iron%20set&LH_Sold=1&LH_Complete=1","7 eBay sales in the last 90 days","jpx-921 jpx921"],
+ ["h398","f7","Wilson Profile complete set",115,220,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Wilson%20Profile%20complete%20set&LH_Sold=1&LH_Complete=1","11 eBay sales in the last 90 days",""],
+ ["h400","p6","Ryobi 3100 PSI pressure washer",30,40,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Ryobi%203100%20PSI%20pressure%20washer&LH_Sold=1&LH_Complete=1","12 eBay sales in the last 90 days",""],
+ ["h402","t8","Paslode CF325XP",130,200,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Paslode%20CF325XP&LH_Sold=1&LH_Complete=1","18 eBay sales in the last 90 days","cf-325xp cf325xp"],
+ ["h404","t8","Paslode 900420",70,100,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Paslode%20900420&LH_Sold=1&LH_Complete=1","4 eBay sales in the last 90 days",""],
+ ["h406","t8","Bostitch F21PL",118,165,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Bostitch%20F21PL&LH_Sold=1&LH_Complete=1","9 eBay sales in the last 90 days","f-21pl f21pl"],
+ ["h408","t8","Metabo HPT NR90AES1",80,126,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Metabo%20HPT%20NR90AES1&LH_Sold=1&LH_Complete=1","22 eBay sales in the last 90 days",""],
+ ["h410","j2","Seiko SKX007",145,340,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Seiko%20SKX007&LH_Sold=1&LH_Complete=1","15 eBay sales in the last 90 days","skx-007 skx007"],
+ ["h412","j2","Seiko 5 Sports SRPD",190,199,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Seiko%205%20Sports%20SRPD&LH_Sold=1&LH_Complete=1","8 eBay sales in the last 90 days",""],
+ ["h414","j2","Seiko Prospex Turtle",328,499,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Seiko%20Prospex%20Turtle&LH_Sold=1&LH_Complete=1","13 eBay sales in the last 90 days",""],
+ ["h416","j2","Citizen Eco-Drive Promaster",145,280,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Citizen%20Eco-Drive%20Promaster&LH_Sold=1&LH_Complete=1","10 eBay sales in the last 90 days",""],
+ ["h418","j2","Bulova Marine Star",93,229,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Bulova%20Marine%20Star&LH_Sold=1&LH_Complete=1","7 eBay sales in the last 90 days",""],
+ ["h420","j2","Fossil Grant",40,55,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Fossil%20Grant&LH_Sold=1&LH_Complete=1","27 eBay sales in the last 90 days",""],
+ ["h422","j2","Tissot PRX",195,415,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Tissot%20PRX&LH_Sold=1&LH_Complete=1","14 eBay sales in the last 90 days",""],
+ ["h424","j2","Hamilton Khaki Field",425,495,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Hamilton%20Khaki%20Field&LH_Sold=1&LH_Complete=1","8 eBay sales in the last 90 days",""],
+ ["h426","j2","Invicta Pro Diver 8926",50,70,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Invicta%20Pro%20Diver%208926&LH_Sold=1&LH_Complete=1","14 eBay sales in the last 90 days",""],
+ ["h428","j2","Movado Museum",85,260,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Movado%20Museum&LH_Sold=1&LH_Complete=1","18 eBay sales in the last 90 days",""],
+ ["h430","j2","Michael Kors Lexington",25,75,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Michael%20Kors%20Lexington&LH_Sold=1&LH_Complete=1","10 eBay sales in the last 90 days",""],
+ ["h432","j2","Apple Watch Series 7",70,140,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Apple%20Watch%20Series%207&LH_Sold=1&LH_Complete=1","25 eBay sales in the last 90 days",""],
+ ["h434","j2","Apple Watch Series 8",59,120,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Apple%20Watch%20Series%208&LH_Sold=1&LH_Complete=1","23 eBay sales in the last 90 days",""],
+ ["h436","j2","Apple Watch SE",75,110,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Apple%20Watch%20SE&LH_Sold=1&LH_Complete=1","23 eBay sales in the last 90 days",""],
+ ["h438","j2","Garmin Fenix 6",175,217,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Garmin%20Fenix%206&LH_Sold=1&LH_Complete=1","22 eBay sales in the last 90 days",""],
+ ["h440","j2","Garmin Fenix 7",300,410,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Garmin%20Fenix%207&LH_Sold=1&LH_Complete=1","16 eBay sales in the last 90 days",""],
+ ["h442","j2","Garmin Forerunner 245",90,136,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Garmin%20Forerunner%20245&LH_Sold=1&LH_Complete=1","26 eBay sales in the last 90 days",""],
+ ["h444","t4","Porter-Cable C2002",65,104,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Porter-Cable%20C2002&LH_Sold=1&LH_Complete=1","8 eBay sales in the last 90 days","c-2002 c2002"],
+ ["h446","t4","California Air Tools 8010",145,210,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=California%20Air%20Tools%208010&LH_Sold=1&LH_Complete=1","5 eBay sales in the last 90 days",""],
+ ["h448","h7","Penn Battle III",80,119,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Penn%20Battle%20III&LH_Sold=1&LH_Complete=1","7 eBay sales in the last 90 days",""],
+ ["h450","h7","Penn Slammer III",177,194,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Penn%20Slammer%20III&LH_Sold=1&LH_Complete=1","12 eBay sales in the last 90 days",""],
+ ["h452","h7","Shimano Stradic",118,190,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Shimano%20Stradic&LH_Sold=1&LH_Complete=1","16 eBay sales in the last 90 days",""],
+ ["h454","h7","Shimano Curado",123,190,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Shimano%20Curado&LH_Sold=1&LH_Complete=1","19 eBay sales in the last 90 days",""],
+ ["h456","h7","Shimano Sedona",36,65,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Shimano%20Sedona&LH_Sold=1&LH_Complete=1","19 eBay sales in the last 90 days",""],
+ ["h458","h7","Abu Garcia Ambassadeur 6500",50,85,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Abu%20Garcia%20Ambassadeur%206500&LH_Sold=1&LH_Complete=1","12 eBay sales in the last 90 days",""],
+ ["h460","h7","Abu Garcia Revo SX",55,103,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Abu%20Garcia%20Revo%20SX&LH_Sold=1&LH_Complete=1","22 eBay sales in the last 90 days",""],
+ ["h462","h7","Daiwa BG 3000",80,90,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Daiwa%20BG%203000&LH_Sold=1&LH_Complete=1","6 eBay sales in the last 90 days","bg-3000 bg3000"],
+ ["h464","h7","Daiwa Tatula",115,153,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Daiwa%20Tatula&LH_Sold=1&LH_Complete=1","11 eBay sales in the last 90 days",""],
+ ["h466","h7","Ugly Stik GX2 combo",30,55,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Ugly%20Stik%20GX2%20combo&LH_Sold=1&LH_Complete=1","8 eBay sales in the last 90 days",""],
+ ["h468","h7","Lew's Mach Crush",50,70,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Lew's%20Mach%20Crush&LH_Sold=1&LH_Complete=1","15 eBay sales in the last 90 days",""],
+ ["h470","a9","Brother CS7000X sewing machine",150,200,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Brother%20CS7000X%20sewing%20machine&LH_Sold=1&LH_Complete=1","10 eBay sales in the last 90 days","cs-7000x cs7000x"],
+ ["h472","a9","Singer Heavy Duty 4423",100,155,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Singer%20Heavy%20Duty%204423&LH_Sold=1&LH_Complete=1","18 eBay sales in the last 90 days","duty-4423 duty4423"],
+ ["h474","f5","Bowflex SelectTech 552",25,76,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Bowflex%20SelectTech%20552&LH_Sold=1&LH_Complete=1","15 eBay sales in the last 90 days",""],
+ ["h476","f5","Bowflex SelectTech 1090",25,64,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Bowflex%20SelectTech%201090&LH_Sold=1&LH_Complete=1","14 eBay sales in the last 90 days",""],
+ ["h478","f5","PowerBlock Elite",145,305,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=PowerBlock%20Elite&LH_Sold=1&LH_Complete=1","14 eBay sales in the last 90 days",""],
+ ["h480","a10","Dyson V8",40,128,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Dyson%20V8&LH_Sold=1&LH_Complete=1","10 eBay sales in the last 90 days",""],
+ ["h482","a10","Dyson V10",85,219,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Dyson%20V10&LH_Sold=1&LH_Complete=1","12 eBay sales in the last 90 days","v-10 v10"],
+ ["h484","a10","Dyson V11",124,290,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Dyson%20V11&LH_Sold=1&LH_Complete=1","13 eBay sales in the last 90 days","v-11 v11"],
+ ["h486","a10","Dyson V15",105,334,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Dyson%20V15&LH_Sold=1&LH_Complete=1","6 eBay sales in the last 90 days","v-15 v15"],
+ ["h488","t3","DeWalt DWE402",45,60,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=DeWalt%20DWE402&LH_Sold=1&LH_Complete=1","8 eBay sales in the last 90 days","dwe-402 dwe402"],
+ ["h490","t3","DeWalt DCG413",70,110,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=DeWalt%20DCG413&LH_Sold=1&LH_Complete=1","9 eBay sales in the last 90 days","dcg-413 dcg413"],
+ ["h492","t3","Makita 9557PB",55,65,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Makita%209557PB&LH_Sold=1&LH_Complete=1","9 eBay sales in the last 90 days",""],
+ ["h494","h4","Browning Strike Force",55,72,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Browning%20Strike%20Force&LH_Sold=1&LH_Complete=1","8 eBay sales in the last 90 days",""],
+ ["h496","h4","Browning Dark Ops",39,60,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Browning%20Dark%20Ops&LH_Sold=1&LH_Complete=1","10 eBay sales in the last 90 days",""],
+ ["h498","h4","Stealth Cam Fusion X",29,36,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Stealth%20Cam%20Fusion%20X&LH_Sold=1&LH_Complete=1","12 eBay sales in the last 90 days",""],
+ ["h500","h4","Spypoint Flex",39,70,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Spypoint%20Flex&LH_Sold=1&LH_Complete=1","6 eBay sales in the last 90 days",""],
+ ["h502","h4","Spypoint Link Micro",26,45,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Spypoint%20Link%20Micro&LH_Sold=1&LH_Complete=1","11 eBay sales in the last 90 days",""],
+ ["h27","Wireless earbuds","Apple AirPods 3rd generation",14,60,"m","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Apple%20AirPods%203rd%20generation&LH_Sold=1&LH_Complete=1","17 listings, asking prices - no sold data",""],
+ ["h119","Wireless earbuds","JBL Vibe Beam",20,30,"m","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=JBL%20Vibe%20Beam&LH_Sold=1&LH_Complete=1","27 listings, asking prices - no sold data",""],
+ ["h235","Monitor — 27in","Asus TUF VG27AQ",50,150,"m","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Asus%20TUF%20VG27AQ&LH_Sold=1&LH_Complete=1","33 listings, asking prices - no sold data",""],
+ ["h308","e4","Samsung Galaxy A13",48,65,"m","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Samsung%20Galaxy%20A13&LH_Sold=1&LH_Complete=1","13 listings, asking prices - no sold data","a-13 a13"],
+ ["h328","Video game — current title","Hogwarts Legacy",8,20,"m","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Hogwarts%20Legacy&LH_Sold=1&LH_Complete=1","12 listings, asking prices - no sold data",""],
+ ["h330","Video game — sports title","EA Sports College Football 25",8,12,"m","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=EA%20Sports%20College%20Football%2025&LH_Sold=1&LH_Complete=1","12 listings, asking prices - no sold data",""],
+ ["h338","e3","Samsung Galaxy Tab S9 FE",210,275,"m","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Samsung%20Galaxy%20Tab%20S9%20FE&LH_Sold=1&LH_Complete=1","14 listings, asking prices - no sold data",""],
+ ["h345","Gaming laptop","Acer Nitro 5",320,499,"m","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Acer%20Nitro%205&LH_Sold=1&LH_Complete=1","8 listings, asking prices - no sold data",""],
+ ["h355","e3","iPad Air 5",280,309,"m","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=iPad%20Air%205&LH_Sold=1&LH_Complete=1","6 listings, asking prices - no sold data",""],
+ ["h361","e3","Samsung Galaxy Tab S8",230,270,"m","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Samsung%20Galaxy%20Tab%20S8&LH_Sold=1&LH_Complete=1","8 listings, asking prices - no sold data",""],
+ ["h365","e3","Samsung Galaxy Tab S9",215,330,"m","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Samsung%20Galaxy%20Tab%20S9&LH_Sold=1&LH_Complete=1","9 listings, asking prices - no sold data",""],
+ ["h377","e2","Dell Latitude 7420",170,180,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Dell%20Latitude%207420&LH_Sold=1&LH_Complete=1","7 listings, asking prices - no sold data",""],
+ ["h387","e2","Asus ZenBook 14",400,850,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Asus%20ZenBook%2014&LH_Sold=1&LH_Complete=1","10 listings, asking prices - no sold data",""],
+ ["h395","e2","Lenovo Chromebook Flex 5",125,180,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Lenovo%20Chromebook%20Flex%205&LH_Sold=1&LH_Complete=1","6 listings, asking prices - no sold data",""],
+ ["h401","e2","Asus Vivobook 15",202,320,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Asus%20Vivobook%2015&LH_Sold=1&LH_Complete=1","6 listings, asking prices - no sold data",""],
+ ["h465","f2","Echelon EX-3",250,500,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Echelon%20EX-3&LH_Sold=1&LH_Complete=1","16 listings, asking prices - no sold data",""],
+ ["h531","t4","Craftsman CMEC6150",60,88,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Craftsman%20CMEC6150&LH_Sold=1&LH_Complete=1","7 listings, asking prices - no sold data","cmec-6150 cmec6150"],
+ ["h533","t4","DeWalt DWFP55126",65,160,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=DeWalt%20DWFP55126&LH_Sold=1&LH_Complete=1","6 listings, asking prices - no sold data","dwfp-55126 dwfp55126"],
+ ["h535","t4","Bostitch BTFP02012",120,130,"l","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Bostitch%20BTFP02012&LH_Sold=1&LH_Complete=1","5 listings, asking prices - no sold data","btfp-02012 btfp02012"],
+ ["h565","h4","Moultrie A-40",27,60,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Moultrie%20A-40&LH_Sold=1&LH_Complete=1","27 listings, asking prices - no sold data","a-40 a40"],
+ ["h567","h4","Moultrie Edge",44,67,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Moultrie%20Edge&LH_Sold=1&LH_Complete=1","29 listings, asking prices - no sold data",""],
+ ["h569","h4","Stealth Cam G42NG",40,70,"l","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Stealth%20Cam%20G42NG&LH_Sold=1&LH_Complete=1","5 listings, asking prices - no sold data","g-42ng g42ng"],
+ ["h572","h4","Tactacam Reveal X",60,147,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Tactacam%20Reveal%20X&LH_Sold=1&LH_Complete=1","25 listings, asking prices - no sold data",""],
+ ["h574","h4","Tactacam Reveal SK",60,147,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Tactacam%20Reveal%20SK&LH_Sold=1&LH_Complete=1","26 listings, asking prices - no sold data",""],
+ ["h599","p2","Ryobi 40V string trimmer",104,119,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Ryobi%2040V%20string%20trimmer&LH_Sold=1&LH_Complete=1","complete kits only - 4 eBay sales in the last 90 days",""],
+ ["h604","p7","Champion 3500 watt generator",279,600,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Champion%203500%20watt%20generator&LH_Sold=1&LH_Complete=1","6 eBay sales in the last 90 days",""],
+ ["h610","t1","DeWalt DCD771",50,55,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=DeWalt%20DCD771&LH_Sold=1&LH_Complete=1","complete kits only - 4 eBay sales in the last 90 days","dcd-771 dcd771"],
+ ["h612","t1","DeWalt DCD996",55,80,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=DeWalt%20DCD996&LH_Sold=1&LH_Complete=1","10 eBay sales in the last 90 days","dcd-996 dcd996"],
+ ["h614","t1","Milwaukee 2801-20",110,110,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Milwaukee%202801-20&LH_Sold=1&LH_Complete=1","complete kits only - 4 eBay sales in the last 90 days",""],
+ ["h616","t1","Milwaukee M12 Fuel 2504",80,85,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Milwaukee%20M12%20Fuel%202504&LH_Sold=1&LH_Complete=1","complete kits only - 4 eBay sales in the last 90 days","fuel-2504 fuel2504 m-12 m12"],
+ ["h618","t1","Makita XFD10",81,95,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Makita%20XFD10&LH_Sold=1&LH_Complete=1","complete kits only - 4 listings, asking prices - no sold data","xfd-10 xfd10"],
+ ["h620","t1","Makita XPH12",80,120,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Makita%20XPH12&LH_Sold=1&LH_Complete=1","complete kits only - 4 eBay sales in the last 90 days","xph-12 xph12"],
+ ["h622","t1","Ryobi P252",25,48,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Ryobi%20P252&LH_Sold=1&LH_Complete=1","9 eBay sales in the last 90 days","p-252 p252"],
+ ["h624","t1","Kobalt 24V drill",40,50,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Kobalt%2024V%20drill&LH_Sold=1&LH_Complete=1","14 eBay sales in the last 90 days",""],
+ ["h626","t2","Milwaukee 2767-20",199,239,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Milwaukee%202767-20&LH_Sold=1&LH_Complete=1","complete kits only - 7 eBay sales in the last 90 days",""],
+ ["h628","t2","DeWalt DCF899",125,150,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=DeWalt%20DCF899&LH_Sold=1&LH_Complete=1","7 eBay sales in the last 90 days","dcf-899 dcf899"],
+ ["h630","t2","Ingersoll Rand 2235TiMAX",75,175,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Ingersoll%20Rand%202235TiMAX&LH_Sold=1&LH_Complete=1","8 eBay sales in the last 90 days",""],
+ ["h632","t2","Makita XWT08",180,200,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Makita%20XWT08&LH_Sold=1&LH_Complete=1","complete kits only - 4 eBay sales in the last 90 days","xwt-08 xwt08"],
+ ["h634","h1","Vortex Crossfire II 3-9x40",80,100,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Vortex%20Crossfire%20II%203-9x40&LH_Sold=1&LH_Complete=1","9 eBay sales in the last 90 days",""],
+ ["h636","h1","Vortex Diamondback 4-12x40",136,165,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Vortex%20Diamondback%204-12x40&LH_Sold=1&LH_Complete=1","11 eBay sales in the last 90 days",""],
+ ["h638","h1","Vortex Viper HS 4-16x44",280,400,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Vortex%20Viper%20HS%204-16x44&LH_Sold=1&LH_Complete=1","17 eBay sales in the last 90 days",""],
+ ["h640","h1","Vortex Strike Eagle 1-6x24",150,225,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Vortex%20Strike%20Eagle%201-6x24&LH_Sold=1&LH_Complete=1","13 eBay sales in the last 90 days",""],
+ ["h642","h1","Leupold VX-Freedom 3-9x40",220,250,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Leupold%20VX-Freedom%203-9x40&LH_Sold=1&LH_Complete=1","6 eBay sales in the last 90 days",""],
+ ["h645","h1","Nikon Prostaff 3-9x40",125,175,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Nikon%20Prostaff%203-9x40&LH_Sold=1&LH_Complete=1","25 eBay sales in the last 90 days",""],
+ ["h647","h1","Bushnell Banner 3-9x40",35,50,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Bushnell%20Banner%203-9x40&LH_Sold=1&LH_Complete=1","18 eBay sales in the last 90 days",""],
+ ["h649","h1","Burris Fullfield II",100,203,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Burris%20Fullfield%20II&LH_Sold=1&LH_Complete=1","15 eBay sales in the last 90 days",""],
+ ["h651","h1","Athlon Argos BTR",200,200,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Athlon%20Argos%20BTR&LH_Sold=1&LH_Complete=1","4 eBay sales in the last 90 days",""],
+ ["h653","h1","Primary Arms SLx 1-6",210,259,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Primary%20Arms%20SLx%201-6&LH_Sold=1&LH_Complete=1","18 eBay sales in the last 90 days",""],
+ ["h656","h2","Nikon Monarch 5 10x42",165,229,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Nikon%20Monarch%205%2010x42&LH_Sold=1&LH_Complete=1","12 eBay sales in the last 90 days",""],
+ ["h658","h2","Bushnell H2O 10x42",32,50,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Bushnell%20H2O%2010x42&LH_Sold=1&LH_Complete=1","11 eBay sales in the last 90 days",""],
+ ["h660","h2","Leupold BX-2 Alpine",155,200,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Leupold%20BX-2%20Alpine&LH_Sold=1&LH_Complete=1","11 eBay sales in the last 90 days",""],
+ ["h663","h3","Vortex Impact 850",125,140,"l","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Vortex%20Impact%20850&LH_Sold=1&LH_Complete=1","5 listings, asking prices - no sold data",""],
+ ["h665","h3","Leupold RX-1400i",130,150,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Leupold%20RX-1400i&LH_Sold=1&LH_Complete=1","8 eBay sales in the last 90 days","rx-1400i rx1400i"],
+ ["h667","h3","Sig Sauer Kilo 1400",151,190,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Sig%20Sauer%20Kilo%201400&LH_Sold=1&LH_Complete=1","8 eBay sales in the last 90 days","kilo-1400 kilo1400"],
+ ["h669","h3","TecTecTec ProWild",45,80,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=TecTecTec%20ProWild&LH_Sold=1&LH_Complete=1","6 listings, asking prices - no sold data",""],
+ ["h672","h5","Mathews Phase4",800,1250,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Mathews%20Phase4&LH_Sold=1&LH_Complete=1","17 eBay sales in the last 90 days",""],
+ ["h675","h5","Hoyt Carbon RX",855,1390,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Hoyt%20Carbon%20RX&LH_Sold=1&LH_Complete=1","23 eBay sales in the last 90 days",""],
+ ["h677","h5","Bowtech Solution",425,650,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Bowtech%20Solution&LH_Sold=1&LH_Complete=1","28 eBay sales in the last 90 days",""],
+ ["h679","h5","PSE Nock On",650,980,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=PSE%20Nock%20On&LH_Sold=1&LH_Complete=1","8 eBay sales in the last 90 days",""],
+ ["h681","h5","Diamond Edge 320",150,300,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Diamond%20Edge%20320&LH_Sold=1&LH_Complete=1","11 eBay sales in the last 90 days","edge-320 edge320"],
+ ["h683","h5","Diamond Infinite Edge Pro",165,265,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Diamond%20Infinite%20Edge%20Pro&LH_Sold=1&LH_Complete=1","26 eBay sales in the last 90 days",""],
+ ["h685","h5","Bear Species",200,280,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Bear%20Species&LH_Sold=1&LH_Complete=1","19 eBay sales in the last 90 days",""],
+ ["h687","h5","Bear Cruzer G2",180,250,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Bear%20Cruzer%20G2&LH_Sold=1&LH_Complete=1","25 eBay sales in the last 90 days",""],
+ ["h689","h5","Elite Ember",340,460,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Elite%20Ember&LH_Sold=1&LH_Complete=1","10 eBay sales in the last 90 days",""],
+ ["h691","h6","TenPoint Turbo M1",451,800,"m","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=TenPoint%20Turbo%20M1&LH_Sold=1&LH_Complete=1","10 listings, asking prices - no sold data",""],
+ ["h693","h6","Barnett Whitetail Hunter STR",200,338,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Barnett%20Whitetail%20Hunter%20STR&LH_Sold=1&LH_Complete=1","12 eBay sales in the last 90 days",""],
+ ["h695","h6","Barnett Hyper Raptor",375,500,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Barnett%20Hyper%20Raptor&LH_Sold=1&LH_Complete=1","6 eBay sales in the last 90 days",""],
+ ["h697","h6","Excalibur Matrix",466,600,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Excalibur%20Matrix&LH_Sold=1&LH_Complete=1","9 eBay sales in the last 90 days",""],
+ ["h699","h6","CenterPoint Sniper 370",150,200,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=CenterPoint%20Sniper%20370&LH_Sold=1&LH_Complete=1","29 eBay sales in the last 90 days",""]
+];
+/* =================================================================================== */
+
+/* how each row is recognized from the brand, model and details typed.
+   First match wins, so the specific models sit above the general ones. */
+const MP_MATCH=[
+ ["a2",/wingmaster/],["a1",/\b870\b/],["a5",/maverick\s*88/],["a4",/\b590(a1)?\b/],["a6",/\b835\b/],["a3",/mossberg.*\b500\b/],
+ ["a7",/\b(super\s*)?nova\b/],["a8",/\bbps\b/],["a10",/\b11\s*-?\s*87\b|\b1187\b/],["a9",/\b1100\b/],["a11",/\ba300\b/],["a12",/\ba400\b/],
+ ["a14",/\bsbe\b|super\s*black\s*eagle/],["a13",/\bm2\b/],["a15",/\ba5\b|auto\s*-?\s*5\b/],["a16b",/\b940\b/],["a16a",/\b930\b/],
+ ["a17",/\bm3[05]00\b/],["a18",/\bsx4\b/],["a19",/remington.*\b700\b|model\s*700\b/],["a20",/model\s*70\b|winchester.*\b70\b/],
+ ["a21",/\baxis\b/],["a22",/savage.*\b110\b/],["a23",/ruger.*american|\bamerican\s*(rifle|predator|ranch|hunter)/],["a24",/\bt3x?\b/],
+ ["a25",/x\s*-?\s*bolt/],["a26",/\b336\b/],["a27",/model\s*94\b|winchester.*\b94\b/],["a28",/big\s*boy/],["a29",/golden\s*boy|\bh001\b|henry/],
+ ["a30",/10\s*\/\s*22|\b1022\b/],["a31",/marlin.*\b60\b/],["a33",/m&p\s*-?\s*15|\bmp\s*-?\s*15\b/],["a34",/ar\s*-?\s*556/],["a32",/\bar\s*-?\s*15\b|\bm4\b/],
+ ["a35",/\bsks\b/],["a36",/\bak\b|\bak\s*-?\s*(47|74)\b|\bwasr\b/],["a37a",/accura/],["a37b",/optima/],["a37c",/cva.*\bwolf\b/],
+ ["a38a",/encore|pro\s*hunter/],["a38b",/(thompson|t\/c|\btc\b).*impact/],
+ ["b1",/\b(g|glock\s*)17\b/],["b2",/\b(g|glock\s*)19x?\b/],["b3",/\b(g|glock\s*)26\b/],["b4",/\b(g|glock\s*)43x?\b/],["b5",/\b(g|glock\s*)48\b/],["b6",/\b(g|glock\s*)2[23]\b/],
+ ["b7",/p\s*365/],["b8",/p\s*320/],["b9",/p\s*22[69]\b/],["b12",/bodyguard/],["b11",/shield/],["b10",/m&p/],
+ ["b13",/hellcat/],["b14",/\bxd[sme]?\b/],["b15",/\bg[23]c\b/],["b16",/\bg3x?\b|\bgx4\b/],["b17",/\blcp\b/],["b18",/security\s*-?\s*9|max\s*-?\s*9/],
+ ["b19",/mark\s*iv|22\s*\/\s*45/],["b20",/canik|\btp\s*-?\s*9/],["b21a",/\bp\s*-?\s*10\b/],["b21b",/cz\s*75|shadow\s*2|sp\s*-?\s*01/],
+ ["b22",/beretta.*\b92|\b92\s*fs\b|\bm9\b/],["b23",/\b1911\b/],["b24",/hi-?\s*point|\bc9\b/],["b25",/sccy|\bcpx/],
+ ["b26",/\b686\b/],["b27",/\b64[2]\b|\b63[78]\b/],["b28",/gp\s*-?\s*100/],["b29",/sp\s*-?\s*101/],["b30",/\blcr/],["b31",/blackhawk|single\s*-?\s*six/],
+ ["b32",/judge|public\s*defender/],["b33",/python/],
+ ["c3",/ms\s*-?\s*271|farm\s*boss/],["c1",/ms\s*-?\s*1[78][01]\b/],["c2",/ms\s*-?\s*25[01]\b/],["c4",/ms\s*-?\s*291\b/],["c5",/ms\s*-?\s*362\b/],["c6",/ms\s*-?\s*46[12]\b/],
+ ["c8",/\b455\b/],["c9",/\b460\b/],["c7",/\b(450|445)\b/],["c11",/cs\s*-?\s*590|timber\s*wolf/],["c10",/cs\s*-?\s*40(0|10)\b/],
+ ["c13",/fs\s*-?\s*131/],["c12",/fs\s*-?\s*(56|91)\b/],["c14",/srm\s*-?\s*225/],["c16",/br\s*-?\s*800/],["c15",/br\s*-?\s*600/],
+ ["c18",/pb\s*-?\s*770/],["c17",/pb\s*-?\s*580/],["c19",/350\s*-?\s*bt/],["c20",/eu\s*-?\s*2[02]00/],["c21",/eu\s*-?\s*3000/],["c22",/\bhr[xn]/],
+ ["c24",/\bx3[58]0\b/],["c23",/\b(e1[0-3]0|s1[0-3]0)\b/],["c25",/\bz\s*-?\s*[23]\d\d\s*[a-z]?\b|\bzt1\b|ultima/],
+ ["c27",/dewalt.*impact|dcf\s*-?\s*8/],["c26",/dewalt|dcd/],["c29",/(m18|milwaukee).*impact|impact.*(m18|milwaukee)/],["c28",/m18|milwaukee/],
+ ["c30",/m18|milwaukee/],["c31",/makita|\blxt\b/],["c32",/ryobi|one\s*\+/],
+ ["d2",/vx\s*-?\s*freedom/],["d1",/vx\s*-?\s*3/],["d3",/crossfire/],["d5",/viper\s*pst|\bpst\b/],["d4",/diamondback/],["d7",/diamondback/],
+ ["d6",/ranger/],["d8",/terrova/],["d9",/endura/],["d10",/reveal\s*x|tactacam/],["d11",/\bv3x?\b/],["d12",/\brx\s*-?\s*7/],
+ ["d13",/ravin|\br\s*-?\s*(10|26)\b/],["d14",/tenpoint|titan|viper\s*s400/],["d15",/striker/],["d16",/helix/],
+ ["d18b",/squier.*(classic\s*vibe|\bcv\b)/],["d18a",/squier/],["d17",/fender.*strat|strat.*fender|player\s*strat/],
+ ["d20",/epiphone.*les\s*paul/],["d19",/gibson.*les\s*paul(?!\s*(studio|tribute|junior|special|jr))/],["d21",/\bd\s*-?\s*28\b/],
+ ["d22b",/\b214/],["d22a",/\b114/],["d23",/blues\s*(junior|jr)/],
+ ["e4b",/iphone\s*15\s*pro\s*max/],["e4a",/iphone\s*15\s*pro/],["e3",/iphone\s*15\b/],["e6b",/iphone\s*16\s*pro\s*max/],["e6a",/iphone\s*16\s*pro/],
+ ["e5",/iphone\s*16\b/],["e7",/iphone\s*17\b(?!\s*pro)/],["e2",/iphone\s*14\b(?!\s*pro)/],["e1",/iphone\s*13\b(?!\s*pro)/],
+ ["e10",/galaxy\s*s25\b(?!\s*(ultra|\+|plus))/],["e9",/galaxy\s*s24\b(?!\s*(ultra|\+|plus))/],["e8",/galaxy\s*s23\b(?!\s*(ultra|\+|plus))/],
+ ["e12",/ipad\s*10\b|ipad.*10th/],["e11",/ipad\s*9\b|ipad.*9th/],
+ ["e14",/(ps5|playstation\s*5).*digital|digital.*(ps5|playstation\s*5)/],["e13",/\bps5\b|playstation\s*5/],["e15",/\bps4\b|playstation\s*4/],
+ ["e16",/series\s*x/],["e17",/series\s*s/],["e18",/xbox\s*one/],["e19",/switch\s*oled/],["e22",/switch\s*2\b/],["e21",/switch\s*lite/],["e20",/\bswitch\b/],
+ ["e23",/steam\s*deck/],["e25",/macbook\s*air.*\bm2\b/],["e24",/macbook\s*air.*\bm1\b/],["e26",/hero\s*1[12]\b/],
+ ["e27b",/mini\s*4/],["e27a",/mini\s*3/],["e28",/quest\s*3\b/],["e29",/series\s*[89]\b/],
+ ["f1",/rancher/],["f2",/foreman/],["f3",/sportsman\s*570/],["f4",/outlander\s*570/],["f5",/grizzly/],["f6",/brute\s*force/],
+ ["f7b",/ranger\s*1000/],["f7a",/ranger/],["f8",/\brzr\b/],["f9",/\bmule\b/],["f10",/gator|\bxuv\b/],
+ ["f11",/precedent|club\s*car/],["f12",/\btxt\b|ezgo/],["f13",/drive\s*2|yamaha\s*drive/]];
+
+let MP_BY_ID=Object.fromEntries(MODEL_PRICES.map(r=>[r[0],r]));
+/* The count is spoken to the user in step 3, and prices.json rewrites the list
+   every week, so read it off the list instead of typing a number that rots. */
+function mpCount(){ return Math.round(MODEL_PRICES.length/10)*10; }
+/* prices.json is the list the weekly refresh writes; the copy baked in above is
+   the fallback for a first load with no network. A bad or truncated file must
+   never wipe the price book, so the replacement has to look like a price list
+   before it is allowed in: enough rows, and every one shaped right with a
+   sane low and high. Anything less and the baked-in copy simply stays. */
+function mpOk(rows){
+  if(!Array.isArray(rows)||rows.length<100)return false;
+  return rows.every(r=>Array.isArray(r)&&r.length>=9&&typeof r[0]==="string"&&typeof r[2]==="string"
+    &&typeof r[3]==="number"&&typeof r[4]==="number"&&r[3]>0&&r[4]>=r[3]&&r[4]<1000000);
+}
+async function refreshPrices(){
+  try{
+    const res=await fetch("prices.json",{cache:"no-store"});
+    if(!res.ok)return;
+    const j=await res.json();
+    const rows=j&&j.rows;
+    if(!mpOk(rows))return;
+    MODEL_PRICES=rows;
+    MP_BY_ID=Object.fromEntries(MODEL_PRICES.map(r=>[r[0],r]));
+    /* Same rule as the rows: a malformed map must never wipe the book, so
+       only the entries that look like a price are taken and the rest of
+       the file is ignored rather than the whole load being refused. */
+    const bk=j&&j.book;
+    if(bk&&typeof bk==="object"&&!Array.isArray(bk)){
+      const clean={};
+      for(const k of Object.keys(bk)){
+        const v=Number(bk[k]);
+        if(typeof k==="string"&&k&&v>0&&v<1000000)clean[k]=Math.round(v);
+      }
+      BOOK_PRICES=clean;
+    }
+    try{ render(); }catch(e){}
+  }catch(e){}
+}
+/* ---- spotting fakes -------------------------------------------------------
+   The counter cheat sheets, as data. The printed sheets in the binder are the
+   full version; these are their 60-second checks, and fakes.json is the one
+   copy the tool reads - nothing about them is typed out in here.
+
+   Four sheets GATE: Rolex and luxury watches, graded cards, coins and bullion,
+   and Apple. On those the tool gives no price until every check is answered,
+   because a fake one is not worth a fraction of a real one - it is worth
+   nothing, and taking it in knowing is a crime (§831.032). The other seven
+   advise: the checks show, the price does not wait on them. */
+let FAKES=null;
+function fakesOk(j){ return !!(j&&Array.isArray(j.sheets)&&j.sheets.length
+  &&j.sheets.every(x=>x&&typeof x.id==="string"&&Array.isArray(x.checks)&&Array.isArray(x.match)
+    &&(x.steps===undefined||Array.isArray(x.steps)))); }
+async function loadFakes(){
+  try{ const r=await fetch("fakes.json",{cache:"no-store"}); if(!r.ok)return;
+    const j=await r.json(); if(!fakesOk(j))return; FAKES=j; try{ render(); }catch(e){}
+  }catch(e){}
+}
+/* What is on the counter, in the words available - whatever the counter
+   typed, plus the name of the thing it was filed as. */
+function fakeText(x){
+  /* The item words on the metal page are whatever was last priced on the
+     other tab - a Charizard does not follow a customer to the scale. */
+  return (" "+[st.bookName||"",st.brandTyped||"",st.model||"",st.detail||"",
+    x?displayName(x):""].join(" ")+" ").toLowerCase();
+}
+function fakeSheet(x){
+  if(!FAKES)return null;
+  /* A scale cannot tell a chain from a Krugerrand, and the two sheets differ
+     on whether a price waits: bullion gates, jewelry advises. Guessing would
+     put a mandatory checklist on every gold chain, so the metal page asks.
+     Jewelry until told otherwise, because that is most of what comes in. */
+  if(st.mode==="metal")return FAKES.sheets.find(z=>z.id===(st.metalKind==="bullion"?"bullion":"jewelry"))||null;
+  const t=fakeText(x);
+  let best=null;
+  for(const sh of FAKES.sheets){
+    for(const w of sh.match){
+      if(t.indexOf(" "+w)>=0||t.indexOf(w+" ")>=0){
+        /* longest match wins, so "airpods pro" beats "ipad" in a jumble */
+        if(!best||w.length>best.w.length)best={sh,w};
+        break;
+      }
+    }
+  }
+  return best?best.sh:null;
+}
+/* The answers belong to the thing on the counter, not to the sheet. When the
+   item changes they are gone - the next Rolex through the door has not been
+   checked just because the last one was. */
+function fakeAns(id){
+  if(!st.fakeAns||st.fakeKey!==mkKey())return {};
+  return st.fakeAns[id]||{};
+}
+function fakeSet(id,i,v){
+  if(st.fakeKey!==mkKey()){ st.fakeAns={}; st.fakeKey=mkKey(); }
+  st.fakeAns=st.fakeAns||{};
+  const a=st.fakeAns[id]=Object.assign({},st.fakeAns[id]);
+  if(a[i]===v)delete a[i]; else a[i]=v;     /* tapping the same answer clears it */
+  render();
+}
+/* pass / unsure / fail, per check. Nothing assumed: an unanswered check is
+   not a pass, which is the whole point of the gate. */
+function fakeState(sh){
+  if(!sh)return null;
+  const a=fakeAns(sh.id), n=sh.checks.length;
+  let pass=0,unsure=0,fail=0;
+  for(let i=0;i<n;i++){ const v=a[i]; if(v==="pass")pass++; else if(v==="unsure")unsure++; else if(v==="fail")fail++; }
+  const done=pass+unsure+fail;
+  return {sh,n,pass,unsure,fail,done,
+    verdict: fail?"fail" : done<n ? "open" : unsure?"unsure" : "clear",
+    blocks: !!sh.gate && (fail>0 || done<n || unsure>0)};
+}
+/* ---- Check it by the numbers -------------------------------------------
+   Weight, diameter and thickness are the cheapest fake-catchers there are,
+   and unlike everything else in this tool they need no internet, no service
+   and no API call - they are arithmetic against a published mint spec. A
+   scale and a caliper catch more fakes than any photograph.
+
+   Every figure below is the official specification, not an observed average.
+   Sources are named on the card. */
+const SPEC_GROUPS=[["silver","Silver bullion"],["gold","Gold bullion"],["us","US silver coins"],["watch","Watch cases"]];
+const SPECS=[
+ /* g = grams, d = diameter mm, t = thickness mm, sg = specific gravity.
+    wear:true means a circulated coin legitimately loses metal, so light is
+    normal and HEAVY is the suspicious direction. */
+ {id:"ase",  grp:"silver", name:"American Silver Eagle — 1 oz", g:31.103, d:40.6, t:2.98, sg:10.49, metal:".999 silver"},
+ {id:"cml",  grp:"silver", name:"Canadian Silver Maple — 1 oz", g:31.10,  d:38.0, t:3.29, sg:10.49, metal:".9999 silver"},
+ {id:"phil", grp:"silver", name:"Austrian Philharmonic — 1 oz",  g:31.103, d:37.0, t:3.2,  sg:10.49, metal:".999 silver"},
+ {id:"round",grp:"silver", name:"Generic 1 oz .999 silver round",     g:31.103, d:null, t:null, sg:10.49, metal:".999 silver",
+              note:"Rounds vary in diameter by mint — weight and specific gravity are the checks that hold."},
+ {id:"bar10",grp:"silver", name:"10 oz .999 silver bar",              g:311.03, d:null, t:null, sg:10.49, metal:".999 silver"},
+
+ {id:"age1", grp:"gold", name:"American Gold Eagle — 1 oz",   g:33.931, d:32.70, t:2.87, sg:17.3, metal:"22k (.9167)",
+              note:"Gross weight is 33.931 g because it is 22k — it holds one full ounce of gold plus alloy. A coin weighing 31.1 g is not a Gold Eagle."},
+ {id:"agehalf",grp:"gold",name:"American Gold Eagle — 1/2 oz", g:16.966, d:27.00, t:2.24, sg:17.3, metal:"22k (.9167)"},
+ {id:"agequarter",grp:"gold",name:"American Gold Eagle — 1/4 oz",g:8.483, d:22.00, t:1.78, sg:17.3, metal:"22k (.9167)"},
+ {id:"agetenth",grp:"gold",name:"American Gold Eagle — 1/10 oz",g:3.393, d:16.50, t:1.19, sg:17.3, metal:"22k (.9167)"},
+ {id:"krug", grp:"gold", name:"Krugerrand — 1 oz",            g:33.93,  d:32.77, t:2.84, sg:17.3, metal:"22k (.9167)"},
+ {id:"gml",  grp:"gold", name:"Canadian Gold Maple — 1 oz",   g:31.10,  d:30.00, t:2.87, sg:19.3, metal:".9999 gold"},
+
+ {id:"dime",  grp:"us", name:"Dime — pre-1965, 90% silver",    g:2.50,  d:17.9, t:null, sg:10.34, metal:"90% silver", wear:true},
+ {id:"quart", grp:"us", name:"Quarter — pre-1965, 90% silver", g:6.25,  d:24.3, t:null, sg:10.34, metal:"90% silver", wear:true},
+ {id:"half",  grp:"us", name:"Half dollar — pre-1965, 90%",    g:12.50, d:30.6, t:null, sg:10.34, metal:"90% silver", wear:true},
+ {id:"half40",grp:"us", name:"Kennedy half — 1965-70, 40%",    g:11.50, d:30.6, t:null, sg:9.53,  metal:"40% silver", wear:true},
+ {id:"morgan",grp:"us", name:"Morgan / Peace dollar",               g:26.73, d:38.1, t:null, sg:10.34, metal:"90% silver", wear:true},
+
+ /* Watch weight moves with how many bracelet links are in it, so it is not a
+    pass/fail number. The CASE is fixed, and a caliper across it is a real
+    check: fakes are very often a millimetre or two out. */
+ {id:"sub40", grp:"watch", name:"Rolex Submariner 116610 / 114060", d:40.0, lug:20, g:null, metal:"904L steel"},
+ {id:"sub41", grp:"watch", name:"Rolex Submariner 126610",          d:41.0, lug:20, g:null, metal:"904L steel"},
+ {id:"dj36",  grp:"watch", name:"Rolex Datejust 36",                d:36.0, lug:20, g:null, metal:"904L steel"},
+ {id:"dj41",  grp:"watch", name:"Rolex Datejust 41",                d:41.0, lug:21, g:null, metal:"904L steel"},
+ {id:"gmt",   grp:"watch", name:"Rolex GMT-Master II 116710",       d:40.0, lug:20, g:null, metal:"904L steel"},
+ {id:"day",   grp:"watch", name:"Rolex Daytona 116500",             d:40.0, lug:20, g:null, metal:"904L steel"},
+ {id:"exp",   grp:"watch", name:"Rolex Explorer 214270",            d:39.0, lug:20, g:null, metal:"904L steel"}
+];
+const SPEC_BY=Object.fromEntries(SPECS.map(s=>[s.id,s]));
+/* How far out is too far. Bullion is struck to a tight tolerance; a coin that
+   spent fifty years in a till is allowed to be light from wear and nothing
+   else. Thickness moves most with strike, so it is the loosest. */
+const SPEC_TOL={g:0.006, gWear:0.025, d:0.3, t:0.15, sg:0.03, lug:0.5};
+function specJudge(sp,f,v){
+  if(!(v>0))return null;
+  const want=sp[f]; if(want==null)return null;
+  const tol=f==="g"?(sp.wear?SPEC_TOL.gWear:SPEC_TOL.g)*want
+           :f==="sg"?SPEC_TOL.sg*want
+           :SPEC_TOL[f];
+  const off=v-want, ok=Math.abs(off)<=tol;
+  const pct=want?off/want*100:0;
+  return {f,v,want,off,pct,ok,tol,
+    heavyLight: off>0?"over":"under"};
+}
+
+/* Specific gravity: weigh it dry, then weigh it hanging in water. The ratio
+   is the density, and density is what a fake cannot fake - except tungsten
+   against gold, which the card says out loud rather than quietly passing. */
+function specGravity(air,water){
+  if(!(air>0)||!(water>0)||water>=air)return null;
+  return air/(air-water);
+}
+function specRow(label,j,extra){
+  if(!j)return "";
+  const tone=j.ok?"var(--accent)":"var(--bad)";
+  return `<div class="cardHint" style="margin-top:5px;font-size:13px">
+    <b style="color:${tone}">${j.ok?"\u2713":"\u2717"}</b> ${esc(label)}:
+    you measured <b style="color:var(--ink)">${j.v}</b>, spec is <b style="color:var(--ink)">${j.want}</b>
+    (${j.pct>=0?"+":""}${j.pct.toFixed(1)}%). ${esc(extra||"")}</div>`;
+}
+function specCardHTML(sh){
+  const pick=st.specPick||"", sp=SPEC_BY[pick];
+  const inp=st.specIn||{};
+  const num=k=>Number(inp[k])||0;
+  const grp=sh&&sh.id==="watch"?"watch":sh&&sh.id==="bullion"?null:null;
+  /* ONE METAL AT A TIME.
+     This listed every group on every job, so buying a gold Eagle you
+     scrolled a table of Silver bullion and US silver coins to reach the
+     one row you wanted - "if I'm buying gold, I don't need a big box with
+     the silver price in the middle of the workflow". The bullion card is
+     1379px on a phone and nine of its mentions were the other metal.
+     Watch cases stay on both: a watch case is a watch case. */
+  const MET_GRP={gold:["gold","watch"],silver:["silver","us","watch"]};
+  const keep=MET_GRP[st.metal]||null;
+  const opts=SPEC_GROUPS.filter(([g])=>!keep||keep.indexOf(g)>=0).map(([g,label])=>{
+    const rows=SPECS.filter(z=>z.grp===g);
+    return `<optgroup label="${esc(label)}">`+rows.map(z=>
+      `<option value="${z.id}"${z.id===pick?" selected":""}>${esc(z.name)}</option>`).join("")+`</optgroup>`;
+  }).join("");
+
+  let out="";
+  if(sp){
+    const rows=[];
+    const jg=specJudge(sp,"g",num("g"));
+    if(jg)rows.push(specRow("Weight",jg, sp.wear
+      ? (jg.off>0 ? "Wear only ever REMOVES metal. An overweight coin is the wrong alloy - this is the bad direction."
+                  : jg.ok ? "Light is normal on a circulated coin." : "Too light even for a worn one.")
+      : (jg.ok ? "Within mint tolerance." : "Bullion is struck to a tight weight. This is not wear.")));
+    const jd=specJudge(sp,"d",num("d"));
+    if(jd)rows.push(specRow(sp.grp==="watch"?"Case width":"Diameter",jd, jd.ok?""
+      :sp.grp==="watch"?"Case size is fixed for the reference. A millimetre or two out is the commonest tell on a fake."
+      :"Die size is fixed. Millimetres out is not wear - it is a different coin."));
+    const jt=specJudge(sp,"t",num("t"));
+    if(jt)rows.push(specRow("Thickness",jt, jt.ok?"":"Thickness moves a little with strike, but not this much."));
+    const jl=specJudge(sp,"lug",num("lug"));
+    if(jl)rows.push(specRow("Lug width",jl, jl.ok?"":"Lug width is fixed per model and fakes are often out."));
+    const isGold=sp.grp==="gold", isWatch=sp.grp==="watch";
+    const sg=specGravity(num("g"),num("w"));
+    if(sg!=null&&sp.sg!=null){
+      const j=specJudge(sp,"sg",sg); j.v=sg.toFixed(2);
+      const gold=isGold;
+      rows.push(specRow("Specific gravity",j, j.ok
+        ? (gold?"Consistent with gold - but see the tungsten note below.":"Consistent with the stated metal.")
+        : "Not this metal. Lead reads about 11.3, brass 8.5, steel 7.9."));
+    }
+    const any=rows.length;
+    const bad=[jg,jd,jt,jl].filter(z=>z&&!z.ok).length;
+    out=`<div style="margin-top:10px">
+      ${any?rows.join(""):`<div class="cardHint" style="margin-top:5px;font-size:13px">Type a measurement above and it will be checked against the spec.</div>`}
+      ${any?`<div class="cardHint" style="font-size:13px;margin-top:8px">
+        <b style="color:${bad?"var(--bad)":"var(--accent)"}">${bad?bad+" of "+any+" measurements are out.":"Every measurement you gave matches."}</b>
+        ${bad?(isWatch?" A real one is made to its own factory spec. Treat this as a fail until something explains it."
+                      :" A real one does not miss its own mint spec. Treat this as a fail until something explains it.")
+             :" That rules out the cheap fakes. It does not rule out a good one \u2014 keep working the checks above."}</div>`:""}
+      ${isGold?`<div class="tagWarn" style="margin-top:9px;font-size:12.5px"><b>Tungsten reads 19.25, gold reads 19.32.</b> Specific gravity cannot tell them apart on a shop scale, and a tungsten core in a gold shell is the fake that matters. On a big gold loan, weight and gravity are not enough \u2014 ping it, or send it out.</div>`:""}
+      <div class="cardHint" style="font-size:12px;margin-top:8px">Spec figures are the mint's own. Silver Eagle 31.103 g / 40.6 mm; Gold Eagle 33.931 g gross (22k) / 32.70 mm; Krugerrand 33.93 g / 32.77 mm; Gold Maple 31.10 g / 30.0 mm; pre-1965 US silver at 90%.</div>
+    </div>`;
+  }
+
+  return `<details class="fold" style="margin-top:12px"${st.specOpen?" open":""} id="specFold">
+    <summary class="foldLine">Check it by the numbers &mdash; weight, size, density</summary>
+    <div class="cardHint" style="margin-top:8px;font-size:13px">A scale and a caliper catch more fakes than any photograph, and this costs nothing: it is arithmetic against the published spec, done here on the device. Leave a box empty and it is simply not checked.</div>
+    <span class="label" style="margin-top:10px">What is it supposed to be?</span>
+    <select id="specPick" class="numIn" style="width:100%;font-size:14px">
+      <option value=""${pick?"":" selected"}>&mdash; pick one &mdash;</option>${opts}
+    </select>
+    ${sp?`<div class="cardHint" style="margin-top:6px;font-size:12.5px">${esc(sp.metal||"")}${sp.note?" &mdash; "+esc(sp.note):""}${sp.grp==="watch"?` <b style="color:var(--ink)">Weight is not scored here</b> &mdash; it moves with how many bracelet links are in it. It is still worth knowing: a steel sports Rolex on a full bracelet is heavy in the hand, and a fake usually feels obviously light.`:""}</div>`:""}
+    <div class="row2" style="margin-top:10px;flex-wrap:wrap;gap:8px">
+      <label style="flex:1;min-width:120px"><span class="label">Weight (g)</span>
+        <input id="spec_g" class="numIn" type="number" inputmode="decimal" step="0.001" value="${esc(String(inp.g||""))}" placeholder="31.103"></label>
+      <label style="flex:1;min-width:120px"><span class="label">${sp&&sp.grp==="watch"?"Case across (mm)":"Diameter (mm)"}</span>
+        <input id="spec_d" class="numIn" type="number" inputmode="decimal" step="0.01" value="${esc(String(inp.d||""))}" placeholder="40.6"></label>
+    </div>
+    <div class="row2" style="margin-top:8px;flex-wrap:wrap;gap:8px">
+      <label style="flex:1;min-width:120px"><span class="label">${sp&&sp.grp==="watch"?"Lug width (mm)":"Thickness (mm)"}</span>
+        <input id="${sp&&sp.grp==="watch"?"spec_lug":"spec_t"}" class="numIn" type="number" inputmode="decimal" step="0.01" value="${esc(String((sp&&sp.grp==="watch"?inp.lug:inp.t)||""))}" placeholder="2.98"></label>
+      <label style="flex:1;min-width:120px"><span class="label">Weight in water (g)</span>
+        <input id="spec_w" class="numIn" type="number" inputmode="decimal" step="0.001" value="${esc(String(inp.w||""))}" placeholder="optional"></label>
+    </div>
+    <div class="cardHint" style="font-size:12.5px;margin-top:5px">For <b style="color:var(--ink)">weight in water</b>: hang it on thread in a cup of water so it touches nothing, and read the scale. That gives the density, which is what most fakes cannot copy.</div>
+    ${out}
+  </details>`;
+}
+const FAKE_BTN=[["pass","Pass"],["unsure","Not sure"],["fail","Fail"]];
+function fakeCardHTML(x){
+  const sh=fakeSheet(x); if(!sh)return "";
+  const F=fakeState(sh), a=fakeAns(sh.id);
+  const tone=F.verdict==="fail"?"var(--bad)":F.verdict==="clear"?"var(--accent)":F.verdict==="unsure"?"var(--warn-ink)":"var(--ink-3)";
+  const head=sh.gate
+    ? (F.verdict==="open"?`<b>No price until this is checked.</b> ${F.done} of ${F.n} done.`
+      :F.verdict==="fail"?`<b style="color:var(--bad-ink)">A check failed.</b> Don't lend on the name.`
+      :F.verdict==="unsure"?`<b style="color:var(--warn-ink)">Not proven.</b> Price only what you can verify.`
+      :`<b style="color:var(--accent)">All ${F.n} checks pass.</b>`)
+    : `Worth a look &mdash; this one advises, it does not hold the price. ${F.done} of ${F.n} done.`;
+  return `<div class="card" id="fakeCard" style="border-left:3px solid ${tone}">
+    <span class="label">Spotting fakes &middot; ${esc(sh.title)}</span>
+    ${st.mode==="metal"?`<div class="pills mb14" style="border-radius:var(--r-s);margin-top:6px">
+      <button class="${st.metalKind!=="bullion"?"on":""}" style="flex:1;padding:8px 6px;font-size:11.5px" data-mkind="jewelry">Jewelry</button>
+      <button class="${st.metalKind==="bullion"?"on":""}" style="flex:1;padding:8px 6px;font-size:11.5px" data-mkind="bullion">Coin or bar</button>
+    </div>`:""}
+    <div class="cardHint" style="margin-top:0;font-size:13.5px;color:var(--ink-2)">${esc(sh.why||"")}</div>
+    <div class="cardHint" style="font-size:13.5px">${head}</div>
+    ${(sh.steps||[]).map(t=>`<div class="fakeRow"><div class="fakeQ" style="color:var(--ink-2)">${esc(t)}</div></div>`).join("")}
+    ${sh.checks.map((c,i)=>`<div class="fakeRow${a[i]?" done":""}">
+      <div class="fakeQ">${esc(c)}</div>
+      <div class="pills" style="border-radius:var(--r-s);margin-top:6px">${FAKE_BTN.map(([v,l])=>
+        `<button class="${a[i]===v?"on "+v:""}" style="flex:1;padding:7px 5px;font-size:11px" data-fake="${sh.id}:${i}:${v}">${l}</button>`).join("")}</div>
+    </div>`).join("")}
+    ${sh.lookup.length?`<span class="label" style="margin-top:10px">Look it up free</span>
+      <div class="cardHint" style="margin-top:0;font-size:13px">Type the address in yourself. Never scan a QR code on a holder or tag &mdash; fake cases point at copycat sites.</div>
+      ${sh.lookup.map(l=>`<div class="cardHint" style="font-size:13px;margin-top:4px">${l.what?`<b style="color:var(--ink)">${esc(l.what)}</b> &mdash; `:""}${esc(l.where)}</div>`).join("")}`:""}
+    ${specCardHTML(sh)}
+    ${sh.rule?`<div class="cardHint" style="font-size:13px;margin-top:9px"><b style="color:var(--ink)">Shop rule:</b> ${esc(sh.rule)}</div>`:""}
+    ${F.verdict==="fail"?`<div class="tagWarn" style="border-left-color:var(--bad);background:var(--bad-wash);color:var(--bad-ink);margin-top:9px"><b>Set it aside.</b> ${esc(FAKES.law)}</div>`:""}
+    <div class="row2" style="margin-top:8px"><button class="ghostBtn" id="fakeClear" style="padding:9px 15px">Start the check over</button></div>
+  </div>`;
+}
+/* What stands in for the loan while a gating check is unanswered. */
+function fakeHoldHTML(F){
+  const t=F.verdict==="fail"
+    ? `<b>A check on the ${esc(F.sh.title.toLowerCase())} sheet failed.</b> Don't lend on the brand name. Lend on what you can prove &mdash; the metal, a no-name value &mdash; or pass.`
+    : F.verdict==="unsure"
+    ? `<b>Not proven.</b> ${F.unsure} check${F.unsure===1?" is":"s are"} unresolved. Price only what you can verify today, not the name.`
+    : `<b>Not checked yet.</b> ${F.done} of ${F.n} checks answered. Work the spotting-fakes card first &mdash; a fake is not worth a share of the real one, it is worth nothing.`;
+  return `<div class="card unchecked"><span class="label">7 &middot; Pawn loan &mdash; the cash you lend him</span>
+    ${gauge(0,"Lend him","&mdash;",F.verdict==="fail"?"failed the check":"not checked yet","gi")}
+    <div class="mkNo" style="margin-top:6px">${t}</div></div>`;
+}
+/* Which copy of the tool is running.
+
+   This used to be read out of sw.js off the network and shown as "build", on
+   the reasoning that the page could not then claim a version it was not. It
+   is the opposite: sw.js was fetched fresh every time, so a phone running a
+   month-old app.js out of the browser cache displayed the newest build
+   number quite happily, and there was no way to tell from the screen that
+   the code was old. It cost a whole round of "it didn’t work on the phone"
+   to find that out.
+
+   So the running copy stamps itself, and the published copy is read off the
+   network, and where they differ the screen says so.
+
+   THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
+const APP_BUILD="0928.0548";
+let BUILD=APP_BUILD;
+async function readBuild(){
+  try{
+    /* sw.js carries the published number in its cache name, and is fetched
+       past every cache. Not the caches the worker made: those are empty
+       until it registers, and on a page served without one never appear. */
+    const r=await fetch("sw.js",{cache:"no-store"}); if(!r.ok)return;
+    const m=(await r.text()).match(/pawndesk-(\d{8})(\d{4})/); if(!m)return;
+    const pub=m[1].slice(4,6)+m[1].slice(6,8)+"."+m[2];
+    st.newBuild=(pub&&pub!==APP_BUILD)?pub:"";
+    try{ render(); }catch(e){}
+  }catch(e){}
+}
+/* Said on every screen, not tucked inside Setup: an out-of-date copy looks
+   exactly like a working one right up until it behaves like last month. */
+function staleHTML(){
+  if(!st.newBuild)return "";
+  return `<div class="tagWarn" style="background:rgba(255,201,143,.16);border-left-color:var(--accent);margin:0 0 12px">
+    <b>This copy is out of date.</b> It is running <b style="font-family:var(--mono)">${esc(APP_BUILD)}</b>
+    and the site has <b style="font-family:var(--mono)">${esc(st.newBuild)}</b>.
+    <button class="ghostBtn" id="pdFresh" style="padding:6px 12px;font-size:12px;margin-left:6px">Get the newest version</button></div>`;
+}
+/* Clear everything cached and come back with whatever the site is serving.
+   The service worker already asks the network first, so this is for the
+   browser's own copy - the one a plain reload can keep for ten minutes. */
+const CORE_FILES=["app.js","app-head.js","app.css","phone.js","phone.css","sw.js","prices.json","fakes.json"];
+/* This used to clear everything and reload, and trust that the reload
+   brought back something new. When it did not - a CDN edge still holding
+   the old copy, a browser that kept its own - the page came back on the
+   same build with the same "you are out of date" banner, and pressing the
+   button again did exactly the same thing. A loop with no way out and no
+   explanation.
+
+   So it now CHECKS before it reloads: pull the new app.js past every cache,
+   read the build number out of the text that actually came back, and only
+   reload once it is genuinely newer. If the site is still handing over the
+   old copy, say that, because the answer then is to wait a minute rather
+   than press the button a fifth time. */
+async function fetchedBuild(){
+  try{
+    const r=await fetch("app.js",{cache:"reload"});
+    if(!r.ok)return null;
+    const m=(await r.text()).match(/APP_BUILD\s*=\s*"([\d.]+)"/);
+    return m?m[1]:null;
+  }catch(e){ return null; }
+}
+async function forceUpdate(say){
+  const tell=(t)=>{ try{ if(typeof say==="function")say(t); }catch(e){} };
+  try{
+    if(window.caches){ for(const k of await caches.keys())await caches.delete(k); }
+    if(navigator.serviceWorker){ const rs=await navigator.serviceWorker.getRegistrations(); for(const r of rs)await r.unregister(); }
+    await Promise.allSettled(CORE_FILES.map(f=>fetch(f,{cache:"reload"})));
+  }catch(e){}
+  const got=await fetchedBuild();
+  if(got&&got!==APP_BUILD){
+    /* The build number rides in the address too. The script tag inside
+       index.html asks for "app.js" with nothing on it, and a browser holding
+       a copy under that exact name is within its rights to serve it. A
+       different address is a different thing to look up. */
+    location.replace(location.pathname+"?b="+encodeURIComponent(got));
+    return;
+  }
+  if(got===APP_BUILD){
+    tell("The site is still serving "+APP_BUILD+". Nothing to fetch yet \u2014 a new copy can take a few minutes to reach every device. Try again shortly.");
+    return;
+  }
+  tell("Could not reach the site to check. If you are offline it keeps working on what it already has.");
+}
+const MP_STALE_DAYS=45;
+/* A measured row is pinned to the item so the counter gets a real price
+   instead of the desk's own estimate - but these rows are named tools, and
+   the maker is most of what one is worth. Nothing checked it, so typing
+   "black & decker drill" pinned the DeWalt row and priced a budget drill
+   as a top-tier one. A row naming a different maker than the text does is
+   not this tool; a row naming no maker still answers. */
+function mpFor(cur,text){
+  const t=" "+omniNorm(text)+" ";
+  if(!t.trim())return null;
+  const said=brandInText(st.catId,text);
+  const agrees=r=>{ if(!said||!r)return true;
+    const h=brandInText(st.catId,r[2]);
+    return !h||sameMaker(h.name,said.name); };
+  for(const [id,re] of MP_MATCH){
+    const r=MP_BY_ID[id]; if(!r)continue;
+    if(String(r[1]).split("|").indexOf(cur)<0)continue;
+    if(re.test(t)&&agrees(r))return r;
+  }
+  const a=mpAuto(cur,text);
+  return agrees(a)?a:null;
+}
+/* Every row above was recognized by a pattern somebody wrote by hand, which
+   is fine for 180 rows and impossible for the thousands this shop actually
+   needs. A row gathered in bulk carries no pattern, so it is matched on its
+   own name instead - but only on hard evidence: a token with a digit in it,
+   matched exactly (ms 250, dcd771, 10/22, p365), plus most of the rest of
+   the name. A model number is the one thing in a name that cannot be
+   coincidence; without one this stays quiet and the categories answer.
+   Row 10, when a harvest writes one, is extra ways the thing gets typed. */
+/* A model number gets typed as one word about as often as two - ms391,
+   dcd771, cs590 - and splitting the letters from the digits is what lets
+   "stihl ms391" reach a row named "Stihl MS 391". Only here: the rest of the
+   tool has no business guessing that "a4" is "a" and "4". */
+const MP_SPLIT=/^([a-z]{1,4})[\s-]?(\d{2,5})([a-z]{0,3})$/;
+function mpTokens(ws){
+  const out=[];
+  ws.forEach(w=>{ out.push(w);
+    const m=String(w).match(MP_SPLIT);
+    if(m){ out.push(m[1]); out.push(m[2]); if(m[3])out.push(m[2]+m[3]); } });
+  return Array.from(new Set(out));
+}
+let MP_AUTO_IDX=null;
+function mpAutoIdx(){
+  if(MP_AUTO_IDX&&MP_AUTO_IDX.n===MODEL_PRICES.length)return MP_AUTO_IDX;
+  const byHand=new Set(MP_MATCH.map(m=>m[0]));
+  MP_AUTO_IDX={n:MODEL_PRICES.length,rows:MODEL_PRICES
+    .filter(r=>!byHand.has(r[0]))
+    .map(r=>({r,refs:String(r[1]).split("|"),
+              nw:omniWords(r[2]).filter(w=>!STOP.has(w)),
+              aw:mpTokens(omniWords(r[9]||"").concat(omniWords(r[2])))}))
+    .filter(e=>e.nw.length)};
+  return MP_AUTO_IDX;
+}
+function mpAuto(cur,text){
+  const q=mpTokens(omniWords(text).filter(w=>!STOP.has(w)));
+  if(!q.length)return null;
+  let best=null,bestScore=0;
+  for(const e of mpAutoIdx().rows){
+    if(e.refs.indexOf(cur)<0)continue;
+    let hit=0,pin=false;
+    for(const n of e.nw.concat(e.aw)){
+      let h=0; for(const w of q){ const x=wordHit(w,[n]); if(x>h)h=x; }
+      if(!h)continue;
+      if(e.nw.indexOf(n)>=0)hit++;
+      if(h===3&&/\d/.test(n))pin=true;
+    }
+    if(!pin)continue;
+    const cover=hit/e.nw.length;
+    if(cover<0.6)continue;
+    const sc=cover*10+hit;
+    if(sc>bestScore){ bestScore=sc; best=e.r; }
+  }
+  return best;
+}
+/* The same hard evidence mpAuto wants: a token with a digit, matched exact,
+   and most of the name. A harvested row is machine-made and must not answer
+   for something it is not. */
+function harvFind(cur,text){
+  const q=mpTokens(omniWords(text).filter(w=>!STOP.has(w)));
+  if(!q.length)return null;
+  let best=null,bestScore=0;
+  for(const f of Object.values(harvAll())){
+    if(!f||f.ref!==cur||!(f.lo>0)||f.wild||!(f.n>=4))continue;
+    const nw=omniWords(f.name).filter(w=>!STOP.has(w));
+    const aw=mpTokens(omniWords(f.alias||"")).concat(mpTokens(nw));
+    if(!nw.length)continue;
+    let hit=0,pin=false;
+    for(const n of nw.concat(aw)){
+      let h=0; for(const w of q){ const x=wordHit(w,[n]); if(x>h)h=x; }
+      if(!h)continue;
+      if(nw.indexOf(n)>=0)hit++;
+      if(h===3&&/\d/.test(n))pin=true;
+    }
+    const cover=hit/nw.length;
+    if(!pin||cover<0.6)continue;
+    const sc=cover*10+hit;
+    if(sc>bestScore){ bestScore=sc; best=f; }
+  }
+  if(!best)return null;
+  return {kind:"harvest",lo:best.lo,hi:best.hi,mid:Math.round((best.lo+best.hi)/2/5)*5,
+          name:best.name,n:best.n,sold:best.sold||0,conf:best.conf,date:best.date,
+          src:"https://www.ebay.com/sch/i.html?_nkw="+encodeURIComponent(best.name)+"&LH_Sold=1&LH_Complete=1"};
+}
+function curItemRef(){ return isCustom()?st.bookName:st.itemId; }
+function mkKey(){ return itemKey()+"|"+omniNorm((st.brandTyped||"")+" "+(st.model||"")); }
+function daysOld(d){ const t=new Date(String(d)+"T12:00:00").getTime(); return isNaN(t)?999:Math.round((Date.now()-t)/864e5); }
+/* the market price for what's on the counter, best source first:
+   a price you set (screenshot read, your own sales, typed) → the model price list */
+function marketNow(){
+  if(st.market&&st.market.key===mkKey())return st.market;
+  let r=null;
+  if(st.mpPin&&st.mpPin.model===st.model){ const pr=MP_BY_ID[st.mpPin.id]; if(pr&&String(pr[1]).split("|").indexOf(curItemRef())>=0)r=pr; }
+  if(!r)r=mpFor(curItemRef(),[st.brandTyped,st.model,st.detail,isCustom()?st.bookName:""].join(" "));
+  /* Nothing in the list the tool shipped with? Then whatever the harvest
+     found for this model, which is a real range off real listings and is
+     usually the only thing that knows about it at all. */
+  if(!r){ const h=harvFind(curItemRef(),[st.brandTyped,st.model,st.detail].join(" ")); if(h)return h; }
+  if(!r)return null;
+  const age=daysOld(r[6]);
+  /* The counter's own figures for this exact model, off the master sheet,
+     stand in front of the published ones. */
+  const mine=st.modelVals&&st.modelVals[r[0]];
+  const lo=(mine&&mine.lo>0)?Math.round(mine.lo):r[3];
+  const hi=(mine&&mine.hi>0)?Math.round(mine.hi):r[4];
+  return {kind:"list",lo,hi,mid:Math.round((lo+hi)/2/5)*5,name:r[2],conf:mine?"h":r[5],
+          date:mine?todayStr():r[6],src:r[7],note:r[8],mine:!!mine,stale:mine?false:age>MP_STALE_DAYS,age};
+}
+function fmtDay(d){ try{ return new Date(String(d)+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"}); }catch(e){ return String(d); } }
+const SRC_NAMES={"pricecharting.com":"PriceCharting","swappa.com":"Swappa","gunwatcher.com":"GunWatcher (GunBroker sales)","jdpower.com":"J.D. Power",
+  "axedb.com":"AxeDB","golfcartsearch.com":"GolfCartSearch","underpriced.app":"Underpriced","reverb.com":"Reverb","tractorhouse.com":"TractorHouse",
+  "machinerypete.com":"Machinery Pete","machinerytrader.com":"MachineryTrader","ebay.com":"eBay","watchcount.com":"WatchCount","gunbroker.com":"GunBroker"};
+function srcName(u){ try{ const h=new URL(u).hostname.replace(/^(www|used)\./,""); return SRC_NAMES[h]||h; }catch(e){ return "the source"; } }
+function srcLink(u,txt){ return /^https:\/\//.test(u||"")?`<a class="srcLink" href="${esc(u)}" target="_blank" rel="noopener" referrerpolicy="no-referrer">${txt||"Check it"} &#8599;</a>`:""; }
+function marketSrcHTML(m){
+  if(m.kind==="list"){
+    /* ASKED TWICE NOW: "is this eBay sold or for sale?" The rail panel was
+       fixed to say; this line, which is the one under the big number and
+       therefore the one actually read, was still saying "Resale value from
+       eBay" - and eBay answers both questions, so naming the site names
+       nothing. The evidence was on the card, four lines down, wearing the
+       label "What moves it:" - which is for a note like "hours; electric
+       start working", not for the count the price rests on.
+       It leads now, in the first clause, before the site. */
+    const ev=rowEvidence(m.note);
+    const lead=ev.kind==="sold"
+      ? `<b style="color:var(--accent-ink)">${ev.n?ev.n+" real sales":"Sold prices"}</b> on <b>${esc(srcName(m.src))}</b>`
+      : ev.kind==="asking"
+      ? `<b style="color:var(--warn-ink)">${ev.n?ev.n+" asking prices, not sales":"Asking prices, not sales"}</b> on <b>${esc(srcName(m.src))}</b>`
+      : `<b>Researched</b> from <b>${esc(srcName(m.src))}</b>, not counted off sales`;
+    return `${lead}, ${esc(fmtDay(m.date))}. ${srcLink(m.src)}${
+      ev.kind==="asking"
+      ? ` <span style="color:var(--warn-ink)">${money(m.mid)} is a ceiling, not a price.</span>`
+      : m.conf==="l"
+      ? ` <span style="color:var(--warn-ink)">Thin \u2014 a forum post or one listing. Double-check it.</span>`
+      : m.conf==="h" ? ` Good data.`
+      : ` Fair data \u2014 a starting point.`}`;
+  }
+  if(m.kind==="shot"&&m.via==="button")return `From ${m.n} ${m.n===1?"sale":"sales"} on ${esc(m.site||"the sold page")}, read by your Pawn price button today. ${srcLink(m.url,"See those sales")}`;
+  if(m.kind==="shot")return `From ${m.n} ${m.n===1?"sale":"sales"} you read off ${esc(m.site||"the screenshot")} today.`;
+  if(m.kind==="own")return `From your own ${m.n} ${m.n===1?"sale":"sales"} of this item.`;
+  if(m.kind==="found")return `From <b>${m.n}</b> listing${m.n===1?"":"s"} on file${m.sold?`, ${m.sold} of them sold`:""}: the middle one is <b>${money(m.med)}</b>, the middle half ${money(m.lo)}&ndash;${money(m.hi)}.${m.from?` From ${esc(m.from)}.`:""}${m.mostlyAsks?` Mostly asking prices rather than sales.`:""}${m.conf==="l"?` <span style="color:var(--warn-ink)">Few listings behind this &mdash; look at the sold pages before you lean on it.</span>`:""} The middle one is used, not the average, so one bad listing cannot move it.`;
+  if(m.kind==="seen")return `From <b>${m.n}</b> shelf tag${m.n===1?"":"s"} you recorded, asking ${money(m.lo)}&ndash;${money(m.hi)}, typically ${money(m.ask)} &mdash; what a used one goes for at a shop near you.`;
+  if(m.kind==="harvest")return `From the price list this shop built: <b>${esc(m.name)}</b>, ${m.n} listing${m.n===1?"":"s"}${m.sold?`, ${m.sold} sold`:""} on ${esc(fmtDay(m.date))}. ${srcLink(m.src,"See those sales")} Nobody has checked this one by hand &mdash; it is a search, kept.`;
+  if(m.kind==="retail")return `Estimated from <b>${money(m.retail)}</b> new retail, taken to ${(m.pct||retailPct())}% for a used one. This is not a sold price &mdash; check sold prices when you can.`;
+  return "Your number, typed in.";
+}
+function step4Inner(x,bare){
+  /* "no measured price for microsoft xbox game console - current gen" -
+     that is the make and model the counter typed, glued to the name of the
+     SHELF it landed on, in lower case. Two names for one thing, and it
+     reads as though the desk is confused about what is in front of it.
+     When the counter has named it, that is its name. */
+  const m=x.market, who=[st.brandTyped,st.model].filter(Boolean).join(" "), name=displayName(x);
+  const called=who||name;
+  /* In the one-question run the question IS the heading, and a card that
+     announces "4 - Resale value" under "What does one sell for used?" says
+     it twice and numbers it wrong: it is question five of six there, not
+     step four of anything. */
+  let h=bare?"":`<span class="label">4 &middot; Resale value &mdash; what it sells for used</span>`;
+  if(st.editing){
+    h+=`<div class="row2"><input id="valIn" type="number" inputmode="numeric" placeholder="What a used one sold for" value="${m&&m.kind==="hand"?m.mid:""}" class="numIn" style="flex:1;min-width:0"><button class="brassBtn" id="valSave" style="padding:11px 18px">Save</button><button class="ghostBtn" id="valCancel" style="padding:11px 14px">Cancel</button></div>
+      <div class="cardHint" style="font-size:13.5px;color:var(--ink-2)">What one like this actually sells for used, in normal shape. The loan works from this number.</div>`;
+  } else if(x.checked){
+    h+=`<div class="mkRow"><div><div class="mkBig">${money(m.mid)}</div>${m.lo!=null&&m.hi!=null&&m.lo!==m.hi?`<div class="mkRange">usually ${money(m.lo)} to ${money(m.hi)}</div>`:""}</div><span class="mkOk">&#10003; Checked</span></div>
+      <div class="mkWhat">Not the loan &mdash; the loan is worked out from it.</div>
+      <div class="mkSrc">${marketSrcHTML(m)}</div>
+      ${(m.note&&rowEvidence(m.note).kind==="research")?`<div class="cardHint" style="font-size:13.5px;color:var(--ink-2)">What moves it: ${esc(m.note)}.</div>`:""}
+
+      <div class="row2" style="gap:8px;margin-top:10px;flex-wrap:wrap"><button class="ghostBtn" id="valEdit">Type my own number</button>${m.kind!=="list"?`<button class="ghostBtn" id="mkClear">Clear it</button>`:""}</div>`;
+  } else {
+    /* WHY IT IS ASKING, NOT JUST THAT IT IS.
+       "Not checked yet" over a Type-the-real-price button reads as the tool
+       asking the counter for the answer he came to get. It is asking for an
+       INGREDIENT: the resale figure everything else adjusts, and which the
+       desk normally supplies from its own book or a lookup. When it cannot,
+       it should say which of those failed rather than leave him to guess. */
+    const blindWhy=(typeof ebayBlind==="function")?ebayBlind(x):"";
+    h+=`<div class="mkNo"><b>Not checked yet.</b> ${m&&m.stale?`The price list for ${esc(m.name)} is ${m.age} days old.`:`No measured price for <b>${esc(called)}</b>.`}</div>
+      <div class="cardHint" style="font-size:13.5px;color:var(--ink-2);margin-top:6px">${blindWhy
+        ? esc(blindWhy)+" So this one is yours to look up."
+        : "The loan works from this number."}</div>
+      ${(function(){
+        /* IT POINTED AT BUTTONS THAT WERE NOT THERE.
+           "Tap a sold-price button above" - and on a phone there is no such
+           button anywhere on the screen. The sold-price links live in the
+           comps card, which the desk draws beside this question and the
+           phone does not draw at all, so the one instruction this card
+           exists to give named something that did not exist. The same
+           fault as "See the detail", and as eighteen aisles being told to
+           price locally with four eBay buttons.
+           So the links come INTO the question when nothing else is showing
+           them. On a desk rail the card beside this one already has them
+           and a second copy would be the duplication the counter keeps
+           having to point out. */
+        if(!bare||deskRail())return "";
+        const t=(typeof compTargets==="function")?compTargets(x):[];
+        if(!t.length)return "";
+        return `<div class="label" style="margin-top:12px">Look it up</div>
+          <div class="compGrid">${t.map(z=>
+            `<a class="compBtn" data-compsite="${esc(z.id)}" data-url="${esc(z.url)}" data-label="${esc(z.name)}" href="${esc(z.url)}" target="_blank" rel="opener" referrerpolicy="no-referrer"><span>${z.name}</span><span class="cs">${z.sub}</span></a>`
+          ).join("")}</div>`;
+      })()}
+      <ol class="mkSteps"><li>${pdBridge?"Click a link. The page reads itself.":isTouch()?"Open one, screenshot the sold results, read it here.":"Open one, type the middle sold price in."}</li><li><b>Sold, not asking.</b>${who?"":` Naming the make and model helps — ${mpCount()} have built-in prices.`}</li></ol>
+      <button class="brassBtn" id="valEdit" style="padding:11px 18px">Enter what one sold for</button>
+`;
+  }
+  return h+ownCompsHTML(x);
+}
+function wireStep4(){
+  wireNext(); wireBuy();
+  const edit=document.getElementById("valEdit");
+  if(edit)edit.onclick=()=>{ st.editing=true; render(); const v=document.getElementById("valIn"); if(v)v.focus(); };
+  const cancel=document.getElementById("valCancel"); if(cancel)cancel.onclick=()=>{ st.editing=false; render(); };
+  const save=document.getElementById("valSave"), vin=document.getElementById("valIn");
+  const doSave=()=>{ const n=parseFloat(vin&&vin.value); if(n>0){ st.market={kind:"hand",key:mkKey(),mid:Math.round(n)}; } st.editing=false; render(); };
+  if(save)save.onclick=doSave;
+  if(vin)vin.onkeydown=e=>{ if(e.key==="Enter")doSave(); };
+  const clr=document.getElementById("mkClear"); if(clr)clr.onclick=()=>{ st.market=null; render(); };
+  const own=document.getElementById("useOwn");
+  if(own)own.onclick=()=>{ const s=soldStats(itemKey()); if(!s)return; st.market={kind:"own",key:mkKey(),mid:Math.round(s.avg),lo:s.lo,hi:s.hi,n:s.n}; render(); };
+}
+function refreshStep4(){
+  const xx=calcItem();
+  const s4=document.getElementById("step4"); if(s4&&!st.editing){ s4.innerHTML=step4Inner(xx); wireStep4(); }
+  const ns=document.getElementById("nextStep"); if(ns){ ns.outerHTML=nextStepHTML(xx); wireNext(); }
+  const tk=document.getElementById("ticket"); if(tk)tk.innerHTML=ticketHTML(xx); paintPin(xx);
+  const lg=document.getElementById("logCard"); if(lg){ lg.innerHTML=logCardInner(xx); wireLogButton(); }
+}
+/* uncheckedTicketHTML lived here. The loan card no longer goes blank when
+   nothing has been looked up - it shows the desk's own estimate and says
+   so - so there is nothing left for it to draw. */
+/* THE ONES THAT WALK IN MOST, FIRST.
+   Asked for at the counter. The catalog's order is the order somebody wrote
+   it in, which is not the order things come through the door - a pawn shop
+   sees ten drills for every welder, and the drill was ninth.
+
+   What it orders BY matters more than that it orders. There is no trade
+   table of "what gets pawned most" worth trusting, and inventing a ranking
+   would be a guess dressed as data. The shop's own deal log is not a guess:
+   every ticket written says what actually walked in. So the list is ordered
+   by that, and by nothing else - items the log has never seen keep the
+   catalog's order underneath, unchanged.
+
+   Which means on day one this does nothing at all, and that is correct. It
+   sharpens with every ticket. */
+function itemCounts(catId){
+  const out={};
+  if(typeof DEALS==="undefined"||!DEALS.length)return out;
+  for(const d of DEALS){
+    const id=String(d.itemId||(d.key||"").split("|")[0]||"");
+    if(!id)continue;
+    if(catId&&d.catId&&d.catId!==catId)continue;
+    out[id]=(out[id]||0)+1;
+  }
+  return out;
+}
+/* Catalog order, with anything the log has seen lifted to the front in the
+   order it has seen it. Stable: two items with the same count keep their
+   shipped order rather than shuffling between renders. */
+function itemsByUse(cat){
+  const items=(cat&&cat.items)||[];
+  const n=itemCounts(cat&&cat.id);
+  if(!Object.keys(n).length)return items.map((it,i)=>({it,seen:0,i}));
+  return items.map((it,i)=>({it,seen:n[it.id]||0,i}))
+              .sort((a,b)=>b.seen-a.seen||a.i-b.i);
+}
+/* The same rule one level up, for the aisles - which IS the list the
+   counter meets, because the item list above it renders only in a flow
+   stepFlow() no longer returns. Same discipline: the log or nothing. */
+function catsByUse(){
+  const n=itemCounts(null), per={};
+  if(typeof DEALS!=="undefined")for(const d of DEALS){
+    const c=d.catId||((CATALOG.find(x=>x.items.some(i=>i.id===d.itemId))||{}).id);
+    if(c)per[c]=(per[c]||0)+1;
+  }
+  if(!Object.keys(per).length)return CATALOG.map((c,i)=>({c,seen:0,i}));
+  return CATALOG.map((c,i)=>({c,seen:per[c.id]||0,i}))
+                .sort((a,b)=>b.seen-a.seen||a.i-b.i);
+}
+function ownAvgTag(id){ const s=CAP.db?soldStats(id):null; return s?`<span class="price mine">you: ${money(s.avg)}</span>`:""; }
+
+/* The Pawn price favorite sends "PAWNDESK:{...}" straight back to the desk tab
+   that opened the sold page (window.opener), and the desk answers so that tab can
+   close itself. Ctrl+V still works for a sold page opened some other way. */
+let pawnLastTs=0;
+/* Which kind of page the counter just opened, so a price coming back through
+   the bridge is filed as what it actually is: a sold comp, or a new-retail
+   number that still has to take the used haircut. */
+var pawnWant="shot";
+document.addEventListener("click",e=>{
+  const a=e.target&&e.target.closest?e.target.closest("a.nsRetail,a.nsSold,a.compBtn"):null; if(!a)return;
+  pawnWant=a.classList.contains("nsRetail")?"retail":"shot";
+},true);
+function applyPawn(t){
+  if(!/^PAWNDESK:/.test(t||""))return "bad";
+  if(st.mode!=="item")return "noitem";
+  let d; try{ d=JSON.parse(String(t).slice(9)); }catch(x){ return "bad"; }
+  const mid=Math.round(Number(d&&d.mid)); if(!(mid>0))return "bad";
+  const ts=Number(d.ts)||0; if(ts&&ts===pawnLastTs)return "ok";
+  pawnLastTs=ts;
+  if(pawnWant==="retail"){
+    const p=retailPct(calcItem());
+    st.market={kind:"retail",key:mkKey(),retail:mid,pct:p,mid:Math.max(5,Math.round(mid*p/100/5)*5)};
+    st.editing=false; render(); return "ok";
+  }
+  st.market={kind:"shot",via:"button",key:mkKey(),mid,lo:Math.round(Number(d.lo))||null,hi:Math.round(Number(d.hi))||null,
+             n:Math.max(1,Math.round(Number(d.n))||1),site:String(d.site||"eBay").slice(0,24),
+             url:/^https:\/\//.test(String(d.url||""))?String(d.url).slice(0,400):""};
+  st.editing=false; render();
+  const s4=document.getElementById("step4");
+  if(s4){ if(s4.scrollIntoView)s4.scrollIntoView({block:"nearest",behavior:"smooth"});
+          s4.classList.add("justIn"); setTimeout(()=>{ const c=document.getElementById("step4"); if(c)c.classList.remove("justIn"); },2600); }
+  return "ok";
+}
+/* Tampermonkey add-on ("Pawn Desk - sold prices"): its claude.ai half answers our hello,
+   opens sold pages in a clean tab (GunBroker refuses tabs opened from this page), and
+   passes the price back in. */
+var pdBridge=false;
+window.addEventListener("message",e=>{
+  const t=e.data; if(typeof t!=="string"||t.indexOf("PAWNDESK")!==0)return;
+  const reply=m=>{ try{ if(e.source&&e.source!==window&&e.source.postMessage)e.source.postMessage(m,"*"); }catch(x){} };
+  if(t==="PAWNDESK_PING"){ reply("PAWNDESK_PONG"); return; }
+  if(t.indexOf("PAWNDESK_BRIDGE")===0){ if(!pdBridge){ pdBridge=true; if(st.mode==="item"&&!st.editing)refreshStep4(); } return; }
+  if(t.indexOf("PAWNDESK:")!==0)return;
+  const r=applyPawn(t);
+  reply(r==="ok"?"PAWNDESK_OK":r==="noitem"?"PAWNDESK_NOITEM":"PAWNDESK_BAD");
+});
+function pdHello(){ try{ if(window.top&&window.top!==window)window.top.postMessage("PAWNDESK_HELLO","*"); }catch(x){} }
+[300,1500,4000,9000].forEach(t=>setTimeout(pdHello,t));
+document.addEventListener("click",e=>{
+  if(!pdBridge)return;
+  const a=e.target&&e.target.closest?e.target.closest("a.compBtn,a.omniRow.sold,a.nsSold,a.nsRetail,a.srcLink"):null; if(!a)return;
+  const url=a.getAttribute("href")||""; if(!/^https:\/\//.test(url))return;
+  e.preventDefault();
+  try{ window.top.postMessage("PAWNDESK_OPEN:"+url,"*"); }catch(x){ return; }
+  if(a.classList.contains("compBtn")||a.classList.contains("nsSold")){
+    e.stopPropagation(); pasteTo="shot";
+    const fb=document.getElementById("compFallback"); if(fb)fb.innerHTML="";
+    setCompMsg("Opened "+(a.dataset.label||"the sold page")+". The price comes back here by itself.","ok");
+  }
+},true);
+document.addEventListener("paste",e=>{
+  if(st.mode!=="item")return;
+  const cd=e.clipboardData, t=cd&&cd.getData?cd.getData("text/plain"):"";
+  if(!/^PAWNDESK:/.test(t||""))return;
+  e.preventDefault(); e.stopImmediatePropagation();
+  applyPawn(t);
+},true);
+
+
+/* ================= NEXT STEP — one place that says where you are and what to do ================= */
+/* Whose model is this. Most rows lead with the maker - "Stihl MS 250" - but
+   the ones that do not are the ones that matter here: a MacBook says nothing
+   about Apple, so a Sony laptop was being offered two of them. A row whose
+   maker cannot be told is left in; only a row that plainly belongs to someone
+   else is dropped. */
+const MP_FAMILY={macbook:"apple",imac:"apple",ipad:"apple",iphone:"apple",airpod:"apple",beats:"apple",
+  galaxy:"samsung",pixel:"google",thinkpad:"lenovo",inspiron:"dell",latitude:"dell",
+  xbox:"microsoft",playstation:"sony",switch:"nintendo",wingmaster:"remington",rancher:"husqvarna",
+  /* Found by auditing every maker the brand book detects inside a price-book
+     row name - 120 of them. These three are budget or premium LINES of a
+     company the counter is likely to type by name, and were unreachable the
+     same way Xbox was. The rest of the 120 are companies in their own right.
+     Deliberately left out: marlin->ruger and craftsman->stanley are true on
+     paper, but nobody walks in calling a Marlin 336 a Ruger, so the mapping
+     would only put Marlins in front of somebody who typed Ruger. */
+  squier:"fender",epiphone:"gibson",alienware:"dell",tudor:"rolex"};
+/* MICROSOFT AND XBOX ARE NOT RIVAL MANUFACTURERS.
+   Reported from the counter: typed "microsoft xbox", got "no measured
+   price", and was never offered a series to pick - with twenty-three
+   console rows and eight Xbox rows sitting in the book.
+
+   The guard that did it is a good guard: a row carrying a maker the
+   counter did not type is a different product, which is what stops
+   "milwaukee drill" answering with a DeWalt. But the electronics brand
+   book carries "Xbox" as a maker in its own right, so the check compared
+   microsoft against xbox, found two makers that were not each other, and
+   dropped every Xbox row in the book.
+
+   MP_FAMILY above already knows xbox belongs to microsoft, playstation to
+   sony, galaxy to samsung. Nothing consulted it here. Now both the search
+   and the lookup resolve a name through it before comparing, so a product
+   line and the company that makes it agree. */
+function makerOf(name){ const n=omniNorm(name||""); return MP_FAMILY[n]||n; }
+/* ASYMMETRIC ON PURPOSE, and the asymmetry is the whole safety of it.
+   A maker's name should find that maker's product lines: type Microsoft,
+   get the Xboxes. A LINE's name must not drag in the parent's other goods:
+   type Squier and you must not be offered a Fender, because a Squier
+   Affinity is $150 and a Fender Player is $600 and they are both
+   Stratocasters. Resolving both sides up to the parent - which is what a
+   symmetric version does - makes exactly that mistake.
+   So: the ROW is resolved up to its parent, the TYPED name is not. */
+function sameMaker(rowBrand,typed){
+  if(!rowBrand||!typed)return true;
+  const r=omniNorm(rowBrand), t=omniNorm(typed);
+  if(r===t)return true;
+  if(makerOf(r)===t)return true;               /* the row is a line of what was typed */
+  return r.indexOf(t)>=0||t.indexOf(r)>=0;     /* "sig" and "sig sauer" */
+}
+function mpBrandOf(text){
+  const t=" "+omniNorm(text)+" ";
+  for(const k of Object.keys(MP_FAMILY)) if(t.indexOf(k)>=0)return MP_FAMILY[k];
+  for(const cat of Object.keys(BRANDBOOK)){ const bk=BRANDBOOK[cat];
+    for(const tier of ["hi","mid","lo"]) for(const b of bk[tier]){
+      const bl=omniNorm(b); if(bl.length>=3&&t.indexOf(" "+bl+" ")>=0)return bl; } }
+  return null;
+}
+function mpCandidates(){
+  const ref=curItemRef(); let rows=MODEL_PRICES.filter(r=>String(r[1]).split("|").indexOf(ref)>=0);
+  /* When the maker is known and the price list has none of theirs, the answer
+     is none - not "here is everyone else's". It offered a Sony laptop two
+     MacBooks, because an empty filter fell back to the unfiltered rows. */
+  const want=st.brandTyped?mpBrandOf(st.brandTyped):null;
+  if(want){
+    rows=rows.filter(r=>{ const b=mpBrandOf(r[2]); return !b||b===want; });
+    if(!rows.length)return [];
+  }
+  const words=omniWords(st.model||"").filter(w=>!STOP.has(w));
+  if(words.length){ const f=rows.filter(r=>{ const nw=omniWords(r[2]); return words.some(w=>wordHit(w,nw)>=2); }); if(f.length)rows=f; }
+  return rows.slice(0,8);
+}
+const COND_WORDS=Object.fromEntries(CONDITIONS.map(c=>{
+  const d=Math.round(((COND_MULT[c.id]||1)-1)*100);
+  return [c.id,[c.label, d===0?"as is":(d>0?"+":"\u2212")+Math.abs(d)+"%"]];
+}));
+/* A new retail price is not a sold price, but it beats nothing when the sold
+   pages come up empty. These are what a used one books at here as a share of
+   new, per category — deliberately visible in the UI so the counter can see
+   the haircut being taken and override it by typing the resale directly. */
+/* These are the shop's own working figures, not a measurement. The shelf tags
+   photographed 19 Sep 2026 cannot settle them: a tag's printed REGULAR turned
+   out to be that shop's earlier asking price rather than MSRP (a Werner 24ft
+   ladder at $124.95 against a $199.95 "regular" when new ones run about $330),
+   so the ticket-to-regular ratios say more about their markdown policy than
+   about what a used one is worth here. A real sold price overrides all of
+   this, which is why the card says so every time it shows the estimate. */
+const RETAIL_PCT={guns:65,jewel:55,power:55,tools:50,hunt:45,elec:45,music:45,rolling:60,appl:35,fit:35,coll:60};
+/* Shelf tags photographed 19 Sep 2026, second batch. Within one category the
+   brand moves the number more than the category does: a Stihl MS180C asks
+   $199.95 against about $229 new, a Husqvarna 455 Rancher $374.95 against the
+   same shop's own $499.95 new one — while a Hilti SCW 22-A with no battery
+   asks $74.95 against $300-plus, and a discontinued Ridgid R4030 tile saw
+   $99.95 against about $299. So the brand tier shifts the percentage, and a
+   cordless tool sold without its battery is treated as the different item it
+   is. Bounded either way so no combination can run off. */
+const BRAND_SHIFT={hi:8,mid:0,lo:-8};
+const BARE_TOOL=/\bbare\b|tool only|no battery|body only|without battery/;
+/* Small electronics fall much faster than a TV does: AirPods Pro ticketed at
+   $99 against $249 new. One number cannot cover both, so these get their own. */
+const FAST_DROP=/airpod|ear ?bud|headphone|ear ?phone|phone|watch|tablet|ipad|laptop|console/;
+function retailPct(x){
+  const t=((x?displayName(x):"")+" "+(st.brandTyped||"")+" "+(st.model||"")+" "+(st.bookName||"")+" "+(st.detail||"")).toLowerCase();
+  let p=(st.catId==="elec"&&FAST_DROP.test(t))?38:(RETAIL_PCT[st.catId]||45);
+  p+=BRAND_SHIFT[st.brand]||0;
+  if(BARE_TOOL.test(t))p=Math.min(p-15,32);   /* a bare cordless tool asks about a third of new, whatever the badge says */
+  return Math.max(25,Math.min(75,Math.round(p)));
+}
+function retailTargets(q){
+  const e=encodeURIComponent(q), t=[];
+  t.push({name:"Google Shopping", url:"https://www.google.com/search?tbm=shop&q="+e});
+  t.push({name:"Amazon", url:"https://www.amazon.com/s?k="+e});
+  if(st.catId==="tools"||st.catId==="power")
+    t.push({name:"Home Depot", url:"https://www.homedepot.com/s/"+e});
+  else
+    t.push({name:"Walmart", url:"https://www.walmart.com/search?q="+e});
+  return t;
+}
+/* ---- shelf sightings: the shop's own record of what other shops ask ------
+   A photographed tag is an ASKING price, never a sale, and it says so
+   everywhere it is shown. The tags are other pawn shops' retail prices on used
+   goods, which is the same thing this counter sells, so a sighting is used at
+   its ticket rather than discounted: the buy rate is what holds the margin,
+   and a second haircut here would just be an invented discount on top of it.
+   The record lives on this device; Export moves it to another one. */
+const SEEN_KEY="pawndesk_seen", SEEN_MAX=800;
+const VARIANT=/^(pro|max|plus|mini|xl|se|ultra|lite|gen)$/;
+function seenAll(){ try{ return JSON.parse(localStorage.getItem(SEEN_KEY)||"[]"); }catch(e){ return []; } }
+function seenSave(a){ try{ localStorage.setItem(SEEN_KEY,JSON.stringify(a.slice(-SEEN_MAX))); }catch(e){} }
+function seenAdd(r){
+  const name=String(r.name||"").trim().slice(0,70), ask=Math.round(Number(r.ask))||0;
+  if(!name||!(ask>0))return 0;
+  const a=seenAll();
+  a.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), ts:Date.now(),
+    name, brand:String(r.brand||"").trim().slice(0,30), model:String(r.model||"").trim().slice(0,40),
+    cat:String(r.cat||st.catId||"").slice(0,10), ask, reg:Math.round(Number(r.reg))||0,
+    store:String(r.store||"").trim().slice(0,30),
+    words:omniWords([name,r.brand,r.model].filter(Boolean).join(" "))});
+  seenSave(a); return a.length;
+}
+function seenMedian(ns){ const a=ns.slice().sort((p,q)=>p-q), n=a.length;
+  return !n?0:(n%2?a[(n-1)/2]:Math.round((a[n/2-1]+a[n/2])/2)); }
+/* Matched on shared words, with one hard rule: if the counter has given a
+   number — a model, a size — a tag must carry that same number to count.
+   Without it "husqvarna 455 rancher chainsaw" scores three shared words
+   against a 450 Rancher and quietly prices the wrong saw. */
+function pdQueryWords(x){
+  return omniWords([st.brandTyped,st.model,x?displayName(x):"",st.bookName].filter(Boolean).join(" "));
+}
+/* One matcher for both records - shelf tags and looked-up prices are matched
+   on the same rules, so a 450 Rancher cannot answer for a 455 in either. */
+function pdMatch(rows,x,limit){
+  const w=pdQueryWords(x);
+  if(!w.length)return [];
+  /* A number is not the only thing that separates two models: Pro, Max and
+     Mini do the same work. AirPods Pro at $99 otherwise averages with a
+     second-generation pair at $49 and prices neither of them. */
+  const key=w.filter(t=>/\d/.test(t)||VARIANT.test(t)), need=w.length>1?2:1;
+  return (rows||[]).map(s=>({s,hit:(s.words||[]).filter(t=>w.indexOf(t)>=0).length}))
+    .filter(o=>o.hit>=need&&(!key.length||key.some(t=>(o.s.words||[]).indexOf(t)>=0)))
+    .sort((a,b)=>b.hit-a.hit||b.s.ts-a.s.ts).map(o=>o.s).slice(0,limit||12);
+}
+function seenMatch(x){ return pdMatch(seenAll(),x); }
+
+/* ---- looked-up prices: the dataset growing itself ------------------------
+   A few hundred rows cannot cover a counter. When nothing matches, the service can go
+   and find what the thing sells for used, and the answer is kept, so the
+   second time it is asked it is already known. What the answer rests on is
+   kept with it and shown, because a completed-listing price and somebody's
+   asking price are not the same evidence. */
+/* ---- comparable listings: many rows, then the middle one ----------------
+   One range from one source is one opinion. A lookup now brings back the
+   individual listings it found and every one is kept, so the set grows each
+   time the same thing is priced.
+
+   The number taken off that set is the MEDIAN, not the average. Scraped
+   listings always carry junk - a chain and bar listed under the saw's name, a
+   dealer bundling three machines in one lot, a typo. On twelve rows with two
+   of them wrong, the average moves $180 and the median does not move at all.
+   The middle half is shown beside it so a set that disagrees with itself
+   cannot hide behind a single tidy figure. */
+const COMP_KEY="pawndesk_comps", COMP_MAX=3000;
+function compsAll(){ try{ return JSON.parse(localStorage.getItem(COMP_KEY)||"[]"); }catch(e){ return []; } }
+function compsSave(a){ try{ localStorage.setItem(COMP_KEY,JSON.stringify(a.slice(-COMP_MAX))); }catch(e){} }
+function compsAdd(q,list){
+  q=String(q||"").trim().slice(0,80);
+  if(!q||!Array.isArray(list))return 0;
+  const w=omniWords(q), a=compsAll(), now=Date.now();
+  let added=0;
+  list.slice(0,48).forEach((c,i)=>{
+    const p=Math.round(Number(c&&c.price));
+    if(!(p>0)||p>1000000)return;
+    a.push({id:now.toString(36)+i.toString(36)+Math.random().toString(36).slice(2,5), ts:now, q, words:w, price:p,
+      what:String((c&&c.what)||"").slice(0,60), where:String((c&&c.where)||"").slice(0,24),
+      basis:((c&&c.basis)==="sold")?"sold":"asking",
+      /* Only https, only eBay's image host, and only the thumbnail - this
+         string is written into an <img src> on the counter's screen, and a
+         comp arrives from a service rather than from here. */
+      img:(function(u){ u=String((c&&c.img)||"");
+        return /^https:\/\/i\.ebayimg\.com\//.test(u)?u.slice(0,300):""; })(),
+      url:(function(u){ u=String((c&&c.url)||"");
+        return /^https:\/\/(www\.)?ebay\.com\//.test(u)?u.slice(0,300):""; })()});
+    added++;
+  });
+  compsSave(a); return added;
+}
+function compsMatch(x){ return pdMatch(compsAll(),x,60); }
+
+/* ---- sharing the record between the phone and the desk ------------------
+   Each device keeps working from its own copy, online or not. This
+   reconciles them: push what this one has, take back what it has not seen,
+   and merge by id with the newer timestamp winning. Nothing is deleted and
+   nothing is authoritative but the rows themselves, so two devices that both
+   recorded something while apart end up with both. */
+const SYNC_AT="pawndesk_syncat";
+function syncAt(k){ try{ return Number(JSON.parse(localStorage.getItem(SYNC_AT)||"{}")[k])||0; }catch(e){ return 0; } }
+function syncSetAt(k,ts){ try{ const o=JSON.parse(localStorage.getItem(SYNC_AT)||"{}"); o[k]=ts;
+  localStorage.setItem(SYNC_AT,JSON.stringify(o)); }catch(e){} }
+/* The deal log keys on _id; everything else keys on id. Translating at the
+   edge keeps one merge rule for all three rather than a special case running
+   through the middle of it. Deals hold item facts only - no name, no ID
+   number - so they are safe to share the same way. */
+const SYNC_STORES={
+  comps:{all:compsAll,save:compsSave},
+  /* One row a model, a few hundred bytes each - the whole harvest fits in a
+     sync where its listings never could. This is what makes a price found on
+     the phone in a yard sale available at the desk that afternoon. */
+  harvest:{
+    all:()=>Object.entries(harvAll()).map(([id,f])=>Object.assign({id,ts:f.ts||Date.parse(f.date+"T12:00:00")||Date.now()},f)),
+    save:rows=>{ const m={};
+      (rows||[]).forEach(r=>{ if(r&&r.id)m[r.id]=r; });
+      HARV=m; harvSave(); }
+  },
+  seen: {all:seenAll, save:seenSave},
+  deals:{
+    all:()=>((window.PD_DEALS&&window.PD_DEALS.all())||[]).map(d=>Object.assign({},d,{id:d._id})),
+    save:rows=>{ if(!window.PD_DEALS)return;
+      window.PD_DEALS.save(rows.map(d=>{ const c=Object.assign({},d); c._id=c._id||c.id; delete c.id; return c; })); }
+  }
+};
+let syncBusy=false, syncNote="";
+async function pdSync(){
+  if(syncBusy||!pdServer())return;
+  syncBusy=true; syncNote="Syncing\u2026"; try{ render(); }catch(e){}
+  let pulled=0, pushed=0, warn="", failed=0;
+  for(const k of Object.keys(SYNC_STORES)){
+    const S=SYNC_STORES[k], since=syncAt(k), mine=S.all();
+    /* Only what this device has that the others may not: everything on the
+       first run, then whatever arrived since. */
+    const send=since?mine.filter(r=>(Number(r.ts)||0)>since):mine;
+    try{
+      const res=await fetch(pdBase()+"/sync",{method:"POST",
+        headers:{"content-type":"application/json","x-pawn-token":pdToken()},
+        body:JSON.stringify({store:k,rows:send,since})});
+      const j=await res.json();
+      if(!j||!j.ok){ failed++; continue; }
+      pushed+=send.length;
+      if(j.warning)warn=j.warning;
+      st.syncWarn=j.warning||"";
+      const byId={}; mine.forEach(r=>{ byId[r.id]=r; });
+      let newest=since, add=0;
+      (j.rows||[]).forEach(r=>{
+        if(!r||!r.id)return;
+        newest=Math.max(newest,Number(r.ts)||0);
+        const o=byId[r.id];
+        if(!o||(Number(r.ts)||0)>(Number(o.ts)||0)){ byId[r.id]=r; if(!o)add++; }
+      });
+      if(add)S.save(Object.values(byId).sort((a,b)=>(a.ts||0)-(b.ts||0)));
+      pulled+=add;
+      syncSetAt(k,newest);
+    }catch(e){ failed++; }
+  }
+  syncBusy=false;
+  /* Whether the record is really shared is not a thing to go hunting for in
+     a hosting dashboard. The service answers it on every sync; this keeps
+     the answer, so the tool can say which it is rather than leaving silence
+     to be read as good news. */
+  const allFailed=failed===Object.keys(SYNC_STORES).length;
+  if(!allFailed)st.syncSeen=Date.now();
+  st.syncShared=allFailed?"": (warn?"no":"yes");
+  syncNote = allFailed ? "Couldn't reach the service."
+           : warn ? ("Shared, but "+warn)
+           : (pulled||pushed) ? ("Synced \u00b7 "+pushed+" sent, "+pulled+" received")
+           : "Synced \u00b7 nothing new";
+  try{ render(); }catch(e){}
+}
+
+function compStats(rows){
+  const ps=(rows||[]).map(r=>r.price).filter(n=>n>0).sort((p,q)=>p-q);
+  const n=ps.length;
+  if(n<3)return null;
+  const at=f=>ps[Math.min(n-1,Math.max(0,Math.round(f*(n-1))))];
+  const med=seenMedian(ps), lo=at(0.25), hi=at(0.75);
+  const sold=(rows||[]).filter(r=>r.basis==="sold").length;
+  /* Which places the listings came from. The message under the button is gone
+     the moment the price lands and the card moves to condition, so the
+     breakdown has to live on the price itself to survive. */
+  const by={}; (rows||[]).forEach(r=>{ const k=(r.where||"?").trim()||"?"; by[k]=(by[k]||0)+1; });
+  const from=Object.keys(by).sort((a,b)=>by[b]-by[a]).map(k=>k+" "+by[k]).join(" \u00b7 ");
+  const soldShare=sold/n;
+  /* Asking prices sit above sales. The flag does not move the number - it is
+     said on the card, so the counter can weigh it against a real sold page. */
+  const mostlyAsks=soldShare<0.5;
+  return {n, med, lo, hi, sold, soldShare, mostlyAsks, from,
+    conf:(n>=6&&soldShare>=0.6)?"h":(n>=4?"m":"l"),
+    mid:Math.max(5,Math.round(med/5)*5)};
+}
+/* Where a lookup goes. One general search answers from wherever it lands;
+   these name the places the trade actually prices from, so the pile gets
+   listings from each instead of whatever one pass happened to find. They run
+   together rather than in turn - coverage costs a call each, it does not have
+   to cost the wait as well - and one failing does not lose the others. */
+function findPasses(x){
+  /* Firearms get their own places entirely. eBay bans gun sales, so an eBay
+     or Shopping pass on "Remington 870" comes back with barrels, stocks,
+     optics and airsoft - priced like the gun and wrong by a factor of five.
+     The card has always said so; the lookup was still asking. And GunBroker's
+     completed auctions sit behind a login no search can reach, so asking for
+     them by name returns nothing: what can be read is GunWatcher, which
+     publishes the sold prices, and GunBroker's live listings as asks. */
+  if(st.catId==="guns") return [
+    {name:"GunWatcher", where:"GunWatcher", q:gunQuery(x),
+     say:"gunwatcher.com, which publishes sold prices gathered from completed GunBroker auctions - use its sold or average sold figures, not asking prices"},
+    /* guns.com publishes the WINNING BID on auctions it closed, for ninety
+       days back - real sales, and a second source so the whole firearms
+       category does not hang on GunWatcher alone, which refuses a direct
+       read and is reachable only when a search happens to get through.
+
+       Its stock leans hard toward collector and high-end pieces: the ended
+       board runs to four-figure Colts and Smiths while the counter is
+       looking at an 870 or a Mossberg 500. So the pass is told to throw
+       away anything that is not the same class of gun - a $6,000 engraved
+       collectible is not a comp for a pump gun, and averaging it in is
+       worse than having no comp at all. */
+    {name:"Guns.com ended", where:"Guns.com", q:gunQuery(x),
+     say:"guns.com/auctions/recently-ended, which lists the winning bid on auctions closed in the last ninety days - those are sales, not asks. That site leans to collector and high-end guns, so keep only listings for the same ordinary working model that was asked about and discard rare, engraved, commemorative or historic pieces however well the name matches"},
+    {name:"Auction results", where:"Auction",
+     say:"published results from gun auction houses and sold-price archives - Rock Island, Morphy, Proxibid, GunsAmerica sold - for what the gun actually brought"},
+    {name:"GunBroker, asking", where:"GunBroker",
+     say:"current GunBroker listings, which are asking prices rather than sales - mark every one of these \"asking\""}];
+  /* eBay first, and through its API rather than by searching for it. The
+     pass below used to be named "eBay sold" and ask a web search for
+     completed listings - which it could never return, because eBay's sold
+     pages sit behind a login and the site refuses an automated reader
+     outright. What came back was active listings: asking prices wearing a
+     label that said sold. The API can answer the question properly, and it
+     is free, so it goes first and the paid searches are the fallback. */
+  const p=[{name:"eBay", where:"eBay", ebay:true}];
+  p.push({name:"Searched, used", where:"eBay",
+          say:"used-condition eBay listings and completed sales where you can reach them - mark anything still for sale \"asking\""});
+  p.push({name:"Shopping, used", where:"Shopping",
+          say:"used-condition listings currently for sale on Google Shopping and the marketplaces"});
+  return p;
+}
+function findPrompt(q,pass){
+  return 'Find what a used "'+q+'" sells for in the United States. Search '+pass.say+'. '+
+    'List the individual listings you find, up to 12. Reply with JSON and nothing else: '+
+    '{"comps":[{"price":<number, one listing\'s price>,"what":"<the item in a few words>",'+
+    '"where":"<site>","basis":"sold" or "asking"}]}. '+
+    'Only listings for the same thing - not parts, not accessories, not multi-item lots. '+
+    'If you find none, reply {"comps":[]}.';
+}
+let findBusy=false, findMsg="", findAgain=false;
+/* One press, every source. The counter said it plainly: if I am looking a
+   thing up I want all the data there is, and I should not have to pick which
+   search to run. So this no longer stops at the first pass that comes back
+   full, and it asks what a new one costs in the same sweep - then keeps
+   every answer side by side in st.evidence rather than quietly choosing one
+   and throwing the rest away. */
+/* WHAT EBAY CANNOT SELL, IT CANNOT PRICE.
+ *
+ * Measured over seventy searches for things the desk claims to know: 37%
+ * came back usable. The single biggest bucket of the rest was firearms,
+ * and the reason is not subtle - eBay bans the sale of guns. A search for
+ * "Remington 870 Express" returns shell latches at $14.99, a trigger
+ * plate at $39, a bolt at $56 and a stock set at $115. Not one shotgun.
+ * The desk was pricing a $450 gun off a $15 shell latch, and grading it
+ * "good data" because fourteen real sales agreed with each other.
+ *
+ * The tool has always known this. The comps card says so in plain words -
+ * "eBay doesn't sell guns, GunBroker completed auctions is the only real
+ * firearm comp" - and then the automatic lookup went and searched eBay
+ * anyway. Same for anything nobody ships: quads, side-by-sides, golf
+ * carts, riding mowers. Those come back as parts too.
+ *
+ * Refusing is not a smaller answer than a wrong one. The manual buttons
+ * for the right source are already on the screen. */
+/* WHAT EBAY CANNOT PRICE, MEASURED ONE AISLE AT A TIME.
+   Every entry here is a harvest result, not a hunch. The rule is the
+   one the harvest prints at the end of a run: a model counts as clean
+   only if it is built on sold prices, lands inside the sanity band, and
+   its quartiles are within 3x - and an aisle that cannot clear a
+   quarter of its models is an aisle where the search is returning
+   accessories. Under that rule these came back:
+
+     outboard 9.9-25hp   0/12      chest freezer     0/3
+     air compressor 60g  0/5       window AC         0/3
+     refrigerator        0/5       weight bench      0/5
+     home gym / rack     0/8       MIG welder      1/10
+     dryer               0/4       pressure washer  1/7
+     rolling tool box    0/6       elliptical       1/6
+     designer jewelry    0/5       washer           1/5
+     television         0/16       treadmill       2/10
+
+   The pattern is physical, not technical: none of these ship for less
+   than they are worth, so eBay lists their parts. A NordicTrack search
+   returns belts that really did sell, eight of them, at $35 - genuine
+   sales of the wrong object. Designer jewellery fails for the opposite
+   reason: the searches came back with nothing usable at all.
+
+   A few of these still have a book row, from the one or two models that
+   DID return clean sold data. That is not a contradiction - a
+   researched figure is worth keeping; it is the live lookup that is a
+   bad bet, and the lookup is what this switches off. */
+const EBAY_CANNOT_ITEM={
+  e1:"A television does not ship, so eBay has almost no used ones sold \u2014 19 models were tried and one came back priceable. What is listed is remotes, stands and boards. Price it off Facebook Marketplace locally, your own sales and the shelf record.",
+  p4:"A mower does not ship, so eBay lists deck belts and spindles rather than machines. Price it off your own sales and the shelf record.",
+  p5:"A mower does not ship, so eBay lists deck belts and spindles rather than machines. Price it off your own sales and the shelf record.",
+  h9:"An outboard does not ship, so eBay lists props, carbs and cowlings \u2014 none of twelve motors came back priceable. Price it off local listings and your own sales.",
+  t5:"A 60-gallon compressor is freight, so eBay lists pumps, motors and pressure switches rather than machines. Price it locally.",
+  a2:"A fridge does not ship, so eBay lists shelves, handles and ice makers. Price it locally and off the shelf record.",
+  a3:"A washer does not ship, so eBay lists lids, pumps and control boards. Price it locally.",
+  a4:"A dryer does not ship, so eBay lists heating elements, belts and timers. Price it locally.",
+  a6:"A chest freezer does not ship, so eBay lists lids and thermostats. Price it locally.",
+  a7:"A window unit does not ship, so eBay lists filters, remotes and control boards. Price it locally.",
+  f1:"A treadmill does not ship, so eBay lists belts, motors and consoles \u2014 and they really do sell, which is why the number looks plausible and is wrong. Price it locally.",
+  f3:"An elliptical does not ship, so eBay lists pedals, consoles and resistance motors. Price it locally.",
+  f4:"A weight bench does not ship for less than it is worth, so eBay lists pads and pins. Price it locally.",
+  f6:"A rack does not ship, so eBay lists J-cups, pins and attachments. Price it locally.",
+  t6:"A welder is heavy, so eBay lists guns, tips, liners and regulators \u2014 one of ten machines came back priceable. Price it locally.",
+  t7:"A rolling tool box does not ship, so eBay lists drawer slides, latches and liners. Price it locally.",
+  p6:"A pressure washer mostly does not ship, so eBay lists wands, hoses, pumps and nozzles. Price it locally.",
+  j3:"Designer jewellery came back with nothing usable across five makers \u2014 the names are too broad and the pieces too varied for a search to mean anything. Price it by metal weight and stone, and check the maker's own resale pages.",
+  /* 24 Sep: the harvest priced 51 saws, trimmers and blowers and got ONE
+     clean row out of them. Not because the numbers looked mad \u2014 they looked
+     plausible \u2014 but because every single one came back with zero sold
+     listings. eBay reported one used sale across the whole aisle in 90
+     days, so the figures were asking prices on bars, chains, carburettors
+     and recoil starters. A Husqvarna 460 spanned $133 to $400 inside one
+     search: whole saws mixed with parts. */
+  p1:"A saw is cheap to buy new and expensive to ship, so eBay lists bars, chains, carburettors and recoil starters \u2014 32 models came back, not one of them on a real sale. Price it off the shelf record and what the dealers in town are asking.",
+  p2:"A trimmer does not ship, so eBay lists heads, spools, shafts and carburettors. One of seven models came back priceable. Price it locally.",
+  p3:"A backpack blower does not ship, so eBay lists tubes, elbows, straps and carburettors \u2014 twelve models, not one clean row. Price it locally.",
+  /* 25 Sep: 14 generators tried, ONE came back on a real sale. This one is
+     not quite the shipping story the rest of the aisle tells - a 47lb
+     inverter ships fine - it is that the search cannot tell a machine from
+     a carburettor. Honda EU2200i came back $20 to $700 inside one search;
+     EU3000iS, a $2,300 machine new, came back $28 to $99. Those are covers,
+     wheel kits and carbs sitting in the same list as whole units, and the
+     median of that mixture is not a price of anything.
+     What made it worse than the rest of the aisle: the three rows it DID
+     merge were all asking prices near new retail, so the desk was quoting
+     a used generator at what a new one costs. */
+  p7:"A generator search cannot tell a machine from a carburettor \u2014 14 models tried, one came back on a real sale, and a Honda EU2200i spanned $20 to $700 inside a single search. Price it off Facebook Marketplace locally, your own sales and the shelf record."
+};
+const EBAY_CANNOT={
+  guns:"eBay does not sell firearms, so a search for one comes back as parts — latches, barrels, stocks. Use the GunBroker and GunWatcher buttons above: completed auctions there are the real comp.",
+  rolling:"Nobody ships a quad, a side-by-side or a golf cart, so eBay only ever lists their parts. Price it off your own sales and what the dealers near you are asking."
+};
+function ebayBlind(x){
+  const cat=x&&x.cat?x.cat.id:st.catId;
+  if(EBAY_CANNOT[cat])return EBAY_CANNOT[cat];
+  const id=x&&x.item?x.item.id:st.itemId;
+  return EBAY_CANNOT_ITEM[id]||"";
+}
+async function priceFind(signal,all){
+  if(findBusy||!CAP.sample)return;
+  const x=calcItem(), q=compQuery(x);
+  if(!q)return;
+  const blind=ebayBlind(x);
+  if(blind){ findMsg=blind;
+    const el=document.getElementById("pdFindMsg"); if(el)el.textContent=blind;
+    try{ render(); }catch(e){}
+    return; }
+  const passes=findPasses(x);
+  /* Every search costs money, so two things happen before one is fired.
+
+     First: has this already been looked up? Listings are kept, so a chainsaw
+     priced this morning and again this afternoon used to be paid for twice.
+     If there are enough recent ones on file, use those and spend nothing.
+     Holding the button down deliberately (a second press) searches anyway,
+     because sometimes you do want the market rechecked. */
+  const have=compStats(compsMatch(x));
+  const FRESH=1000*60*60*24*10;
+  const recent=compsMatch(x).filter(c=>Date.now()-(c.ts||0)<FRESH).length;
+  if(have&&recent>=5&&!findAgain&&!all){
+    findAgain=true;
+    useComps(have);
+    findMsg=have.n+" listings already on file from the last few days \u2014 no search needed. "+
+            "Press again to check the market fresh.";
+    render(); return;
+  }
+  findAgain=false;
+  findBusy=true; render();
+  /* Keep it in state and let the render put it on screen. Writing straight
+     into the node loses the message whenever anything re-renders afterwards,
+     which is exactly what happens when the lookup lands a price. */
+  /* Both, because which one exists depends on the layout, and the rail is
+     the one the counter is looking at when it presses the button. */
+  const say=t=>{ findMsg=t;
+    for(const id of ["pdFindMsg","railFindMsg"]){
+      const el=document.getElementById(id); if(el)el.textContent=t; } };
+  say("Searching "+passes[0].name+"\u2026");
+  /* Second: the passes run one at a time instead of all at once. The first
+     is the best source for the category - sold eBay listings, or GunWatcher
+     for a firearm - and when it comes back with plenty, the rest are paid
+     for to confirm a number that is already good. Thin or failed, and it
+     carries on to the next. Most lookups now cost one search, not two. */
+  /* A pass may want the name put differently - GunWatcher by model alone.
+     What comes back is still filed under the item's own search text. */
+  const ENOUGH=8;
+  const out=[], runs=[];
+  const got=[]; let failed=0;
+  for(let i=0;i<passes.length;i++){
+    const P=passes[i];
+    if(i)say("Thin so far \u2014 trying "+P.name+"\u2026");
+    let r, note="";
+    if(P.ebay){
+      /* Free, so it never counts against the "enough" saving below - it is
+         the thing doing the saving. */
+      try{
+        const j=await pdEbayComps(P.q||q,signal);
+        /* The basis comes back once for the whole answer, not per listing.
+           Stamp it on each one, because the line the counter reads counts
+           sold against asking across everything that came back. */
+        const b=j.basis==="sold"?"sold":"asking";
+        r={status:"fulfilled",value:{comps:(j.comps||[]).map(c=>Object.assign({basis:b},c))}};
+        /* Say which kind of number came back. Without the Marketplace
+           Insights grant eBay can only serve active listings, and the
+           counter should see that on the tally rather than assume a sale. */
+        note=j.basis==="sold"?" sold":" asks";
+      }catch(e){ r={status:"rejected"}; }
+    }else{
+      try{ r={status:"fulfilled",value:await CAP.sample.json(findPrompt(P.q||q,P),{search:true,signal})}; }
+      catch(e){ r={status:"rejected"}; }
+    }
+    out.push(r);
+    if(r.status!=="fulfilled"){ failed++; runs.push({name:P.name,ok:false}); continue; }
+    const cs=((r.value&&r.value.comps)||[]).filter(c=>c&&Number(c.price)>0);
+    cs.forEach(c=>got.push(Object.assign({},c,{where:String(c.where||P.where).slice(0,24)})));
+    runs.push({name:P.name,ok:true,n:cs.length});
+    if(!all&&got.length>=ENOUGH){ break; }
+  }
+  /* What a new one costs, gathered in the same sweep. It is the weakest
+     number here and it is never chosen over a sale, but it is the one that
+     answers "is this worth anything at all" when nothing else lands. */
+  let retail=null;
+  if(all&&!(signal&&signal.aborted)){
+    say("Checking what it costs new\u2026");
+    retail=await retailFetch(q,signal);
+    /* kept as a number, said in words below */
+  }
+  findBusy=false;
+  /* The same listing can surface in more than one pass; count it once. */
+  const seen={};
+  const uniq=got.filter(c=>{ const k=Math.round(c.price)+"|"+String(c.where||"").toLowerCase();
+                             if(seen[k])return false; seen[k]=1; return true; });
+  const added=compsAdd(q,uniq);
+  if(added)pdSync();
+  const x2=calcItem();
+  const t=compStats(compsMatch(x2));
+  if(all)gatherEvidence(x2,t,retail);
+  if(!added&&!t){
+    /* Nothing sold anywhere. A new price is still an answer, and before the
+       sweep it was sitting behind a second button nobody pressed. */
+    if(retail){ useEvidence("retail"); say("Nothing used came back anywhere. Priced off what a new one costs \u2014 "+money(retail.price)+" \u2014 which is the weakest number here."+failNote(runs)); return; }
+    render(); say(failed&&failed===out.length?"Every search failed. Try the sold pages.":"No listings found. Try the sold pages.");
+    return;
+  }
+  if(t)useComps(t); else if(retail)useEvidence("retail");
+  say(findSaid(uniq,added,t,runs));
+}
+/* WHAT THE LOOKUP FOUND, IN WORDS A COUNTER READS ONCE.
+   What this used to print was the engine talking to itself:
+
+     eBay asks 35 · Searched, used failed · Shopping, used failed ·
+     new none — 21 new, 44 on file, 14 duplicate dropped
+
+   Reported from the counter: "I have no idea what the circled section
+   means." Fair - it is a tally of passes, written for whoever was
+   debugging the passes. Nobody pricing a PlayStation needs to know that a
+   duplicate was dropped.
+
+   What he does need is the thing he has asked about more than anything
+   else on this tool: are these SOLD prices or ASKING prices? Every comp
+   carries its own basis, so that is countable, and it leads. */
+function findSaid(fresh,added,t,runs){
+  const sold=fresh.filter(c=>String(c.basis||"").toLowerCase()==="sold").length;
+  const asks=fresh.length-sold;
+  const where=[...new Set(fresh.map(c=>String(c.where||"").trim()).filter(Boolean))];
+  const on=where.length?" on "+where.slice(0,2).join(" and ")+(where.length>2?" and others":""):"";
+  let lead;
+  if(!added)           lead="Nothing new came back"+(t?" \u2014 pricing off the "+t.n+" already on file.":".");
+  else if(sold&&!asks) lead=sold+" sold price"+(sold===1?"":"s")+on+" \u2014 what people actually paid.";
+  else if(asks&&!sold) lead=asks+" asking price"+(asks===1?"":"s")+on+" \u2014 nobody paid these. "+
+                            "It is what sellers want, not what one sold for.";
+  else                 lead=sold+" sold and "+asks+" asking"+on+". The price leans on the sold ones.";
+  const onFile=(added&&t)?" "+t.n+" on file now.":"";
+  return lead+onFile+failNote(runs);
+}
+/* A source that did not answer is worth one short clause: it is why the
+   answer is thinner than it should be. It is not worth naming three of
+   them in full. */
+function failNote(runs){
+  const bad=(runs||[]).filter(r=>!r.ok);
+  if(!bad.length)return "";
+  return bad.length===1 ? " "+bad[0].name+" did not answer."
+                        : " "+bad.length+" other searches did not answer.";
+}
+/* Every number the sweep turned up, kept side by side. The card below lists
+   them all and marks the one in use, so nothing found is lost behind the
+   one the tool happened to pick. */
+function gatherEvidence(x,t,retail){
+  const own=soldStats(itemKey()), seen=seenEstimate(seenMatch(x)), pct=retailPct(x);
+  st.evidence={key:mkKey(),ts:Date.now(),
+    comps:t?{n:t.n,med:t.med,lo:t.lo,hi:t.hi,sold:t.sold,from:t.from,mid:t.mid}:null,
+    retail:retail?{price:retail.price,where:retail.where,pct,
+                   mid:Math.max(5,Math.round(retail.price*pct/100/5)*5)}:null,
+    own:own?{n:own.n,avg:Math.round(own.avg),mid:Math.max(5,Math.round(own.avg/5)*5)}:null,
+    seen:seen?{n:seen.n,lo:seen.lo,hi:seen.hi,mid:seen.mid}:null,
+    book:Math.round(x.baseValue)};
+}
+function useEvidence(kind){
+  const E=st.evidence; if(!E)return;
+  if(kind==="comps"&&E.comps){ useComps(compStats(compsMatch(calcItem()))); return; }
+  if(kind==="retail"&&E.retail){
+    st.market={kind:"retail",key:mkKey(),retail:E.retail.price,pct:E.retail.pct,
+               where:E.retail.where,mid:E.retail.mid}; render(); return; }
+  if(kind==="own"&&E.own){ st.market={kind:"own",key:mkKey(),n:E.own.n,mid:E.own.mid}; render(); return; }
+  if(kind==="seen"&&E.seen){ st.market={kind:"seen",key:mkKey(),n:E.seen.n,ask:E.seen.mid,
+               lo:E.seen.lo,hi:E.seen.hi,mid:E.seen.mid}; render(); return; }
+  if(kind==="book"){ st.market=null; render(); }
+}
+/* Where the number on screen came from when nothing has been looked up yet.
+   The counter asked how he is meant to know whether the tool is right about
+   things he has not checked himself. The honest answer is per item, and it
+   belongs on the item: a built-in number is a starting point somebody
+   compiled, and until this shop has searched it once it has no evidence
+   behind it at all. Saying so is the difference between a tool that is
+   trusted where it has earned it and one that is trusted everywhere. */
+function checkedNote(x){
+  if(x&&x.checked)return "";
+  const n=compsMatch(x).length;
+  return n?`Built-in number \u2014 ${n} listing${n===1?"":"s"} on file from an earlier search. Look it up to check it again.`
+          :`Built-in number \u2014 never checked against real sales here. Look it up and it will be.`;
+}
+/* One card, every source, the one in use marked. */
+function evidenceHTML(){
+  const E=st.evidence; if(!E||E.key!==mkKey())return "";
+  const now=(st.market&&st.market.kind)||"book";
+  const row=(kind,label,num,note)=>{
+    const on=(kind===now)||(kind==="comps"&&now==="found");
+    return `<button class="nsBtn${on?" on":""}" data-use="${kind}"${on?" disabled":""}>
+      <span>${label}${note?`<i style="display:block;font-style:normal;opacity:.7;font-size:11.5px">${note}</i>`:""}</span>
+      <b>${money(num)}</b><i>${on?"in use":"use this"}</i></button>`;
+  };
+  /* THE HARVEST CHECKS ITS OWN ANSWERS AND THE APP DID NOT.
+     A search for a DJI Osmo came back at $25 against a $300 book row -
+     a battery charger, a phone clamp and a selfie stick - and the desk
+     called it "good data" and put it in use, because nothing on this
+     screen compared the two. The harvest has refused numbers like that
+     for weeks; the counter got them anyway. Same band, 4x and a quarter,
+     and it does not overrule anything - the figure is still offered,
+     it just no longer arrives unremarked. */
+  const odd=(E.comps&&E.book>0&&E.comps.mid>0)
+    ? (E.comps.mid/E.book>4 ? "high" : E.comps.mid/E.book<0.25 ? "low" : "") : "";
+  /* THE SAME GUARD THE MERGE USES, ON THE LIVE LOOKUP. lo and hi are the
+     middle half of what sold. For one product that band is tight -
+     condition and storage move it, a factor of two at the outside. When it
+     comes back three times wide the search found more than one thing. A
+     DJI Osmo Action 4 returns Action 3s at $70, Action 4s at $165-$181,
+     Action 5 Pros at $290 and Osmo Nanos at $281, all real sales, all
+     different cameras; the middle of that is nobody's price. */
+  const wide=(E.comps&&E.comps.lo>0&&E.comps.hi>0&&E.comps.hi/E.comps.lo>=3)
+    ? Math.round(E.comps.hi/E.comps.lo*10)/10 : 0;
+  let h=`<div class="label" style="margin-top:14px">Everything it found</div>`;
+  if(E.comps)h+=row("comps",`${E.comps.n} listing${E.comps.n===1?"":"s"}${E.comps.sold?`, ${E.comps.sold} sold`:""}`,
+    E.comps.mid,`middle half ${money(E.comps.lo)}–${money(E.comps.hi)}${E.comps.from?" · "+esc(E.comps.from):""}`)
+    +(!odd&&wide?`<div class="mkNo" style="margin:-4px 0 8px"><b>Those ${E.comps.n} sales spread ${wide}&times; &mdash; ${money(E.comps.lo)} to ${money(E.comps.hi)}.</b>
+        One product does not sell over that kind of range, so the search has almost certainly
+        caught more than one model. Open the sold page and take the ones that match what you
+        are holding, or type that figure yourself.</div>`:"")
+    +(odd?`<div class="mkNo" style="margin:-4px 0 8px"><b>That is ${odd==="low"?"far below":"far above"} the ${money(E.book)} this kind of thing books at.</b>
+        ${odd==="low"?"A search that comes back this cheap has usually found the accessories \u2014 chargers, cases, mounts \u2014 rather than the thing itself. Open the sold page and look before you use it."
+                     :"Check the listings are the same thing you have in front of you, and not a newer or larger one."}</div>`:"");
+  if(E.own)h+=row("own",`Your own sales — ${E.own.n}`,E.own.mid,"what this shop actually got");
+  if(E.seen)h+=row("seen",`Shelf tags you recorded — ${E.seen.n}`,E.seen.mid,
+    `asking ${money(E.seen.lo)}–${money(E.seen.hi)}`);
+  if(E.retail)h+=row("retail",`New retail${E.retail.where?" — "+esc(E.retail.where):""}`,E.retail.mid,
+    `${money(E.retail.price)} new, ${E.retail.pct}% of new for a used one — not a sold price`);
+  h+=row("book","The built-in list",E.book,"where the tool starts before it searches");
+  return h;
+}
+function useComps(t){
+  if(!t)return;
+  st.market={kind:"found",key:mkKey(),n:t.n,med:t.med,lo:t.lo,hi:t.hi,sold:t.sold,
+             mostlyAsks:t.mostlyAsks,conf:t.conf,mid:t.mid,from:t.from,
+             /* where it came from and why it is not better than it is */
+             via:LAST_EBAY?LAST_EBAY.source:"", viaBasis:LAST_EBAY?LAST_EBAY.basis:"",
+             viaWhy:LAST_EBAY?LAST_EBAY.warning:""};
+  render();
+}
+/* A price on another shop's shelf is what a used one goes for here - it is
+   already the selling price, so it is used as it stands. How far that shop
+   will discount it before it moves is their markdown policy and the POS's
+   business, not this tool's. The count of asks against sales is still shown,
+   so the counter can judge the evidence rather than have it adjusted for
+   them. */
+function seenEstimate(list){
+  const asks=(list||[]).map(s=>s.ask).filter(n=>n>0);
+  if(!asks.length)return null;
+  const m=seenMedian(asks);
+  return {n:asks.length, lo:Math.min.apply(null,asks), hi:Math.max.apply(null,asks), ask:m,
+          mid:Math.max(5,Math.round(m/5)*5)};
+}
+function seenExport(){
+  const a=seenAll();
+  if(!a.length){ alert("Nothing recorded yet."); return; }
+  try{
+    const b=new Blob([JSON.stringify(a,null,1)],{type:"application/json"});
+    const u=URL.createObjectURL(b), el=document.createElement("a");
+    el.href=u; el.download="pawn-desk-shelf-prices.json"; el.click();
+    setTimeout(()=>URL.revokeObjectURL(u),4000);
+  }catch(e){ alert("Couldn't export."); }
+}
+function seenImport(f){
+  const r=new FileReader();
+  r.onload=()=>{
+    let rows=null; try{ rows=JSON.parse(String(r.result||"")); }catch(e){}
+    if(!Array.isArray(rows)){ alert("That file isn't a shelf-price export."); return; }
+    const have=seenAll(), ids={};
+    have.forEach(s=>{ ids[s.id]=1; });
+    let added=0;
+    rows.forEach(s=>{ if(s&&s.id&&!ids[s.id]&&s.ask>0&&s.name){ have.push(s); ids[s.id]=1; added++; } });
+    seenSave(have); render();
+    alert(added+" added. "+seenAll().length+" on this device now.");
+  };
+  r.readAsText(f);
+}
+let seenBusy=false;
+async function seenFromPhoto(f){
+  if(!f||seenBusy||!CAP.sample)return;
+  seenBusy=true; render();
+  try{
+    const d=await CAP.sample.json(
+      'This is a price tag in a pawn or second-hand shop. Read it and reply with JSON and nothing else: '+
+      '{"name":"<what the item is, in plain words>","brand":"<brand or empty>","model":"<model or empty>",'+
+      '"ask":<the price being asked, a number>,"reg":<the REGULAR or WAS price if one is printed, else 0>,'+
+      '"store":"<shop name if visible, else empty>"}. '+
+      'If this is not a price tag, reply {"name":"","ask":0}.',
+      {images:f});
+    seenBusy=false;
+    if(!d||!(Number(d.ask)>0)){ render(); alert("Couldn't read a price off that tag."); return; }
+    seenAdd(d); render(); pdSync();
+  }catch(e){ seenBusy=false; render(); alert("Couldn't read that tag ("+((e&&e.code)||"error")+")."); }
+}
+function seenCardHTML(){
+  const all=seenAll();
+  return '<div class="card" id="seenCard"><span class="label">Shelf prices you\'ve recorded</span>'+
+    '<div class="cardHint">'+(all.length
+      ? all.length+" tag"+(all.length===1?"":"s")+" recorded &mdash; what other shops are asking for a used one."
+      : "Photograph another shop&rsquo;s price tag and it goes in here. These are asking prices, not sales.")+'</div>'+
+    '<div class="row2" style="margin-top:8px;flex-wrap:wrap;gap:8px">'+
+      (CAP.sample?'<label class="ghostBtn" style="margin:0;cursor:pointer">'+(seenBusy?"Reading&hellip;":"Photograph a tag")+
+        '<input id="seenIn" type="file" accept="image/*" capture="environment" style="display:none"></label>':'')+
+      '<button class="ghostBtn" id="seenHand">Type one in</button>'+
+      (pdServer()?'<button class="ghostBtn" id="seenSync">'+(syncBusy?"Syncing&hellip;":"Sync")+'</button>':'')+
+      /* Export and Import moved to Phones & devices. Moving the record
+         between devices is a setup job, not a counter job - Sync does it by
+         itself once the service is on. */
+    '</div>'+
+    (syncNote?'<div class="cardHint">'+esc(syncNote)+'</div>':'')+
+    '</div>';
+}
+document.addEventListener("change",e=>{
+  const t=e.target;
+  if(t&&t.id==="seenIn"&&t.files&&t.files[0]){ seenFromPhoto(t.files[0]); t.value=""; }
+  if(t&&t.id==="seenImp"&&t.files&&t.files[0]){ seenImport(t.files[0]); t.value=""; }
+  if(t&&t.id==="shFile"&&t.files&&t.files[0]){
+    const f=t.files[0]; t.value="";
+    const rd=new FileReader();
+    rd.onerror=()=>{ shMsg="Couldn\u2019t read that file."; render(); };
+    rd.onload=()=>{ const r=sheetRead(String(rd.result||""));
+      if(r.err){ shMsg=r.err; shPend=null; } else { shPend=r; shMsg=""; }
+      render(); };
+    rd.readAsText(f);
+  }
+},true);
+document.addEventListener("click",e=>{
+  const b=e.target&&e.target.closest?e.target.closest("#seenHand,#seenOut,#seenUse,#seenSync,#pdFindGo,#foundUse,#pdCopyConn,#harvStop,#harvDl,#harvClear,#harvCheck,#shPasteGo,#shPasteRead,#shApply,#shCancel,[data-use],[data-harv]"):null; if(!b)return;
+  if(b.id==="pdFindGo"){ priceFind(null,true); return; }
+  if(b.dataset.harv!=null){ harvRun("",Number(b.dataset.harv)); return; }
+  if(b.id==="harvStop"){ harvStop=true; return; }
+  if(b.id==="harvDl"){ harvDownload(); return; }
+  if(b.id==="harvClear"){ HARV={}; harvSave(); render(); return; }
+  if(b.id==="harvCheck"){ pdSync(); return; }
+  if(b.id==="shPasteGo"){ st.shPaste=!st.shPaste; shMsg=""; render(); return; }
+  if(b.id==="shPasteRead"){
+    const t=document.getElementById("shPaste"); const r=sheetRead(t?t.value:"");
+    if(r.err){ shMsg=r.err; shPend=null; } else { shPend=r; shMsg=""; }
+    render(); return; }
+  if(b.id==="shApply"){ if(shPend){ const n=shPend.changes.length; sheetApply(shPend); shPend=null;
+    st.shPaste=false; shMsg=n+" price"+(n===1?"":"s")+" are now yours."; render(); } return; }
+  if(b.id==="shCancel"){ shPend=null; shMsg=""; render(); return; }
+  if(b.dataset.use){ useEvidence(b.dataset.use); return; }
+  if(b.id==="foundUse"){ useComps(compStats(compsMatch(calcItem()))); return; }
+  if(b.id==="seenSync"){ pdSync(); return; }
+  if(b.id==="seenOut"){ seenExport(); return; }
+  /* Typing a Railway address and a token on a phone keyboard is where this
+     gets abandoned. Copy them here, send them to yourself, paste there. */
+  if(b.id==="pdCopyConn"){
+    const t=pdServer()+"\n"+pdToken();
+    const said=ok=>{ b.textContent=ok?"Copied \u2014 now paste it on the phone":"Select the two lines above and copy them";
+                     setTimeout(()=>{ b.textContent="Copy both"; },4000); };
+    try{ navigator.clipboard.writeText(t).then(()=>said(true),()=>said(false)); }catch(e){ said(false); }
+    return; }
+  if(b.id==="seenUse"){
+    const est=seenEstimate(seenMatch(calcItem()));
+    if(est){ st.market={kind:"seen",key:mkKey(),n:est.n,ask:est.ask,lo:est.lo,hi:est.hi,mid:est.mid}; render(); }
+    return;
+  }
+  const name=prompt("What is it? (e.g. husqvarna 455 rancher chainsaw)"); if(name===null||!name.trim())return;
+  const ask=prompt("What are they asking? ($)"); if(ask===null)return;
+  const reg=prompt("Regular or was price, if the tag shows one (blank if not):","");
+  const store=prompt("Which shop? (blank if you'd rather not)","");
+  if(seenAdd({name:name,ask:parseFloat(ask),reg:parseFloat(reg||0),store:store||""})){ render(); pdSync(); }
+});
+/* Each price row carries a confidence flag, and a letter is no use at a
+   counter. It grades how good the data behind the row is - not what kind of
+   source it came from: GunWatcher is GunBroker sold data and Swappa is a sold
+   marketplace, and both are flagged m. Saying "from a price guide" on those
+   would be a lie the data does not support, so these report the confidence
+   and let the source name, which is shown beside it, speak for itself.
+   Most rows are m; a handful are h and the rest l. */
+const CONF_WORD={h:"good data",m:"fair data",l:"thin data"};
+function confShort(c){ return CONF_WORD[c]||""; }
+/* The price sources that are not the sold pages. The desk and the phone draw
+   their step cards differently, but the evidence they offer is the same and in
+   the same order - what was looked up before, a fresh lookup, then what the
+   shops nearby are asking - so it is written once here. */
+function altSourcesHTML(x,noFind){
+  let h="";
+  const M=compsMatch(x), T=compStats(M);
+  if(T) h+=`<div class="label" style="margin-top:14px">Listings on file</div>`
+         +`<button class="nsBtn on" id="foundUse"><span>${T.n} listing${T.n===1?"":"s"}${T.sold?", "+T.sold+" sold":""} &middot; middle half ${money(T.lo)}&ndash;${money(T.hi)}</span><b>${money(T.mid)}</b><i>use this</i></button>`
+         +thumbStripHTML(M);
+  /* The desk carries this in the Next step panel, where it is on screen
+     whatever step is showing. Two of them would mean two elements with one
+     id, and the message would be written to whichever came first - which is
+     how it ended up being written to a hidden one. */
+  if(CAP.sample&&window.PHONE&&!noFind)
+    h+=`<button class="nsBtn${T?"":" on"}" id="pdFindGo" style="margin-top:8px"><span>${findBusy?"Looking it up&hellip;":"Look up what it sells for used"}</span></button>`
+      +`<div class="cardHint" id="pdFindMsg"></div>`;
+  /* Google Shopping's used filter: asking prices for used ones, which sits
+     below a completed sale and above a new-retail figure. The structured
+     filter rides in an opaque per-query blob that cannot be built for an
+     arbitrary item, so the Shopping tab plus the word "used" does the same
+     work for anything. Read the price and type it in the box above - it is a
+     selling price already, so it must not take the new-to-used haircut. */
+  h+=`<div class="label" style="margin-top:14px">Used ones, for sale now</div>`
+    +`<a class="nsBtn" href="https://www.google.com/search?udm=28&q=${encodeURIComponent("used "+compQuery(x))}" target="_blank" rel="noopener" referrerpolicy="no-referrer"><span>Used on Google Shopping</span><b>&#8599;</b></a>`
+    +`<div class="cardHint">Asking prices, not sales &mdash; but for what a used one is actually listed at, closer than a new price. Type it into the box above.</div>`;
+  const E=seenEstimate(seenMatch(x));
+  if(E) h+=`<div class="label" style="margin-top:14px">Seen on shelves near you</div>`
+         +`<button class="nsBtn on" id="seenUse"><span>${E.n} tag${E.n===1?"":"s"}, asking ${money(E.lo)}&ndash;${money(E.hi)}</span><b>${money(E.mid)}</b><i>use this</i></button>`;
+  return h;
+}
+function nsSrcShort(m){
+  if(!m)return "";
+  if(m.kind==="list")return srcName(m.src)+", "+fmtDay(m.date)+(confShort(m.conf)?" \u00b7 "+confShort(m.conf):"");
+  if(m.kind==="shot")return m.n+" sold on "+(m.site||"the sold page");
+  if(m.kind==="own")return "your "+m.n+" sales";
+  if(m.kind==="retail")return "est. from "+money(m.retail)+" new";
+  if(m.kind==="seen")return m.n+" seen locally, asking "+money(m.ask);
+  if(m.kind==="found")return m.n+" listings, median "+money(m.med)+(confShort(m.conf)?" \u00b7 "+confShort(m.conf):"");
+  if(m.kind==="harvest")return "your own price list \u00b7 "+m.n+" listings, "+fmtDay(m.date);
+  return "your number";
+}
+function nextStepHTML(x){
+  if(window.PHONE&&window.phoneStepHTML)return phoneStepHTML(x);
+  const m=x.market, what=[st.brandTyped,st.model].filter(Boolean).join(" ")||displayName(x);
+  const cands=(!x.checked&&!st.mpNone)?mpCandidates():[];
+  const started=!!st.picked;
+  /* A hand-set resale already has the wear in it, so condition is not
+     asked - asking it would be asking for something the desk has just
+     decided to ignore, and the run would stall on a step that does nothing. */
+  const s1done=started&&(x.checked||!cands.length), s2done=started&&x.checked,
+        s3done=started&&x.checked&&(!!st.condSet||x.handSet);
+  const cur=!s1done?1:!s2done?2:!s3done?3:4;
+  const step=(n,label,val,done)=>`<div class="nsStep${done?" done":""}${cur===n?" cur":""}"><span class="nsDot">${done?"&#10003;":n}</span><span class="nsL">${label}</span><span class="nsV">${val}</span></div>`;
+  const cw=COND_WORDS[st.cond]||["Good",""];
+  const steps=`<div class="nsSteps">
+    ${step(1,"What it is",started?esc(what):"not set",s1done)}
+    ${step(2,"Resale value",x.checked?money(m.mid)+` <small>${esc(nsSrcShort(m))}</small>`:(m&&m.stale?"list is old":"not checked"),s2done)}
+    ${step(3,"Condition",x.handSet?"in your number":(s3done?cw[0]:"not set"),s3done)}
+    ${step(4,"Your offer",x.checked&&s3done
+      /* On the desk the pinned panel is six inches to the right of this row
+         with both figures in it. Saying them again here, side by side, is the
+         same number twice on one line of sight. The phone has no pin. */
+      ?(window.PHONE?`Loan ${money(x.target)}<small>or buy it for ${money(x.buy)}</small>`
+                    :`Ready<small>${deskRail()?"the numbers are on the right":"the numbers are in the bar above"}</small>`)
+      :"&mdash;",cur===4)}</div>`;
+  let h="",sub="",act="";
+  if(cur===1&&!started){
+    h=`What are you looking at?`;
+    sub=`Search above and tap what it is &mdash; the <b>resale value</b> fills in from there.`;
+    act="";
+  } else if(cur===1){
+    h=`Which ${esc(what)} is it?`;
+    sub=`Pick one and the <b>resale value</b> fills in &mdash; what it sells for used. Each one comes from a real sales source you can open and check.`;
+    act=cands.map(r=>`<button class="nsBtn" data-mp="${esc(r[0])}"><span>${esc(r[2])}</span><b>${money(r[3])}&ndash;${money(r[4])}</b><i>resale</i></button>`).join("")
+       +`<button class="nsBtn ghost" id="nsNone"><span>Not one of these</span></button>`;
+  } else if(st.needKind&&!window.PHONE){
+    /* Until this is answered the category is whatever was last used, so the
+       sources, the percentages and the buy rate all belong to the wrong kind
+       of thing - a recliner was being offered GunBroker. */
+    h=`What kind of thing is <b>${esc(st.bookName||"it")}</b>?`;
+    sub=`Pick one so the price comes from the right kind of source, at the right share of new. Nothing is priced until it does.`;
+    act=CATALOG.map(c=>`<button class="nsBtn" data-cat="${c.id}"><span>${esc(c.label)}</span></button>`).join("");
+  } else if(cur===2){
+    h=m&&m.stale?`The price list for ${esc(m.name)} is ${m.age} days old. Check what it sells for now.`:`Check what it actually sold for.`;
+    /* The "Pawn price favorite" is a browser button that has to be installed
+       first. Telling everyone to click one they may not have is telling them
+       to do something they cannot. It is mentioned only once it is there. */
+    sub=CAP.sample?"Tap <b>Look up what it sells for used</b>. It searches eBay sold and Google Shopping used together and brings the middle price back here &mdash; you do not open or read anything. Already know the price? Type it in the box."
+      :pdBridge?"Click a button. The sold page opens, reads itself, and the price lands here."
+      :"Open one and look at what the thing <b>actually sold for</b> &mdash; not what it was listed at. Then come back and type the middle price into the box.";
+    const solds=compTargets(x).map(t=>`<a class="nsBtn nsSold" title="Opens ${esc(t.name)} in a new tab so you can look at what these actually sold for. Come back and type the middle price in." data-label="${t.name}" href="${esc(t.url)}" target="_blank" rel="opener" referrerpolicy="no-referrer"><span>${t.name}</span><b>&#8599;</b></a>`).join("");
+    /* A button saying "type it" that jumped the page 900px down to a box
+       somewhere else. The box belongs here, beside the one for the new
+       price, which has worked this way all along. */
+    const typeIt=`<div class="row2" style="margin-top:8px;flex-basis:100%"><input id="nsVal" class="numIn" title="What ONE OF THESE sells for used \u2014 not what you will lend, and not what it cost new." type="number" inputmode="decimal" placeholder="I know the price \u2014 type what it sells for used" style="flex:1;min-width:0"><button class="ghostBtn" id="nsValGo" title="Use the price you typed as the resale value" style="padding:10px 15px">Use it</button></div>`;
+    const rest=altSourcesHTML(x)
+       +`<div class="label" style="margin-top:14px;flex-basis:100%">No sold prices? Use what it costs new</div>`
+       +(CAP.sample?`<button class="nsBtn on" id="pdRetGo"><span>${retailBusy?"Looking it up&hellip;":"Look up the new price"}</span></button><div class="cardHint" id="pdRetMsg"></div>`:retailTargets(compQuery(x)).map(t=>`<a class="nsBtn nsRetail" title="Opens ${esc(t.name)} to find what it costs NEW. Use this only when there are no sold prices." data-label="${esc(t.name)}" href="${esc(t.url)}" target="_blank" rel="opener" referrerpolicy="no-referrer"><span>${esc(t.name)}</span><b>&#8599;</b></a>`).join(""))
+       +`<div class="row2" style="margin-top:8px;flex-basis:100%"><input id="nsRet" class="numIn" title="What it costs NEW today. It is taken down to a used price using the share for this category \u2014 a last resort when the sold pages come up empty." type="number" inputmode="decimal" placeholder="What it costs new" style="flex:1;min-width:0"><button class="ghostBtn" id="nsRetGo" title="Take the new price down to a used estimate" style="padding:10px 15px">Use it</button></div>`
+       +`<div class="cardHint">In ${esc(x.cat.label.toLowerCase())}, a used one books at about <b>${retailPct(x)}%</b> of new here &mdash; $100 new lands at ${money(Math.round(retailPct(x)))}. A real sold price beats this every time, so use this only when the sold pages come up empty.</div>`;
+    /* When the service can do the looking, a row of buttons that only open a
+       tab sits beside the one that does the work and looks exactly like it -
+       so the counter taps "eBay sold", lands on eBay, and nothing comes back.
+       Shut them away: the green button, and a box for a price already known,
+       are the whole step. */
+    act=CAP.sample
+      ?typeIt+`<details class="fold" style="flex-basis:100%"><summary class="foldLine">Rather look yourself &mdash; open the sold pages, or work from the new price</summary><div class="nsAct">${solds+rest}</div></details>`
+      :solds+typeIt+rest;
+  } else if(cur===3){
+    h=`What shape is it in?`;
+    sub=`Next to a typical used one. The resale value assumes <b>Good</b>, normal wear.`;
+    act=CONDITIONS.map(c=>{ const w=COND_WORDS[c.id]||[c.label,""]; return `<button class="nsBtn" data-ncond="${c.id}"><span>${w[0]}</span><b>${w[1]}</b></button>`; }).join("");
+  } else if(!window.PHONE){
+    /* The pinned panel holds the loan and the buy price and does not scroll
+       away, so saying them again here made one figure appear five times on a
+       screen. What it cannot show is where they came from. That is this. */
+    h=`Where those numbers come from.`;
+    sub=`<b>Resale value ${money(m.mid)}</b> ${x.handSet?"&mdash; your own figure, taken as this one sits"
+        :`used (${esc(nsSrcShort(m))})${Math.round(x.resale)!==m.mid?`, ${money(x.resale)} in ${cw[0].toLowerCase()} shape`:""}`}.<br>
+      Lend <b>${x.ltv}%</b> of that, buy at <b>${x.buyPct}%</b>. A loan he clears with the interest to get it back; a buy is yours to sell.<br>
+      The offer is on the right, and it moves as you change the answers.`;
+  } else {
+    h=`Lend him ${money(x.target)}, or buy it for ${money(x.buy)}.`;
+    sub=`<b>Pawn loan ${money(x.target)}</b>: the cash you lend him, and he adds the interest to get it back. Room to move: ${money(x.low)} to ${money(x.high)}.<br>
+      <b>Buy price ${money(x.buy)}</b>: you pay him once and it's yours to sell.<br>
+      Both come from the <b>resale value</b>, ${money(m.mid)} used (${esc(nsSrcShort(m))})${Math.round(x.resale)!==m.mid?`, about ${money(x.resale)} in ${cw[0].toLowerCase()} shape`:""}. Lend ${x.ltv}% of it, buy at ${x.buyPct}%.`;
+    const u=m.kind==="list"?m.src:m.url;
+    /* The live lookup lives in step 4, which is folded shut once there is a
+       price - so the one thing that does the work for you was out of sight
+       exactly when you would want to check the figure it found. */
+    act=(srcLink(u,m.kind==="list"?"Check "+srcName(u):"See those sales").replace('class="srcLink"','class="srcLink nsBtn ghost"'))
+       +`<button class="nsBtn ghost" data-ncond="${st.cond}" id="nsCond"><span>Change condition</span></button>`;
+  }
+  /* The lookup is the one thing that does the work instead of handing the
+     counter a page to read, and it was only drawn on the step that happened
+     to be showing. It belongs in the action row whatever step that is. */
+  /* Not while it is still asking what kind of thing this is. The category
+     picks the search sources and the share of new to work from, so a lookup
+     fired before that answer searches as whatever was priced last - and the
+     line above it says in plain words that nothing is priced yet. */
+  const asking=st.needKind&&!window.PHONE;
+  if(CAP.sample&&st.picked&&!asking&&!findBusy&&!(act||"").includes("pdFindGo"))
+    act=`<button class="nsBtn${x.checked?" ghost":" on"}" id="pdFindGo" title="Searches the sold pages, the used listings and what it costs new, all in one press, and brings every number back here. You do not have to open or read anything.\u000aFor firearms it searches GunWatcher, auction results and GunBroker instead \u2014 eBay bans gun sales."><span>${x.checked?"Look it up again":"Look it up \u2014 everywhere"}</span></button>`+act;
+  else if(CAP.sample&&!asking&&findBusy&&!(act||"").includes("pdFindGo"))
+    act=`<button class="nsBtn on" id="pdFindGo" disabled><span>Looking it up&hellip;</span></button>`+act;
+  if(CAP.sample&&st.picked&&!asking)act+=`<div class="cardHint" id="pdFindMsg" style="flex-basis:100%">${esc(findMsg||(findBusy?"":checkedNote(x)))}</div>`
+    +`<div style="flex-basis:100%">${evidenceHTML()}</div>`;
+  /* In step-at-a-time the run down the middle already carries the steps with
+     their answers, and the strip carries the numbers. Repeating the list here
+     is a third copy of the same progress, and it is what pushes the loan card
+     off the first screen. Keep what it alone has: what to do now. */
+  const bare=stepFlow()==="steps"&&!window.PHONE&&st.picked;
+  /* Once every question is answered this panel stops being a next step and
+     becomes an explanation of the figures - but it went on calling itself
+     NEXT STEP, so the counter was left looking for a step that was not
+     there. Say which it is. */
+  const done=cur===4;
+  return `<div class="card nextStep${bare?" bare":""}" id="nextStep"><span class="label">${done?"All answered &mdash; nothing left to set":"Next step"}</span><div class="nsGrid">${bare?"":steps}
+    <div class="nsMain"><div class="nsH">${h}</div><div class="nsSub">${sub}</div><div class="nsAct">${act}</div></div></div></div>`;
+}
+/* The measurement boxes. Each keystroke re-judges, so the verdict moves as
+   the caliper does - but only the verdict is redrawn, never the input the
+   finger is in, or the number being typed would jump away mid-digit. */
+function wireSpec(){
+  const sel=document.getElementById("specPick");
+  if(sel)sel.onchange=()=>{ st.specPick=sel.value; st.specOpen=true; render(); };
+  const box=document.getElementById("specFold");
+  if(box&&!box.dataset.wired){ box.dataset.wired="1";
+    box.addEventListener("toggle",()=>{ st.specOpen=box.open; }); }
+  [["spec_g","g"],["spec_d","d"],["spec_t","t"],["spec_lug","lug"],["spec_w","w"]].forEach(([id,k])=>{
+    const el=document.getElementById(id); if(!el)return;
+    el.oninput=()=>{ st.specIn=Object.assign({},st.specIn,{[k]:el.value}); repaintSpec(); };
+  });
+}
+function repaintSpec(){
+  const sh=fakeSheet(calcItem()); if(!sh)return;
+  const card=document.getElementById("fakeCard"); if(!card)return;
+  const old=card.querySelector("#specFold"); if(!old)return;
+  /* Swap only the answer block under the inputs. */
+  const tmp=document.createElement("div");
+  tmp.innerHTML=specCardHTML(sh);
+  const fresh=tmp.querySelector("#specFold");
+  const a=old.lastElementChild, b=fresh&&fresh.lastElementChild;
+  if(a&&b&&a.tagName===b.tagName&&!/^(SELECT|INPUT|LABEL)$/.test(a.tagName))a.replaceWith(b);
+}
+function wireNext(){
+  if(window.PHONE&&window.wirePhone){ wirePhone(); return; }
+  const ns=document.getElementById("nextStep"); if(!ns)return;
+  ns.querySelectorAll("[data-mp]").forEach(b=>b.onclick=()=>{
+    const r=MP_BY_ID[b.dataset.mp]; if(!r)return;
+    let name=r[2]; const bt=(st.brandTyped||"").trim();
+    if(bt&&name.toLowerCase().indexOf(bt.toLowerCase()+" ")===0)name=name.slice(bt.length+1);
+    st.model=name; st.mpPin={id:r[0],model:name}; st.mpNone=false; st.market=null; st.editing=false; render();
+  });
+  const none=document.getElementById("nsNone"); if(none)none.onclick=()=>{ st.mpNone=true; render(); };
+  const ri=document.getElementById("nsRet"), rg=document.getElementById("nsRetGo");
+  const useRetail=()=>{ const n=parseFloat(ri&&ri.value);
+    if(n>0){ const p=retailPct(calcItem()); st.market={kind:"retail",key:mkKey(),retail:Math.round(n),pct:p,mid:Math.max(5,Math.round(n*p/100/5)*5)}; render(); } };
+  if(rg)rg.onclick=useRetail; if(ri)ri.onkeydown=e=>{ if(e.key==="Enter")useRetail(); };
+  const vi=document.getElementById("nsVal"), vg=document.getElementById("nsValGo");
+  /* Same shape as the new-price box beside it, and the same place the step-4
+     box writes to, so it makes no difference which one is used. */
+  const useTyped=()=>{ const n=parseFloat(vi&&vi.value);
+    if(n>0){ st.market={kind:"hand",key:mkKey(),mid:Math.round(n)}; st.editing=false; render(); } };
+  if(vg)vg.onclick=useTyped; if(vi)vi.onkeydown=e=>{ if(e.key==="Enter")useTyped(); };
+  ns.querySelectorAll("[data-ncond]").forEach(b=>b.onclick=()=>{
+    if(b.id==="nsCond"){ st.condSet=false; render(); return; }
+    st.cond=b.dataset.ncond; st.condSet=true; render();
+  });
+}
+
+
+/* ================= BUY OUTRIGHT — you own it, no loan =================
+   Starting rates Jace approved 9/19: about 5 points over the lending rate,
+   same as the loan for seasonal outdoor power. */
+var BUY_DEFAULT={guns:55,hunt:45,jewel:45,power:45,tools:40,music:40,rolling:40,elec:30,appl:35,fit:28,coll:40};
+/* WHEN THE CATEGORY RATE WAS WRITTEN FOR A DIFFERENT THING.
+   elec is 30% because a phone "loses value fast and can come in locked" -
+   a real risk that earns a hard rate. Neither half is true of a
+   television: nothing locks it, and a two-year-old set does not fall off
+   the cliff a two-year-old handset does. Its actual problem is that it is
+   bulky and slow, and the liquidity band already docks 5 points for that -
+   so a TV was being charged twice for the same slowness and coming out at
+   25%, which is a $30 offer on a $125 set. Nobody hauls a working TV in
+   for that.
+   Published pawn rates run 25-60% of resale, and the trade's own stated
+   target of a 38-50% margin implies paying 50-62%. Those are national
+   chains with national resale, which we are not, so this sits at the
+   bottom of that range rather than the middle: 45 here, 40 after the
+   liquidity adjustment. Set on 24 Sep from Jace's call.
+   A rate the counter has set by hand for the whole category still wins -
+   that is a deliberate act, and this only fills the silence. */
+var BUY_ITEM={e1:45};
+var BUY_ITEM_WHY={e1:"a TV does not lock and does not crash in value like a handset \u2014 it is just bulky and slow, which the liquidity band already counts"};
+var BUY_WHY={guns:"guns sell fast here and hold their value",jewel:"a proven one holds its price, but it sits until the right buyer walks in",hunt:"steady seller in season",tools:"steady seller",
+  music:"they sell, just slower",rolling:"big dollars, needs a clean title, sells slower",
+  power:"seasonal and often needs a carb cleaned, but it sells and the shelves around here ask real money for it",elec:"loses value fast and can come in locked"};
+function buyRateHTML(x){
+  const set=st.buys&&st.buys[st.catId]!=null;
+  return `<div id="buyRate" style="margin-top:18px">
+    <div class="rateRow"><span class="label">Buy-outright rate for ${x.cat.label.toLowerCase()} (%)</span><input id="buyNum" class="numIn rateNum" type="number" inputmode="numeric" min="10" max="90" value="${x.buyBase}"></div>
+    <input type="range" min="10" max="90" value="${x.buyBase}" id="buySlider">
+    <div class="sliderScale"><span>10% &mdash; lowball</span><span>90% &mdash; almost no profit</span></div>
+    <div class="rateRow" style="margin-top:16px"><span class="label">Least you\u2019ll clear on any buy ($)</span><input id="buyFloorNum" class="numIn rateNum" type="number" inputmode="numeric" min="0" max="500" value="${x.buyFloor}"></div>
+    <div class="rateRow" style="margin-top:8px"><span class="label">Times your money back (\u00d7)</span><input id="buyMultNum" class="numIn rateNum" type="number" inputmode="decimal" min="1" max="10" step="0.1" value="${x.buyMult}"></div>
+    <div class="cardHint" style="font-size:13px">These two apply everywhere rather than per category, and the tightest of the three decides. The rate bites on expensive things; the ${money(x.buyFloor)} floor stops the cheap item you haul home for nothing; the ${x.buyMult}\u00d7 bites in the middle, where a percentage looks fine and the dollars are thin. <b style="color:var(--ink)">On this one: ${esc(buyCapWhy(x))}.</b></div>
+    <div class="cardHint" style="font-size:13.5px;color:var(--ink-2)">What you pay to buy it outright, as a share of the resale value. ${(()=>{
+      /* The suggestion has to be THIS item's, not the shelf it stands on.
+         A television carries its own rate because the category's was
+         written for a phone, and quoting the phone's number under a TV
+         would be the tool arguing with itself. */
+      const d=x.buySuggest; if(d==null)return "";
+      const why=x.buyWhy||"";
+      const own=(typeof BUY_ITEM!=="undefined"&&BUY_ITEM[x.item.id]!=null);
+      const forWhat=own?esc(x.item.name.replace(/\s*\u2014.*$/,"").toLowerCase()):x.cat.label.toLowerCase();
+      return set&&x.buyBase!==d
+        ? `Suggested for ${forWhat}: <b style="color:var(--ink)">${d}%</b> (${why}). <button id="buyReset" class="ghostBtn" style="padding:5px 12px;font-size:12px;margin-left:4px">Use ${d}%</button>`
+        : `Suggested for ${forWhat}: <b style="color:var(--ink)">${d}%</b> &mdash; ${why}.`; })()} You carry the risk and hold it 30 days before you can sell.</div></div>`;
+}
+function buyRowHTML(x){
+  return `<div class="buyRow"><div><div class="l">Or buy it outright</div><div class="s">${esc(buyCapWhy(x))} &mdash; the tightest of your three buying rules, against ${money(Math.round(x.resale))} resale. You own it, no loan to pay back.</div></div><div class="v">${money(x.buy)}</div></div>`;
+}
+function refreshBuyRate(){
+  if(st.buys&&st.buys[st.catId]!=null)return;
+  const br=document.getElementById("buyRate"); if(!br)return;
+  br.outerHTML=buyRateHTML(calcItem()); wireBuy();
+}
+function wireBuy(){
+  const fl=document.getElementById("buyFloorNum"), mu=document.getElementById("buyMultNum");
+  if(fl)fl.onchange=()=>{ st.buyFloor=Math.max(0,Number(fl.value)||0); persist(); render(); };
+  if(mu)mu.onchange=()=>{ st.buyMult=Math.max(1,Number(mu.value)||1); persist(); render(); };
+  const sl=document.getElementById("buySlider"), n=document.getElementById("buyNum");
+  if(!sl)return;
+  try{ paintSlider(sl); }catch(e){}
+  const setTo=v=>{ if(!st.buys)st.buys={}; st.buys[st.catId]=v; refreshStep4(); };
+  sl.oninput=()=>{ const v=Number(sl.value); if(n)n.value=v; try{ paintSlider(sl); }catch(e){} setTo(v); };
+  sl.onchange=()=>{ persist(); const br=document.getElementById("buyRate"); if(br&&!document.getElementById("buyReset")){ br.outerHTML=buyRateHTML(calcItem()); wireBuy(); } };
+  if(n){ n.oninput=()=>{ let v=parseInt(n.value); if(isNaN(v))return; v=Math.max(10,Math.min(90,v)); sl.value=v; try{ paintSlider(sl); }catch(e){} setTo(v); };
+         n.onblur=()=>{ persist(); render(); }; }
+  const rs=document.getElementById("buyReset"); if(rs)rs.onclick=()=>{ delete st.buys[st.catId]; persist(); render(); };
+}
+
+/* ONE SLIDER, TWO PAGES, AND NO FULL RENDER WHILE A THUMB IS ON IT.
+   A render() on `input` replaces the slider node mid-drag and the drag dies
+   on the first pixel - the same trap the lending-rate slider already works
+   around. So the drag patches just the two things that move (the ladder and
+   the rail) and the release does the real render and the save. */
+function wirePawnRate(){
+  const sl=document.getElementById("pawnSlider"), n=document.getElementById("pawnNum");
+  const set=v=>{ st.pawnPct=Math.min(PAWN_CAP,Math.max(0,Number(v)||0)); st.pawnSet=true;
+    const lad=document.getElementById("payLadder");
+    if(lad){ const c=(st.mode==="metal")?(()=>{const m=calcMetal();return m?[m.loan,pawnCharge(m.loan)]:null;})()
+                                       :(()=>{const x=calcItem();return [x.target,x.charge];})();
+      if(c)lad.innerHTML=ladder(c[0],c[1]).map(r=>
+        `<div class="widget rung"><div class="k">${r.k}</div><div class="d">${money(r.due)}</div></div>`).join(""); }
+    if(st.mode!=="metal"){ try{ paintPin(calcItem()); }catch(e){} }
+  };
+  if(sl){ try{ paintSlider(sl); }catch(e){}
+    sl.oninput=()=>{ if(n)n.value=sl.value; try{ paintSlider(sl); }catch(e){} set(sl.value); };
+    sl.onchange=()=>{ persist(); render(); }; }
+  if(n){ n.oninput=()=>{ let v=parseInt(n.value); if(isNaN(v))return;
+           v=Math.max(0,Math.min(PAWN_CAP,v)); if(sl){sl.value=v; try{ paintSlider(sl); }catch(e){}} set(v); };
+         n.onblur=()=>{ n.value=pawnPct(); persist(); render(); }; }
+}
+
+/* ---------------- render ---------------- */
+function render(){
+  const _ae=document.activeElement, _omF=!!(_ae&&_ae.id==="omniIn"), _omS=_omF?[_ae.selectionStart,_ae.selectionEnd]:null;
+  renderTabs();
+  const v=document.getElementById("view");
+  /* keep the user's place — no jump to top, no column reset */
+  const pageY=window.scrollY, zones={};
+  ["colL","colC","colR"].forEach(c=>{const el=v.querySelector("."+c);if(el)zones[c]=el.scrollTop;});
+  /* The start state is not the three-column layout - it is one pane. The
+     class says so, because without it the pane lands in the 300px column the
+     grid reserves for the lists. */
+  v.className=st.mode+((st.mode==="item"&&!st.picked&&!window.PHONE)?" start":"");
+  const sy=document.getElementById("sysline");
+  /* Short enough to sit on the same row as the title and the tabs. It used
+     to wrap onto a second row, which left a gap beside the title and another
+     beside itself. The green dot already says SYS.OK, so the words went. */
+  if(sy)sy.textContent=fmtDay(FEED.date)+" · Gold $"+Math.round(FEED.gold).toLocaleString("en-US")+" · Silver $"+Number(FEED.silver).toFixed(2)
+    +(BUILD?" · build "+BUILD+(st.newBuild?" (old — "+st.newBuild+" is out)":""):"");
+  if(st.mode==="item"){v.innerHTML=renderItem();wireItem();}
+  else if(st.mode==="metal"){v.innerHTML=renderMetal();wireMetal();}
+  else if(st.mode==="log"){v.innerHTML=renderLog();wireLog();}
+  else if(st.mode==="device"){v.innerHTML=renderDevice();}
+  else if(st.mode==="setup"){v.innerHTML=renderSetup();}
+  /* "flags" no longer has a tab, and the rules it held are folded into
+     Setup, so a mode with no page of its own lands on Setup rather than on
+     a page with no way back to it. */
+  else {v.innerHTML=renderSetup();}
+  /* After the chain, never inside it: dropped between the last else-if and
+     its else, this line stole the else, and every screen that was not
+     out of date drew the walk-away list instead of itself. */
+  if(st.newBuild)v.insertAdjacentHTML("afterbegin",staleHTML());
+  /* The spotting-fakes card shows on the item page and the metal page both,
+     so its measurement boxes are wired after whichever one drew it. */
+  try{ wireSpec(); }catch(e){}
+  try{ applyPages(); }catch(e){}
+  ["colL","colC","colR"].forEach(c=>{const el=v.querySelector("."+c);if(el&&zones[c]!=null)el.scrollTop=zones[c];});
+  window.scrollTo(0,pageY);
+  if(_omF&&st.mode==="item"){ const o=document.getElementById("omniIn"); if(o){ o.focus({preventScroll:true}); try{ o.setSelectionRange(_omS[0],_omS[1]); }catch(e){}
+    /* Something was just picked, so do not reopen the list over the answer.
+       The box keeps the name; typing again opens it. */
+    if(st.omniDone){ const l=document.getElementById("omniList");
+      if(l){ l.hidden=true; o.setAttribute("aria-expanded","false"); } }
+    else omniShow(); } }
+  document.getElementById("foot").innerHTML=
+   `Metal prices refresh automatically each morning (last: ${FEED.date}). Your item prices, lending rates, and any same-day hand edits save on this device only — set them once on the counter tablet. Starting numbers are estimates for rural North Florida — the tool is only as good as what you put in it.<span class="saveNote" id="saveNote"></span>`;
+}
+/* Settings handed over by QR have to land before anything asks whether the
+   service is on, so this runs ahead of the first draw. */
+try{ pdReadHandoff(); }catch(e){}
+render();
+
+```
+
+### `phone.js` — 685 lines
+
+```javascript
+
+/* ===== PRICE CHECK — the phone version: identify it, get the resale value, check the asking price ===== */
+window.PHONE=true;
+function phAskNow(){ return (st.askKey===mkKey()&&st.ask>0)?st.ask:0; }
+function phVerdictHTML(x){
+  /* The gate is the desk's ticket; the phone answers in this box instead, so
+     it has to hold the same line or the counter just uses the phone. */
+  const F=fakeState(fakeSheet(x));
+  if(F&&F.blocks)return `<div class="phVerdict pass"><div class="phWord">${F.verdict==="fail"?"Stop":"Not checked"}</div>
+    <div class="phLine">${F.verdict==="fail"
+      ? `A check on the <b>${esc(F.sh.title.toLowerCase())}</b> sheet failed. Don't lend on the brand name — lend on what you can prove, or pass.`
+      : F.verdict==="unsure"
+      ? `${F.unsure} check${F.unsure===1?"":"s"} on the <b>${esc(F.sh.title.toLowerCase())}</b> sheet unresolved. Price only what you can verify today, not the name.`
+      : `${F.done} of ${F.n} checks done on the <b>${esc(F.sh.title.toLowerCase())}</b> sheet. No price until they are answered.`}</div></div>`
+    +fakeCardHTML(x);
+  const ask=phAskNow(); if(!ask||!x.checked)return "";
+  const resale=Math.round(x.resale), buy=x.buy, pct=Math.round(ask/resale*100), left=resale-ask;
+  const catName=x.cat.label.toLowerCase();
+  let cls,word,line;
+  if(ask>=resale){ cls="pass"; word="Pass"; line=`They want ${money(ask)} &mdash; more than it resells for (${money(resale)}).`; }
+  else if(ask<=buy){ cls="good"; word="Good buy"; line=`${money(ask)} is ${pct}% of what it resells for. You'd clear about <b>${money(left)}</b> when it sells, before any selling fees.`; }
+  else if(pct<=Math.min(95,x.buyPct+20)){ cls="thin"; word="Thin"; line=`${money(ask)} is ${pct}% of what it resells for. That leaves about ${money(left)} &mdash; less room than you like. Offer <b>${money(buy)}</b>.`; }
+  else { cls="pass"; word="Pass"; line=`${money(ask)} is ${pct}% of what it resells for. Not enough room. The most you'd normally pay is <b>${money(buy)}</b>.`; }
+  return `<div class="phVerdict ${cls}"><div class="phWord">${word}</div><div class="phLine">${line}</div>
+    <div class="phMath">Resells for about <b>${money(resale)}</b> &middot; your buy rate for ${esc(catName)} is ${x.buyPct}%, so you'd pay up to <b>${money(buy)}</b>.</div></div>`;
+}
+function phoneStepHTML(x){
+  const m=x.market, what=[st.brandTyped,st.model].filter(Boolean).join(" ")||displayName(x);
+  const cands=(!x.checked&&!st.mpNone)?mpCandidates():[];
+  const started=!!st.picked;
+  /* The model question was a pick-list and nothing else. When the desk had no
+     rows to offer - a Samsung tablet, where it holds none - the list came
+     back empty and step one ticked itself DONE: "What it is, Samsung Galaxy
+     Tab", with a price under it. A Galaxy Tab runs from a Tab A7 Lite at
+     about $45 to a Tab S9 Ultra ten times that. The one thing that decides
+     the price was never asked for.
+
+     An empty list is a question now, not an answer. Only where the maker
+     matters - the same flag that turns the brand question on - because a
+     wheelbarrow has no model plate to read. */
+  const wantModel=started&&!x.checked&&!st.mpNone&&!st.model&&!cands.length&&!!(x.cat.brand&&x.cat.brand.on);
+  /* THE PHONE WAS NAMING THINGS IT HAD NO WAY TO ASK FOR.
+     "Still needs the make, what it sells for and the condition" is built
+     from the same question list the desk uses - but the phone's own flow
+     was four steps and none of them was the make. There was no field, on
+     any screen, and the run could not be finished from the phone at all.
+     So the make joins step one, in front of the model: the same list the
+     desk filters, the same one tap that sets the spelling and the tier. */
+  const _q=askQueue(x);
+  const needs=(id)=>_q.some(z=>z.id===id&&!z.answered&&!z.optional);
+  const wantBrand=started&&!x.checked&&needs("brand");
+  const s1=started&&(x.checked||(!wantBrand&&!cands.length&&!wantModel)), s2=started&&x.checked, s3=started&&x.checked&&!!st.condSet, ask=phAskNow();
+  const cur=!s1?1:!s2?2:!s3?3:4;
+  const cw=COND_WORDS[st.cond]||["Good",""];
+  const row=(n,label,val,done,id)=>`<div class="nsStep${done?" done":""}${cur===n?" cur":""}"><span class="nsDot">${done?"&#10003;":n}</span><span class="nsL">${label}</span><span class="nsV"${id?` id="${id}"`:""}>${val}</span></div>`;
+  const steps=`<div class="nsSteps">
+    ${row(1,"What it is",started?esc(what):"not set",s1)}
+    ${row(2,"Resale value",x.checked?`${money(Math.round(x.resale))}<small>${esc(nsSrcShort(m))}${Math.round(x.resale)!==m.mid?`, in ${cw[0].toLowerCase()} shape`:""}</small>`:"not checked",s2)}
+    ${row(3,"Condition",s3?cw[0]:"not set",s3)}
+    ${row(4,"Asking price",ask?money(ask):"&mdash;",cur===4&&ask>0,"phAskV")}</div>`;
+  let h="",sub="",act="";
+  if(cur===1&&!started){
+    h=`What are you looking at?`;
+    /* The camera sits above this on the start screen, so pointing at the
+       search box as the only way in reads as if it were not there. */
+    sub=(CAP&&CAP.images)
+      ?`<b>Take a picture</b> above and I'll work out what it is \u2014 or search and tap it, if you already know.`
+      :`Search above and tap what it is &mdash; the resale value fills in from there.`;
+    act="";
+  } else if(cur===1&&wantBrand){
+    /* Seeded from what is already known. The box said "DJI" - read off the
+       search, or off a photo - while the hit list was computed from an
+       empty query, so there was nothing under it to tap and nothing that
+       recognised what was already written. A box with your own answer in
+       it and no way to confirm it is a dead end. */
+    const bq=st.brandQ||st.brandTyped||"";
+    const hits=brandHits(st.catId,bq);
+    h=`Who makes it?`;
+    sub=`Start typing and tap it &mdash; that sets the spelling and where it sits in one go.`;
+    /* The tier buttons are ALWAYS here. They used to appear only once
+       something had been typed, so an empty box offered nothing at all -
+       no hits, no tiers, no way forward. There is always a way forward. */
+    act=`<div class="phIn"><input id="phBrand" type="text" placeholder="Make" value="${esc(bq)}"></div>`
+      +(hits.length?hits.map(b=>`<button class="nsBtn" data-phbrand="${esc(b.name)}" data-phtier="${esc(b.tier)}"><span>${esc(b.name)}</span><b>${esc(tierLabel(x,b.tier))}</b></button>`).join("")
+        :`<div class="cardHint">${bq?`<b>${esc(bq)}</b> is not on the list for `+esc(String(x.cat.label||"this").toLowerCase())+` &mdash; say where it sits instead.`
+             :"Type a make above, or just say where it sits."}</div>`
+          +BRANDS.map(br=>`<button class="nsBtn" data-phtieronly="${esc(br.id)}"><span>${esc(tierLabel(x,br.id))}</span></button>`).join(""));
+  } else if(cur===1&&wantModel){
+    h=`Which ${esc(what)} is it?`;
+    sub=`The model decides the price here, and I don’t have a list for this one. Read it off the back, the label or the box.`;
+    act=`<div class="phIn"><input id="phModel" type="text" autocapitalize="characters" placeholder="Model number" value="${esc(st.model||"")}"><button class="nsBtn on" id="phModelGo"><span>Use it</span></button></div>`
+       +`<button class="nsBtn ghost" id="nsNone"><span>I can’t see a model</span></button>`;
+  } else if(cur===1){
+    h=`Which ${esc(what)} is it?`;
+    sub=`Pick one and the resale value fills in.`;
+    act=cands.map(r=>`<button class="nsBtn" data-mp="${esc(r[0])}"><span>${esc(r[2])}</span><b>${money(r[3])}&ndash;${money(r[4])}</b><i>resale</i></button>`).join("")
+       +`<button class="nsBtn ghost" id="nsNone"><span>Not one of these</span></button>`;
+  } else if(cur===2){
+    h=`What does it sell for, used?`;
+    /* This screen was every way of finding a price at once: two sold links, a
+       box, the listings on file, Google Shopping, the new-price lookup and a
+       second box - nine controls, and the one that actually does the work
+       was in the middle of them. The one that does the work leads now and
+       the rest folds away. */
+    const manual=compTargets(x).map(t=>`<a class="nsBtn nsSold" data-label="${t.name}" href="${esc(t.url)}" target="_blank" rel="opener" referrerpolicy="no-referrer"><span>${t.name}</span><b>&#8599;</b></a>`).join("")
+       +`<div class="phIn"><span>$</span><input id="phVal" type="number" inputmode="decimal" placeholder="What it sells for"><button class="nsBtn on" id="phValGo"><span>Use it</span></button></div>`
+       +altSourcesHTML(x,true)
+       +`<div class="label" style="margin-top:14px">No sold prices? Use what it costs new</div>`
+       +(CAP.sample?`<button class="nsBtn on" id="pdRetGo"><span>${retailBusy?"Looking it up&hellip;":"Look up the new price"}</span></button><div class="cardHint" id="pdRetMsg"></div>`:retailTargets(compQuery(x)).map(t=>`<a class="nsBtn nsRetail" data-label="${esc(t.name)}" href="${esc(t.url)}" target="_blank" rel="opener" referrerpolicy="no-referrer"><span>${esc(t.name)}</span><b>&#8599;</b></a>`).join(""))
+       +`<div class="phIn"><span>$</span><input id="phRet" type="number" inputmode="decimal" placeholder="What it costs new"><button class="nsBtn" id="phRetGo"><span>Use it</span></button></div>`
+       +`<div class="cardHint">In ${esc(x.cat.label.toLowerCase())}, a used one books at about <b>${retailPct(x)}%</b> of new here &mdash; $100 new lands at ${money(Math.round(retailPct(x)))}. A real sold price beats this every time &mdash; use it only when the sold pages come up empty.</div>`;
+    if(CAP.sample){
+      sub=`One tap searches the sold pages, the used listings and what it costs new, all at once.`;
+      act=`<button class="nsBtn${x.checked?" ghost":" on"}" id="pdFindGo"><span>${findBusy?"Looking it up&hellip;":x.checked?"Look it up again":"Look it up \u2014 everywhere"}</span></button>`
+         +`<div class="cardHint" id="pdFindMsg">${esc(findMsg||"")}</div>`
+         +evidenceHTML()
+         +`<details class="phKinds" id="phMore"${st.phMoreOpen?" open":""}><summary>Look it up myself</summary>
+            <div style="margin-top:10px">${manual}</div></details>`;
+    } else {
+      sub=`Tap a button to see what these actually sold for. Then type the middle price here.`;
+      act=manual;
+    }
+  } else if(cur===3){
+    h=`What shape is it in?`;
+    sub=`Next to a typical used one. The resale value assumes <b>Good</b>, normal wear.`;
+    act=CONDITIONS.map(c=>{ const w=COND_WORDS[c.id]||[c.label,""]; return `<button class="nsBtn" data-ncond="${c.id}"><span>${w[0]}</span><b>${w[1]}</b></button>`; }).join("");
+  } else {
+    h=ask?"":`What are they asking?`;
+    act=`<div class="phIn big"><span>$</span><input id="phAsk" type="number" inputmode="decimal" placeholder="Their price" value="${ask||""}"></div>
+      <div id="phVerdictBox">${phVerdictHTML(x)}</div>
+      <button class="nsBtn ghost" id="nsCond" data-ncond="${st.cond}"><span>Condition: ${cw[0]} &mdash; change</span></button>`;
+  }
+  /* Once there is a price this card moves past step 2, and with it went the
+     one button that does the searching. It belongs on every step after the
+     item is known, the same as on the desk. */
+  /* Not on step one. "Look it up - everywhere" was being pushed in ABOVE
+     the answer field for the question actually being asked, so the biggest
+     green button on the screen belonged to a different step and the make
+     box sat under it looking like an afterthought. Nothing can be looked
+     up before the desk knows what it is anyway. */
+  if(CAP.sample&&started&&cur>2)
+    act=`<button class="nsBtn${x.checked?" ghost":" on"}" id="pdFindGo"><span>${findBusy?"Looking it up&hellip;":x.checked?"Look it up again":"Look it up \u2014 everywhere"}</span></button>`
+        +`<div class="cardHint" id="pdFindMsg">${esc(findMsg||"")}</div>`+evidenceHTML()+act;
+  const src=x.checked?`<div class="phSrc">Resale value from ${m.kind==="list"?`<b>${esc(srcName(m.src))}</b>, checked ${esc(fmtDay(m.date))}. ${srcLink(m.src)}`:m.kind==="shot"?`${m.n} sold on ${esc(m.site||"the sold page")}. ${srcLink(m.url,"See those sales")}`:m.kind==="retail"?`${money(m.retail)} new retail, taken to ${(m.pct||retailPct())}% for used. Not a sold price.`:m.kind==="found"?`${m.n} listing${m.n===1?"":"s"} on file, middle one ${money(m.med)} (middle half ${money(m.lo)}&ndash;${money(m.hi)})${m.mostlyAsks?", mostly asks rather than sales":""}.${m.from?` From ${esc(m.from)}.`:""}`:m.kind==="seen"?`${m.n} shelf tag${m.n===1?"":"s"} you recorded, asking ${money(m.lo)}&ndash;${money(m.hi)} \u2014 what a used one goes for at a shop near you.`:"the price you typed."}</div>`:"";
+  const kinds=`<details class="phKinds"${st.phKindsOpen?" open":""}><summary>${st.phKindsOpen?"What kind of thing is it?":"Wrong kind of item?"}</summary><div class="phKindRow">${((typeof catsByUse==="function")?catsByUse().map(o=>o.c):CATALOG).map(c=>`<button class="nsBtn${c.id===st.catId?" on":""}" data-phcat="${c.id}"><span>${c.label}</span></button>`).join("")}</div></details>`;
+  return `<div class="card nextStep" id="nextStep"><div class="nsGrid">${steps}
+    <div class="nsMain">${h?`<div class="nsH">${h}</div>`:""}${sub?`<div class="nsSub">${sub}</div>`:""}<div class="nsAct">${act}</div>${src}</div></div>${kinds}</div>`;
+}
+function wirePhone(){
+  const ns=document.getElementById("nextStep"); if(!ns)return;
+  ns.querySelectorAll("[data-mp]").forEach(b=>b.onclick=()=>{
+    const r=MP_BY_ID[b.dataset.mp]; if(!r)return;
+    let name=r[2]; const bt=(st.brandTyped||"").trim();
+    if(bt&&name.toLowerCase().indexOf(bt.toLowerCase()+" ")===0)name=name.slice(bt.length+1);
+    st.model=name; st.mpPin={id:r[0],model:name}; st.mpNone=false; st.market=null; render();
+  });
+  const none=document.getElementById("nsNone"); if(none)none.onclick=()=>{ st.mpNone=true; render(); };
+  {
+    const bi=document.getElementById("phBrand");
+    if(bi)bi.oninput=()=>{ st.brandQ=bi.value; render();
+      const again=document.getElementById("phBrand");
+      if(again){ again.focus(); again.setSelectionRange(again.value.length,again.value.length); } };
+  }
+  ns.querySelectorAll("[data-phbrand]").forEach(b=>b.onclick=()=>{
+    st.brandTyped=b.dataset.phbrand; st.brand=b.dataset.phtier; st.brandSet=true;
+    st.brandQ=b.dataset.phbrand; st.mpPin=null; st.market=null; render(); });
+  ns.querySelectorAll("[data-phtieronly]").forEach(b=>b.onclick=()=>{
+    st.brand=b.dataset.phtieronly; st.brandSet=true; render(); });
+  /* Typed by hand when the desk has no list. Enter does the same as the
+     button, because a phone keyboard puts Enter under the thumb. */
+  {
+    const mi=document.getElementById("phModel"), mg=document.getElementById("phModelGo");
+    const go=()=>{ const v=String(mi&&mi.value||"").trim().slice(0,60);
+      if(!v){ st.mpNone=true; } else { st.model=v; st.market=null; st.mpPin=null; }
+      render(); };
+    if(mg)mg.onclick=go;
+    if(mi)mi.onkeydown=e=>{ if(e.key==="Enter"){ e.preventDefault(); go(); } };
+  }
+  const more=document.getElementById("phMore");
+  if(more&&!more.dataset.w){ more.dataset.w="1"; more.addEventListener("toggle",()=>{ st.phMoreOpen=more.open; }); }
+  const vi=document.getElementById("phVal"), vg=document.getElementById("phValGo");
+  const useVal=()=>{ const n=parseFloat(vi&&vi.value); if(n>0){ st.market={kind:"hand",key:mkKey(),mid:Math.round(n)}; render(); } };
+  if(vg)vg.onclick=useVal; if(vi)vi.onkeydown=e=>{ if(e.key==="Enter")useVal(); };
+  const ri=document.getElementById("phRet"), rg=document.getElementById("phRetGo");
+  const useRetail=()=>{ const n=parseFloat(ri&&ri.value);
+    if(n>0){ const p=retailPct(calcItem()); st.market={kind:"retail",key:mkKey(),retail:Math.round(n),pct:p,mid:Math.max(5,Math.round(n*p/100/5)*5)}; render(); } };
+  if(rg)rg.onclick=useRetail; if(ri)ri.onkeydown=e=>{ if(e.key==="Enter")useRetail(); };
+  ns.querySelectorAll("[data-ncond]").forEach(b=>b.onclick=()=>{
+    if(b.id==="nsCond"){ st.condSet=false; render(); return; }
+    st.cond=b.dataset.ncond; st.condSet=true; render();
+    const a=document.getElementById("phAsk"); if(a&&!phAskNow())a.focus();
+  });
+  const ai=document.getElementById("phAsk");
+  if(ai)ai.oninput=()=>{ const n=parseFloat(ai.value); st.ask=n>0?n:0; st.askKey=mkKey();
+    const x=calcItem(), vb=document.getElementById("phVerdictBox"); if(vb)vb.innerHTML=phVerdictHTML(x);
+    const v=document.getElementById("phAskV"); if(v)v.innerHTML=st.ask?money(st.ask):"&mdash;"; };
+  ns.querySelectorAll("[data-phcat]").forEach(b=>b.onclick=()=>{
+    const c=b.dataset.phcat, nm=((isCustom()&&st.bookName)||[st.brandTyped,st.model].filter(Boolean).join(" ")||"").slice(0,60);
+    st.catId=c; st.itemId=custId(c); st.bookName=nm||"Something else"; st.liq=null;
+    st.model=""; st.detail=""; st.phKindsOpen=false;
+    /* THE BRAND WAS SITTING IN WHAT WAS TYPED AND THE DESK BINNED IT.
+       This line already read the TIER off those words and priced against
+       it, then blanked brandTyped on the line above - so "microsoft
+       surface book" priced as a mid-tier maker while the make step said
+       NOTHING PICKED YET. The desk knew and would not say.
+       brandFromName, not brandInText: what a counter types is as often a
+       product line as a maker - "surface" is Microsoft, "inspiron" is
+       Dell - and the whole-name scan finds none of those. */
+    const bh=nm?brandFromName(c,nm):null;
+    st.brand=bh?bh.tier:"mid";
+    st.brandTyped=bh?bh.name:"";
+    st.brandQ=st.brandTyped;
+    st.brandSet=!!bh;
+    st.market=null; st.mpPin=null; st.mpNone=true; st.condSet=false; st.editing=false; render();
+  });
+}
+function phoneBoot(){
+  document.body.classList.add("phone");
+  /* The phone used to rename itself "Price Check", from when it really was
+     a cut-down thing: point the camera, get a number. It now carries the
+     scale, Setup, the shelf tags, the deal log, the walk-away list and the
+     price-list builder - everything the desk has. Calling it something
+     smaller told the counter they were holding a lesser copy of the tool. */
+  document.title="The Pawn Desk";
+  const e=document.querySelector(".brand .eyebrow"); if(e)e.textContent="Lamar's";
+  try{
+    /* THE DOCK. These were a wrapping pill strip along the TOP of the
+       phone - two rows of them at 360px wide, in the one band of the
+       screen a hand holding the phone cannot reach, and 192px of a 780px
+       screen gone before the item got a pixel.
+
+       Same three places, same data-tab, same handler. A drawing over one
+       word, fixed along the bottom, the current one lit rather than
+       filled: a bottom bar reads as where you ARE, and a solid pill under
+       the thumb reads as a button waiting to be pressed.
+
+       "Simple view" is not here any more. It was a tab that appeared and
+       disappeared, which is the one thing a bottom bar must never do -
+       and .snapPin already rides the top of the detailed screen saying
+       the same thing in more words. */
+    const DOCK=[
+      ["item","Price","Check a price",
+       '<path d="M3 11.5V4.5A1.5 1.5 0 0 1 4.5 3h7L21 12.5 12.5 21 3 11.5Z"/><circle cx="7.6" cy="7.6" r="1.3"/>'],
+      ["metal","Gold","Gold & silver",
+       '<circle cx="12" cy="12" r="8.2"/><path d="M12 7.4v9.2M9.6 9.6h4a1.9 1.9 0 0 1 0 3.8h-3.6a1.9 1.9 0 0 0 0 3.8h4"/>'],
+      ["setup","Setup","Setup",
+       '<circle cx="12" cy="12" r="3.1"/><path d="M12 2.6v3M12 18.4v3M21.4 12h-3M5.6 12h-3M18.6 5.4l-2.1 2.1M7.5 16.5l-2.1 2.1M18.6 18.6l-2.1-2.1M7.5 7.5 5.4 5.4"/>'],
+    ];
+    renderTabs=function(){
+      document.getElementById("tabs").innerHTML=DOCK.map(([id,short,full,icon])=>
+        `<button class="${st.mode===id?"on":""}" data-tab="${id}" aria-label="${full}"`+
+        `${st.mode===id?' aria-current="page"':""}>`+
+        `<svg viewBox="0 0 24 24" aria-hidden="true">${icon}</svg><i>${short}</i></button>`).join("");
+    };
+  }catch(x){}
+  if(st.mode!=="item"&&st.mode!=="metal"&&st.mode!=="setup")st.mode="item";
+  /* Snap -> price replaces the whole item page here. The detailed one is a
+     tap away and everything in it still works; it is simply not what you
+     want in your hand in somebody's driveway. */
+  try{
+    const _item=renderItem;
+    /* The way out of the detailed view used to live only in the tab bar,
+       which scrolls away - so two screens down there was no visible way
+       back and the counter was simply stranded. It rides along the top
+       now, pinned, wherever you are on the page. */
+    renderItem=function(){
+      if(snapOn())return snapHTML();
+      return `<button class="snapPin" id="snapBackTop">&lsaquo; Back to the simple screen</button>`
+             +_item.apply(this,arguments);
+    };
+    const _wire=wireItem;
+    wireItem=function(){
+      _wire.apply(this,arguments);
+      const more=document.getElementById("snapMore");
+      if(more)more.onclick=()=>{ st.snapDetail=true; render(); };
+      /* The hero's four circular actions, and the evidence row, which is
+         the same "look it up" in a different shape. */
+      document.querySelectorAll("[data-whome]").forEach(btn=>btn.onclick=()=>{
+        const a=btn.dataset.whome;
+        if(a==="snap"){ const c=document.getElementById("photoCam"); if(c)c.click(); return; }
+        if(a==="gold"){ st.mode="metal"; render(); return; }
+        if(a==="log"){ st.mode="log"; render(); return; }
+        if(a==="type"){ const i2=document.getElementById("omniIn");
+                        if(i2){ i2.focus(); try{ i2.scrollIntoView({block:"center"}); }catch(e){} } return; }
+      });
+      document.querySelectorAll("[data-wact]").forEach(btn=>btn.onclick=()=>{
+        const a=btn.dataset.wact;
+        if(a==="look"){ try{ priceFind(null,true); }catch(e){} return; }
+        if(a==="more"){ st.snapDetail=true; render(); return; }
+        if(a==="new"){ const b2=document.getElementById("pinNew"); if(b2)b2.click();
+                       else { st.picked=false; st.omniDone=""; st.market=null; render(); } return; }
+        if(a==="log"){ st.mode="log"; render(); return; }
+      });
+      /* Naming what is missing and leaving the counter to find it was the
+         bug. The same tap that reads the sentence opens the screen the
+         answers live on. */
+      const ans=document.getElementById("snapAnswer");
+      if(ans)ans.onclick=()=>{ st.snapDetail=true; render(); };
+      /* The four questions. Kept in state as they are typed, so a re-render
+         never wipes what has been entered. */
+      document.querySelectorAll("[data-hint]").forEach(inp=>{
+        inp.oninput=()=>{ st.photoHints=Object.assign({},st.photoHints,{[inp.dataset.hint]:inp.value}); };
+      });
+      try{ wireLook(); }catch(e){}
+      const again=document.getElementById("snapAgain");
+      if(again)again.onclick=()=>{ if(photoFile)runPhotoRead(); };
+      const keep=document.getElementById("snapKeep");
+      if(keep)keep.onclick=async()=>{
+        if(!photoFile)return;
+        keep.disabled=true; keep.textContent="Kept";
+        await shotSave(photoFile,{what:(st.photoRead&&st.photoRead.what)||"",
+                                  hints:Object.assign({},st.photoHints)});
+        shotsRefresh();
+      };
+      const fold=document.getElementById("shotFold");
+      if(fold&&!fold.dataset.w){ fold.dataset.w="1";
+        fold.addEventListener("toggle",()=>{ st.shelfOpen=fold.open; }); }
+      document.querySelectorAll("[data-shot]").forEach(btn=>{
+        btn.onclick=async()=>{
+          const rec=SHOTS.find(z=>z.id===btn.dataset.shot); if(!rec)return;
+          photoFile=rec.blob; st.photoHints=Object.assign({},rec.hints||{});
+          st.photoRead=null; st.photoErr=null; render(); runPhotoRead();
+        };
+      });
+      document.querySelectorAll("[data-shotdrop]").forEach(btn=>{
+        btn.onclick=async()=>{ await shotDrop(btn.dataset.shotdrop); shotsRefresh(); };
+      });
+      /* Placing a read-but-unplaced item by hand is the same moment as a
+         photo naming one: it now knows what the thing is, so go and price
+         it rather than leaving the built-in guess on screen. */
+      document.querySelectorAll(".snapCard [data-cat]").forEach(btn=>{
+        const prev=btn.onclick;
+        btn.onclick=ev=>{ if(prev)prev(ev); setTimeout(()=>{ try{ snapPriceAfterPhoto(); }catch(e){} },0); };
+      });
+      ["snapBack","snapBackTop"].forEach(id=>{
+        const back=document.getElementById(id);
+        if(back)back.onclick=()=>{ st.snapDetail=false; window.scrollTo(0,0); render(); };
+      });
+    };
+    /* When a photo names the thing, go and get its price without being asked. */
+    const _apply=applyPhotoRead;
+    applyPhotoRead=function(r){ _apply.apply(this,arguments);
+      if(snapOn())setTimeout(()=>{ try{ snapPriceAfterPhoto(); }catch(e){} },0); };
+  }catch(x){}
+  /* search: anything not on the lists can still be checked */
+  try{
+    const _render=render;
+    render=function(){ _render(); const i=document.getElementById("omniIn"); if(i)i.placeholder="What are you looking at?"; };
+  }catch(x){}
+  try{ render(); }catch(x){}
+  try{ shotsRefresh(); }catch(x){}
+}
+document.addEventListener("DOMContentLoaded",phoneBoot);
+
+/* ================= SNAP -> PRICE ==========================================
+   What this is for, in one line: you are walking a yard sale, you see
+   something, you photograph it, and the phone tells you the most you should
+   pay. That is the whole job. Everything else the desk can do - categories,
+   rates, the deal log, the step cards - is behind one fold, because on a
+   driveway it is in the way.
+
+   The desk is untouched. This replaces renderItem on the phone only. */
+function snapOn(){ return window.PHONE && !st.snapDetail; }
+
+/* After a photo names the thing, price it without being asked. Tapping a
+   second button to find out what it is worth is the tap this screen exists
+   to remove. One lookup, and it reuses listings already on file. */
+let snapAuto=false;
+async function snapPriceAfterPhoto(){
+  if(snapAuto||!CAP.sample||!st.picked)return;
+  const x=calcItem(); if(x.checked)return;
+  snapAuto=true;
+  try{ await priceFind(); }catch(e){}
+  snapAuto=false;
+  render();
+}
+
+function snapHTML(){
+  const x=calcItem();
+  const has=st.picked, F=fakeState(fakeSheet(x));
+  /* THE HEADING GOT SHORTER THE MORE THE DESK WORKED OUT.
+     This read make + model, falling back to the typed description only
+     when neither was known. So the moment the desk read "Microsoft" out of
+     "microsoft surface book", the card stopped saying what was on the
+     counter and started saying "Microsoft" - the counter's own words
+     replaced by one word of the desk's. For an item that IS the words the
+     counter typed, those words are the name; the model is added only if it
+     is not already among them. */
+  const name=(function(){
+    const made=[st.brandTyped,st.model].filter(Boolean).join(" ").trim();
+    let typed="";
+    try{ if(isCustom()&&st.bookName)typed=String(st.bookName).trim(); }catch(e){}
+    if(!typed)return made||(has?displayName(x):"");
+    const m=String(st.model||"").trim();
+    return (m&&typed.toLowerCase().indexOf(m.toLowerCase())<0)?typed+" "+m:typed;
+  })();
+  const bits=[st.detail,COND_WORDS[st.cond]&&COND_WORDS[st.cond][0]].filter(Boolean).join(" \u00b7 ");
+
+  /* The camera, full width, before anything else. */
+  /* Written out rather than reusing camButtonHTML: that one carries an inline
+     style, and an inline style beats any rule aimed at it - which is how the
+     button ended up sharing a row instead of owning one. */
+  const camOn=CAP.sample&&CAP.images;
+  /* Switched off, this is the 524px setup card - and it was sitting between
+     the header and the number, so on an 844px phone "Pay up to" landed below
+     the fold. Nothing is being set up while something is on the counter; the
+     price leads and the invitation goes to the foot as a line. The desk has
+     held this line since the rail went in. Before anything is picked the full
+     card stays at the top: that IS the phone's first move. */
+  const cam=camOn
+    ? `<div class="snapCam">
+        <label class="brassBtn camBtn snapShoot">\uD83D\uDCF7 Take a picture<input id="photoCam" type="file" accept="image/*" capture="environment" style="display:none"></label>
+        ${photoBusy
+          ? `<div class="snapBusy">Reading the picture\u2026 <button class="ghostBtn" id="photoStop">Stop</button></div>`
+          : `<label class="snapAlt">or choose one already on the phone<input id="photoIn" type="file" accept="image/jpeg,image/png,image/webp" style="display:none"></label>`}
+        ${photoErrHTML()}
+       </div>`
+    : (has ? "" : pdConnectHTML());
+  const camOff=(!camOn&&has)
+    ? `<div class="snapOff">Not connected \u2014 no sold-price lookups.
+        <button class="ghostBtn" data-gotab="setup" type="button">Set it up</button></div>`
+    : "";
+
+  /* Read, but not placed: say what was seen rather than showing an empty
+     camera screen as though nothing had happened. */
+  const un=st.photoRead&&st.photoRead.unplaced?st.photoRead:null;
+  /* THE FRONT PAGE IS A BALANCE SCREEN.
+     Same shape as the item screen, because that is what makes it one
+     app: a hero carrying today's one number, the four things you can
+     start, then a feed of what has actually been priced. It used to be
+     a camera button, a search box and a tip, with the bottom two thirds
+     of the screen empty - the complaint that started this redesign. */
+  if(!has){
+    /* Same two functions the desk calls. This used to be its own copy of
+       the hero and the feed, which is how two screens become two apps. */
+    const t=(typeof homeToday==="function")?homeToday():{rows:[]};
+    /* `start` says this wrapper is the front screen, not a half-worked item.
+       Without it the mid-run rule that strips the hero's actions stripped
+       these too, and the camera left the phone with its framing tip still
+       sitting there. */
+    return `<div class="snapWrap start">
+      ${homeHeroHTML({})}
+      ${un?snapHelpHTML(un):""}
+      ${omniHTML()}
+      ${t.rows.length?homeFeedHTML(4)
+        :(camOn?`<div class="snapTip">Fill the frame \u2014 a model plate or a label beats the whole object in shot.</div>`:"")}
+      ${camOn?`<div class="snapCam start">
+        <label style="display:none"><input id="photoCam" type="file" accept="image/*" capture="environment"></label>
+        <label style="display:none"><input id="photoIn" type="file" accept="image/jpeg,image/png,image/webp"></label>
+        ${photoBusy?`<div class="snapBusy">Reading the picture\u2026 <button class="ghostBtn" id="photoStop">Stop</button></div>`:""}
+        ${photoErrHTML()}
+       </div>`
+      /* Not the setup CARD: that was 535px at the top of an 844px screen and
+         pushed the search box off the bottom. A line, and the tap that fixes
+         it. */
+      :`<div class="snapOff">Snap it is off \u2014 no sold-price lookups on this device.
+        <button class="ghostBtn" data-gotab="setup" type="button">Set it up</button></div>`}
+      ${snapShelfHTML()}
+    </div>`;
+  }
+
+  /* A gated sheet means no price until it is worked - the phone must hold the
+     same line the desk does, or the counter just uses the phone. */
+  if(F&&F.blocks) return `<div class="snapWrap">${cam}
+    <div class="snapName">${esc(name)}</div>
+    ${phVerdictHTML(x)}
+    ${camOff}${snapFootHTML()}</div>`;
+
+  const priced=x.checked;
+  const busy=(typeof findBusy!=="undefined"&&findBusy)||snapAuto;
+  /* "out of a buy" was right when the floor only governed buying. It now
+     governs the loan too - an unredeemed one leaves you owning the thing
+     with the same hauling and listing - so the phone says both. */
+  /* The phone's front screen led with a figure the instant something was
+     picked, which is exactly where the Samsung tablet said "pay up to $40"
+     having never been asked which tablet it was. Walk-away is gated too: it
+     is a verdict on a price, so it needs the same run behind it. */
+  const ready=priceReady(x);
+  /* THE NUMBER IS THE SCREEN.
+     It used to be a 12px mono label - "NO PRICE YET" - over a sentence,
+     with the offer, when there was one, as one more line of text among
+     six cards of them. The one thing somebody at a counter is holding
+     this phone to find out was the same size as everything else on it.
+
+     It is the anchor now: a 270-degree arc round an enormous numeral, the
+     same dial the desk has always drawn for the loan. Unpriced, the arc
+     is how far through the run you are and the numeral is a dash - so
+     "not yet" is a thing you can SEE the size of, and tapping on is
+     obviously the way to fill it. */
+  const q=(typeof askQueue==="function")?askQueue(x):[];
+  const done=q.filter(z=>z.answered||z.optional).length;
+
+  /* ══ THE WALLET ═══════════════════════════════════════════════════
+     Design A, picked from three live samples. The thing being priced
+     IS a card: a saturated panel carrying one enormous figure, the
+     four things you can do to it as circular actions directly
+     beneath, and everything else - the evidence, the loan, the
+     arithmetic - as icon-led rows with the value on the right.
+
+     The hierarchy still follows the state, because that rule outlives
+     any skin: with no price the hero carries the item and how far
+     through the run you are, and the QUESTION comes first underneath,
+     inline, never behind a button. With a price the number is the
+     screen. */
+  const ICON={
+    look:'<circle cx="11" cy="11" r="7"/><path d="M16 16l5 5"/>',
+    log :'<path d="M5 4h11l3 3v13H5z"/><path d="M9 9h6M9 13h6"/>',
+    add :'<path d="M12 5v14M5 12h14"/>',
+    more:'<path d="M4 7h16M4 12h16M4 17h10"/>',
+    ev  :'<path d="M3 17l5-6 4 4 5-7 4 5"/>',
+    lend:'<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>',
+    math:'<path d="M4 18V9M10 18V5M16 18v-6M2 21h20"/>',
+    warn:'<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17.2v.1"/>'
+  };
+  const act=(id,label,icon,on)=>`<button class="act" data-wact="${id}"${on?"":" disabled"}>`
+    +`<i><svg viewBox="0 0 24 24" aria-hidden="true">${icon}</svg></i><span>${label}</span></button>`;
+  const canLook=!!(CAP.sample&&!ebayBlind(x));
+  const actions=`<div class="acts">
+    ${act("look",busy?"Looking\u2026":"Look up",ICON.look,canLook&&!busy)}
+    ${act("log","Log it",ICON.log,ready)}
+    ${act("new","Another",ICON.add,true)}
+    ${act("more","Detail",ICON.more,true)}
+  </div>`;
+
+  const hero = busy&&ready
+    ? `<div class="hero"><div class="heroWho">Checking what it sells for\u2026</div>
+        <div class="heroWhat">${esc(name)}${bits?" \u00b7 "+esc(bits):""}</div>
+        <div class="heroLab">Pay up to</div><div class="heroBig">${money(x.buy)}</div>
+        <div class="heroSub">${esc(findMsg||"Searching the sold pages\u2026")} The built-in number stands until it lands.</div>
+        ${actions}</div>`
+    : !ready
+    ? `<div class="hero"><div class="heroWho">On the counter</div>
+        <div class="heroWhat">${esc(name)}${bits?" \u00b7 "+esc(bits):""}</div>
+        <div class="heroLab">${q.length?done+" of "+q.length+" answered":"nothing answered yet"}</div>
+        <div class="heroSub" style="margin-top:4px">No price until the run is finished.</div>
+        <div class="heroBar"><i style="width:${q.length?Math.round(done/q.length*100):0}%"></i></div>
+        ${actions}</div>`
+    : x.buyTooThin
+    ? `<div class="hero"><div class="heroWho">On the counter</div>
+        <div class="heroWhat">${esc(name)}${bits?" \u00b7 "+esc(bits):""}</div>
+        <div class="heroLab">Walk away</div>
+        <div class="heroBig bad">&mdash;</div>
+        <div class="heroSub">Clearing the ${money(x.buyFloor)} you want leaves ${money(x.buy)} to offer. Not worth buying, and not worth lending on.</div>
+        ${actions}</div>`
+    : `<div class="hero"><div class="heroWho">On the counter</div>
+        <div class="heroWhat">${esc(name)}${bits?" \u00b7 "+esc(bits):""}</div>
+        <div class="heroLab">Pay up to</div>
+        <div class="heroBig">${money(x.buy)}</div>
+        <div class="heroSub">Resells ${money(Math.round(x.resale))} \u00b7 you make ${money(x.buyMargin)}</div>
+        ${actions}</div>`;
+
+  /* The evidence row carries the meter the desk grew: how much is behind
+     the number, at a glance, without reading a sentence. */
+  const m=x.market, mk=m&&m.kind;
+  const evid=(()=>{
+    if(!m||!x.checked)
+      return {b:"Not looked up",s:"a built-in starting point",pct:0,tone:"none"};
+    if(mk==="found"||mk==="harvest"){
+      const n=m.n||0,sold=m.sold||0,share=n?sold/n:0;
+      const site=m.from?esc(srcName(m.from)):"eBay";
+      /* It said "<site> sold prices" whatever came back, so a search that
+         found nothing but asks still had the word SOLD in its headline. */
+      return sold===0
+        ? {b:n+" asking prices",s:"nobody paid these \u2014 "+site,pct:3,tone:"warn"}
+        : {b:sold+" real sales",s:sold+" of "+n+" listings \u2014 "+site,
+           pct:Math.round(share*100),tone:share>=0.5?"":"warn"};
+    }
+    /* THE THIRD SURFACE, AND THE THIRD TIME. "Still says desk and still
+       says eBay without stating if it is sold prices or for sale prices."
+       The desk's panel was fixed, then the price card was fixed, and this
+       one - the phone's own copy, in its own file - went on saying "Desk
+       price list / eBay, as of Sep 24". eBay answers both questions, so
+       the hostname settles nothing, and "Desk price list" is my name for
+       the tool wearing a noun.
+       The row's note says which it is; rowEvidence reads it. */
+    if(mk==="list"){
+      const ev=(typeof rowEvidence==="function")?rowEvidence(m.note):{kind:"research",n:0};
+      const site=esc(srcName(m.src)), when=esc(fmtDay(m.date));
+      if(ev.kind==="sold")
+        return {b:(ev.n?ev.n+" real sales":"Sold prices"),s:site+", "+when,
+                pct:m.conf==="h"?100:62,tone:m.conf==="h"?"":"warn"};
+      if(ev.kind==="asking")
+        return {b:(ev.n?ev.n+" asking prices":"Asking prices"),
+                s:"nobody paid these \u2014 "+site+", "+when,pct:26,tone:"warn"};
+      return {b:"Researched",s:"not counted off sales \u2014 "+site+", "+when,
+              pct:m.conf==="h"?70:45,tone:"warn"};
+    }
+    return {b:"Checked",s:esc(checkedNote(x)),pct:100,tone:""};
+  })();
+
+  /* THE EVIDENCE ROW IS NOT GATED ON "IS THE RUN FINISHED".
+     check-pricing caught this once already and caught it again when the
+     wallet went in: an item can carry twelve looked-up sales while the
+     run is still asking about the battery, and hiding the weight of real
+     evidence is the opposite of the point. It shows as soon as anything
+     has been looked up. The loan and the arithmetic still wait for a
+     price, because until then there is no loan and no arithmetic. */
+  const evRow = (ready||x.checked) ? `
+    ${ready?`<div class="wSect">Behind this number</div>`:""}
+    <button class="wRow${ready?"":" tight"}" data-wact="look">
+      <i><svg viewBox="0 0 24 24" aria-hidden="true">${ICON.ev}</svg></i>
+      <div class="t"><b>${evid.b}</b>${ready?`<span>${evid.s}</span>`:""}
+        <div class="wBar"><i class="${evid.tone}" style="width:${Math.max(3,evid.pct)}%"></i></div></div>
+    </button>` : "";
+  const rows = ready ? `
+    <div class="wRow"><i><svg viewBox="0 0 24 24" aria-hidden="true">${ICON.lend}</svg></i>
+      <div class="t"><b>Lend him</b><span>60-day pawn loan</span></div>
+      <div class="v">${x.buyTooThin?"&mdash;":money(x.target)}</div></div>
+    <div class="wRow"><i><svg viewBox="0 0 24 24" aria-hidden="true">${ICON.math}</svg></i>
+      <div class="t"><b>Your cushion</b><span>fee ${money(x.charge)} \u00b7 lending ${x.ltv}% of resale</span></div>
+      <div class="v">${money(x.margin)}</div></div>` : "";
+
+  return `<div class="snapWrap${ready?" ready":""}">${cam}
+    ${hero}
+    ${/* No price yet: the question is the first thing under the hero,
+          inline. askHTML is the same component the detailed screen uses,
+          so there is nothing over there that is not already here. */""}
+    ${!ready?`<div class="card wAsk">${typeof askHTML==="function"?askHTML(x):""}</div>`:""}
+    ${/* Condition is one of the questions while the run is on, so it is
+          asked there. Once priced it comes back as its own strip: it is
+          the one thing you change again and again as you look the thing
+          over. */""}
+    ${ready?`<div class="wSect">Shape it is in</div>
+      <div class="snapCond">${CONDITIONS.map(c=>`<button class="${st.condSet&&c.id===st.cond?"on":""}" data-cond="${c.id}">${c.label.replace("New in box","New")}</button>`).join("")}</div>`:""}
+    ${evRow}${rows}
+    ${camOff}
+  </div>`;
+}
+function snapFootHTML(){
+  return `<div class="snapFoot">
+    <button class="ghostBtn" id="pinNew">Price another</button>
+    <button class="ghostBtn" id="snapMore">All the detail &rsaquo;</button>
+  </div>`;
+}
+
+/* ---- when it cannot place it: ask, don't shrug -------------------------
+   The counter is holding the thing. They can read the stamp the camera
+   could not, turn it over, feel the weight. Four short questions put that
+   into the next read, which is a far better use of their ten seconds than
+   scrolling a category list. */
+const SNAP_Q=[["words","Any words, names or logos on it?","Stihl, Craftsman, a logo\u2026"],
+              ["nums","Any numbers or a model on it?","MS 250, 12 GA, a serial\u2026"],
+              ["size","Roughly how big is it?","fits one hand / two feet long\u2026"],
+              ["made","What is it made of?","steel, plastic, wood, gold-coloured\u2026"]];
+function snapHelpHTML(un){
+  const h=st.photoHints||{};
+  return `<div class="snapCard" style="border-color:rgba(255,201,143,.45)">
+    <div class="snapLab">I read the picture as</div>
+    <div class="snapName" style="margin-top:6px">${esc(un.what||"\u2014 couldn\u2019t tell \u2014")}</div>
+    <div class="snapSub">${un.what
+      ? ((st.photoLook&&st.photoLook.busy)
+          ? "It\u2019s not on my lists, so I\u2019m searching the web for it now. Answer these while you wait and I\u2019ll have both."
+          : "I can\u2019t place it on my lists, so I can\u2019t price it yet. Tell me what you can see and I\u2019ll look again \u2014 you\u2019re holding it, I\u2019m not.")
+      : "The picture didn\u2019t give me enough. Tell me what you can see and I\u2019ll look again, or take another shot closer in."}</div>
+    ${un.note?`<div class="snapSrc">${esc(un.note)}</div>`:""}
+    ${photoLookHTML()}
+    <div class="snapAsk">
+      ${SNAP_Q.map(([k,q,ph])=>`<label><span>${esc(q)}</span>
+        <input data-hint="${k}" type="text" autocomplete="off" placeholder="${esc(ph)}" value="${esc(String(h[k]||""))}"></label>`).join("")}
+    </div>
+    <div class="snapFoot" style="margin-top:12px">
+      <button class="brassBtn" id="snapAgain"${photoBusy?" disabled":""}>${photoBusy?"Looking again\u2026":"Look again with this"}</button>
+      <button class="ghostBtn" id="snapKeep"${st.shotKept?" disabled":""}>${st.shotKept?"Picture kept":"Keep the picture for later"}</button>
+    </div>
+    <div class="snapSrc">Or just tell me the kind of thing it is:</div>
+    <div class="snapCond" style="margin-top:8px">${CATALOG.map(c=>
+      `<button data-cat="${c.id}" style="flex:1 1 45%">${esc(c.label)}</button>`).join("")}</div>
+  </div>`;
+}
+/* Pictures put by, waiting for a quiet evening. */
+function snapShelfHTML(){
+  if(!SHOTS.length)return "";
+  return `<details class="fold"${st.shelfOpen?" open":""} id="shotFold">
+    <summary class="foldLine">${SHOTS.length} picture${SHOTS.length===1?"":"s"} kept for later</summary>
+    <div class="shotGrid">${SHOTS.map(sh=>`<div class="shotItem">
+      <img src="${URL.createObjectURL(sh.blob)}" alt="">
+      <div class="shotWhat">${esc(sh.what||"not identified")}</div>
+      <div class="shotWhen">${new Date(sh.ts).toLocaleDateString()}</div>
+      <div class="row2" style="gap:6px;margin-top:6px">
+        <button class="ghostBtn" data-shot="${sh.id}" style="flex:1;padding:8px 10px;font-size:12px">Try again</button>
+        <button class="ghostBtn" data-shotdrop="${sh.id}" style="padding:8px 10px;font-size:12px">&times;</button>
+      </div></div>`).join("")}</div>
+  </details>`;
+}
+
+```
+
+### `qr.js` — 183 lines
+
+```javascript
+/* A QR code, drawn on the desk screen, so a phone can be switched on by
+ * pointing at it instead of typing a Railway address and a token on a phone
+ * keyboard. Byte mode, error level M, versions 1-10 - far more than the two
+ * short lines this carries.
+ *
+ * Written out rather than pulled from a CDN: this page works with no signal,
+ * and a script tag to somebody else's server is one more thing that can be
+ * down, changed, or watching. Every matrix it produces was compared module
+ * by module against the reference encoder before it shipped.
+ */
+(function(g){
+  /* ---- GF(256) for Reed-Solomon ---- */
+  const EXP=new Uint8Array(512), LOG=new Uint8Array(256);
+  for(let i=0,x=1;i<255;i++){ EXP[i]=x; LOG[x]=i; x<<=1; if(x&256)x^=0x11d; }
+  for(let i=255;i<512;i++)EXP[i]=EXP[i-255];
+  const mul=(a,b)=>(a&&b)?EXP[LOG[a]+LOG[b]]:0;
+  function rsPoly(n){ let p=[1];
+    for(let i=0;i<n;i++){ const q=[...p,0];
+      for(let j=0;j<p.length;j++)q[j+1]^=mul(p[j],EXP[i]);
+      p=q; }
+    return p; }
+  function rsEnc(data,n){ const gen=rsPoly(n), res=new Array(n).fill(0);
+    for(const d of data){ const f=d^res[0]; res.shift(); res.push(0);
+      if(f)for(let i=0;i<n;i++)res[i]^=mul(gen[i+1],f); }
+    return res; }
+
+  /* Per version, error level M: [total codewords, ec per block, blocks
+     group1, data per block g1, blocks g2, data per block g2] */
+  const V={
+   1:[26,10,1,16,0,0],   2:[44,16,1,28,0,0],   3:[70,26,1,44,0,0],
+   4:[100,18,2,32,0,0],  5:[134,24,2,43,0,0],  6:[172,16,4,27,0,0],
+   7:[196,18,4,31,0,0],  8:[242,22,2,38,2,39], 9:[292,22,3,36,2,37],
+   10:[346,26,4,43,1,44]};
+  const ALIGN={1:[],2:[6,18],3:[6,22],4:[6,26],5:[6,30],6:[6,34],
+               7:[6,22,38],8:[6,24,42],9:[6,26,46],10:[6,28,50]};
+
+  const dataCap=v=>{ const [,ec,b1,d1,b2,d2]=V[v]; return b1*d1+b2*d2; };
+
+  function encode(text){
+    const bytes=[]; for(const ch of unescape(encodeURIComponent(text)))bytes.push(ch.charCodeAt(0));
+    let ver=0;
+    for(let v=1;v<=10;v++){ const need=4+(v<10?8:16)+bytes.length*8;
+      if(need<=dataCap(v)*8){ ver=v; break; } }
+    if(!ver)throw new Error("too long for a QR this size");
+
+    /* ---- bit stream ---- */
+    const bits=[];
+    const put=(val,len)=>{ for(let i=len-1;i>=0;i--)bits.push((val>>i)&1); };
+    put(4,4);                                   /* byte mode */
+    put(bytes.length, ver<10?8:16);
+    bytes.forEach(b=>put(b,8));
+    const cap=dataCap(ver)*8;
+    for(let i=0;i<4&&bits.length<cap;i++)bits.push(0);   /* terminator */
+    while(bits.length%8)bits.push(0);
+    const pad=[0xEC,0x11]; let p=0;
+    const dc=[]; for(let i=0;i<bits.length;i+=8){ let b=0; for(let j=0;j<8;j++)b=(b<<1)|bits[i+j]; dc.push(b); }
+    while(dc.length<dataCap(ver))dc.push(pad[p++%2]);
+
+    /* ---- split into blocks, error-correct, interleave ---- */
+    const [,ecLen,b1,d1,b2,d2]=V[ver];
+    const blocks=[], ecs=[]; let at=0;
+    for(let i=0;i<b1;i++){ const b=dc.slice(at,at+d1); at+=d1; blocks.push(b); ecs.push(rsEnc(b,ecLen)); }
+    for(let i=0;i<b2;i++){ const b=dc.slice(at,at+d2); at+=d2; blocks.push(b); ecs.push(rsEnc(b,ecLen)); }
+    const out=[], maxD=Math.max(d1,d2||0);
+    for(let i=0;i<maxD;i++)blocks.forEach(b=>{ if(i<b.length)out.push(b[i]); });
+    for(let i=0;i<ecLen;i++)ecs.forEach(b=>out.push(b[i]));
+
+    /* ---- lay it out ---- */
+    const n=17+ver*4;
+    const m=Array.from({length:n},()=>new Array(n).fill(null));
+    const set=(r,c,v)=>{ if(r>=0&&r<n&&c>=0&&c<n)m[r][c]=v; };
+    const finder=(r,c)=>{ for(let i=-1;i<=7;i++)for(let j=-1;j<=7;j++){
+      const rr=r+i, cc=c+j; if(rr<0||rr>=n||cc<0||cc>=n)continue;
+      const on=(i>=0&&i<=6&&(j===0||j===6))||(j>=0&&j<=6&&(i===0||i===6))||(i>=2&&i<=4&&j>=2&&j<=4);
+      set(rr,cc,on?1:0); }; };
+    finder(0,0); finder(0,n-7); finder(n-7,0);
+    for(const a of ALIGN[ver])for(const b of ALIGN[ver]){
+      if((a<8&&b<8)||(a<8&&b>n-9)||(a>n-9&&b<8))continue;
+      for(let i=-2;i<=2;i++)for(let j=-2;j<=2;j++)
+        set(a+i,b+j,(Math.abs(i)===2||Math.abs(j)===2||(i===0&&j===0))?1:0); }
+    for(let i=8;i<n-8;i++){ if(m[6][i]===null)set(6,i,i%2?0:1); if(m[i][6]===null)set(i,6,i%2?0:1); }
+    set(n-8,8,1);                                /* dark module */
+    /* Version 7 and up carry their version number twice, in a 6x3 block by
+       each of the far finders. Leaving it out is invisible on small codes
+       and breaks every larger one. */
+    if(ver>=7){ const vb=verBits(ver);
+      for(let i=0;i<18;i++){ const b=(vb>>i)&1;
+        set(Math.floor(i/3), n-11+(i%3), b);
+        set(n-11+(i%3), Math.floor(i/3), b); } }
+    /* format-info squares are reserved now, written after masking */
+    const fmtCells=[];
+    for(let i=0;i<=5;i++)fmtCells.push([8,i],[i,8]);
+    fmtCells.push([8,7],[8,8],[7,8],[8,n-8],[8,n-7],[8,n-6],[8,n-5],[8,n-4],[8,n-3],[8,n-2],[8,n-1],
+                  [n-1,8],[n-2,8],[n-3,8],[n-4,8],[n-5,8],[n-6,8],[n-7,8]);
+    fmtCells.forEach(([r,c])=>{ if(m[r][c]===null)m[r][c]="F"; });
+
+    /* ---- data, up the zigzag ---- */
+    let bi=0, up=true;
+    const bitAt=k=>(out[k>>3]>>(7-(k&7)))&1;
+    for(let c=n-1;c>0;c-=2){ if(c===6)c--;
+      for(let k=0;k<n;k++){ const r=up?n-1-k:k;
+        for(const cc of [c,c-1]) if(m[r][cc]===null){
+          m[r][cc]=bi<out.length*8?bitAt(bi):0; bi++; } }
+      up=!up; }
+
+    /* ---- pick the mask the standard's way: lowest penalty ---- */
+    const MASK=[ (r,c)=>(r+c)%2===0, (r,c)=>r%2===0, (r,c)=>c%3===0,
+                 (r,c)=>(r+c)%3===0, (r,c)=>(((r/2)|0)+((c/3)|0))%2===0,
+                 (r,c)=>((r*c)%2)+((r*c)%3)===0, (r,c)=>((((r*c)%2)+((r*c)%3))%2)===0,
+                 (r,c)=>((((r+c)%2)+((r*c)%3))%2)===0 ];
+    const FMT=[0x5412,0x5125,0x5E7C,0x5B4B,0x45F9,0x40CE,0x4F97,0x4AA0]; /* level M, masks 0-7 */
+    let best=null;
+    const force=(typeof g.QR_FORCE_MASK==="number")?g.QR_FORCE_MASK:-1;
+    for(let mk=0;mk<8;mk++){
+      if(force>=0&&mk!==force)continue;
+      const t=m.map(row=>row.slice());
+      for(let r=0;r<n;r++)for(let c=0;c<n;c++)
+        if(t[r][c]!=="F"&&!isFunction(r,c,ver,n)&&MASK[mk](r,c))t[r][c]^=1;
+      const f=FMT[mk];
+      for(let i=0;i<15;i++){ const bit=(f>>(14-i))&1;
+        if(i<6)          { t[8][i]=bit;    t[n-1-i][8]=bit; }
+        else if(i===6)   { t[8][7]=bit;    t[n-1-i][8]=bit; }
+        else if(i===7)   { t[8][8]=bit;    t[8][n-8]=bit; }
+        else if(i===8)   { t[7][8]=bit;    t[8][n-8+1]=bit; }
+        else             { t[14-i][8]=bit; t[8][n-15+i]=bit; } }
+      const pen=penalty(t,n);
+      if(!best||pen<best.pen)best={pen,t};
+    }
+    return best.t.map(r=>r.map(v=>v===1?1:0));
+
+    function isFunction(r,c,ver,n){
+      if(r<9&&c<9)return true;
+      if(r<9&&c>=n-8)return true;
+      if(r>=n-8&&c<9)return true;
+      if(r===6||c===6)return true;
+      if(ver>=7){ if(r<6&&c>=n-11&&c<n-8)return true;
+                  if(c<6&&r>=n-11&&r<n-8)return true; }
+      for(const a of ALIGN[ver])for(const b of ALIGN[ver]){
+        if((a<8&&b<8)||(a<8&&b>n-9)||(a>n-9&&b<8))continue;
+        if(Math.abs(r-a)<=2&&Math.abs(c-b)<=2)return true; }
+      return false; }
+  }
+
+  /* 6 bits of version, 12 of BCH(18,6), generator 0x1F25. */
+  function verBits(v){ let d=v<<12;
+    for(let i=17;i>=12;i--) if((d>>i)&1) d^=0x1F25<<(i-12);
+    return (v<<12)|d; }
+
+  function penalty(t,n){
+    let p=0;
+    const at=(r,c)=>t[r][c]===1?1:0;
+    for(let r=0;r<n;r++){ let run=1;
+      for(let c=1;c<n;c++){ if(at(r,c)===at(r,c-1))run++; else { if(run>=5)p+=run-2; run=1; } }
+      if(run>=5)p+=run-2; }
+    for(let c=0;c<n;c++){ let run=1;
+      for(let r=1;r<n;r++){ if(at(r,c)===at(r-1,c))run++; else { if(run>=5)p+=run-2; run=1; } }
+      if(run>=5)p+=run-2; }
+    for(let r=0;r<n-1;r++)for(let c=0;c<n-1;c++){
+      const v=at(r,c); if(v===at(r,c+1)&&v===at(r+1,c)&&v===at(r+1,c+1))p+=3; }
+    const PAT=[1,0,1,1,1,0,1,0,0,0,0], PAT2=[0,0,0,0,1,0,1,1,1,0,1];
+    const hit=a=>{ let k=0;
+      for(let i=0;i+11<=a.length;i++){
+        if(PAT.every((v,j)=>a[i+j]===v))k++;
+        if(PAT2.every((v,j)=>a[i+j]===v))k++; }
+      return k; };
+    for(let r=0;r<n;r++)p+=40*hit(t[r].map(v=>v===1?1:0));
+    for(let c=0;c<n;c++)p+=40*hit(t.map(row=>row[c]===1?1:0));
+    let dark=0; for(let r=0;r<n;r++)for(let c=0;c<n;c++)dark+=at(r,c);
+    p+=10*Math.floor(Math.abs(dark*100/(n*n)-50)/5);
+    return p; }
+
+  /* An <svg> string, because it stays sharp at any size and needs no canvas. */
+  g.qrSVG=function(text,px){
+    const m=encode(text), n=m.length, q=4, side=n+q*2, s=(px||220)/side;
+    let d="";
+    for(let r=0;r<n;r++)for(let c=0;c<n;c++)
+      if(m[r][c])d+="M"+((c+q)*s)+" "+((r+q)*s)+"h"+s+"v"+s+"h"+(-s)+"z";
+    return '<svg xmlns="http://www.w3.org/2000/svg" width="'+(px||220)+'" height="'+(px||220)+
+           '" viewBox="0 0 '+(px||220)+' '+(px||220)+'" shape-rendering="crispEdges">'+
+           '<rect width="100%" height="100%" fill="#fff"/><path fill="#000" d="'+d+'"/></svg>'; };
+  g.qrMatrix=encode;
+})(typeof window!=="undefined"?window:globalThis);
+
+```
+
+### `app.css` — 1265 lines
+
+```css
+  /* ══ THE PAWN DESK ═══════════════════════════════════════════════════════
+     Second design. Nothing of the first survives on purpose.
+
+     WHAT IT WAS: a dark instrument panel. Near-black #0B0D13, mint-to-cyan
+     accent, Outfit over Inter Tight over Roboto Mono, opaque slabs with
+     hard bevels cut into them, a rail of numbers pinned beside a column of
+     questions. It was coherent and it was also the only thing this project
+     had ever looked like.
+
+     WHAT IT IS: liquid glass on warm paper. Every surface is translucent
+     and blurs what is behind it, so the ambient colour field shows through
+     and the depth is real refraction rather than a drawn bevel. Light
+     first, with a full dark palette underneath it. Brass, because this is
+     a pawn shop and brass is what a pawn shop is made of. Sora over
+     Instrument Sans over JetBrains Mono. Concentric radii: a 26px housing
+     holds an 18px widget holds a 12px readout.
+
+     Sources for the change, in the counter's own words: the Liquid Glass
+     takeover ("translucent materials and depth-rich aesthetics"), the New
+     Minimalism ("the brave act of getting out of the way"), and
+     micro-interactions as the defence against looking like everything
+     else. Accessible contrast is not a pass at the end - every ink token
+     is picked to clear 4.5:1 on the surface it lands on, which is why the
+     brass you READ is a darker brass than the brass you LOOK at.
+     ═══════════════════════════════════════════════════════════════════ */
+  :root{
+    /* DARK, AND COMMITTED TO IT. Not dark-preferred with a light palette
+       behind it - there is one palette here and this is it. A counter is
+       worked at night as often as at noon and a light screen in a dim shop
+       is a lamp pointed at the person you are talking to.
+
+       Graphite, not black: #15171C has no warmth in it at all, which is
+       the whole point after a canvas of cream. Electric blue is the fill,
+       and the blue you READ is a paler one than the blue you LOOK at -
+       #3B82F6 is a good button and a bad 13px caption. check-contrast
+       measures both against the glass they land on. */
+    color-scheme:dark;
+
+    /* ---- the field: what the glass has to refract --------------------- */
+    --paper:#15171C;
+    --field-a:rgba(59,130,246,.22);
+    --field-b:rgba(96,165,250,.16);
+    --field-c:rgba(120,140,170,.14);
+
+    /* ---- the glass ladder: closer = lighter, the dark-mode reversal --- */
+    --glass:rgba(255,255,255,.055);       /* passive housing               */
+    --glass-hi:rgba(255,255,255,.09);
+    --g2:rgba(255,255,255,.11);           /* interactive widget            */
+    --g2-hi:rgba(255,255,255,.165);
+    --well:rgba(0,0,0,.36);               /* cut into the surface          */
+    --edge:rgba(255,255,255,.15);         /* specular top lip              */
+    --line:rgba(255,255,255,.13);
+
+    /* ---- ink --------------------------------------------------------- */
+    --ink:#FFFFFF;
+    --ink-2:rgba(255,255,255,.80);
+    --ink-3:rgba(255,255,255,.64);
+    --on-accent:#04122E;                  /* ink ON a blue fill            */
+
+    /* ---- blue. Two of them, and the difference is the whole point:
+            --accent is a FILL you look at, --accent-ink is TEXT you read,
+            and the one that passes as a fill fails as 13px type. ------- */
+    --accent:#3B82F6;
+    --accent-2:#7DB1FF;
+    --accent-ink:#A9CEFF;
+    --info:#7DB1FF;
+    --info-ink:#A8CCFF;
+
+    /* ---- status. These never move when the theme does: the bar under
+            "Behind this number" means the same thing in every palette. -- */
+    --good:#3FD69B;
+    --warn:#FFA53D;
+    --warn-ink:#FFC98F;
+    --warn-wash:rgba(255,165,61,.14);
+    --bad:#FF5A70;
+    --bad-ink:#FFAAB4;
+    --bad-wash:rgba(255,90,112,.14);
+
+    /* ---- shape: concentric, committed -------------------------------- */
+    --r:26px; --r-s:18px; --r-xs:12px;
+
+    /* ---- light. Short shadows, a lit top lip, never a haze ----------- */
+    --blur:blur(20px) saturate(165%);
+    --raise:
+      inset 0 1px 0 var(--edge),
+      inset 0 -1px 0 rgba(0,0,0,.40),
+      0 1px 2px rgba(0,0,0,.50),
+      0 12px 26px -16px rgba(0,0,0,.90);
+    --lift:
+      inset 0 1px 0 var(--edge),
+      0 2px 5px rgba(0,0,0,.55),
+      0 18px 34px -18px rgba(0,0,0,.95);
+    --well-sh:
+      inset 0 2px 6px rgba(0,0,0,.60),
+      inset 0 -1px 0 rgba(255,255,255,.06);
+    /* The shadow under an accent fill, coloured by the accent so a lit
+       button glows its own colour rather than dropping a grey blob. */
+    --fill-sh:
+      0 1px 3px rgba(0,0,0,.50),
+      0 8px 20px -10px rgba(59,130,246,.65),
+      inset 0 1px 0 rgba(255,255,255,.35);
+
+    --disp:'Sora','Instrument Sans','Segoe UI Variable Display',system-ui,sans-serif;
+    --sans:'Instrument Sans',system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,'Courier New',monospace;
+  }
+
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  /* The field itself. Three soft washes fixed behind everything, so a sheet
+     of glass has something to refract - on a flat colour, translucency is
+     indistinguishable from a slightly different flat colour, which is how
+     "glass" usually ends up meaning nothing. */
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);
+    position:relative;font-size:15px;line-height:1.5;
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  body::before{content:"";position:fixed;inset:-20vmax;z-index:0;pointer-events:none;
+    background:
+      radial-gradient(58vmax 52vmax at 6% -4%,var(--field-a),transparent 66%),
+      radial-gradient(62vmax 56vmax at 96% 14%,var(--field-b),transparent 68%),
+      radial-gradient(52vmax 48vmax at 46% 108%,var(--field-c),transparent 66%)}
+  button,input,textarea,select{font-family:inherit}
+  button:focus-visible,input:focus-visible,textarea:focus-visible,
+  a:focus-visible,summary:focus-visible{outline:2.5px solid var(--info);outline-offset:2px;border-radius:6px}
+
+  /* ══ SHELL ════════════════════════════════════════════════════════════
+     One screen, panels scroll inside themselves, the page does not. */
+  .dash{position:relative;z-index:1;min-height:100dvh;padding:clamp(11px,1.3vw,18px);
+    display:grid;align-content:start;gap:clamp(10px,1.1vw,15px);
+    grid-template-columns:minmax(0,1fr)}
+  .dash>*{min-height:0}
+  @media (min-width:1080px){
+    .bar{grid-column:1/-1;position:sticky;top:0;z-index:6}
+    .dash{height:100dvh;min-height:0;overflow:hidden;grid-template-rows:auto minmax(0,1fr)}
+    /* EVERY MODE THAT IS NOT THE BENTO SCROLLS ITSELF.
+       .dash is height:100dvh;overflow:hidden, so anything taller than the
+       viewport is clipped unless something between it and .dash scrolls.
+       The item and metal pages do that inside .colQ. Every other mode -
+       setup, the deal log, devices, walk-away - was a plain block with
+       overflow:visible, so Setup's 1200px of cards in an 800px window
+       simply ended at the fold: no scrollbar, no wheel, no keyboard.
+       .item and .metal opt back out below, because their sticky rail and
+       sticky #pin need a visible overflow to stick against. */
+    #view{min-height:0;overflow:auto;scrollbar-width:thin;overscroll-behavior:contain}
+    #view.item,#view.metal{overflow:visible}
+    #view.item,#view.metal{display:grid;gap:clamp(10px,1.1vw,15px);align-items:start;
+      grid-template-columns:minmax(0,300px) minmax(0,1fr) minmax(0,320px);
+      grid-template-areas:"left center right"}
+    #view.item{grid-template-rows:auto auto auto auto;
+      grid-template-areas:"pin pin pin" "omni omni omni" "next next next" "left center right"}
+    #pin{grid-area:pin;position:sticky;top:92px;z-index:5}
+    /* THE BENTO. The question is the big tile and the money is the tall one
+       beside it; the rail is a column of readouts rather than a strip of
+       them. The rail spans every row, so the free height goes to the
+       question row or the rows above it inflate to share the rail's. */
+    #view.item.railed{grid-template-columns:minmax(0,1fr) minmax(0,356px);
+      grid-template-rows:auto auto minmax(0,1fr);
+      grid-template-areas:"omni rail" "next rail" "quest rail"}
+    /* THE RAIL RAN OFF THE BOTTOM TOO.
+       Same fault as .colQ, one column over, and my scroll test missed it
+       because that test measured the last CARD - and the cards it looked
+       at are all in the question column. The rail is sticky and
+       start-aligned with no height limit, so "what that number is made
+       of" - twenty-one thumbnails - simply grew past the window and
+       .dash{overflow:hidden} took the rest. The evidence for the price
+       was the part you could not reach.
+       Bounded to what is left of the window under the sticky offset, and
+       it scrolls itself from there. */
+    #view.item.railed .rail{grid-area:rail;position:sticky;top:92px;align-self:start;
+      max-height:calc(100dvh - 92px - clamp(11px,1.3vw,18px));
+      overflow:auto;scrollbar-width:thin;overscroll-behavior:contain;
+      display:flex;flex-direction:column;gap:clamp(8px,.8vw,12px)}
+    #view.item.railed #pin{position:static;grid-area:auto}
+    /* ALIGN-ITEMS:START WAS EATING THE SCROLLBAR.
+       #view.item sets align-items:start so the rail and the tiles sit at
+       the top of their rows instead of stretching. On .colQ that defeated
+       the whole point of its row being minmax(0,1fr): a start-aligned grid
+       item is sized to its CONTENT, so the column grew past the row rather
+       than being constrained by it, its own overflow:auto never had
+       anything to do, and .dash{overflow:hidden} clipped the rest with no
+       scrollbar, no wheel and no keyboard to reach it. Any card past the
+       fold - the loan detail, the deal log - was simply gone.
+       align-self:stretch puts the row back in charge, and the overflow
+       below does the scrolling it was always meant to do. */
+    #view.item.railed .colQ{grid-area:quest;min-width:0;min-height:0;
+      align-self:stretch;display:flex;
+      flex-direction:column;gap:clamp(8px,.8vw,12px);overflow:auto;
+      scrollbar-width:thin;overscroll-behavior:contain}
+    #view.item.railed .colL,#view.item.railed .colC{display:contents}
+    .omni{grid-area:omni}
+    .colL{grid-area:left}.colC{grid-area:center}.colR{grid-area:right}
+    .colL,.colC,.colR{min-width:0;padding:4px 2px 8px}
+    /* THE GOLD PAGE COULD NOT REACH ITS OWN BOTTOM.
+       Reported from the counter, and it reproduces at every desk width: ten
+       cards ending at 1105px in a 900px window, no scrollbar, no wheel, no
+       keyboard. It is opted out of #view{overflow:auto} above because the
+       ITEM page needs a visible overflow for its sticky rail to stick
+       against - and the gold page, which has no sticky anything, was
+       carried out with it.
+       Its three columns scroll themselves instead, the same way the item
+       page's question column does, so the page still holds one screen and
+       the weight box does not walk off the top while you read the offer.
+       align-items:stretch is the half that matters: start-aligned grid
+       items are sized to their CONTENT, so the column grows past its row
+       and its own overflow never has anything to do. */
+    #view.metal{overflow:hidden;align-items:stretch;grid-template-rows:minmax(0,1fr)}
+    #view.metal>.colL,#view.metal>.colC,#view.metal>.colR{
+      min-height:0;overflow:auto;scrollbar-width:thin;overscroll-behavior:contain}
+    .foot{display:none}
+  }
+  @media (max-width:1079px){#view.item,#view.metal{display:block}.colL,.colC,.colR{margin-top:14px}}
+
+  /* ══ GLASS ════════════════════════════════════════════════════════════
+     One material, three elevations, and every card must hold something at
+     a different one than itself. */
+  .card,.bar,.pinStrip{
+    background:linear-gradient(155deg,var(--glass-hi),var(--glass) 72%);
+    -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
+    border:1px solid var(--line);box-shadow:var(--raise)}
+  .card{position:relative;padding:clamp(14px,1.3vw,18px);border-radius:var(--r)}
+  .card+.card{margin-top:14px}
+  .widget{border-radius:var(--r-s);padding:11px 13px;
+    background:linear-gradient(160deg,var(--g2-hi),var(--g2));
+    border:1px solid var(--line);box-shadow:var(--raise)}
+
+  /* ══ TYPE ═════════════════════════════════════════════════════════════ */
+  h1{font-family:var(--disp);font-size:21px;font-weight:700;letter-spacing:-.03em;
+    margin:1px 0 0;line-height:1.05}
+  .label{font-family:var(--mono);font-size:11px;letter-spacing:.15em;text-transform:uppercase;
+    color:var(--ink-3);display:block;margin-bottom:9px;font-weight:500}
+  .cardHint{font-size:13.5px;color:var(--ink-3);margin-top:7px;line-height:1.55}
+  .cardHint b{color:var(--ink-2)}
+  .fine{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);margin-top:11px;line-height:1.55}
+  .eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+    color:var(--ink-3)}
+  .narrow{max-width:820px;margin:0 auto}
+  .mb12{margin-bottom:12px}.mb14{margin-bottom:14px}.mb16{margin-bottom:16px}
+  .row2{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+  /* ══ TOP BAR ══════════════════════════════════════════════════════════ */
+  .bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+    padding:10px 16px;border-radius:var(--r)}
+  .tabwrap{flex:1 1 auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+    justify-content:center}
+  @media (max-width:1079px){ .tabwrap{justify-content:flex-start} .sys{margin-left:0} }
+  .sys{margin-left:auto;font-family:var(--mono);font-size:11.5px;color:var(--ink-3);
+    letter-spacing:.06em;display:flex;align-items:center;gap:7px}
+  .sys .dot{width:7px;height:7px;border-radius:50%;background:var(--good);
+    box-shadow:0 0 6px color-mix(in srgb,var(--good) 60%,transparent)}
+  .stale{color:var(--bad-ink)}
+
+  /* ══ CONTROLS ═════════════════════════════════════════════════════════
+     Segmented controls are pills, and pills only ever live sunk into a
+     well. Everything else is a rounded rectangle. */
+  .pills{display:flex;padding:3px;border-radius:999px;background:var(--well);
+    box-shadow:var(--well-sh);flex-wrap:wrap}
+  .pills button{padding:7px 15px;border:none;border-radius:999px;background:transparent;
+    color:var(--ink-2);cursor:pointer;font-size:13px;font-weight:600;
+    transition:background .18s,color .18s,transform .12s}
+  .pills button:hover{color:var(--ink)}
+  .pills button.on{color:var(--on-accent);font-weight:700;
+    background:linear-gradient(150deg,var(--accent-2),var(--accent));
+    box-shadow:var(--fill-sh)}
+  .pills.ref{background:transparent;box-shadow:none;padding:0;gap:6px}
+  .pills.ref button{background:transparent;color:var(--ink-2);font-weight:600;padding:7px 13px;
+    border:1px solid var(--line);border-radius:999px}
+  .pills.ref button.on{background:var(--g2-hi);color:var(--ink);border-color:transparent;
+    box-shadow:var(--raise)}
+
+  .brassBtn{background:linear-gradient(150deg,var(--accent-2),var(--accent));
+    color:var(--on-accent);border:none;border-radius:999px;padding:0 20px;
+    font-weight:700;font-size:13.5px;cursor:pointer;box-shadow:var(--fill-sh);
+    transition:transform .12s,box-shadow .12s}
+  .brassBtn:hover{transform:translateY(-1px)}
+  .brassBtn:active{transform:translateY(1px);box-shadow:var(--raise)}
+  .ghostBtn{background:linear-gradient(160deg,var(--g2-hi),var(--g2));border:1px solid var(--line);
+    border-radius:999px;color:var(--accent-ink);padding:9px 17px;font-size:13px;font-weight:700;
+    cursor:pointer;flex-shrink:0;box-shadow:var(--raise);transition:transform .12s}
+  .ghostBtn:hover{transform:translateY(-1px)}
+  .ghostBtn:active{transform:translateY(1px)}
+
+  /* engraved inputs */
+  .numIn{width:100%;background:var(--well);border:1px solid var(--line);border-radius:var(--r-xs);
+    color:var(--ink);font-family:var(--mono);font-size:19px;padding:12px 13px;
+    font-variant-numeric:tabular-nums;box-shadow:var(--well-sh)}
+  .numIn.big{font-size:25px}
+  /* No rule meant the browser's own placeholder grey - near-invisible on a
+     well this dark, and that grey "95" in the log box is a real number the
+     counter is being asked to accept or overtype. */
+  /* --ink-3 was still reading as "this box is empty and disabled", and the
+     number in it is not decoration: it is the amount that gets logged if
+     nothing is typed. It has to look like a number. */
+  .numIn::placeholder{color:var(--ink-2);opacity:1}
+  .roOut{width:100%;background:transparent;border:1px dashed var(--line);border-radius:var(--r-xs);
+    color:var(--ink-3);font-family:var(--mono);padding:10px 12px;box-shadow:none;cursor:default}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:7px;
+    border-radius:999px;background:var(--well);box-shadow:var(--well-sh);outline-offset:4px}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:19px;height:19px;
+    border-radius:50%;background:radial-gradient(circle at 34% 30%,#fff,#E4D9C6);
+    box-shadow:0 2px 6px rgba(38,30,16,.45),inset 0 -2px 3px rgba(38,30,16,.18);cursor:pointer}
+  input[type=range]::-moz-range-thumb{width:19px;height:19px;border:none;border-radius:50%;
+    background:radial-gradient(circle at 34% 30%,#fff,#E4D9C6);
+    box-shadow:0 2px 6px rgba(38,30,16,.45),inset 0 -2px 3px rgba(38,30,16,.18);cursor:pointer}
+  .sliderScale{display:flex;justify-content:space-between;font-family:var(--mono);
+    font-size:11px;color:var(--ink-3);margin-top:6px}
+  .rateRow{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:9px}
+  .rateRow .label{margin:0}
+  .rateNum{width:86px;text-align:center;font-size:15px;padding:8px 6px}
+  .saveNote{color:var(--good);margin-left:8px;font-family:var(--mono);font-size:12px}
+
+  /* ══ LIST ROWS ════════════════════════════════════════════════════════ */
+  .catBtn{display:block;width:100%;text-align:left;padding:11px 14px;margin-top:7px;
+    border:1px solid var(--line);border-radius:var(--r-s);cursor:pointer;font-size:14px;
+    font-weight:600;background:linear-gradient(160deg,var(--g2-hi),var(--g2));color:var(--ink-2);
+    box-shadow:var(--raise);transition:transform .12s}
+  .catBtn:hover{transform:translateY(-1px);color:var(--ink)}
+  .catBtn.on{color:var(--on-accent);font-weight:700;border-color:transparent;
+    background:linear-gradient(150deg,var(--accent-2),var(--accent));box-shadow:var(--fill-sh)}
+  .itemBtn{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;
+    padding:10px 12px;margin-top:6px;border:1px solid var(--line);border-radius:var(--r-s);
+    cursor:pointer;text-align:left;font-size:13.5px;font-weight:600;color:var(--ink-2);
+    background:linear-gradient(160deg,var(--g2-hi),var(--g2));box-shadow:var(--raise);
+    transition:transform .14s}
+  .itemBtn:hover{transform:translateY(-1px)}
+  .itemBtn .idx{width:26px;height:26px;border-radius:50%;flex-shrink:0;display:grid;
+    place-content:center;font-family:var(--mono);font-size:10px;color:var(--ink-3);
+    background:var(--well);box-shadow:var(--well-sh)}
+  .itemBtn.on{color:var(--on-accent);border-color:transparent;
+    background:linear-gradient(150deg,var(--accent-2),var(--accent));box-shadow:var(--fill-sh)}
+  .itemBtn.on .idx{color:var(--on-accent);background:rgba(255,255,255,.42);box-shadow:none}
+  .itemBtn .price{font-family:var(--mono);font-size:12.5px;flex-shrink:0;color:var(--ink-3)}
+  .itemBtn.on .price{color:var(--on-accent)}
+  .itemBtn .price.mine{color:var(--info-ink)} .itemBtn.on .price.mine{color:var(--on-accent)}
+  .driver{margin:0 0 12px;padding:11px 13px;border-radius:var(--r-s);background:var(--well);
+    box-shadow:var(--well-sh);font-size:13.5px;color:var(--ink-2);line-height:1.55}
+  .driver b.go{color:var(--good)} .driver b.no{color:var(--bad-ink)}
+  .driver p{margin:0}.driver p+p{margin-top:6px}
+
+  /* ══ FOLDS ════════════════════════════════════════════════════════════ */
+  .browse{position:relative}
+  .browse>summary{list-style:none;cursor:pointer;display:flex;flex-direction:column;gap:3px;
+    padding:14px 16px;border-radius:var(--r);border:1px solid var(--line);
+    background:linear-gradient(160deg,var(--g2-hi),var(--g2));box-shadow:var(--raise)}
+  .browse>summary::-webkit-details-marker{display:none}
+  .browse>summary::after{content:"\203A";position:absolute;right:20px;top:16px;
+    transition:transform .18s;color:var(--ink-3);font-size:18px;line-height:1}
+  .browse[open]>summary::after{transform:rotate(90deg)}
+  .browseSub{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);letter-spacing:.03em}
+  .fold>summary,.foldCard>summary{list-style:none;cursor:pointer}
+  .fold>summary::-webkit-details-marker,.foldCard>summary::-webkit-details-marker{display:none}
+  .foldLine{margin-top:10px;font-size:13px;color:var(--info-ink);font-weight:700}
+  .foldLine::after{content:" \203A"}
+  .fold[open]>.foldLine::after{content:" \02C5"}
+  .foldCard>summary{display:flex;flex-direction:column;gap:3px}
+  .foldSub{font-family:var(--mono);font-size:11px;color:var(--ink-3);letter-spacing:.03em}
+  .stepCard>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:12px}
+  .stepCard>summary::-webkit-details-marker{display:none}
+  .stepSum .stepN{font-family:var(--mono);font-size:12px;color:var(--ink-3);width:25px;height:25px;
+    flex:none;display:grid;place-items:center;border-radius:50%;background:var(--well);
+    box-shadow:var(--well-sh)}
+  .stepSum .stepT{font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--ink-3)}
+  .stepSum .stepA{margin-left:auto;font-size:14.5px;font-weight:700;color:var(--ink);text-align:right}
+  .stepSum.live .stepN{background:linear-gradient(150deg,var(--accent-2),var(--accent));
+    color:var(--on-accent);box-shadow:var(--fill-sh)}
+  .stepSum.live .stepT{color:var(--ink-2)}
+  .stepCard[open]>summary{margin-bottom:11px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+  .stepCard[open] .stepA{color:var(--ink-3);font-weight:600}
+
+  /* ══ THE RUNNING TOTAL ════════════════════════════════════════════════ */
+  .pinStrip{display:flex;align-items:center;gap:clamp(10px,1.6vw,26px);flex-wrap:wrap;
+    padding:11px clamp(12px,1.3vw,18px);border-radius:var(--r);
+    border:1px solid color-mix(in srgb,var(--accent) 34%,var(--line))}
+  .pinNew{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--ink-3);background:var(--well);border:none;border-radius:999px;padding:6px 12px;
+    cursor:pointer;box-shadow:var(--well-sh)}
+  .pinNew:hover{color:var(--ink)}
+  .pinLab{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--ink-3);
+    text-transform:uppercase}
+  .pinCell{display:flex;flex-direction:column;gap:1px;line-height:1.15}
+  .pinCell span{font-size:10.5px;color:var(--ink-3);letter-spacing:.02em;white-space:nowrap}
+  .pinCell b{font-family:var(--mono);font-size:16px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+  .pinCell.big b{font-family:var(--disp);font-size:24px;font-weight:700;color:var(--ink);
+    letter-spacing:-.02em}
+  .pinNote{font-size:12px;color:var(--ink-3);flex:1;min-width:190px;line-height:1.5}
+  @media (min-width:1080px){
+    .pinDecide{gap:clamp(9px,1.1vw,18px)}
+    .pinDecide .pinCell.big{padding:0 clamp(10px,1vw,16px) 0 0}
+    .pinDecide .pinCell.big+.pinCell.big{border-left:1px solid var(--line);
+      padding-left:clamp(10px,1vw,16px)}
+    .pinDecide .pinCell.big span{font-size:11px;letter-spacing:.09em;text-transform:uppercase;
+      color:var(--ink-2)}
+    .pinDecide .pinCell.big b{font-size:38px;line-height:1.02;letter-spacing:-.03em}
+    .pinDecide .pinCell:not(.big){opacity:.8}
+    .pinDecide .pinCell:not(.big) b{font-size:14px}
+    .pinDecide .pinCell:not(.big) span{font-size:10px}
+    .pinDecide .pinNote{min-width:150px;font-size:11.5px;opacity:.9}
+    /* Stacked in the rail the numbers become a column: the two decisions at
+       full size over a rule, the arithmetic in a quiet mono pair beneath. */
+    .pinStrip.pinRail{display:grid;grid-template-columns:1fr 1fr;column-gap:12px;row-gap:9px;
+      align-items:start}
+    .pinStrip.pinRail .pinLab{grid-column:1}
+    .pinStrip.pinRail .pinNew{grid-column:2;justify-self:end}
+    .pinStrip.pinRail .pinCell.big{grid-column:1/-1;padding:0;border-left:none!important;
+      display:flex;flex-direction:row;align-items:baseline;justify-content:space-between;gap:10px;
+      position:relative;z-index:1}
+    .pinStrip.pinRail .pinCell.big:first-of-type{padding-top:10px}
+    .pinStrip.pinRail .pinCell.big+.pinCell.big{padding-left:0;border-top:1px solid var(--line);
+      padding-top:9px;padding-bottom:13px;
+      border-bottom:2px solid color-mix(in srgb,var(--accent) 45%,transparent);margin-bottom:3px}
+    .pinStrip.pinRail .pinCell.big b{font-size:40px}
+    .pinStrip.pinRail .pinCell.big span{font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+      color:var(--ink-2)}
+    .pinStrip.pinRail .pinCell:not(.big){opacity:1}
+    .pinStrip.pinRail .pinCell:not(.big) span{font-size:9.5px;letter-spacing:.11em;
+      text-transform:uppercase;color:var(--ink-3)}
+    .pinStrip.pinRail .pinCell:not(.big) b{font-size:14px;color:var(--ink-2);font-weight:500}
+    .pinStrip.pinRail .pinNote{grid-column:1/-1;min-width:0}
+  }
+  @media (max-width:560px){
+    .pinStrip{display:grid;grid-template-columns:1fr 1fr;column-gap:14px;row-gap:10px;
+      align-items:end;padding:14px 16px;
+      grid-template-areas:"lab new" "buy buy" "res gain" "lend lend" "note note"}
+    .pinLab{grid-area:lab;align-self:center}
+    .pinNew{grid-area:new;justify-self:end;align-self:center}
+    .pinCell[data-k="lend"]{grid-area:lend}
+    .pinCell[data-k="buy"]{grid-area:buy}
+    .pinCell[data-k="resale"]{grid-area:res}
+    .pinCell[data-k="gain"]{grid-area:gain}
+    .pinCell[data-k="cushion"],.pinCell[data-k="fee"],.pinCell[data-k="ltv"]{display:none}
+    .pinNote{grid-area:note;min-width:0;font-size:12.5px;opacity:.9}
+    .pinCell[data-k="buy"] span{font-size:12px;letter-spacing:.07em;text-transform:uppercase}
+    .pinCell[data-k="buy"] b{font-size:46px;line-height:1}
+    .pinStrip.thin .pinCell[data-k="buy"] b{font-size:34px;color:var(--bad-ink)}
+    .pinStrip.thin{grid-template-areas:"lab new" "buy buy" "res res" "lend lend" "note note"}
+    .pinCell[data-k="resale"] b,.pinCell[data-k="gain"] b{font-size:19px}
+    .pinCell[data-k="lend"]{flex-direction:row;align-items:baseline;gap:8px;
+      border-top:1px solid var(--line);padding-top:9px;opacity:.75}
+    .pinCell[data-k="lend"] b{font-size:17px;color:var(--ink-2)}
+    .pinCell span{font-size:11px}
+    .pinStrip:not(:has(.pinCell)){display:flex;flex-wrap:wrap}
+  }
+
+  /* ══ WEIGHT BEHIND A NUMBER ═══════════════════════════════════════════ */
+  .wCard{padding:11px clamp(11px,1.1vw,15px)}
+  .wHead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-top:5px}
+  /* "Is this truly a sold number or a for sale number?" - asked at the
+     counter, and the answer was in this slot in 16px beside a word like
+     "good data". It is the headline of the card and it is the one thing
+     the number's worth turns on, so it is sized like a headline. */
+  .wHead b{font-family:var(--disp);font-size:21px;font-weight:800;letter-spacing:-.02em;
+    color:var(--ink);line-height:1.1}
+  /* The CHILD, not any span inside - the verdict is a span too, and this
+     rule was quietly shrinking it to 11.5px inside a 21px <b>. Caught by
+     the test measuring what the counter would actually see rather than
+     trusting the rule I had just written. */
+  .wHead > span{font-size:11.5px;color:var(--ink-3);text-align:right;line-height:1.3}
+  /* green for a sale, amber for a hope, plain for hearsay - the same
+     colours the rest of the desk uses for the same distinction */
+  .wKind.sold{color:var(--accent-ink)}
+  .wKind.asking{color:var(--warn-ink)}
+  .wBar{height:7px;border-radius:99px;background:var(--well);overflow:hidden;margin-top:9px;
+    box-shadow:var(--well-sh)}
+  .wBar i{display:block;height:100%;border-radius:99px;
+    background:linear-gradient(90deg,var(--accent),var(--accent-2))}
+  .wBar i.warn{background:linear-gradient(90deg,var(--warn),#F2B26B)}
+  .wBar i.none{background:transparent}
+  .wFoot{font-size:12.5px;line-height:1.55;color:var(--ink-2);margin-top:8px}
+  .wFoot b{color:var(--ink)}
+
+  /* ══ THE ANCHOR ═══════════════════════════════════════════════════════ */
+  .gwrap{position:relative;max-width:330px;margin:0 auto}
+  .gwrap svg{display:block;width:100%;height:auto}
+  /* THE WORDS HAVE TO FIT INSIDE THE RING.
+     The arc is r=130 with a 24px stroke in a 340 box, so the clear circle
+     inside it is 236 across - 69.4% of however big the dial is drawn.
+     .gcenter was the whole square, so anything wider than that circle ran
+     over the stroke: "2 of 5 answered" laid across the arc on a phone,
+     unreadable, on the one screen whose job is a single number.
+
+     The box is inset to the circle rather than the children being capped
+     with percentages. Two goes at the child version failed and both are
+     worth remembering: overflow-wrap:anywhere also collapses an element's
+     min-content contribution to one character, so "$35" came out stacked
+     as $ / 3 / 5; and a percentage max-width on a grid item inside an
+     auto-sized track resolves against the track it is helping to size,
+     which is circular and gives a different answer depending on what else
+     is in the ring. Insetting the container has neither problem: the
+     children are ordinary blocks in a box the right size. */
+  .gcenter{position:absolute;inset:15.3%;display:grid;place-content:center;justify-items:center;
+    text-align:center;pointer-events:none}
+  .gcenter>*{max-width:100%;overflow-wrap:break-word}
+  .gcenter .gl{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--ink-3)}
+  .gcenter b{font-family:var(--disp);font-weight:800;font-size:clamp(44px,4.6vw,68px);
+    line-height:.95;letter-spacing:-.05em;font-variant-numeric:tabular-nums;color:var(--ink)}
+  .gcenter .gs{font-family:var(--mono);font-size:12px;color:var(--ink-2);margin-top:4px}
+  .card.unchecked .gwrap{opacity:.45}
+  .tiles{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}
+  .tiles .widget .l{font-family:var(--mono);font-size:10.5px;letter-spacing:.13em;
+    text-transform:uppercase;color:var(--ink-3)}
+  .tiles .widget .v{font-family:var(--mono);font-size:16px;font-weight:600;margin-top:3px;
+    font-variant-numeric:tabular-nums;color:var(--ink)}
+  .ladder{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;margin-top:9px}
+  .rung .k{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--ink-3)}
+  .rung .d{font-family:var(--mono);font-size:15px;font-weight:600;margin-top:2px;
+    font-variant-numeric:tabular-nums}
+
+  /* ══ NOTES ════════════════════════════════════════════════════════════ */
+  .tagNote{border-radius:var(--r-s);background:color-mix(in srgb,var(--info) 10%,transparent);
+    border-left:3px solid var(--info);padding:10px 12px;margin-top:11px;font-size:13.5px;
+    line-height:1.5;color:var(--ink-2)}
+  .tagWarn{border-radius:var(--r-s);background:var(--warn-wash);border-left:3px solid var(--warn);
+    padding:10px 12px;margin-top:11px;font-size:13.5px;line-height:1.5;color:var(--warn-ink)}
+  .tagWarn b{color:var(--warn-ink)}
+  .feedTag{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);margin-top:7px;line-height:1.5}
+  .feedTag b{color:var(--accent-ink);font-weight:600}
+  .valRow{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .valRow .num{font-family:var(--mono);font-size:21px;font-variant-numeric:tabular-nums}
+  .valRow .sub2{font-size:11.5px;color:var(--ink-3);margin-top:3px}
+  .foot{font-size:12.5px;color:var(--ink-3);line-height:1.6;padding:4px 6px}
+  .rules{font-size:13.5px;line-height:1.65;color:var(--ink-2)}
+  .rules b{color:var(--ink)} .rules .hd{color:var(--accent-ink);font-weight:700}
+  .rules .sect{border-top:1px solid var(--line);margin-top:10px;padding-top:10px;font-size:13px}
+  .step .n{width:28px;height:28px;border-radius:50%;flex-shrink:0;display:grid;place-content:center;
+    font-family:var(--mono);font-size:11px;color:var(--on-accent);font-weight:700;
+    background:linear-gradient(150deg,var(--accent-2),var(--accent));box-shadow:var(--fill-sh)}
+  .step .t{font-family:var(--disp);font-size:15px;font-weight:700;line-height:1.3}
+  .step .d{font-size:13px;color:var(--ink-2);line-height:1.55;margin-top:4px}
+  .flag{font-size:13.5px;line-height:1.55;color:var(--ink-2);font-weight:500}
+  .flag .x{width:28px;height:28px;border-radius:50%;flex-shrink:0;display:grid;place-content:center;
+    font-family:var(--mono);font-size:12px;color:var(--bad-ink);background:var(--bad-wash);
+    box-shadow:inset 0 1px 0 var(--edge)}
+  .srcLink{color:var(--accent-ink);font-weight:700;text-decoration:underline;text-underline-offset:3px}
+
+  /* ══ FAKES CHECKLIST ══════════════════════════════════════════════════ */
+  .fakeRow{margin-top:11px;padding-top:10px;border-top:1px solid var(--line)}
+  .fakeRow:first-of-type{border-top:none}
+  .fakeQ{font-size:13.5px;line-height:1.5;color:var(--ink-2)}
+  .fakeRow.done .fakeQ{color:var(--ink-3)}
+  .fakeRow .pills button.on.pass{background:var(--good);color:#fff;box-shadow:var(--raise)}
+  .fakeRow .pills button.on.unsure{background:var(--warn);color:#fff;box-shadow:var(--raise)}
+  .fakeRow .pills button.on.fail{background:var(--bad);color:#fff;box-shadow:var(--raise)}
+
+  /* ══ COMPS ════════════════════════════════════════════════════════════ */
+  .thumbStrip{display:grid;grid-template-columns:repeat(auto-fill,minmax(86px,1fr));gap:8px;margin-top:8px}
+  .thumb{display:flex;flex-direction:column;gap:3px;text-decoration:none;background:var(--g2);
+    border:1px solid var(--line);border-radius:var(--r-xs);padding:6px;overflow:hidden;
+    transition:border-color .12s,transform .12s}
+  a.thumb:hover{border-color:var(--accent);transform:translateY(-1px)}
+  .thumb.sold{border-color:color-mix(in srgb,var(--good) 50%,transparent)}
+  .thumb img{width:100%;aspect-ratio:1;object-fit:contain;border-radius:8px;background:#fff;display:block}
+  .thumb .tPrice{font-family:var(--mono);font-size:12px;color:var(--ink);font-weight:600}
+  .thumb.sold .tPrice{color:var(--good)}
+  .thumb .tWhat{font-size:10.5px;line-height:1.3;color:var(--ink-3);display:-webkit-box;
+    -webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .compGrid{display:grid;gap:8px}
+  .compBtn{display:flex;justify-content:space-between;align-items:center;gap:10px;
+    text-decoration:none;padding:11px 14px;border-radius:var(--r-s);color:var(--ink-2);
+    font-size:13.5px;font-weight:600;border:1px solid var(--line);
+    background:linear-gradient(160deg,var(--g2-hi),var(--g2));box-shadow:var(--raise);
+    transition:transform .12s,box-shadow .12s;cursor:pointer;-webkit-user-select:none;user-select:none}
+  .compBtn:hover{transform:translateY(-1px)}
+  .compBtn:active{transform:translateY(2px) scale(.995);box-shadow:var(--well-sh)}
+  .compBtn .cs{font-family:var(--mono);font-size:11px;color:var(--ink-3);text-align:right;
+    flex-shrink:0;max-width:52%}
+  .compBtn.pending{background:linear-gradient(150deg,var(--accent-2),var(--accent));
+    color:var(--on-accent);border-color:transparent;box-shadow:var(--fill-sh)}
+  .compBtn.pending .cs{color:var(--on-accent)}
+
+  /* ══ THE SEARCH BAR ═══════════════════════════════════════════════════ */
+  .omni{position:relative;z-index:20}
+  .omniWrap{position:relative}
+  .omniBox{display:flex;align-items:center;gap:12px;padding:4px 6px 4px 18px;border-radius:var(--r);
+    background:var(--well);box-shadow:var(--well-sh);border:2px solid var(--line);
+    transition:border-color .16s}
+  .omniBox:focus-within{border-color:var(--accent)}
+  .omniBox svg{flex-shrink:0;width:22px;height:22px}
+  #omniIn{flex:1;min-width:0;background:transparent;border:none;outline:none;color:var(--ink);
+    font-size:clamp(17px,1.5vw,20px);font-weight:600;padding:13px 0}
+  #omniIn::placeholder{color:var(--ink-3);font-weight:500}
+  #omniIn:focus-visible{outline:none}
+  .omniClr{border:none;background:transparent;color:var(--ink-2);font-size:26px;line-height:1;
+    width:42px;height:42px;border-radius:50%;cursor:pointer;flex-shrink:0}
+  #omniIn:placeholder-shown ~ .omniClr{visibility:hidden}
+  .omniHint{font-size:13.5px;color:var(--ink-2);margin:clamp(13px,1.2vw,17px) 4px 0;line-height:1.5}
+  .omniHint b{color:var(--ink);font-weight:600}
+  /* A DROPDOWN IS NOT A WINDOW.
+     This was folded in with the cards when the glass material went in, so
+     the suggestion list became translucent and you could read the page's
+     own hint line straight through the rows - "Try stihl 271, remington
+     870" running underneath the thing you were trying to pick from. Glass
+     is for surfaces you look AT. A list you read off is opaque. */
+  .omniList{position:absolute;left:0;right:0;top:calc(100% + 8px);display:grid;gap:6px;padding:8px;
+    max-height:min(64vh,560px);overflow-y:auto;border-radius:var(--r);
+    background:#1B1F27;border:1px solid var(--line);
+    box-shadow:0 22px 48px -14px rgba(0,0,0,.95);z-index:30}
+  .omniRow{display:flex;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;
+    padding:11px 14px;border:1px solid var(--line);border-radius:var(--r-s);color:var(--ink);
+    text-decoration:none;background:linear-gradient(160deg,var(--g2-hi),var(--g2));
+    box-shadow:var(--raise);transition:transform .1s}
+  .omniRow:hover{transform:translateY(-1px)}
+  .omniRow .ot{flex:1;min-width:0;display:block}
+  .omniRow .on1{display:block;font-size:16px;font-weight:700;line-height:1.25}
+  .omniRow .on2{display:block;font-size:13.5px;color:var(--ink-2);margin-top:2px;line-height:1.35}
+  /* IN THE BOOK, OR NOT. The right-hand column is how you tell at a
+     glance which suggestions already have a researched price behind them
+     and which are only a kind of thing. It used to be present on the
+     priced rows and simply absent on the others, so telling them apart
+     meant noticing an absence halfway down a list. It always says
+     something now: a price, or "you set it". */
+  .omniRow .ov{font-family:var(--mono);font-size:15px;font-weight:700;flex-shrink:0;
+    color:var(--accent-ink);text-align:right;padding:5px 9px;border-radius:var(--r-xs);
+    background:color-mix(in srgb,var(--accent) 14%,transparent);
+    border:1px solid color-mix(in srgb,var(--accent) 30%,transparent)}
+  .omniRow .ov small{display:block;font:600 10px var(--sans);color:var(--ink-3);
+    text-align:right;letter-spacing:.06em;text-transform:uppercase;margin-top:1px}
+  .omniRow .ov.none{color:var(--ink-3);background:transparent;border-color:var(--line);font-weight:600}
+  .omniRow .ov.none small{color:var(--ink-3)}
+  .omniRow.hl .ov{background:rgba(255,255,255,.22);border-color:transparent}
+  .omniRow.hl .ov small{color:color-mix(in srgb,var(--on-accent) 76%,transparent)}
+  .omniRow.sold{background:transparent;border-color:var(--ink-3);box-shadow:none}
+  .omniRow.hl{background:linear-gradient(150deg,var(--accent-2),var(--accent));
+    color:var(--on-accent);border-color:transparent;box-shadow:var(--fill-sh)}
+  .omniRow.hl .on2,.omniRow.hl .ov{color:var(--on-accent)}
+  .omniEmpty{font-size:14px;color:var(--ink-2);padding:6px 6px 2px;line-height:1.5}
+  .omniEmpty b{color:var(--ink)}
+
+  /* ══ SCREENSHOT READER + CAMERA ═══════════════════════════════════════ */
+  .shotZone{margin-top:14px;padding:14px;border-radius:var(--r-s);background:var(--well);
+    box-shadow:var(--well-sh);border:2px dashed var(--line)}
+  .shotZone.drag{border-color:var(--accent)}
+  .shotZone .cardHint{font-size:13.5px;color:var(--ink-2)}
+  .shotThumbs{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .shotT{position:relative;width:78px;height:78px;border-radius:var(--r-xs);overflow:hidden;background:#000}
+  .shotT img{width:100%;height:100%;object-fit:cover;object-position:top;display:block}
+  .shotX{position:absolute;top:3px;right:3px;width:26px;height:26px;border-radius:50%;border:none;
+    background:rgba(0,0,0,.78);color:#fff;font-size:17px;line-height:26px;cursor:pointer;padding:0}
+  .shotList{margin-top:10px;font-size:13.5px;color:var(--ink-2)}
+  .shotList summary{cursor:pointer;color:var(--info-ink);font-weight:700;padding:5px 0}
+  .shotLi{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:8px 0;
+    border-top:1px solid var(--line);line-height:1.4}
+  .shotLi span{min-width:0}
+  .shotLi b{font-family:var(--mono);color:var(--ink);flex-shrink:0;font-weight:600}
+  .shotLi i{font-style:normal;color:var(--warn-ink)}
+  .shotSub{margin-top:10px;font-family:var(--mono);font-size:12px;letter-spacing:.11em;
+    text-transform:uppercase;color:var(--ink-2)}
+  .shotGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-top:10px}
+  .shotItem{background:var(--g2);border:1px solid var(--line);border-radius:var(--r-s);padding:8px}
+  .shotItem img{width:100%;height:96px;object-fit:cover;border-radius:10px;display:block}
+  .shotWhat{font-size:13px;color:var(--ink);margin-top:6px;line-height:1.35}
+  .shotWhen{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);margin-top:2px}
+  .camModal{position:fixed;inset:0;z-index:100;background:rgba(10,8,5,.94);display:grid;
+    place-items:center;padding:16px}
+  .camBox{width:min(900px,100%)}
+  .camBox video{width:100%;max-height:70vh;border-radius:var(--r);background:#000;display:block;
+    object-fit:contain}
+  .camMsg{text-align:center;font-size:15px;color:#fff;margin-top:12px}
+  .camBtn{cursor:pointer}
+  .camLead{border:1px solid color-mix(in srgb,var(--accent) 40%,var(--line))}
+  .camLead .label{font-size:12px;letter-spacing:.1em}
+  .camLead .row2{margin-top:10px}
+  .photoWrap{margin-top:11px;border-radius:var(--r-s);overflow:hidden;background:var(--well);
+    box-shadow:var(--well-sh)}
+  .photoWrap img{display:block;width:100%;max-height:230px;object-fit:contain}
+
+  /* ══ MARKET PRICE ═════════════════════════════════════════════════════ */
+  .mkRow{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+  .mkBig{font-family:var(--disp);font-size:34px;font-weight:800;line-height:1.02;
+    letter-spacing:-.035em;font-variant-numeric:tabular-nums;color:var(--ink)}
+  .mkRange{font-family:var(--mono);font-size:14px;color:var(--ink-2);margin-top:5px}
+  .mkOk{flex-shrink:0;font-size:13px;font-weight:800;color:var(--on-accent);
+    background:linear-gradient(150deg,var(--accent-2),var(--accent));border-radius:999px;
+    padding:6px 13px;box-shadow:var(--fill-sh)}
+  .mkSrc{font-size:14px;color:var(--ink);margin-top:11px;line-height:1.5}
+  .mkSrc b{font-weight:700}
+  .mkNo{font-size:14.5px;line-height:1.55;color:var(--warn-ink);background:var(--warn-wash);
+    border-left:3px solid var(--warn);border-radius:var(--r-s);padding:11px 13px}
+  .mkNo b{color:var(--warn-ink)}
+  .mkSteps{margin:10px 0 12px;padding-left:22px;font-size:14px;line-height:1.55;color:var(--ink-2)}
+  .mkSteps li+li{margin-top:5px}
+  .mkWhat{font-size:14px;line-height:1.5;color:var(--ink-2);margin-top:8px}
+  .mkWhat b{color:var(--ink)}
+  #step4{transition:outline-color .6s}
+  #step4.justIn{outline:3px solid var(--accent);outline-offset:-3px}
+
+  /* ══ NEXT STEP ════════════════════════════════════════════════════════ */
+  .nextStep{grid-area:next;padding:15px 17px}
+  .nextStep.bare{padding:13px 17px}
+  .nextStep.bare .nsGrid{display:block}
+  .nextStep.bare .nsH{font-size:clamp(16px,1.5vw,19px)}
+  .nextStep .label{margin-bottom:10px}
+  .nsGrid{display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
+  @media (min-width:900px){.nsGrid{grid-template-columns:minmax(0,370px) minmax(0,1fr);align-items:start}}
+  .nsSteps{background:var(--well);box-shadow:var(--well-sh);border-radius:var(--r-s);padding:6px}
+  .nsStep{display:grid;grid-template-columns:26px 104px minmax(0,1fr);align-items:center;gap:9px;
+    padding:6px 8px;border-radius:var(--r-xs);color:var(--ink-2)}
+  .nsStep+.nsStep{margin-top:2px}
+  .nsStep.cur{background:linear-gradient(160deg,var(--g2-hi),var(--g2));box-shadow:var(--raise);
+    color:var(--ink)}
+  .nsDot{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;
+    font:700 12px var(--mono);border:2px solid var(--line);color:var(--ink-2)}
+  .nsStep.cur .nsDot{border-color:var(--accent);color:var(--accent-ink)}
+  .nsStep.done .nsDot{background:linear-gradient(150deg,var(--accent-2),var(--accent));
+    border-color:transparent;color:var(--on-accent);box-shadow:var(--fill-sh)}
+  .nsL{font:600 11.5px var(--mono);letter-spacing:.08em;text-transform:uppercase}
+  .nsV{font-size:15px;font-weight:700;color:var(--ink);line-height:1.25;min-width:0;
+    overflow-wrap:anywhere}
+  .nsV small{display:block;font-size:13px;font-weight:500;color:var(--ink-2)}
+  .nsH{font-family:var(--disp);font-size:23px;font-weight:700;line-height:1.2;color:var(--ink);
+    letter-spacing:-.025em}
+  .nsSub{font-size:15px;line-height:1.5;color:var(--ink-2);margin-top:5px}
+  .nsSub b{color:var(--ink)}
+  .nsAct{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+  .nsBtn{display:inline-flex;align-items:center;gap:12px;padding:11px 16px;border:1px solid var(--line);
+    border-radius:var(--r-s);cursor:pointer;text-decoration:none;font:700 15px var(--sans);
+    color:var(--ink);background:linear-gradient(160deg,var(--g2-hi),var(--g2));
+    box-shadow:var(--raise);transition:transform .12s,box-shadow .12s}
+  .nsBtn:hover{transform:translateY(-1px);box-shadow:var(--lift)}
+  .nsBtn:active{transform:translateY(1px)}
+  .nsBtn b{font-family:var(--mono);font-weight:700;color:var(--accent-ink)}
+  .nsBtn i{font-style:normal;font-size:12px;font-weight:600;color:var(--ink-2);margin-left:-6px}
+  .nsBtn.on{background:linear-gradient(150deg,var(--accent-2),var(--accent));
+    color:var(--on-accent);border-color:transparent;box-shadow:var(--fill-sh)}
+  .nsBtn.on b{color:var(--on-accent)}
+  .nsBtn.on i,.nsBtn.on span i{color:color-mix(in srgb,var(--on-accent) 76%,transparent)}
+  .nsBtn.ghost{background:transparent;box-shadow:none;border-color:var(--ink-3);color:var(--ink)}
+  .nsBtn.srcLink{text-decoration:none;color:var(--accent-ink)}
+  @media (min-width:1080px){
+    .nsGrid{gap:10px}
+    .nsStep{padding:3px 8px;gap:8px}
+    .card.nextStep{padding-top:11px;padding-bottom:11px}
+    .nsAct{align-items:stretch}
+    .nsAct>.nsBtn[data-ncond]:not(.ghost),
+    .nsAct>.nsBtn[data-cat]:not(.ghost),
+    .nsAct>.nsBtn[data-mp]:not(.ghost){flex:1 1 130px;min-width:0;justify-content:center;
+      text-align:center;padding:14px 12px}
+    .nsAct>.nsBtn[data-ncond] span{white-space:nowrap}
+  }
+  .buyRow{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:12px;
+    padding:13px 15px;border-radius:var(--r-s);border:1px solid var(--line);
+    background:linear-gradient(160deg,var(--g2-hi),var(--g2));box-shadow:var(--raise)}
+  .buyRow .l{font:600 11.5px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink)}
+  .buyRow .s{font-size:13.5px;line-height:1.45;color:var(--ink-2);margin-top:4px}
+  .buyRow .v{font-family:var(--disp);font-size:27px;font-weight:800;color:var(--ink);
+    letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+
+  /* ══ THE START SCREEN ═════════════════════════════════════════════════ */
+  #view.item.start{display:block!important}
+  .startPane{display:grid;gap:clamp(14px,1.5vw,20px);margin-top:clamp(14px,1.6vw,22px)}
+  .startLede{margin:0 4px;font-size:13.5px;line-height:1.55;color:var(--ink-3)}
+  .startLede b{color:var(--ink-2);font-weight:600}
+  .startTwo,.startCol{display:grid;gap:clamp(10px,1.1vw,15px);align-content:start}
+  @media (min-width:1080px){
+    .startCol{grid-template-columns:repeat(3,minmax(0,1fr));align-items:start}
+    .startCol>.card,.startCol>details{margin-top:0;align-self:start}
+  }
+  .startCol>.card{margin-top:0}
+
+  /* ══ ONE PAGE / ONE QUESTION AT A TIME ════════════════════════════════ */
+  .pgOff{display:none!important}
+  #view.item.paged{display:block!important}
+  #view.item.railed.paged{display:grid!important}
+  body #view.item.railed.paged .colL,body #view.item.railed.paged .colC{display:contents!important}
+  #view.item.railed .pageNav{margin:0 0 2px}
+  #view.item.railed .pageStep{margin-top:8px}
+  .pageSkip{opacity:.75}
+  .pageSkip:hover{opacity:1}
+  body #view.item.paged .colL,body #view.item.paged .colC,body #view.item.paged .colR,
+  body.phone #view.item.paged .colL,body.phone #view.item.paged .colC,body.phone #view.item.paged .colR{
+    display:block!important;width:auto;max-width:none;overflow:visible;height:auto}
+  .pageNav{margin:12px 0 4px}
+  .askCard{padding:clamp(15px,1.6vw,22px)}
+  .askWhere{font-family:var(--mono);font-size:11px;letter-spacing:.11em;color:var(--ink-3);
+    text-transform:uppercase}
+  .askQ{font-family:var(--disp);font-size:clamp(20px,2.2vw,27px);font-weight:700;color:var(--ink);
+    line-height:1.2;margin:6px 0 2px;letter-spacing:-.03em}
+  .askOpts{display:grid;gap:8px;margin-top:14px}
+  @media (min-width:620px){ .askOpts{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))} }
+  .askOpt{display:flex;flex-direction:column;gap:3px;align-items:flex-start;text-align:left;
+    padding:14px 16px;border:1px solid var(--line);border-radius:var(--r-s);cursor:pointer;
+    background:linear-gradient(160deg,var(--g2-hi),var(--g2));color:var(--ink);
+    box-shadow:var(--raise);transition:transform .12s,border-color .12s,box-shadow .12s}
+  .askOpt:hover{border-color:var(--accent);transform:translateY(-1px);box-shadow:var(--lift)}
+  .askOpt.on{background:linear-gradient(150deg,var(--accent-2),var(--accent));
+    color:var(--on-accent);border-color:transparent;box-shadow:var(--fill-sh)}
+  .askT{font-size:15.5px;font-weight:700}
+  .askS{font-size:12px;color:var(--ink-3);line-height:1.4}
+  .askOpt.on .askS{color:color-mix(in srgb,var(--on-accent) 78%,transparent)}
+  .askWorth{margin-top:12px}
+  /* THE END OF THE RUN, ON THE CARD THAT ASKED THE LAST QUESTION.
+     It reads as an answer, not another question: accent edge, the three
+     numbers in display weight, and no controls in it. */
+  .askDone{margin-top:16px;padding:13px 15px 14px;border-radius:var(--r-s);
+    background:var(--field-a);border:1px solid var(--accent)}
+  .askDone.bad{background:var(--warn-wash);border-color:var(--bad)}
+  .adHd{font-size:12px;letter-spacing:.08em;text-transform:uppercase;
+    font-family:var(--mono);color:var(--ink-3)}
+  .adHd b{color:var(--accent-ink);letter-spacing:.08em}
+  .askDone.bad .adHd b{color:var(--warn-ink)}
+  .adBig{font:800 34px/1.02 var(--disp);letter-spacing:-.03em;margin-top:8px;color:var(--ink)}
+  /* THE TWO DECISIONS, AND NOTHING ELSE AT THIS SIZE.
+     They are told apart by shape as well as by label, because at arm's
+     length across a counter two identical boxes of money are two identical
+     boxes of money. The buy is filled; the loan is outlined. */
+  .adPair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;margin-top:12px}
+  .adDeal{padding:13px 14px 14px;border-radius:var(--r-s);min-width:0}
+  .adDeal .k{font:700 11.5px/1.2 var(--mono);letter-spacing:.11em;text-transform:uppercase}
+  .adDeal .d{font:800 clamp(34px,3.4vw,44px)/1 var(--disp);letter-spacing:-.04em;
+    margin:6px 0 5px;font-variant-numeric:tabular-nums;overflow-wrap:break-word}
+  .adDeal .s{font-size:12.5px;line-height:1.4}
+  .adDeal.buy{background:var(--accent);box-shadow:var(--fill-sh)}
+  .adDeal.buy .k{color:color-mix(in srgb,var(--on-accent) 76%,transparent)}
+  .adDeal.buy .d{color:var(--on-accent)}
+  .adDeal.buy .s{color:color-mix(in srgb,var(--on-accent) 82%,transparent)}
+  .adDeal.lend{background:var(--well);border:1px solid var(--accent)}
+  .adDeal.lend .k{color:var(--accent-ink)}
+  .adDeal.lend .d{color:var(--ink)}
+  .adDeal.lend .s{color:var(--ink-2)}
+  .adDeal.lend .s b{color:var(--ink)}
+  @media(max-width:520px){ .adPair{grid-template-columns:minmax(0,1fr)} }
+  .adNote{display:block;margin-top:11px}
+  .adNote span{display:block;font:700 11px/1.2 var(--mono);letter-spacing:.09em;
+    text-transform:uppercase;color:var(--ink-3);margin-bottom:6px}
+  .adNote i{font-style:normal;letter-spacing:.05em;opacity:.8;text-transform:none}
+  .adNote input{width:100%;font-family:var(--sans);font-size:14.5px}
+  .adWhy{margin-top:10px;font-size:13px;line-height:1.5;color:var(--ink-2)}
+  /* WHAT WAS ACTUALLY AGREED. A box, not a tile. */
+  .struck{margin-top:13px;padding:11px 12px 12px;border-radius:var(--r-s);
+    background:var(--well);border:1px solid var(--line)}
+  .struckRow{display:flex;gap:8px;align-items:stretch;margin-top:9px;flex-wrap:wrap}
+  .struckPick{display:flex;padding:3px;border-radius:999px;background:var(--recess,var(--well));
+    border:1px solid var(--line);flex:0 0 auto}
+  .struckPick button{padding:0 15px;min-height:38px;border:none;border-radius:999px;
+    background:transparent;color:var(--ink-3);font:700 13px/1 var(--sans);cursor:pointer}
+  .struckPick button.on{background:var(--accent);color:var(--on-accent);box-shadow:var(--fill-sh)}
+  .struckIn{flex:1 1 110px;min-width:96px;font:800 20px/1 var(--disp);
+    font-variant-numeric:tabular-nums;text-align:center}
+  .struckUse{flex:0 0 auto;min-height:38px;padding:0 14px;font-size:12.5px;
+    display:inline-flex;align-items:center}
+  .struckNote{margin-top:8px}
+  @media(max-width:430px){ .adGrid{grid-template-columns:minmax(0,1fr)} }
+  /* A SCROLL THAT MOVES NOTHING IS AN INVISIBLE SCROLL.
+     "Write the ticket" lands on a card that on a desk is usually already on
+     screen, so the button looked dead. The card says it was aimed at. */
+  .flashTo{animation:flashTo 1.3s ease-out 1}
+  @keyframes flashTo{
+    0%{box-shadow:0 0 0 0 var(--accent)}
+    12%{box-shadow:0 0 0 3px var(--accent)}
+    100%{box-shadow:0 0 0 0 transparent}}
+  @media(prefers-reduced-motion:reduce){ .flashTo{animation:none} }
+  .askNav{display:flex;align-items:center;gap:12px;margin-top:16px}
+  .askNav .ghostBtn,.askNav .brassBtn{min-height:42px;padding:0 20px;font-size:13px;
+    display:inline-flex;align-items:center;justify-content:center;line-height:1}
+  .askDots{flex:1;display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+  .askDots i{width:9px;height:9px;border-radius:999px;background:var(--line);cursor:pointer;
+    display:block;transition:transform .16s,background .16s}
+  .askDots i.done{background:var(--info)}
+  .askDots i.on{background:var(--accent);transform:scale(1.4)}
+  .askHits{margin-top:10px}
+  .pageTabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+  .pageTabs::-webkit-scrollbar{display:none}
+  .pageTabs button{flex:0 0 auto;display:inline-flex;align-items:center;gap:7px;padding:10px 16px;
+    border:none;border-radius:999px;cursor:pointer;white-space:nowrap;background:var(--well);
+    color:var(--ink-2);font-size:14px;font-weight:600;box-shadow:var(--well-sh)}
+  .pageTabs button i{font-style:normal;font-family:var(--mono);font-size:11px;opacity:.75}
+  .pageTabs button.on{background:linear-gradient(150deg,var(--accent-2),var(--accent));
+    color:var(--on-accent);box-shadow:var(--fill-sh)}
+  .pageTabs button.on i{opacity:.6}
+  .pageTabs button.done:not(.on){color:var(--ink)}
+  .pageTabs button.done:not(.on) i{color:var(--good);opacity:1;font-weight:700}
+  .pageTabs button.done.on i{opacity:.8;font-weight:700}
+  .pageStep{display:flex;align-items:center;gap:10px;margin-top:10px}
+  .pageStep .ghostBtn,.pageStep .brassBtn{padding:11px 19px}
+  .pageStep button[disabled]{opacity:.35;cursor:default}
+  .pageWhere{flex:1;text-align:center;font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;
+    color:var(--ink-3);text-transform:uppercase}
+
+  /* ══ THE PHONE'S SNAP SCREEN (shape only; phone.css does the rest) ════ */
+  .snapWrap{display:flex;flex-direction:column;gap:14px}
+  .snapCam{display:flex;flex-direction:column;gap:10px;align-items:stretch}
+  .snapShoot{display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;
+    margin:0;padding:24px;font-size:20px;border-radius:var(--r);text-align:center}
+  .snapAlt{text-align:center;cursor:pointer;font-size:13.5px;color:var(--info-ink);
+    text-decoration:underline;text-underline-offset:3px;padding:2px}
+  .snapBusy{font-size:14px;color:var(--ink-2);display:flex;align-items:center;justify-content:center;gap:10px}
+  .snapBusy .ghostBtn{padding:7px 13px;font-size:12px}
+  .snapOr{text-align:center;font-family:var(--mono);font-size:11px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--ink-3)}
+  .snapTip{font-size:13px;color:var(--ink-3);line-height:1.5}
+  .snapOff{font-size:13px;color:var(--ink-3);line-height:1.6;padding:11px 13px;
+    border:1px dashed var(--line);border-radius:var(--r-s)}
+  .snapOff .ghostBtn{padding:6px 13px;font-size:12.5px;margin-left:4px}
+  .snapName{font-family:var(--disp);font-size:21px;font-weight:700;color:var(--ink);line-height:1.2;
+    letter-spacing:-.03em}
+  .snapName span{display:block;font-family:var(--sans);font-size:13.5px;font-weight:500;
+    color:var(--ink-3);margin-top:3px;letter-spacing:0}
+  .snapCard{padding:20px;border-radius:var(--r);
+    border:1px solid color-mix(in srgb,var(--accent) 38%,var(--line));
+    background:linear-gradient(155deg,var(--glass-hi),var(--glass) 72%);
+    -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);box-shadow:var(--raise)}
+  .snapCard.bad{border-color:color-mix(in srgb,var(--bad) 45%,transparent)}
+  .snapLab{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--ink-3)}
+  .snapBig{font-family:var(--disp);font-size:58px;font-weight:800;line-height:1;color:var(--ink);
+    letter-spacing:-.05em;margin-top:4px}
+  .snapBig.dim{opacity:.45}
+  .snapNo{font-family:var(--disp);font-size:38px;font-weight:800;line-height:1.05;color:var(--bad-ink);
+    letter-spacing:-.04em}
+  .snapSub{font-size:15px;color:var(--ink-2);margin-top:10px;line-height:1.5}
+  .snapSub b{color:var(--ink)}
+  .snapSrc{font-size:12px;color:var(--ink-3);margin-top:10px;border-top:1px solid var(--line);padding-top:9px}
+  .snapSrc:empty{display:none}
+  .snapCond{display:flex;gap:6px;flex-wrap:wrap}
+  .snapCond button{flex:1;min-width:64px;padding:10px 6px;border:none;border-radius:999px;
+    cursor:pointer;background:transparent;color:var(--ink-2);font-size:12.5px;font-weight:600}
+  .snapCond button.on{background:linear-gradient(150deg,var(--accent-2),var(--accent));
+    color:var(--on-accent)}
+  .snapFoot{display:flex;gap:9px;flex-wrap:wrap}
+  .snapFoot button{flex:1;min-width:140px;padding:13px 16px}
+  .snapPin{position:sticky;top:6px;z-index:40;display:block;width:100%;margin:0 0 12px;
+    padding:13px 16px;border:none;border-radius:999px;cursor:pointer;text-align:center;
+    background:linear-gradient(150deg,var(--accent-2),var(--accent));color:var(--on-accent);
+    font-size:15px;font-weight:700;box-shadow:var(--fill-sh)}
+  .snapAsk{display:flex;flex-direction:column;gap:9px;margin-top:12px}
+  .snapAsk label{display:flex;flex-direction:column;gap:4px}
+  .snapAsk span{font-size:12.5px;color:var(--ink-3)}
+  .snapAsk input{width:100%;padding:11px 13px;border-radius:var(--r-xs);border:1px solid var(--line);
+    background:var(--well);color:var(--ink);font-size:15px;box-shadow:var(--well-sh)}
+  .snapAsk input:focus{outline:none;border-color:var(--accent)}
+
+  /* ══ MICRO-INTERACTIONS ═══════════════════════════════════════════════
+     The defence against looking like everything else, and the only motion
+     in here: cards arrive from 14px below, and pressable things answer a
+     press. No rotation, no breathing, nothing that moves on its own while
+     somebody is trying to read a number off it. */
+  @media (prefers-reduced-motion:no-preference){
+    /* .pop only, never .card. This screen re-renders on every answer, so
+       an entrance animation on the card class means the whole page fades
+       itself back in each time somebody taps a button - which reads as the
+       app stalling, not as polish. Entrances belong on the thing that has
+       genuinely just arrived. */
+    .pop{animation:rise .45s cubic-bezier(.2,.8,.2,1) both}
+    @keyframes rise{from{opacity:0;transform:translateY(14px)}}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important}
+  }
+
+  /* The rail's old dial and its tiles lived here. Design A replaced
+     them with the hero card and icon rows, so the rules went with them
+     rather than sitting unreferenced - dead CSS is how the next person
+     spends an afternoon styling something nothing renders. */
+
+  /* ══ THE DESK DOCK ════════════════════════════════════════════════════
+     A column of places down the left, not a row of pills across the top.
+     Glass, like everything else, and fixed as a grid track so the working
+     area keeps its own scroll. */
+  .deskDock{display:flex;gap:4px;align-items:stretch;
+    background:linear-gradient(155deg,var(--glass-hi),var(--glass) 72%);
+    -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
+    border:1px solid var(--line);box-shadow:var(--raise);border-radius:var(--r);
+    padding:6px;overflow:auto;scrollbar-width:none}
+  .deskDock::-webkit-scrollbar{display:none}
+  .deskDock button{display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:5px;flex:0 0 auto;min-width:74px;padding:9px 6px;border:none;background:transparent;
+    cursor:pointer;border-radius:var(--r-s);color:var(--ink-3);text-align:center;
+    transition:color .16s,background .16s,transform .12s}
+  .deskDock button:hover{color:var(--ink-2);background:var(--g2)}
+  .deskDock button:active{transform:scale(.96)}
+  .deskDock button svg{width:22px;height:22px;fill:none;stroke:currentColor;
+    stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  .deskDock button i{font-style:normal;font-size:11px;font-weight:600;line-height:1.15}
+  .deskDock button.on{color:var(--accent-ink);background:var(--g2-hi);box-shadow:var(--raise)}
+  .deskDock button.on svg{stroke-width:2.1}
+  /* Under 1080 there is no room beside the work, so it lies back down as a
+     scrolling strip - still a dock, still the same buttons. */
+  @media (max-width:1079px){
+    .deskDock{order:-1}
+    .deskDock button{min-width:66px;padding:7px 5px}
+    .deskDock button i{font-size:10.5px}
+  }
+  @media (min-width:1080px){
+    /* The shell gains a first column. The dock spans both rows so the
+       header sits beside it rather than over it, which is what keeps the
+       title and the navigation from competing for the same 1400px. */
+    .dash{grid-template-columns:minmax(0,96px) minmax(0,1fr)}
+    /* REPORTED FROM THE COUNTER: "the small left side bar has wasted space."
+       grid-row:1/-1 spans the dock down both rows so the header can sit
+       beside it - which is right - but a stretched grid item fills its row,
+       so a panel of five buttons was drawn 900px tall with two-thirds of it
+       empty glass. align-self:start hugs the buttons; max-height keeps it
+       scrolling rather than overflowing if a tab is ever added. */
+    .deskDock{grid-row:1/-1;grid-column:1;flex-direction:column;align-items:stretch;
+      align-self:start;max-height:100%;
+      justify-content:flex-start;overflow-y:auto;overflow-x:hidden}
+    .deskDock button{min-width:0;width:100%;padding:11px 4px}
+    .bar{grid-column:2;grid-row:1}
+    #view{grid-column:2;grid-row:2}
+    .foot{grid-column:2}
+  }
+
+  /* ══ THE FRONT PAGE ═══════════════════════════════════════════════════
+     It was a search box and 600px of nothing, with the four best ways in
+     written out as prose to retype and the twelve categories folded shut.
+     Both are controls now. */
+  .startWays{display:flex;flex-direction:column;gap:10px}
+  .startGrid{display:grid;gap:9px;grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
+  .kindTile{display:flex;flex-direction:column;gap:3px;align-items:flex-start;text-align:left;
+    padding:14px 15px;border-radius:var(--r-s);cursor:pointer;border:1px solid var(--line);
+    background:linear-gradient(160deg,var(--g2-hi),var(--g2));box-shadow:var(--raise);
+    transition:transform .12s,border-color .12s,box-shadow .12s}
+  .kindTile:hover{transform:translateY(-2px);border-color:var(--accent);box-shadow:var(--lift)}
+  .kindTile:active{transform:translateY(0)}
+  .kindTile b{font-family:var(--disp);font-size:15.5px;font-weight:700;color:var(--ink);
+    letter-spacing:-.02em;line-height:1.2}
+  .kindTile span{font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;
+    text-transform:uppercase;color:var(--ink-3)}
+
+  /* ══ THE WALLET ═══════════════════════════════════════════════════════
+     Design A, chosen from three live samples. The thing being priced is
+     a card: a vivid gradient panel carrying one enormous figure, a row
+     of circular actions directly beneath it, and everything else as an
+     icon-led row with the value right-aligned.
+
+     The gradient is darker than the sample's. White on #3B82F6 is 3.3:1
+     - fine for the 60px numeral, which is large text, and a fail for the
+     13px line under it. The fill ends at #1E40AF so every weight of text
+     on it clears 4.5:1, and check-contrast holds it there. */
+  :root{
+    --hero1:#2C63D6; --hero2:#1E3FA8;
+    --on-hero:#FFFFFF; --on-hero-2:rgba(255,255,255,.88);
+  }
+  .hero{position:relative;overflow:hidden;border-radius:var(--r);padding:20px 20px 17px;
+    background:linear-gradient(145deg,var(--hero1) 0%,var(--hero2) 78%);
+    box-shadow:0 18px 40px -20px rgba(30,63,168,.85),inset 0 1px 0 rgba(255,255,255,.28)}
+  .hero::after{content:"";position:absolute;right:-64px;top:-76px;width:224px;height:224px;
+    border-radius:50%;background:rgba(255,255,255,.09);pointer-events:none}
+  .hero>*{position:relative;z-index:1}
+  .heroWho{font:600 12.5px var(--sans);color:var(--on-hero-2)}
+  .heroWhat{font:800 20px var(--disp);color:var(--on-hero);letter-spacing:-.03em;
+    margin-top:2px;line-height:1.15}
+  .heroLab{font:500 11px var(--mono);letter-spacing:.16em;text-transform:uppercase;
+    color:var(--on-hero-2);margin-top:16px}
+  .heroBig{font:800 clamp(46px,15vw,62px) var(--disp);color:var(--on-hero);letter-spacing:-.05em;
+    line-height:.95;font-variant-numeric:tabular-nums;margin-top:2px}
+  .heroBig.bad{color:#FFD5DA}
+  .heroSub{font:500 13.5px var(--sans);color:var(--on-hero-2);margin-top:6px;line-height:1.45}
+  .heroBar{height:6px;border-radius:99px;background:rgba(0,0,0,.28);overflow:hidden;margin-top:12px}
+  .heroBar i{display:block;height:100%;border-radius:99px;background:#fff;min-width:4px;
+    transition:width .3s}
+  /* the circular actions */
+  .acts{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:9px;margin-top:17px}
+  .act{display:flex;flex-direction:column;align-items:center;gap:6px;border:none;background:none;
+    cursor:pointer;padding:0;color:var(--on-hero);transition:transform .12s}
+  .act:active{transform:scale(.93)}
+  .act i{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;font-style:normal;
+    background:rgba(255,255,255,.20);border:1px solid rgba(255,255,255,.30)}
+  .act i svg{width:20px;height:20px;fill:none;stroke:#fff;stroke-width:1.9;
+    stroke-linecap:round;stroke-linejoin:round}
+  .act span{font:600 11.5px var(--sans);color:var(--on-hero)}
+  .act:focus-visible{outline:2.5px solid #fff;outline-offset:3px;border-radius:12px}
+  .act[disabled]{opacity:.45;cursor:default}
+  /* icon-led rows: everything that is not the number */
+  .wSect{font:500 11px var(--mono);letter-spacing:.16em;text-transform:uppercase;
+    color:var(--ink-3);margin:18px 2px 9px}
+  .wRow{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--r-s);
+    background:var(--glass);border:1px solid var(--line);text-align:left;width:100%}
+  .wRow+.wRow{margin-top:7px}
+
+  /* WHAT HE PAYS BACK. Second-loudest thing on the rail, under the hero.
+     It is the question the customer asks out loud while you are still
+     holding the offer, and it used to be folded shut three cards away. */
+  /* The rail once the run is finished: a name, the three actions, and then
+     the things the middle column does not say. No second copy of the money. */
+  .railTop{padding:13px 15px 12px;border-radius:var(--r);
+    background:linear-gradient(158deg,var(--glass-hi),var(--glass) 72%);
+    border:1px solid var(--line);box-shadow:var(--raise)}
+
+  /* A "no" is the one thing worth saying in both columns. */
+  .railTop.bad{border-color:var(--bad)}
+  .railNo{margin:0 0 11px;padding:9px 11px;border-radius:var(--r-s);
+    background:var(--bad-wash);color:var(--bad-ink);font-size:13.5px;line-height:1.45}
+  .railNo b{color:var(--bad)}
+  /* WHERE THE NUMBER CAME FROM, said in words rather than left to be
+     inferred from a bar. */
+  .wVia{display:flex;align-items:baseline;gap:8px;margin:9px 0 4px;
+    padding-top:9px;border-top:1px solid var(--line)}
+  .wVia span{font:700 10.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;
+    color:var(--ink-3);flex:0 0 auto}
+  .wVia b{font-size:13.5px;color:var(--ink);line-height:1.3}
+  .wWhy{font-size:12.5px;line-height:1.45;color:var(--warn-ink);margin-bottom:5px}
+  .wFrom{font-size:12px;color:var(--ink-3);font-family:var(--mono);margin-bottom:5px}
+  .seenTag{font:600 10.5px var(--mono);letter-spacing:.04em;color:var(--accent-ink);
+    background:var(--well);border-radius:999px;padding:3px 8px;flex:0 0 auto;margin-left:6px}
+  /* ---- the trade's words, in plain ones ---- */
+  .words{margin:10px 0 0;padding:0;display:grid;gap:11px}
+  .words dt{font:700 13.5px/1.35 var(--sans);color:var(--ink)}
+  .words dt i{font-style:normal;color:var(--accent-ink);font-family:var(--mono);font-size:12.5px}
+  .words dd{margin:3px 0 0;font-size:13px;line-height:1.5;color:var(--ink-2)}
+  .words dd b{color:var(--ink)}
+  .words dd i{font-style:italic;color:var(--ink)}
+  /* ---- how firm an item's number is ---- */
+  .iGuard{margin-top:10px}
+  .iHead{margin-top:7px;font:700 15px/1.35 var(--sans);color:var(--ink)}
+  .iHead.good{color:var(--good)}
+  .iHead.warn{color:var(--warn-ink)}
+  .iLine{margin-top:4px;font-size:14px;line-height:1.45;color:var(--ink-2)}
+  .iLine b{color:var(--ink);font-family:var(--mono);font-weight:700}
+  .iFold{margin-top:9px}
+  .iMore{font-size:12.5px;line-height:1.5;color:var(--ink-3);display:grid;gap:7px;padding-top:7px}
+  .iMore p{margin:0}
+  .iMore b{color:var(--ink-2)}
+  .iHead{margin-top:7px;font:700 15px/1.35 var(--sans);color:var(--ink)}
+  .iHead.good{color:var(--good)}
+  .iHead.warn{color:var(--warn-ink)}
+  .iLine{margin-top:4px;font-size:14px;line-height:1.45;color:var(--ink-2)}
+  .iLine b{color:var(--ink);font-family:var(--mono);font-weight:700}
+  .iFold{margin-top:9px}
+  .iMore{font-size:12.5px;line-height:1.5;color:var(--ink-3);display:grid;gap:7px;padding-top:7px}
+  .iMore b{color:var(--ink-2)}
+  .iBand{margin-top:10px;padding:10px 12px;border-radius:var(--r-xs);background:var(--well);
+    display:flex;flex-direction:column;gap:2px}
+  .iBand .k{font:500 9.5px/1.25 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+  .iBand b{font:700 19px/1.15 var(--mono);font-variant-numeric:tabular-nums;color:var(--ink)}
+  .iBand .s{font-size:11.5px;line-height:1.45;color:var(--ink-3);margin-top:2px}
+  /* ---- the trend's own word, with a button to take it or not ---- */
+  .mWarn{margin-top:10px;padding:11px 13px;border-radius:var(--r-s);background:var(--well);
+    border-left:3px solid var(--line)}
+  .mWarn.on{background:var(--warn-wash);border-left-color:var(--warn)}
+  .mWarn .h{font:700 14.5px/1.3 var(--sans);color:var(--ink)}
+  .mWarn.on .h{color:var(--warn-ink)}
+  .mWarn .p{margin-top:4px;font-size:13px;line-height:1.5;color:var(--ink-2)}
+  /* NOT flex: the bold figures inside the sentence became flex ITEMS, so the
+     line broke around each one and a stray full stop started its own row. A
+     sentence is a block; the button rides inline inside it. */
+  .mWarn .ask{margin-top:9px;padding-top:9px;border-top:1px solid var(--line);
+    font-size:13px;line-height:1.7;color:var(--ink-2)}
+  .mWarn .ask .ghostBtn,.mWarn .ask .ison{vertical-align:middle;margin-left:6px}
+  .mWarn .ask b{color:var(--ink)}
+  .mWarn .ask .ghostBtn{padding:6px 13px;font-size:12px}
+  .mWarn .ask .no{display:block;margin-top:6px;font-size:12px;color:var(--ink-3)}
+  .mWarn .ask .ison{font-size:12.5px;color:var(--ink-2);font-weight:600}
+  /* ---- the metal guard: two years of the market, and the number it makes ---- */
+  .mChart{margin:10px 0 2px}
+  .mChart svg{display:block;width:100%;height:auto;overflow:visible}
+  .mcLine{fill:none;stroke:var(--accent-2);stroke-width:1.6;stroke-linejoin:round}
+  .mcAvg{fill:none;stroke:var(--ink-3);stroke-width:1.2;stroke-dasharray:3 3}
+  .mcGuard{stroke:var(--warn);stroke-width:1.4;stroke-dasharray:5 3}
+  .mcSafe{fill:var(--good);opacity:.09}
+  .mcNow{fill:var(--accent-2)}
+  .mcAx{fill:var(--ink-3);font-family:var(--mono);font-size:8.5px}
+  .mcLab{font-family:var(--mono);font-size:9.5px;font-weight:700}
+  .mcLab.now{fill:var(--accent-ink)}
+  .mcLab.guard{fill:var(--warn-ink)}
+  .mcKey{display:flex;flex-wrap:wrap;gap:12px;margin-top:7px;font-family:var(--mono);
+    font-size:10px;letter-spacing:.05em;color:var(--ink-3)}
+  .mcKey span{display:flex;align-items:center;gap:5px}
+  .mcKey i{width:13px;height:2px;border-radius:2px;display:block}
+  .mcKey .k1{background:var(--accent-2)}
+  .mcKey .k2{background:var(--ink-3)}
+  .mcKey .k3{background:var(--warn)}
+  .mRead{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}
+  .mStat{background:var(--well);border-radius:var(--r-xs);padding:9px 10px;display:flex;
+    flex-direction:column;gap:1px;min-width:0}
+  .mStat .k{font:500 9.5px/1.25 var(--mono);letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3)}
+  .mStat b{font:700 19px/1.1 var(--mono);font-variant-numeric:tabular-nums;color:var(--ink)}
+  .mStat b.good{color:var(--good)} .mStat b.warn{color:var(--warn-ink)} .mStat b.bad{color:var(--bad-ink)}
+  .mStat .s{font-size:10.5px;color:var(--ink-3);line-height:1.3}
+  .mVerdict{margin-top:11px;padding:13px 15px;border-radius:var(--r-s);
+    background:linear-gradient(150deg,var(--accent-2),var(--accent));color:var(--on-accent)}
+  .mVerdict.buy{background:var(--g2);color:var(--ink);border:1px solid var(--line)}
+  .mVerdict .k{font:600 10.5px/1 var(--mono);letter-spacing:.13em;text-transform:uppercase;opacity:.85}
+  .mVerdict .d{font:800 34px/1.05 var(--disp);letter-spacing:-.02em;margin-top:4px;
+    font-variant-numeric:tabular-nums}
+  .mVerdict .d small{font-size:15px;font-weight:600;opacity:.7;margin-left:3px}
+  .mVerdict .s{font-size:12.5px;margin-top:3px;opacity:.9}
+  .mWhy{margin-top:11px;font-size:13.5px;line-height:1.5;color:var(--ink-2)}
+  .mWhy b{color:var(--ink)}
+  .mEvid{margin-top:9px;padding-top:9px;border-top:1px solid var(--line);
+    font-family:var(--mono);font-size:11px;line-height:1.5;color:var(--ink-3)}
+  .mEvid b{color:var(--ink-2)}
+  .mEvid b.thin{display:block;margin-top:5px;color:var(--warn-ink)}
+  @media (max-width:560px){ .mRead{grid-template-columns:1fr} }
+  .killCard{margin-top:7px;padding:12px 14px 13px}
+  .killRow{display:flex;flex-direction:column;gap:2px;margin-top:9px}
+  .killRow b{font-size:11px;letter-spacing:.09em;text-transform:uppercase;font-family:var(--mono)}
+  .killRow.no b{color:var(--bad)}
+  .killRow.go b{color:var(--accent-ink)}
+  /* GREY TEXT IN A BLACK BOX. Reported from the counter, about the last
+     thing read before the money moves. 80% white at 13.5px is fine in a
+     footnote and wrong here: this card is the one that says walk away.
+     Full white, a size up, and the label rows keep their colour. */
+  .killRow span{font-size:14.5px;line-height:1.5;color:var(--ink)}
+  /* the answer card's subject line, so the figures are never orphaned */
+  .adWhat{margin-top:7px;font:800 19px/1.15 var(--disp);letter-spacing:-.02em;color:var(--ink)}
+  /* What the Look up button is doing, under the Look up button. */
+  .railFind{margin-top:10px;font-size:12.5px;line-height:1.45;color:var(--ink-2);
+    font-family:var(--mono);border-top:1px solid var(--line);padding-top:9px}
+  .railFind.busy{color:var(--accent-ink)}
+  .railBack{margin-top:7px;padding:12px 14px 11px;border-radius:var(--r-s);
+    background:var(--glass);border:1px solid var(--line)}
+  .railBackHd{display:flex;align-items:baseline;gap:8px;margin-bottom:9px}
+  .railBackHd b{font-size:13.5px;letter-spacing:-.01em}
+  .railBackHd span{margin-left:auto;font-size:11px;color:var(--ink-3);
+    font-family:var(--mono)}
+  .railLadder{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+  .rbCell{padding:8px 9px 9px;border-radius:var(--r-xs);background:var(--well);
+    border:1px solid var(--line);min-width:0}
+  .rbCell .k{font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;
+    color:var(--ink-3);font-family:var(--mono);white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis}
+  .rbCell .d{font:800 19px/1.05 var(--disp);letter-spacing:-.03em;margin-top:3px;
+    font-variant-numeric:tabular-nums;overflow-wrap:break-word}
+  /* Day 30 is the one that decides the deal, so it is the one that is lit. */
+  .rbCell.now{background:var(--field-a);border-color:var(--accent)}
+  .rbCell.now .k{color:var(--accent-ink)}
+  .rbCell.now .d{font-size:22px;color:var(--ink)}
+  .rbDay60{margin-top:9px;padding-top:8px;border-top:1px solid var(--line);
+    font-size:11.5px;line-height:1.45;color:var(--ink-2)}
+  .rbDay60 b{color:var(--warn-ink)}
+  @media (max-width:1079px){ .railLadder{grid-template-columns:repeat(3,minmax(0,1fr))} }
+  button.wRow,a.wRow{cursor:pointer;color:inherit;text-decoration:none;transition:transform .12s}
+  button.wRow:hover,a.wRow:hover{transform:translateY(-1px)}
+  .wRow>i{width:40px;height:40px;flex:none;border-radius:13px;display:grid;place-items:center;
+    background:var(--g2);font-style:normal}
+  .wRow>i svg{width:19px;height:19px;fill:none;stroke:var(--accent-ink);stroke-width:1.8;
+    stroke-linecap:round;stroke-linejoin:round}
+  .wRow .t{flex:1;min-width:0}
+  .wRow .t b{display:block;font:700 14.5px var(--sans);color:var(--ink)}
+  .wRow .t span{display:block;font:400 12.5px var(--sans);color:var(--ink-3);margin-top:1px;
+    line-height:1.4}
+  .wRow .v{font:800 17px var(--disp);color:var(--ink);letter-spacing:-.02em;
+    font-variant-numeric:tabular-nums;text-align:right;flex:none}
+  .wRow .v small{display:block;font:500 10px var(--mono);letter-spacing:.1em;
+    text-transform:uppercase;color:var(--ink-3)}
+  .wBar{height:5px;border-radius:99px;background:var(--well);overflow:hidden;margin-top:7px}
+  .wBar i{display:block;height:100%;border-radius:99px;background:var(--accent)}
+  .wBar i.warn{background:var(--warn)} .wBar i.none{background:transparent}
+
+  /* The desk's hero: same card, wider, and the actions get room to
+     breathe because there are three of them rather than four. */
+  .deskHero{padding:18px 18px 16px}
+  .deskHero .heroBig{font-size:clamp(44px,3.4vw,58px)}
+  .deskHero .acts{grid-auto-columns:1fr;gap:8px;margin-top:15px}
+  .rail0{display:none}
+  .railNote{margin-top:11px;font-size:12px;line-height:1.5;color:var(--ink-3)}
+  #view.item.railed .rail .wRow{margin-top:8px}
+
+  /* The start screen: ways in on the left, the day on the right - the
+     same two-column shape the item screen uses, so the page does not
+     rearrange itself the moment something is picked. */
+  .startHome{display:grid;gap:clamp(12px,1.3vw,18px);grid-template-columns:minmax(0,1fr)}
+  .startMain,.startRail{display:flex;flex-direction:column;gap:clamp(12px,1.3vw,18px);min-width:0}
+  .homeHero .heroBig{font-size:clamp(40px,3vw,52px)}
+  @media (min-width:1080px){
+    .startHome{grid-template-columns:minmax(0,1fr) minmax(0,356px);align-items:start}
+    #view.item.start{overflow:auto;scrollbar-width:thin}
+    /* .startCol was written for the full desk width and still carries
+       "repeat(3,1fr)". Inside a 356px rail that is three 100px columns,
+       which folded the Setup card into one word per line with its inputs
+       cut off. In the rail it is one column, like everything else there. */
+    .startRail .startCol{grid-template-columns:minmax(0,1fr)}
+  }
+
+```
+
+### `phone.css` — 256 lines
+
+```css
+  /* ══ THE PHONE ════════════════════════════════════════════════════════
+     Everything the desk is, in one hand: liquid glass on the same warm
+     paper, the same brass, the same three faces. What differs is what is
+     ON it. Navigation is a dock under the thumb, the answer is a dial you
+     can read across a driveway, and anything that is neither is either one
+     tap away or gone.
+
+     The new minimalism, which the trend piece calls "the brave act of
+     getting out of the way": the phone screen is the place that costs the
+     most to get wrong, so it carries the least.
+     ══════════════════════════════════════════════════════════════════ */
+
+  /* The desk's three columns have nothing to lay out here. */
+  body.phone #view.item .colL,body.phone #view.item .colC,body.phone #view.item .colR{display:none!important}
+  body.phone .foot{display:none!important}
+  body.phone #view.item{display:block!important}
+  body.phone .nextStep{margin-top:10px}
+  body.phone .nsGrid{grid-template-columns:minmax(0,1fr)!important}
+  body.phone .nsH{font-size:25px}
+  body.phone .nsSub{font-size:16px}
+  body.phone .nsBtn{font-size:16px;padding:13px 16px}
+
+  /* ---- the title line -------------------------------------------------
+     Not a card. With the navigation gone to the foot there is one line of
+     text left up here, and a panel around one line of text is furniture. */
+  body.phone .bar{background:none;border:none;box-shadow:none;border-radius:0;
+    padding:2px 2px 0;gap:10px;row-gap:6px;-webkit-backdrop-filter:none;backdrop-filter:none}
+  body.phone .brand .eyebrow{display:none}
+  body.phone .brand h1{font-size:15px;color:var(--ink-3);font-weight:700;letter-spacing:-.01em;
+    margin:0;white-space:nowrap}
+  body.phone .sys{font-size:11px;letter-spacing:.05em;margin-left:auto}
+  /* Spot gold earns a line while gold is on the scale, and nowhere else. */
+  body.phone .dash:has(#view.item) .sys{display:none}
+
+  /* ---- THE DOCK -------------------------------------------------------
+     Fixed along the bottom, in the band a hand holding the phone can
+     actually reach. Glass, so the page slides under it rather than
+     stopping dead at a bar. The current place is LIT, not filled: a solid
+     pill sitting under the thumb all day reads as a button waiting to be
+     pressed. */
+  body.phone{--dock:58px}
+  body.phone .dash{padding-bottom:calc(var(--dock) + env(safe-area-inset-bottom) + 14px)}
+  body.phone .dock{position:fixed;left:0;right:0;bottom:0;z-index:50;
+    display:grid;grid-auto-flow:column;grid-auto-columns:1fr;align-items:stretch;gap:0;
+    padding:6px 4px calc(6px + env(safe-area-inset-bottom));
+    background:linear-gradient(to top,var(--glass-hi),var(--glass));
+    -webkit-backdrop-filter:blur(22px) saturate(170%);backdrop-filter:blur(22px) saturate(170%);
+    border-top:1px solid var(--line)}
+  body.phone .dock button{display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:3px;min-width:0;padding:5px 2px;border:none;background:transparent;
+    cursor:pointer;border-radius:var(--r-s);color:var(--ink-3);
+    transition:color .16s,transform .12s}
+  body.phone .dock button:active{transform:scale(.94)}
+  body.phone .dock button svg{width:21px;height:21px;fill:none;stroke:currentColor;
+    stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  body.phone .dock button i{font-style:normal;font-size:10.5px;font-weight:600;line-height:1;
+    max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  body.phone .dock button.on{color:var(--accent-ink)}
+  body.phone .dock button.on svg{stroke-width:2.1}
+
+  /* ---- the anchor -----------------------------------------------------
+     Sized off the SHORT phone as well as the narrow one: 56vw is 201px on
+     a 360px screen, and on a 780px-tall one that is 39px too tall. The vh
+     term is what keeps it inside a small phone. */
+  body.phone .snapAnchor .gwrap{max-width:min(210px,56vw,23vh)}
+  /* The arc stops at 270 degrees, so the bottom eighth of its box is
+     empty. Pull the next thing up into the gap. */
+  body.phone .snapAnchor svg{margin-bottom:-13%}
+  body.phone .snapAnchor .gcenter b{font-size:clamp(34px,11vw,46px)}
+  /* A FIXED CAP IN A PROPORTIONAL RING IS A BUG WAITING FOR A SMALL
+     PHONE. This said max-width:170px, which beat the 64% the ring
+     actually allows - so on a 360px screen the clear circle is 111px and
+     this was still free to run to 170. The cap has to scale with the
+     dial or it is not a cap. */
+  body.phone .snapAnchor .gcenter .gs{font-size:11.5px;margin:0 auto}
+  /* A dash set at the size of a price is a brick. It is a placeholder and
+     should look like one. */
+  body.phone .snapAnchor .gcenter b .gdash{font-size:.48em;color:var(--ink-3);
+    position:relative;top:-.12em}
+  body.phone .snapAnchor.bad .gcenter b,body.phone .snapAnchor.bad .gcenter .gl{color:var(--bad-ink)}
+  body.phone .snapCard{padding:16px}
+  /* Where the number came from is spelled out by the card underneath. */
+  body.phone .snapCard .snapSrc{display:none}
+
+  /* ---- the two figures behind the offer ------------------------------
+     Readouts cut into the housing, side by side. They were a caption
+     inside the ring, where at 390px they wrapped over the arc. */
+  body.phone .snapStats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:2px}
+  body.phone .snapStats>div{padding:10px 13px;border-radius:var(--r-s);background:var(--well);
+    box-shadow:var(--well-sh);display:flex;flex-direction:column;gap:3px;min-width:0}
+  body.phone .snapStats span{font-family:var(--mono);font-size:10.5px;letter-spacing:.11em;
+    text-transform:uppercase;color:var(--ink-3)}
+  body.phone .snapStats b{font-family:var(--disp);font-size:22px;font-weight:800;
+    letter-spacing:-.035em;color:var(--ink);font-variant-numeric:tabular-nums}
+
+  /* ---- condition: one control, five settings -------------------------
+     Loose on the page they read as five unrelated buttons. Sunk into a
+     single well they read as one choice, which is what they are. */
+  body.phone .snapCond{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:3px;
+    padding:4px;border-radius:999px;background:var(--well);box-shadow:var(--well-sh)}
+  body.phone .snapCond button{min-width:0;padding:10px 2px;font-size:12px}
+  body.phone .snapCond button.on{box-shadow:var(--fill-sh);font-weight:700}
+
+  /* ---- out of the detailed screen ------------------------------------
+     A chip. It was a full-width brass button - the loudest thing on the
+     screen - because it used to live in the tab strip and scroll away, so
+     it had to shout to be found. The dock does not scroll. */
+  body.phone .snapPin{display:inline-flex;align-items:center;gap:6px;width:auto;
+    padding:8px 15px;font-size:13.5px;font-weight:600;margin:0 0 12px;
+    background:linear-gradient(160deg,var(--g2-hi),var(--g2));color:var(--ink-2);
+    border:1px solid var(--line);box-shadow:var(--raise)}
+
+  /* ---- the unconnected footnote --------------------------------------
+     Only ever true until somebody types two lines into Setup. */
+  body.phone .snapOff{padding:9px 12px;font-size:12.5px;line-height:1.5}
+  body.phone .snapOff .ghostBtn{padding:5px 12px;font-size:12px}
+  body.phone .snapFoot button{padding:12px 15px;font-size:14px}
+
+  /* ---- the walk-away verdict -----------------------------------------
+     Three states, three washes, and the word carries the colour. */
+  .phIn{display:flex;align-items:center;gap:8px;width:100%;margin-top:4px}
+  .phIn span{font:700 22px var(--mono);color:var(--ink)}
+  .phIn input{flex:1;min-width:0;font:700 22px var(--mono);color:var(--ink);background:var(--well);
+    box-shadow:var(--well-sh);border:1px solid var(--line);border-radius:var(--r-xs);padding:12px 14px}
+  .phIn.big input{font-size:30px;padding:14px 16px}
+  .phIn input:focus{outline:3px solid var(--accent);outline-offset:1px}
+  .phVerdict{margin-top:12px;border-radius:var(--r-s);padding:15px 17px;border:2px solid}
+  .phVerdict.good{border-color:var(--good);background:color-mix(in srgb,var(--good) 11%,transparent)}
+  .phVerdict.thin{border-color:var(--warn);background:var(--warn-wash)}
+  .phVerdict.pass{border-color:var(--bad);background:var(--bad-wash)}
+  .phWord{font-family:var(--disp);font-size:30px;font-weight:800;letter-spacing:-.035em}
+  .phVerdict.good .phWord{color:var(--good)}
+  .phVerdict.thin .phWord{color:var(--warn-ink)}
+  .phVerdict.pass .phWord{color:var(--bad-ink)}
+  .phLine{font-size:17px;line-height:1.45;color:var(--ink);margin-top:4px}
+  .phMath{font-size:15px;line-height:1.5;color:var(--ink-2);margin-top:8px}
+  .phMath b,.phLine b{color:var(--ink)}
+  .phSrc{font-size:15px;line-height:1.5;color:var(--ink-2);margin-top:12px}
+  .phSrc b{color:var(--ink)}
+  .phKinds{margin-top:14px;font-size:15px;color:var(--ink-2)}
+  .phKinds summary{cursor:pointer;font-weight:700;color:var(--ink)}
+  .phKindRow{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+
+  /* ---- the small phone ------------------------------------------------
+     360x780 is the size that decides everything: the dial, the card
+     padding and the gaps between cards each cost a few pixels there and
+     the sum of them is a screen that scrolls. Measured, not guessed -
+     check-screens walks four phone sizes and four states. */
+  @media (max-height:800px){
+    body.phone .snapWrap{gap:10px}
+    body.phone .snapCard{padding:13px}
+    body.phone .snapAnchor .gwrap{max-width:min(186px,51vw,20.5vh)}
+    body.phone .snapStats>div{padding:8px 11px}
+    body.phone .snapStats b{font-size:20px}
+    body.phone .card{padding:12px 14px}
+    body.phone .snapName{font-size:19px}
+    body.phone .wFoot{margin-top:6px}
+  }
+
+  /* ---- unpriced: the question leads --------------------------------
+     A bar, not a dial. The dial is for a number; with no number it was
+     200px of ring around an em-dash, with the progress line running over
+     its own arc, pushing the question it was counting off the screen. */
+  body.phone .snapAnchor.bare{margin:0}
+  .askBar{display:flex;flex-direction:column;gap:7px}
+  .askBar span{font-family:var(--mono);font-size:11px;letter-spacing:.11em;
+    text-transform:uppercase;color:var(--ink-3)}
+  .askBar i{display:block;height:7px;border-radius:99px;background:var(--well);
+    box-shadow:var(--well-sh);overflow:hidden}
+  .askBar i b{display:block;height:100%;border-radius:99px;min-width:3px;
+    background:linear-gradient(90deg,var(--accent),var(--accent-2));transition:width .3s}
+  /* The ask card is already inside the anchor card here, so it drops its
+     own housing and becomes the body of it. */
+  body.phone .snapCard .askCard{background:none;border:none;box-shadow:none;padding:12px 0 0;
+    -webkit-backdrop-filter:none;backdrop-filter:none;margin:0}
+  body.phone .snapCard .askQ{font-size:21px;margin-top:4px}
+  body.phone .snapCard .askOpts{gap:7px;margin-top:11px}
+  body.phone .snapCard .askOpt{padding:12px 14px}
+  body.phone .snapCard .askNav{margin-top:13px}
+  /* The bar over the card already says "3 of 6 answered"; askHTML's own
+     "3 of 6" says which one you are standing on. Two counters a line
+     apart, agreeing by coincidence, read as one fact printed twice - and
+     the dots under the options carry position anyway. */
+  body.phone .snapCard .askCard .askWhere{display:none}
+  /* Mid-run the meter is evidence, not reading. The bar and the verdict
+     stay - that is the glance it exists for - and the sentence naming the
+     source and the date waits until there is a price to attach it to.
+     Without this the card's three lines of prose put a 360px phone 92px
+     over, which is how a screen that has to fit loses to a screen that
+     has to explain. */
+  body.phone .snapWrap:not(.ready) .wCard .wFoot{display:none}
+  body.phone .snapWrap:not(.ready) .wCard{padding:10px 12px}
+  /* 360x780 again: the run's card, the meter and the foot all have to
+     share 780px with a dock. The options carry the question, so they keep
+     their size; everything around them gives up a few pixels each. */
+  @media (max-height:800px){
+    body.phone .snapWrap:not(.ready) .snapCard .askQ{font-size:19px;margin:2px 0 0}
+    body.phone .snapWrap:not(.ready) .snapCard .askCard{padding-top:9px}
+    body.phone .snapWrap:not(.ready) .snapCard .askOpt{padding:10px 13px}
+    body.phone .snapWrap:not(.ready) .snapCard .askOpts{gap:6px;margin-top:9px}
+    body.phone .snapWrap:not(.ready) .snapCard .askNav{margin-top:10px}
+    body.phone .snapWrap:not(.ready) .wCard{padding:8px 11px}
+    body.phone .snapWrap:not(.ready) .wHead{margin-top:3px}
+    body.phone .snapWrap:not(.ready) .wHead b{font-size:14.5px}
+    body.phone .snapWrap:not(.ready) .wBar{margin-top:6px;height:6px}
+    body.phone .snapWrap:not(.ready) .snapName{font-size:18px}
+  }
+
+  /* ---- the wallet on a phone ----------------------------------------
+     The hero is the whole top of the screen; the ask card underneath it
+     drops its own housing because the hero is already the container. */
+  body.phone .hero{padding:18px 18px 15px}
+  body.phone .wAsk{padding:14px 15px}
+  body.phone .wAsk .askCard{background:none;border:none;box-shadow:none;padding:0;margin:0;
+    -webkit-backdrop-filter:none;backdrop-filter:none}
+  body.phone .wAsk .askWhere{display:none}
+  body.phone .wAsk .askQ{font-size:21px;margin-top:0}
+  body.phone .wAsk .askOpts{gap:7px;margin-top:11px}
+  body.phone .wAsk .askOpt{padding:12px 14px}
+  body.phone .wAsk .askNav{margin-top:12px}
+  @media (max-height:800px){
+    body.phone .hero{padding:15px 16px 13px}
+    body.phone .heroBig{font-size:clamp(40px,13vw,52px)}
+    body.phone .acts{margin-top:13px}
+    body.phone .act i{width:42px;height:42px}
+    body.phone .wAsk .askQ{font-size:19px}
+    body.phone .wAsk .askOpt{padding:10px 13px}
+    body.phone .wSect{margin:13px 2px 7px}
+    body.phone .wRow{padding:10px 12px}
+    body.phone .wRow>i{width:36px;height:36px;border-radius:11px}
+    body.phone .snapWrap{gap:9px}
+    body.phone .snapCond button{padding:9px 2px}
+    body.phone .act span{font-size:11px}
+    body.phone .heroSub{font-size:12.5px}
+    body.phone .wRow .t b{font-size:14px}
+    body.phone .snapOff{padding:7px 10px}
+  }
+  /* Mid-run the evidence is a glance, not a paragraph: which source and
+     how much is behind it, in one line with its bar. The sentence and
+     the section heading wait until there is a price to attach them to. */
+  body.phone .wRow.tight{padding:8px 12px}
+  body.phone .wRow.tight>i{width:32px;height:32px;border-radius:10px}
+  body.phone .wRow.tight .t b{font-size:13px}
+  body.phone .wRow.tight .wBar{margin-top:5px;height:4px}
+  /* Mid-run the hero is carrying progress AND the item, so it gives up
+     the actions: Look-up is the evidence row directly under it, Another
+     and Detail are in the run's own Back/Skip, and there is nothing to
+     log until there is a price. They come back the moment there is one. */
+  /* :not(.ready) alone also caught the START page, whose wrapper is not
+     ready either - and that took the camera off the front screen while
+     leaving the "fill the frame" tip underneath it, so the phone told the
+     counter how to frame a photo it had no way to take. The start page is
+     the one place the four actions ARE the screen. */
+  body.phone .snapWrap:not(.ready):not(.start) .hero .acts{display:none}
+  body.phone .snapWrap:not(.ready):not(.start) .hero{padding-bottom:16px}
+
+```
+
+### `sw.js` — 12 lines
+
+```javascript
+/* keeps the desk working with no signal; always tries for the newest copy first */
+const C="pawndesk-202609280548";
+const CORE=["./","./index.html","./phone.html","./app-head.js","./app.css","./app.js","./qr.js","./prices.json","./fakes.json","./metals-risk.json","./metals-history.json","./item-noise.json","./phone.css","./phone.js","./manifest.webmanifest","./manifest-phone.webmanifest","./icon-192.png","./icon-512.png","./apple-touch-icon.png","./icon-maskable-512.png","./favicon.svg","./favicon-32.png"];
+self.addEventListener("install",e=>{ self.skipWaiting(); e.waitUntil(caches.open(C).then(c=>c.addAll(CORE))); });
+self.addEventListener("activate",e=>{ e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))).then(()=>self.clients.claim())); });
+self.addEventListener("fetch",e=>{
+  const u=new URL(e.request.url);
+  if(e.request.method!=="GET"||u.origin!==location.origin)return;
+  e.respondWith(fetch(e.request).then(r=>{ const cp=r.clone(); caches.open(C).then(c=>c.put(e.request,cp)); return r; })
+    .catch(()=>caches.match(e.request).then(r=>r||caches.match("./index.html"))));
+});
+
+```
+
+### `manifest.webmanifest` — 28 lines
+
+```
+{
+ "name": "The Pawn Desk",
+ "short_name": "Pawn Desk",
+ "start_url": "./",
+ "scope": "./",
+ "display": "standalone",
+ "background_color": "#15171C",
+ "theme_color": "#15171C",
+ "orientation": "any",
+ "icons": [
+  {
+   "src": "icon-192.png",
+   "sizes": "192x192",
+   "type": "image/png"
+  },
+  {
+   "src": "icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png"
+  },
+  {
+   "src": "icon-maskable-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "maskable"
+  }
+ ]
+}
+```
+
+### `manifest-phone.webmanifest` — 28 lines
+
+```
+{
+ "name": "Price Check",
+ "short_name": "Price Check",
+ "start_url": "./phone.html",
+ "scope": "./",
+ "display": "standalone",
+ "background_color": "#15171C",
+ "theme_color": "#15171C",
+ "orientation": "portrait",
+ "icons": [
+  {
+   "src": "icon-192.png",
+   "sizes": "192x192",
+   "type": "image/png"
+  },
+  {
+   "src": "icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png"
+  },
+  {
+   "src": "icon-maskable-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "maskable"
+  }
+ ]
+}
+```
