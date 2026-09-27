@@ -948,6 +948,123 @@ const custId = catId => "cust-"+catId;
 function custItem(cat){
   return {id:custId(cat.id), name:"Something else", value:st.overrides[custId(cat.id)]??100, liq:"normal"};
 }
+/* ================= HOW MUCH THE ITEM NUMBER COULD BE WRONG BY =================
+   Asked for at the counter: trends on items, the same as gold got.
+
+   The first job was to find out whether the item history can carry a trend
+   read at all, and the answer is no - not yet, and not close. Five days of
+   history, 47 before-and-after pairs. tools/measure-noise.mjs reads them
+   and reports what they actually are:
+
+     - 24 rows out of 24 moved UP on the 19->22 September run, median +20%.
+       Chainsaws, bows, scopes and laptops do not all gain a fifth in three
+       days. That is the source changing underneath - SoldComps ran out of
+       quota and the ladder fell through to eBay's asking prices, which sit
+       above sold ones. A step change in what is being measured, set aside.
+     - What is left scatters both ways, 43% up, median 17.3%.
+
+   So an item "trend" built on this today would be the tool reading its own
+   noise back to the counter and calling it a market. That is worse than
+   showing nothing, because it would be believed.
+
+   What the same measurement IS good for is the question underneath the
+   trend question: how much can I trust the number on screen? A midpoint
+   that could be 17% different tomorrow should not be lent against as
+   though it were exact - and unlike gold, where the guard comes from
+   25 years of prices, here it comes from the tool's own repeatability.
+
+   When months of re-checks exist and they start leaning one way rather
+   than scattering, measure-noise.mjs says so (trendReady) and a real trend
+   read can be built on top of this. It is not ready and it says so. */
+let INOISE=null;
+async function loadItemNoise(){
+  try{ const r=await fetch("item-noise.json",{cache:"no-store"});
+    if(!r.ok)return; const j=await r.json();
+    if(j&&j.noiseMid>0){ INOISE=j; try{ render(); }catch(e){} }
+  }catch(e){}
+}
+/* Aisles where the thing itself loses value while it sits, so a price from
+   last month is wrong in a way a wrench's is not. */
+const FAST_DECAY={elec:1,phone:1,coll:0.5};
+function itemGuard(x){
+  const m=x&&x.market;
+  if(!m||!x.checked||!INOISE)return null;
+  const mid=Number(m.mid)||0, lo=Number(m.lo)||0, hi=Number(m.hi)||0;
+  if(!(mid>0))return null;
+  /* A figure the counter typed is about THIS thing, in their hands. There
+     is no sampling error to guard against - they looked at it. */
+  if(m.kind==="hand")return {kind:"hand",mid,guard:mid,cut:0,why:[],warn:false,
+    head:"Your own number for this one",
+    detail:"You typed this in, so it is about the thing in front of you rather than a sample of listings. Nothing to guard."};
+  const ev=(typeof rowEvidence==="function")?rowEvidence(m.note):{kind:"research",n:0};
+  const spread=(hi>lo&&mid>0)?(hi-lo)/mid:0;
+  const age=Number(m.age)||0;
+  const decay=FAST_DECAY[x.cat&&x.cat.id]||0;
+  const why=[];
+  let cut=0;
+  /* Asking prices are not sold prices, and the gap between them was measured
+     in September and came back unusable - 4.3x on one aisle, 0.83x on
+     another, pointing opposite ways. So this does NOT convert an ask into a
+     sale with a multiplier. It widens the guard and says why. */
+  if(ev.kind==="asking"){ cut+=INOISE.noiseMid/2;
+    why.push(`these are <b>${ev.n||"a few"} asking prices</b>, not sales &mdash; what sellers wanted, and nobody has paid it`); }
+  else if(ev.kind==="research"){ cut+=8;
+    why.push(`this row was <b>researched, never measured</b> against live listings`); }
+  else if(ev.n&&ev.n<5){ cut+=5;
+    why.push(`only <b>${ev.n} sale${ev.n===1?"":"s"}</b> behind it &mdash; a thin sample moves a lot`); }
+  if(spread>(INOISE.spread75||51)/100){ cut+=5;
+    why.push(`the listings ran <b>${money(lo)}&ndash;${money(hi)}</b>, a ${Math.round(spread*100)}% spread &mdash; the middle of that is not a precise number`); }
+  if(decay&&age>30){ cut+=Math.min(8,Math.round(decay*age/10));
+    why.push(`it is <b>${age} days old</b> and this aisle loses value while it sits`); }
+  else if(age>90){ cut+=4; why.push(`the number is <b>${age} days old</b>`); }
+  cut=Math.min(25,Math.round(cut));
+  return {kind:ev.kind,n:ev.n,mid,lo,hi,spread,age,cut,
+          guard:Math.max(1,mid*(1-cut/100)),
+          noise:INOISE.noiseMid,
+          band:[mid*(1-INOISE.noiseMid/100),mid*(1+INOISE.noiseMid/100)],
+          warn:cut>=8, why,
+          head:cut>=8?"This number is softer than it looks"
+              :cut>0?"Reasonable number, small guard on it"
+              :"Solid number — real sales, tight range, fresh",
+          detail:""};
+}
+/* The same strip the metals page carries, saying the item version of the
+   same thing: here is how good this number is, here is what it does to the
+   offer, and here is the figure if you disagree. */
+function itemGuardHTML(x){
+  const G=x&&x.guard;
+  if(!G||G.kind==="hand")return "";
+  const noTrend=INOISE&&!INOISE.trendReady;
+  return `<div class="card iGuard">
+    <span class="label">How good is this number?</span>
+    <div class="mWarn ${G.warn?"on":"off"}">
+      <div class="h">${G.warn?"⚠ ":""}${esc(G.head)}</div>
+      ${G.why.length?`<div class="p">Because ${G.why.join("; ")}.</div>`:
+        `<div class="p">Real sales, a tight range and a fresh reading. The offer uses it as it stands.</div>`}
+      ${G.cut>0?`<div class="ask">So the loan is sized off <b>${money(Math.round(G.guard))}</b> instead of ${money(Math.round(G.mid))}
+        &mdash; ${G.cut}% back. The buy price keeps the full ${money(Math.round(G.mid))}, because you can price a buy and move it;
+        a pawn is a 60-day bet on a number that came out of a sample.
+        <span class="no">Know better than the sample? Type your own resale in and the guard steps aside &mdash; your number is about the thing in your hands.</span></div>`:""}
+    </div>
+    <div class="iBand">
+      <span class="k">What the same search would likely say tomorrow</span>
+      <b>${money(Math.round(G.band[0]))} &ndash; ${money(Math.round(G.band[1]))}</b>
+      <span class="s">Re-running the same lookup days apart moved the answer a median of ${G.noise}% in testing.
+        That is the tool's own repeatability, not the market.</span>
+    </div>
+    ${noTrend?`<div class="mEvid">
+      <b>No trend read on items yet.</b> Gold has 25 years of daily prices behind its guard.
+      The item book has <b>${INOISE.spanDays} day${INOISE.spanDays===1?"":"s"}</b> of re-checks and
+      ${INOISE.usable} usable before-and-after pairs, and they scatter both ways
+      (${INOISE.upShare}% up) rather than leaning. That is noise, not a market.
+      ${INOISE.stepChanges&&INOISE.stepChanges.length?`One run was thrown out entirely:
+        ${INOISE.stepChanges[0].up} of ${INOISE.stepChanges[0].n} rows moved the same way on the same day,
+        which is the price source changing, not chainsaws gaining ${INOISE.stepChanges[0].median}%.`:""}
+      Once the rechecks cover a few months and start leaning, this becomes a trend read
+      and says so. Until then it only tells you how firm the number is.
+    </div>`:""}
+  </div>`;
+}
 function calcItem(){
   const cat=CATALOG.find(c=>c.id===st.catId);
   const item=st.itemId===custId(cat.id) ? custItem(cat) : (cat.items.find(i=>i.id===st.itemId)||cat.items[0]);
@@ -1056,7 +1173,17 @@ function calcItem(){
      $40, so without that the loan could land above the buy price and undo
      the very thing the caps are for. */
   const r5=(n)=>Math.max(5,Math.round(n/5)*5);
-  const lendWant=Math.round(resale*ltv/100);
+  /* THE LOAN IS SIZED OFF THE GUARDED RESALE, THE BUY OFF THE PLAIN ONE.
+     Same split as the metals page, for the same reason: a buy you can price
+     and shift, a pawn is a 60-day position in a number that came out of a
+     sample. Where the sample is thin, old, or asking prices rather than
+     sales, the loan comes off a figure that allows for it. The buy keeps
+     the straight resale - its own rate and the floor already answer for it,
+     and guarding both would charge the same doubt twice. */
+  const _g=(typeof itemGuard==="function")
+    ? itemGuard({market,checked,cat}) : null;
+  const guardResale=_g? Math.min(resale, resale*(1-_g.cut/100)) : resale;
+  const lendWant=Math.round(guardResale*ltv/100);
   const targetRaw=Math.min(lendWant,cap.pay);
   const lendCapped=lendWant>cap.pay;
   /* Below this there is no deal to write, buy or loan. The desk already
@@ -1069,7 +1196,7 @@ function calcItem(){
      number back on a deal that has none. */
   const buy=buyTooThin?Math.max(1,Math.round(cap.pay)):r5(cap.pay);
   const target=buyTooThin?Math.max(1,Math.round(targetRaw)):Math.min(buy,r5(targetRaw));
-  return {cat,item,baseValue,baseLtv,condition,liquidity,liqId,resale,ltv,target,market,checked,handSet,buyBase,buySuggest,buyWhy,buyPct,buy,lendWant,lendCapped,
+  return {cat,item,baseValue,baseLtv,condition,liquidity,liqId,resale,guardResale,guard:_g,ltv,target,market,checked,handSet,buyBase,buySuggest,buyWhy,buyPct,buy,lendWant,lendCapped,
           brandTier,namedBrand:namedBrand&&namedBrand.name,
           brandMult,brandName:cat.brand.on?(((ITEM_OVERRIDES[st.itemId]||{}).tiers)||cat.brand)[brandTier]:null,spec,specMult:spec.mult,
           /* The range is held to the same ceiling as the suggested loan -
@@ -1234,6 +1361,7 @@ function railHTML(x){
             commentary itself, right under the button that started it. */""}
       ${(findBusy||findMsg)?`<div class="railFind${findBusy?" busy":""}" id="railFindMsg">${esc(findMsg||"Searching\u2026")}</div>`:""}
     </div>
+    ${(typeof itemGuardHTML==="function")?itemGuardHTML(x):""}
     ${killerHTML(x)}
     ${thin?"":`
     <div class="railBack">
@@ -7879,7 +8007,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0927.1748";
+const APP_BUILD="0927.1932";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

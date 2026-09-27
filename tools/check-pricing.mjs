@@ -1632,6 +1632,83 @@ console.log("\n  the trend warns, suggests, and can be ignored");
   await pg.close();
 }
 
+/* ================= ITEMS: A GUARD, AND HONESTY ABOUT THE TREND ===========
+   Asked for at the counter: do the trends for items too.
+
+   There is no item trend to read yet and the tool must not invent one. Five
+   days of re-checks, and the one run with enough rows in it had 24 of 24
+   moving the same way - the price source changing, not the market. What CAN
+   be measured is the tool's own repeatability, and that is what the item
+   card carries.
+
+   The test's job is to stop three failures, all of which would look fine on
+   screen: a good number getting docked anyway, a soft number sailing
+   through unguarded, and the card quietly starting to claim a trend. */
+console.log("\n  the item number is guarded by how good it is, and claims no trend");
+{
+  const pg = await browser.newPage({viewport:{width:1500,height:1100}});
+  const errs = [];
+  pg.on("pageerror", e => errs.push(String(e)));
+  await pg.goto(BASE + "/index.html", {waitUntil:"networkidle"});
+  await pg.waitForTimeout(900);
+  const r = await pg.evaluate(() => {
+    const set = (mk) => {
+      st.mode = "item"; st.catId = "tools"; st.itemId = "t1"; st.picked = true;
+      st.cond = "good"; st.condSet = true; st.complete = true; st.completeSet = true;
+      st.brandSet = true; st.brand = "hi"; st.model = "DCD791";
+      (SPEC_CHOICES[st.itemId] || []).forEach((g, gi) => { st.specSel[st.itemId + ":" + gi] = specBase(g); });
+      st.market = Object.assign({key: mkKey()}, mk);
+      render();
+      const x = calcItem();
+      return {cut: x.guard && x.guard.cut, warn: x.guard && x.guard.warn,
+              resale: Math.round(x.resale), guarded: Math.round(x.guardResale),
+              target: x.target, buy: x.buy,
+              text: (document.querySelector(".iGuard") || {}).innerText || ""};
+    };
+    const out = {loaded: !!INOISE};
+    out.sold  = set({kind:"found", mid:400, lo:360, hi:440, n:21, sold:21,
+                     note:"21 eBay sales in the last 90 days"});
+    out.ask   = set({kind:"found", mid:380, lo:200, hi:560, n:11, sold:0,
+                     note:"11 listings, asking prices - no sold data"});
+    out.thin  = set({kind:"found", mid:400, lo:330, hi:470, n:3, sold:3,
+                     note:"3 eBay sales in the last 90 days"});
+    out.hand  = set({kind:"hand", mid:400, lo:400, hi:400, n:0, sold:0, note:""});
+    out.noise = INOISE && {span: INOISE.spanDays, usable: INOISE.usable,
+                           trendReady: INOISE.trendReady, steps: (INOISE.stepChanges||[]).length};
+    return out;
+  });
+  const t = [
+    ["the repeatability figure is on the device", r.loaded === true],
+    /* a good number must be left alone, or the guard is just a tax */
+    ["real sales, tight range: no guard at all", r.sold && r.sold.cut === 0],
+    ["and the loan is unchanged by it", r.sold && r.sold.guarded === r.sold.resale],
+    ["it is not dressed up as a warning", r.sold && r.sold.warn === false],
+    /* a soft number must not sail through */
+    ["asking prices with a wide spread: guarded", r.ask && r.ask.cut >= 8],
+    ["and that is flagged, not silent", r.ask && r.ask.warn === true],
+    ["it says they are asking prices, not sales", !!(r.ask && /asking prices/i.test(r.ask.text))],
+    ["a thin sample gets a small guard, not a big one",
+     r.thin && r.thin.cut > 0 && r.thin.cut < r.ask.cut],
+    /* the split that stops the same doubt being charged twice */
+    ["the guard moves the loan", r.ask && r.ask.guarded < r.ask.resale],
+    ["and leaves the buy price alone", r.ask && r.ask.buy >= r.sold.buy * 0.9],
+    /* a number the counter typed is about the thing, not a sample */
+    ["a hand-typed resale is never guarded", r.hand && (r.hand.cut === 0 || r.hand.cut == null)],
+    ["and shows no card at all", r.hand && r.hand.text === ""],
+    /* the honesty that is the whole point of this one */
+    ["the item history is NOT claimed to be trend-ready", r.noise && r.noise.trendReady === false],
+    ["the card says so in as many words", !!(r.ask && /No trend read on items yet/i.test(r.ask.text))],
+    ["it names how little history there is", !!(r.ask && /days of re-checks/i.test(r.ask.text))],
+    ["and that a whole run was thrown out as a source change",
+     !!(r.ask && /price source changing/i.test(r.ask.text)) && r.noise.steps >= 1],
+    ["nothing on the card calls it a market trend",
+     !!(r.ask && !/(trending (up|down)|the market is (up|down))/i.test(r.ask.text))],
+  ];
+  for (const [what, pass] of t) ok(pass, what);
+  ok(!errs.length, "  no page errors" + (errs.length ? ": " + errs[0] : ""));
+  await pg.close();
+}
+
 await browser.close();
 console.log(fails ? "\n  " + fails + " FAILED\n" : "\n  all passed\n");
 process.exit(fails ? 1 : 0);

@@ -1,0 +1,1 @@
+{"built":"2026-09-27","source":"tools/harvest-history.json","from":"2026-09-19","to":"2026-09-24","spanDays":5,"rows":523,"rechecked":41,"pairs":47,"usable":23,"stepChanges":[{"run":"2026-09-19>2026-09-22","n":24,"up":24,"median":20}],"gapLo":1,"gapHi":5,"noiseMid":17.3,"noise75":24.9,"noise90":32.8,"upShare":43,"spreadMid":35,"spread75":51,"spread90":80,"trendReady":false}
