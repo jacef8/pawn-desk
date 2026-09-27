@@ -6754,7 +6754,7 @@ let omniRowsCache=[];
 function omniRowHTML(r,i){
   const hl=i===st.omniHl?" hl":"";
   if(r.kind==="own")return `<button type="button" class="omniRow${hl}" data-omni="${i}" role="option"><span class="ot"><span class="on1">Price &ldquo;${esc(r.q)}&rdquo;</span><span class="on2">not on the lists &mdash; pick what kind of thing it is, then what it sells for</span></span><span class="ov">&rsaquo;</span></button>`;
-  if(r.kind==="mp")return `<button type="button" class="omniRow${hl}" data-omni="${i}" role="option"><span class="ot"><span class="on1">${esc(r.mp[2])}</span><span class="on2">${esc(r.name)} &middot; resale value from ${esc(srcName(r.mp[7]))}, ${esc(fmtDay(r.mp[6]))}</span></span><span class="ov">${money(r.mp[3])}&ndash;${money(r.mp[4])}<small>resale</small></span></button>`;
+  if(r.kind==="mp")return `<button type="button" class="omniRow${hl}" data-omni="${i}" role="option"><span class="ot"><span class="on1">${esc(r.mp[2])}</span><span class="on2">${esc(r.name)} &middot; ${esc(mpSaid(r.mp))}</span></span><span class="ov">${money(r.mp[3])}&ndash;${money(r.mp[4])}<small>resale</small></span></button>`;
   if(r.kind==="metal")return `<button type="button" class="omniRow${hl}" data-omni="${i}" role="option"><span class="ot"><span class="on1">Gold &amp; silver &mdash; price it by weight</span><span class="on2">${r.metal==="silver"?"Sterling .925":esc(r.karat||"Gold")} &middot; opens the scale-and-spot page</span></span><span class="ov">&rsaquo;</span></button>`;
   if(r.kind==="sold")return `<a class="omniRow sold${hl}" data-omni="${i}" role="option" href="${esc(r.url)}" target="_blank" rel="opener" referrerpolicy="no-referrer"><span class="ot"><span class="on1">Check sold prices for &ldquo;${esc(r.q)}&rdquo;</span><span class="on2">${r.guns?"GunBroker &mdash; tick Completed":"WatchCount &mdash; eBay sold"} &middot; opens a new tab</span></span><span class="ov">&#8599;</span></a>`;
   const cat=CATLABEL[r.catId]||"";
@@ -7931,7 +7931,87 @@ const MP_MATCH=[
  ["f7b",/ranger\s*1000/],["f7a",/ranger/],["f8",/\brzr\b/],["f9",/\bmule\b/],["f10",/gator|\bxuv\b/],
  ["f11",/precedent|club\s*car/],["f12",/\btxt\b|ezgo/],["f13",/drive\s*2|yamaha\s*drive/]];
 
-let MP_BY_ID=Object.fromEntries(MODEL_PRICES.map(r=>[r[0],r]));
+/* ONE ITEM, ONE PRICE, EVEN WHEN TWO SITES ANSWERED.
+   Reported from the counter, with a screenshot of a Tactacam Reveal X
+   listed twice: $50-$75 from trailcampro and $60-$147 from eBay, four days
+   apart. "Why does the same item have 2 different prices? Our tool should
+   review both sites or more if available, then determine a single
+   suggested price."
+
+   It should, and the reason it did not is the harvest's merge key, which
+   is ref + name. The hand-researched row was filed against the item
+   ("h4|Cellular game camera") and the harvested one against the aisle
+   ("h4"), so to the merge they were never the same thing and both were
+   kept. Eleven items in the book are doubled this way, 23 rows in all.
+
+   The rule is the OVERLAP, not the average. Two independent estimates of
+   the same thing are far stronger where they agree than either is alone,
+   and an average invents a number neither source ever claimed. Measured
+   over all eleven: eight pairs are identical and pass through untouched,
+   the Switch Lite's three sources narrow 95-130/95-109/91-105 to 95-105,
+   the PS5 narrows to 400-449, and the Tactacam lands at 60-75. Nothing
+   moved outside what a source actually said.
+
+   When the bands do NOT overlap the sources genuinely disagree, and
+   pretending otherwise is how you lend on a number nobody stands behind.
+   Then it spans them and drops the confidence a step, so the guard on the
+   item page reads it as the soft evidence it is.
+
+   Asks run high and high is the wrong way to be wrong when the money is
+   going out, so the merged note keeps the weakest reading of the evidence
+   rather than the flattering one. */
+function mpFold(rows){
+  if(!Array.isArray(rows))return rows;
+  const CONF={l:0,m:1,h:2}, UNCONF=["l","m","h"];
+  const g=new Map();
+  for(const r of rows){
+    const k=omniNorm(r[2]||"");
+    if(!k){ g.set("\u0000"+g.size,[r]); continue; }
+    (g.get(k)||g.set(k,[]).get(k)).push(r);
+  }
+  const out=[];
+  for(const v of g.values()){
+    if(v.length===1){ out.push(v[0]); continue; }
+    const lo=Math.max(...v.map(r=>r[3])), hi=Math.min(...v.map(r=>r[4]));
+    const agree=lo<=hi;
+    const m=v.slice().sort((a,b)=>String(b[6]||"").localeCompare(String(a[6]||"")))[0].slice();
+    m[3]=agree?lo:Math.min(...v.map(r=>r[3]));
+    m[4]=agree?hi:Math.max(...v.map(r=>r[4]));
+    /* agreement corroborates, it does not upgrade hearsay to a sale - the
+       best input's confidence, never better than that; disagreement costs
+       a step */
+    let c=UNCONF[Math.max(...v.map(r=>CONF[r[5]]==null?1:CONF[r[5]]))]||"m";
+    if(!agree)c=UNCONF[Math.max(0,(CONF[c]||1)-1)];
+    m[5]=c;
+    /* every aisle and item any copy was filed under still finds it */
+    m[1]=[...new Set(v.flatMap(r=>String(r[1]||"").split("|")).filter(Boolean))].join("|");
+    const sites=[...new Set(v.map(r=>srcName(r[7])).filter(Boolean))];
+    m[7]=v.map(r=>r[7]).filter(Boolean)[0]||m[7];
+    const worst=v.slice().sort((a,b)=>(CONF[a[5]]??1)-(CONF[b[5]]??1))[0];
+    m[8]=(agree
+      ? sites.join(" and ")+" agree where they overlap"
+      : sites.join(" and ")+" DISAGREE \u2014 this spans both")
+      +(worst&&worst[8]?" \u2014 "+worst[8]:"");
+    m[9]=sites.join(", ");
+    out.push(m);
+  }
+  return out;
+}
+/* Fold the shipped list too, not only the fetched one. The duplicates are
+   in both copies - they are the same book - and a tool that only dedupes
+   after a successful network call shows two prices to anybody offline. */
+MODEL_PRICES=mpFold(MODEL_PRICES);
+/* Every id that went into a merged row still resolves to it, so nothing
+   holding an id from before the fold lands on nothing. */
+function mpIndex(rows,src){
+  const ix={};
+  for(const r of rows) ix[r[0]]=r;
+  for(const r of src||[]) if(!ix[r[0]]){
+    const m=rows.find(x=>omniNorm(x[2])===omniNorm(r[2])); if(m)ix[r[0]]=m;
+  }
+  return ix;
+}
+let MP_BY_ID=mpIndex(MODEL_PRICES);
 /* The count is spoken to the user in step 3, and prices.json rewrites the list
    every week, so read it off the list instead of typing a number that rots. */
 function mpCount(){ return Math.round(MODEL_PRICES.length/10)*10; }
@@ -7952,8 +8032,8 @@ async function refreshPrices(){
     const j=await res.json();
     const rows=j&&j.rows;
     if(!mpOk(rows))return;
-    MODEL_PRICES=rows;
-    MP_BY_ID=Object.fromEntries(MODEL_PRICES.map(r=>[r[0],r]));
+    MODEL_PRICES=mpFold(rows);
+    MP_BY_ID=mpIndex(MODEL_PRICES,rows);
     /* Same rule as the rows: a malformed map must never wipe the book, so
        only the entries that look like a price are taken and the rest of
        the file is ignored rather than the whole load being refused. */
@@ -8261,7 +8341,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0928.0930";
+const APP_BUILD="0928.1042";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -8462,6 +8542,24 @@ function fmtDay(d){ try{ return new Date(String(d)+"T12:00:00").toLocaleDateStri
 const SRC_NAMES={"pricecharting.com":"PriceCharting","swappa.com":"Swappa","gunwatcher.com":"GunWatcher (GunBroker sales)","jdpower.com":"J.D. Power",
   "axedb.com":"AxeDB","golfcartsearch.com":"GolfCartSearch","underpriced.app":"Underpriced","reverb.com":"Reverb","tractorhouse.com":"TractorHouse",
   "machinerypete.com":"Machinery Pete","machinerytrader.com":"MachineryTrader","ebay.com":"eBay","watchcount.com":"WatchCount","gunbroker.com":"GunBroker"};
+/* WHERE THE NUMBER CAME FROM, WHEN IT CAME FROM MORE THAN ONE PLACE.
+   The line used to name a single site because a row only ever had one.
+   Now that two sites can be folded into one price, saying "resale value
+   from trailcampro.com" would be naming one of the two and hiding the
+   other - and the whole point of the fold is that the agreement between
+   them is the reason to trust the figure. So the line says how many
+   agreed, because that IS the evidence. */
+function mpSaid(r){
+  const sites=String(r&&r[9]||"");
+  const when=fmtDay(r[6]);
+  if(sites.indexOf(",")>=0){
+    const n=sites.split(",").length;
+    return /DISAGREE/.test(String(r[8]||""))
+      ? n+" sources disagree \u2014 "+sites+", "+when
+      : n+" sources agree \u2014 "+sites+", "+when;
+  }
+  return "resale value from "+srcName(r[7])+", "+when;
+}
 function srcName(u){ try{ const h=new URL(u).hostname.replace(/^(www|used)\./,""); return SRC_NAMES[h]||h; }catch(e){ return "the source"; } }
 function srcLink(u,txt){ return /^https:\/\//.test(u||"")?`<a class="srcLink" href="${esc(u)}" target="_blank" rel="noopener" referrerpolicy="no-referrer">${txt||"Check it"} &#8599;</a>`:""; }
 function marketSrcHTML(m){
