@@ -1373,3 +1373,15 @@
      known until the search comes back. */
   .askBusy{display:flex;align-items:center;gap:14px;margin:2px 0 14px;
     padding-bottom:13px;border-bottom:1px solid var(--line)}
+  /* What the record answered on the counter's behalf. Quiet, but present -
+     a fact the tool supplied and did not ask about has to be visible, or it
+     is a decision taken rather than a step saved. */
+  .adRec{margin-top:9px;font-size:13px;line-height:1.5;color:var(--ink-2);
+    border-left:2px solid var(--accent);padding-left:10px}
+  .adRec b{color:var(--accent-ink);font-family:var(--mono);font-size:11px;
+    letter-spacing:.09em;text-transform:uppercase}
+  .adRecHow{color:var(--ink-3)}
+  .adRec{display:block;width:100%;text-align:left;font:inherit;cursor:pointer;
+    background:none;border:none;border-left:2px solid var(--accent)}
+  .adRec:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .adRec:hover .adRecHow{color:var(--accent-ink)}

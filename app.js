@@ -2471,6 +2471,14 @@ function askQueue(x){
          that answer already highlighted, so Next read as agreement to a
          guess nobody made. Only a recorded pick lights up now. */
       opts:g.options.map((o,oi)=>({t:o.t, sub:o.note||"", on:st.specSel[key]===oi, set:"spec", v:gi+":"+oi})),
+      /* A question the record already answers is not asked - it is filtered
+         out of the run below. Which means the dots do NOT reach it, and the
+         first draft of this comment claimed they did. The way back in is
+         the "From the record" line on the answer card: press it and the
+         record's answers are dropped for this item, so the questions
+         return and can be answered by hand for the one on the counter - an
+         aftermarket bar, a saw somebody has already rebuilt. */
+      fromRecord:specFromRecord[key]!=null&&st.specSel[key]!=null,
       answered:st.specSel[key]!=null});
   });
   /* and it is not ASKED twice either: being asked what came with it and
@@ -2524,7 +2532,12 @@ function askQueue(x){
   q.push({id:"extra", title:"Anything else?", kind:"extra", optional:true,
     hint:"Only what changes the price and was not already asked. Usually nothing.",
     answered:true});
-  return q;
+  /* THE RUN DOES NOT ASK WHAT THE RECORD ALREADY SAYS.
+     These stay answered in state and keep feeding the arithmetic - they are
+     simply not presented as questions. "Shouldn't the tool already know the
+     answer to this question?" It does, for these, and stopping to ask
+     anyway is the tool pretending it does not. */
+  return q.filter(z=>!z.fromRecord);
 }
 /* NOTHING IS PRICED UNTIL THE RUN HAS BEEN MADE.
 
@@ -2660,7 +2673,7 @@ function coveredLine(){
    book is built out of those rows.
    One function now, called everywhere, so the two cannot drift apart
    again. */
-function clearDeal(){ st.struck=""; st.ticket=""; }
+function clearDeal(){ st.struck=""; st.ticket=""; specFromRecord={}; }
 /* AND CLEARED BY THE THING ITSELF CHANGING, not by remembering to.
    Adding clearDeal() to the six by-hand sites fixed six paths and missed
    the one actually reported - picking off the search never cleared the
@@ -2671,6 +2684,20 @@ function clearDeal(){ st.struck=""; st.ticket=""; }
    thing on the counter, so it is keyed to that thing: when what is being
    priced changes, the draft for the last one goes, whatever route the
    change came in by, including routes not written yet. */
+/* AND THE RECORD'S FACTS ARE APPLIED THE SAME WAY, for the same reason.
+   Three different places set a real st.mpPin, and wiring the first one I
+   found is precisely the mistake that left st.ticket behind on the last
+   customer. The facts belong to whichever model is pinned, so they are
+   applied when that changes, by whatever route. */
+let recordFor=null;
+function recordGuard(){
+  if(st.mode!=="item")return;
+  const id=(st.mpPin&&st.mpPin.id)||null;
+  if(id===recordFor)return;
+  recordFor=id;
+  specFromRecord={};
+  if(id)applyRecordSpec(id);
+}
 let dealFor=null;
 function dealGuard(){
   if(st.mode!=="item")return;
@@ -2790,6 +2817,15 @@ function askDoneHTML(x){
         <div class="s">To get it back: <b>${money(x.target+x.charge)}</b> by day 30 \u2014 the ${money(x.target)} plus ${money(x.charge)} interest.</div>
       </button>
     </div>
+    ${/* IF IT STOPS ASKING, IT HAS TO SAY WHAT IT ASSUMED.
+          Two questions no longer reach the counter because the record
+          answers them. That is only an improvement while the answer is
+          visible - a tool that quietly decides a saw is farm grade and
+          prices it 10% up has taken a decision away rather than saved a
+          step. So the facts it supplied are named, with the model they
+          came from, and every one is still reachable through the dots to
+          be overruled on the one in his hands. */""}
+    ${Object.keys(specFromRecord).length?`<button type="button" class="adRec" id="recUndo"><b>From the record</b>${st.mpPin&&st.mpPin.model?` for ${esc(st.mpPin.model)}`:""} &mdash; ${Object.values(specFromRecord).map(esc).join(" \u00b7 ")}. <span class="adRecHow">Press to answer these yourself if this one differs.</span></button>`:""}
     <div class="adWhy">${x.checked?"":`<b style="color:var(--warn-ink)">Estimate &mdash; nothing looked up.</b> `}<b>Resells for ${money(Math.round(x.resale))}</b> in this shape &mdash; that is where both numbers come from. Lend anywhere in ${money(x.low)}&ndash;${money(x.high)}, never above the top.</div>
     ${struckHTML(x)}
     <!-- ANYTHING ELSE IS A NOTEPAD, NOT A QUESTION, AND IT IS STEP 8 NOW.
@@ -3388,6 +3424,13 @@ function wireItem(){
      from st.deal, which is the metals run's own buy-or-pawn question:
      picking "buy" on a PlayStation has no business answering a question
      on the gold page. */
+  /* The way back into a question the record answered. Dropping the facts
+     puts them back in the run, and recordGuard must not immediately
+     re-apply them - so the model is marked as already handled. */
+  const ru=document.getElementById("recUndo");
+  if(ru)ru.onclick=()=>{
+    for(const k of Object.keys(specFromRecord))delete st.specSel[k];
+    specFromRecord={}; st.askEdit=false; st.askAt=0; render(); };
   v.querySelectorAll("[data-ideal]").forEach(b=>b.onclick=()=>{
     st.struckKind=b.dataset.ideal==="buy"?"buy":"loan"; persist(); render(); });
   v.querySelectorAll("[data-comp]").forEach(b=>b.onclick=()=>{st.complete=b.dataset.comp==="1";st.completeSet=true;render();});
@@ -6964,6 +7007,63 @@ function omniHlPaint(){
   const list=document.getElementById("omniList"); if(!list)return;
   list.querySelectorAll("[data-omni]").forEach(el=>{ const on=Number(el.dataset.omni)===st.omniHl; el.classList.toggle("hl",on); if(on&&el.scrollIntoView)el.scrollIntoView({block:"nearest"}); });
 }
+/* WHAT THE RECORD KNOWS ABOUT THE PRODUCT, AS OPPOSED TO ITS PRICE.
+   Reported from the counter, on a Husqvarna 450 the book knows by name:
+   "Shouldn't the tool already know the answer to this question? If we're
+   going to have a database the database needs to cover not just bits and
+   pieces of the item, it needs to be a complete record for the item for
+   every question that we're going to ask."
+
+   Right, and the book was never a product record. A row is nine fields -
+   id, ref, name, low, high, confidence, date, source, note - and every one
+   of them is about the PRICE or where the price came from. Nothing in it
+   describes the thing. So the desk can know it is looking at a Husqvarna
+   450 / 445, quote $210-290 for it, and still ask what grade of saw it is.
+   A 450 Rancher is a farm saw. That is not a fact about the one on the
+   counter, it is a fact about every 450 Rancher ever made.
+
+   The machinery to use such facts already existed and was half-wired:
+   applySpecPicks() takes a label -> answer map, and SPEC_AUTO reads 39
+   patterns out of whatever was typed. But SPEC_AUTO only fires when the
+   text carries the clue - "18 in bar" does, "450 Rancher" does not - and
+   Grade has no rules at all. What was missing is the data.
+
+   This is that data, keyed by the price row it belongs to. It is
+   deliberately small: these are models I can state a grade and a bar
+   length for without guessing, and a wrong fact here is worse than a
+   question, because a question gets answered by somebody holding the saw.
+   The other ~490 rows have none of this yet. */
+const MODEL_SPEC={
+  /* chainsaws - grade is what the maker built it for, bar is what it ships on */
+  c1 :{"Grade":"Homeowner",     "Bar length":"16\u201318 in"},  /* Stihl MS 170/180 */
+  c3 :{"Grade":"Farm / ranch",  "Bar length":"19 in +"},         /* MS 271 Farm Boss, 20 in */
+  c6 :{"Grade":"Pro / commercial","Bar length":"19 in +"},       /* MS 461/462 */
+  c7 :{"Grade":"Farm / ranch",  "Bar length":"16\u201318 in"},  /* Husqvarna 450/445, 18 in */
+  /* blowers and trimmers carry a grade too */
+  c16:{"Grade":"Pro / commercial"},                              /* Stihl BR 800 */
+  c19:{"Grade":"Homeowner"},                                     /* Husqvarna 350BT */
+  c12:{"Grade":"Homeowner"},                                     /* Stihl FS 56 */
+  c13:{"Grade":"Farm / ranch"}                                   /* Stihl FS 131 */
+};
+/* The facts the record supplied, so the run can decline to ask them and the
+   answer card can show where they came from. Cleared with the draft. */
+let specFromRecord={};
+function applyRecordSpec(rowId){
+  specFromRecord={};
+  const rec=MODEL_SPEC[rowId]; if(!rec)return;
+  const groups=SPEC_CHOICES[st.itemId]||[];
+  groups.forEach((g,gi)=>{
+    const want=rec[g.label]; if(!want)return;
+    const oi=g.options.findIndex(o=>o.t===want);
+    /* a label or an option that has been renamed since must not silently
+       set the wrong answer - it just goes back to being asked */
+    if(oi<0)return;
+    if(st.specSel[st.itemId+":"+gi]==null){
+      st.specSel[st.itemId+":"+gi]=oi;
+      specFromRecord[st.itemId+":"+gi]=g.label+": "+want;
+    }
+  });
+}
 function applySpecPicks(spec,text){
   const groups=SPEC_CHOICES[st.itemId]; if(!groups)return;
   const t=" "+omniNorm(text)+" ";
@@ -8492,7 +8592,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0928.1604";
+const APP_BUILD="0928.1712";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -10149,7 +10249,7 @@ function render(){
      beside itself. The green dot already says SYS.OK, so the words went. */
   if(sy)sy.textContent=fmtDay(FEED.date)+" · Gold $"+Math.round(FEED.gold).toLocaleString("en-US")+" · Silver $"+Number(FEED.silver).toFixed(2)
     +(BUILD?" · build "+BUILD+(st.newBuild?" (old — "+st.newBuild+" is out)":""):"");
-  if(st.mode==="item"){dealGuard();v.innerHTML=renderItem();wireItem();}
+  if(st.mode==="item"){dealGuard();recordGuard();v.innerHTML=renderItem();wireItem();}
   else if(st.mode==="metal"){v.innerHTML=renderMetal();wireMetal();}
   else if(st.mode==="log"){v.innerHTML=renderLog();wireLog();}
   else if(st.mode==="device"){v.innerHTML=renderDevice();}
