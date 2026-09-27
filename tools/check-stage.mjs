@@ -54,6 +54,16 @@ const read = () => page.evaluate(() => {
     strips: document.querySelectorAll(".struck").length,
     tickets: document.querySelectorAll("#logTicket, [id='logTicket']").length,
     saves: document.querySelectorAll("#logDeal").length,
+    /* MONEY FIRST, CAUTIONS UNDER IT. "All prices and numbers should take
+       precedent. Move the cautions and guides down below the finances."
+       Order is the whole assertion here, so it is read off the rendered
+       page as vertical position rather than from the source. */
+    railOrder: (() => {
+      const y = sel => { const e = document.querySelector(sel);
+        return e ? Math.round(e.getBoundingClientRect().top) : null; };
+      return {money: y(".rail .railBack"), cushion: y(".rail .wRow"),
+              guard: y(".rail .iGuard"), killer: y(".rail .killCard")};
+    })(),
     marketRail: has(document.querySelector(".rail"), /against the market/i),
     marketMid:  has(col, /against the market/i)};
 });
@@ -108,6 +118,14 @@ ok(r.midScroll <= r.midVis + 4,
 ok(r.strips === 1, `one place to write the deal down, not four - ${r.strips} strip(s)`);
 ok(r.tickets === 1 && r.saves === 1,
    `one ticket box and one Save button - ${r.tickets} and ${r.saves}`);
+
+const o = r.railOrder || {};
+ok(o.money != null && o.guard != null && o.money < o.guard,
+   `the figures come before the guard on the rail - money at ${o.money}px, guard at ${o.guard}px`);
+ok(o.money != null && o.killer != null && o.money < o.killer,
+   `and before what kills it - killer at ${o.killer}px`);
+ok(o.cushion != null && o.guard != null && o.cushion < o.guard,
+   "the cushion is money too, so it stays above the cautions");
 
 ok(errs.length === 0, "no page errors at any stage");
 await browser.close();

@@ -1424,15 +1424,28 @@ function railHTML(x){
             commentary itself, right under the button that started it. */""}
       ${(findBusy||findMsg)?`<div class="railFind${findBusy?" busy":""}" id="railFindMsg">${esc(findMsg||"Searching\u2026")}</div>`:""}
     </div>
-    ${(typeof itemGuardHTML==="function")?itemGuardHTML(x):""}
-    ${killerHTML(x)}
+    ${/* MONEY FIRST, CAUTIONS UNDER IT.
+          "All prices and numbers should take precedent. Move the cautions
+          and guides down below the finances." They were above it: the
+          evidence-quality guard, then what kills one of these, then - four
+          hundred pixels down - the figures the whole screen exists to
+          produce. Both of those cards are real and neither is the answer;
+          a panel that opens with two paragraphs of warning and buries the
+          number is a panel you read past.
+          So: what you hand over, the interest, the totals, the room to
+          move and the cushion, and THEN how good the number is and what
+          would kill the deal. Nothing is dropped - the guard still moves
+          the loan and still says so, it just says it after the figure it
+          moved rather than before it. */""}
     ${thin?"":dealPanelHTML(x)}
     <div class="wRow"><i><svg viewBox="0 0 24 24" aria-hidden="true">${I.math}</svg></i>
       <div class="t"><b>Your cushion</b><span>fee ${money(x.charge)} \u00b7 lending ${x.ltv}% of resale</span></div>
       <div class="v">${money(x.margin)}</div></div>
     <div class="pinNote railNote">${x.checked?"":`<b style="color:var(--warn-ink)">Estimate \u2014 nothing looked up yet.</b> `}${thin
       ? `Not worth buying, and not worth lending on either.`
-      : `Range ${money(x.low)}&ndash;${money(x.high)}. Never above the top.`}</div>`;
+      : `Range ${money(x.low)}&ndash;${money(x.high)}. Never above the top.`}</div>
+    ${(typeof itemGuardHTML==="function")?itemGuardHTML(x):""}
+    ${killerHTML(x)}`;
 }
 /* HOW MUCH IS BEHIND THE NUMBER.
    The desk has always known this and said it in one line of small grey type:
@@ -8457,7 +8470,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0928.1402";
+const APP_BUILD="0928.1430";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
