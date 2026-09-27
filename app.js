@@ -2758,7 +2758,7 @@ function struckHTML(x){
         style="flex:1;min-width:0;font-family:var(--mono);font-size:14px"></div>
     <button id="logDeal" class="brassBtn" style="width:100%;padding:11px 0"
       title="Saves the item, your estimate, the offer and the ticket number.">Log this deal</button>
-    <div class="cardHint" id="logMsg" style="margin-top:7px">Records the item, your estimate, the offer and the ticket number &mdash; nothing else off the ticket. No name, no address, no ID.${(()=>{const t=soldStats(itemKey());return t?` You've sold ${t.n} of these.`:"";})()}</div>`
+    <div class="cardHint" id="logMsg" style="margin-top:7px">Records the item, your estimate, the offer and the ticket number &mdash; nothing else off the ticket. No name, no address, no ID.${(()=>{const t=soldStats(dealKey());return t?` You've sold ${t.n} of these.`:"";})()}</div>`
     :`<div class="cardHint" style="margin-top:7px">Logging is not available on this device.</div>`}
   </div>`;
 }
@@ -5132,6 +5132,17 @@ function refreshDealViews(){
    that isn't theirs. Key them by the book name instead. */
 function isCustom(){ return String(st.itemId||"").indexOf("cust-")===0; }
 function itemKey(){ return st.itemId + (isCustom()&&st.bookName ? "|"+st.bookName : ""); }
+/* WHAT A LOGGED SALE IS FILED UNDER. The item type was too coarse: a Glock 19
+   and a Hi-Point C9 both went in under "semi-auto pistol", so four sales
+   averaging $185 might be two of each and the tool could not say which. When
+   a priced row is pinned the sale is filed under that row instead, so what
+   comes back is sales of THAT gun. No model pinned and it still files under
+   the item - the honest answer for something with no row.
+   Changed before the shop opened, with nothing in the log. Later would have
+   meant migrating real records or pooling wrong forever. Only the deal log
+   uses this; the cache and step keys stay on itemKey, which is about which
+   screen you are on and not about what sold. */
+function dealKey(){ return (st.mpPin&&st.mpPin.id) ? "m:"+st.mpPin.id : itemKey(); }
 function displayName(x){ return (isCustom()&&st.bookName) ? st.bookName : x.item.name; }
 /* "Microsoft microsoft surface book". The make is prefixed to the item's
    name, which is right for "Microsoft laptop" and wrong the moment the name
@@ -5158,7 +5169,7 @@ function soldStats(key){
 }
 function ownCompsInner(x){
   if(!CAP.db) return "";
-  const k=itemKey(), s=soldStats(k), open=dealsFor(k).filter(d=>d.status==="open").length;
+  const k=dealKey(), s=soldStats(k), open=dealsFor(k).filter(d=>d.status==="open").length;
   if(!s&&!open) return `<div class="cardHint" style="margin-top:9px">No sales of your own yet.</div>`;
   let h=`<div class="tagNote" style="margin-top:10px">`;
   if(s){
@@ -6039,7 +6050,7 @@ function logCardInner(x){
   }
   if(!x.checked)return `<div class="card"><span class="label">Deal log</span>
       <div class="cardHint" style="font-size:13.5px;color:var(--ink-2)">Check the market first (step 4), so the log only keeps real numbers.</div></div>`;
-  const s=soldStats(itemKey());
+  const s=soldStats(dealKey());
   /* The ticket number is the one thing that ties this record to the pawn
      system, and it is the only number on a ticket that is not about the
      customer - no name, no address, no ID. Without it, matching a row here
@@ -6068,7 +6079,7 @@ async function saveDeal(){
     await CAP.db.collection("deals").add({
       ts: Date.now(), day: new Date().toISOString().slice(0,10),
       catId: st.catId, catLabel: x.cat.label,
-      itemId: x.item.id, key: itemKey(), itemName: displayName(x),
+      itemId: x.item.id, key: dealKey(), itemName: displayName(x),
       brand: st.brandTyped||"", tier: st.brand, model: st.model||"", detail: st.detail||"",
       specs: specTxt, cond: st.cond, complete: !!st.complete, liq: x.liqId,
       market: x.market?x.market.kind:"", marketMid: x.market?x.market.mid:null,
@@ -8758,7 +8769,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0927.2312";
+const APP_BUILD="0927.2334";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -9099,7 +9110,7 @@ function wireStep4(){
   if(vin)vin.onkeydown=e=>{ if(e.key==="Enter")doSave(); };
   const clr=document.getElementById("mkClear"); if(clr)clr.onclick=()=>{ st.market=null; render(); };
   const own=document.getElementById("useOwn");
-  if(own)own.onclick=()=>{ const s=soldStats(itemKey()); if(!s)return; st.market={kind:"own",key:mkKey(),mid:Math.round(s.mid),lo:s.lo,hi:s.hi,n:s.n}; render(); };
+  if(own)own.onclick=()=>{ const s=soldStats(dealKey()); if(!s)return; st.market={kind:"own",key:mkKey(),mid:Math.round(s.mid),lo:s.lo,hi:s.hi,n:s.n}; render(); };
 }
 function refreshStep4(){
   const xx=calcItem();
@@ -9842,7 +9853,7 @@ function failNote(runs){
    them all and marks the one in use, so nothing found is lost behind the
    one the tool happened to pick. */
 function gatherEvidence(x,t,retail){
-  const own=soldStats(itemKey()), seen=seenEstimate(seenMatch(x)), pct=retailPct(x);
+  const own=soldStats(dealKey()), seen=seenEstimate(seenMatch(x)), pct=retailPct(x);
   st.evidence={key:mkKey(),ts:Date.now(),
     comps:t?{n:t.n,med:t.med,lo:t.lo,hi:t.hi,sold:t.sold,from:t.from,mid:t.mid}:null,
     retail:retail?{price:retail.price,where:retail.where,pct,

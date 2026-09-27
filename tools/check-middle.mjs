@@ -83,6 +83,29 @@ ok(own && own.mid===180, `$150, $180 and $400 read $${own&&own.mid} — the aver
 ok(own && own.lo===150 && own.hi===400, `and the range is still shown whole — $${own.lo} to $${own.hi}`);
 ok(own && own.avg===undefined, "the averaged figure is gone, not left beside it to be picked up again");
 
+console.log("\n  a logged sale is filed under the model, not the item type");
+/* Wrapped: without dealKey this threw out of the suite instead of going red,
+   and an exploding test is not a failing test - nothing tells you WHICH
+   assertion was the point. */
+const dk=await page.evaluate(()=>{
+ try{
+  const c=CATALOG.find(x=>x.items.some(i=>i.id==="g7"));
+  st.mode="item"; st.catId=c.id; st.itemId="g7"; st.picked=true; st.bookName="";
+  st.mpPin=null;
+  const noPin=dealKey();
+  st.mpPin={id:"b2"};              // Glock 19
+  const glock=dealKey();
+  st.mpPin={id:"b24"};             // Hi-Point C9
+  const hipoint=dealKey();
+  st.mpPin=null;
+  return {noPin,glock,hipoint,item:itemKey()};
+ }catch(e){ return {err:String(e)}; }
+});
+ok(!dk.err, "the deal log has a key of its own"+(dk.err?" — "+dk.err:""));
+ok(dk.glock!==dk.hipoint, `a Glock 19 and a Hi-Point do not share a bucket — ${dk.glock} vs ${dk.hipoint}`);
+ok(dk.glock!==dk.item, "a pinned model is not filed under the item type");
+ok(dk.noPin==="g7" && dk.noPin===dk.item, `with no model pinned it still files under the item — ${dk.noPin}`);
+
 await browser.close();
 console.log(fails?`\ncheck-middle FAIL (${fails})`:"\ncheck-middle OK");
 process.exit(fails?1:0);
