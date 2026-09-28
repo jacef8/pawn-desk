@@ -1131,6 +1131,14 @@
   .words dd i{font-style:italic;color:var(--ink)}
   /* ---- how firm an item's number is ---- */
   .iGuard{margin-top:10px}
+  /* The guard is the second half of the evidence card now, not a card of its
+     own, so it needs a seam - without one the two halves run together and
+     the verdict reads as another line of the source note. */
+  .iRule{display:flex;align-items:center;gap:8px;margin-top:13px;
+    font:600 10.5px/1 var(--mono);letter-spacing:.09em;text-transform:uppercase;
+    color:var(--ink-3)}
+  .iRule::before,.iRule::after{content:"";height:1px;background:var(--line);flex:0 0 10px}
+  .iRule::after{flex:1}
   .iHead{margin-top:7px;font:700 15px/1.35 var(--sans);color:var(--ink)}
   .iHead.good{color:var(--good)}
   .iHead.warn{color:var(--warn-ink)}

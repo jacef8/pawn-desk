@@ -1041,8 +1041,16 @@ function itemGuardHTML(x){
      the number is good and what the loan comes off. The rest - the
      repeatability band, why items have no trend read - is background, and
      background goes in a fold. */
-  return `<div class="card iGuard">
-    <span class="label">How good is this number?</span>
+  /* NOT ITS OWN CARD ANY MORE. It sat directly under "Behind this number"
+     and said the same thing twice - that card's headline already reads
+     "Researched / fair data" and this one answered "Soft - researched, never
+     measured". Reported from the counter as duplicated and confusing, and it
+     was MY doing: moving the evidence card to the top of the rail put the
+     two side by side and made the overlap plain. They are one card now, in
+     the order the question is actually asked: what is behind the number,
+     then what the desk does about it. */
+  return `<div class="iGuard">
+    <div class="iRule"><span>What the desk does about it</span></div>
     <div class="iHead ${G.warn?"warn":G.cut?"":"good"}">${G.warn?"⚠ ":""}${esc(G.head)}</div>
     ${G.cut>0
       ? `<div class="iLine">Loan off <b>${m0(G.guard)}</b>, not ${m0(G.mid)}. Buy keeps ${m0(G.mid)}.</div>`
@@ -1510,7 +1518,9 @@ function railGuardHTML(x,pin){
      moves" onto the mid-run screen, which nobody asked for. Reading the pin
      that was already built beats restating the condition it was built from,
      because a restated condition is one that drifts. */
-  return String(pin).includes('class="railTop') ? ((typeof itemGuardHTML==="function")?itemGuardHTML(x):"")+killerHTML(x) : "";
+  /* The guard moved INTO the evidence card above, so only the cautions are
+     placed here. Leaving the call in as well drew it twice. */
+  return String(pin).includes('class="railTop') ? killerHTML(x) : "";
 }
 function killerHTML(x){
   const ov=itemOv()||{}, cat=x.cat||{};
@@ -1545,7 +1555,7 @@ function weightHTML(x){
   const card=(head,right,barHTML,foot)=>`<div class="card wCard">
     <span class="label" style="margin:0">Behind this number</span>
     <div class="wHead"><b>${head}</b><span>${right}</span></div>
-    ${barHTML}${foot?`<div class="wFoot">${foot}</div>`:""}</div>`;
+    ${barHTML}${foot?`<div class="wFoot">${foot}</div>`:""}${itemGuardHTML(x)}</div>`;
 
   /* A meter that means "no evidence" was drawn FULL and merely greyed out.
      Grey or not, a full bar reads as a full bar at arm's length across a
@@ -1650,7 +1660,7 @@ function weightHTML(x){
     const tone=ev.kind==="sold"?c[1]:"warn";
     const via=ev.kind==="sold" ? esc(srcName(m.src))+" \u2014 sold and completed"
             : ev.kind==="asking" ? esc(srcName(m.src))+" \u2014 what was up for sale"
-            : esc(srcName(m.src))+" \u2014 read by a person, not counted by the tool";
+            : esc(srcName(m.src))+" \u2014 read by Claude, not counted by the tool";
     return card(`<span class="wKind ${ev.kind}">${head}</span>`,right,bar(pct,tone),
       (m.mine?`<div class="wVia"><span>Source</span><b>Your own master sheet</b></div>`
              :`<div class="wVia"><span>Source</span><b>${via}</b></div>`)
@@ -1658,7 +1668,17 @@ function weightHTML(x){
       +(ev.kind==="asking"
         ?`<b>Nobody paid these.</b> They are what sellers were hoping for, and they run high \u2014 treat the figure as a ceiling. `
         :ev.kind==="research"
-        ?`<b>Nothing was counted.</b> Somebody opened that site, read what this model has been going for and wrote a range into the price book. It is a judgement made from the page, not a tally of sales off it \u2014 so there is no number of sales behind it, and no way to tell how far the good ones sat from the bad. `
+        /* "SOMEBODY OPENED THAT SITE... WHO?" Asked at the counter, and it
+           was a fair question with an answer the card was hiding. Claude did,
+           in September, for the 161 rows that were never measured. Naming it
+           costs nothing and vagueness about where money comes from is the one
+           thing this card exists to stop.
+           He asked the harder one too: if nothing was counted, where do the
+           dollars come from? From arithmetic on this range - which is exact,
+           and which cannot be better than the range it starts from. The card
+           says so now, because a figure printed to the dollar reads as
+           measured whatever the headline above it says. */
+        ?`<b>Nothing was counted.</b> Claude read that site in September and wrote a range into the price book \u2014 a judgement about what the page showed, not a tally of sales off it. There is no number of sales behind it, and no way to tell how far the good ones sat from the bad. <b>Every dollar on this screen is worked out from that range:</b> the sums are exact, the figure they start from is not. `
         :"")
       +"For <b>"+esc(m.name||"this model")+"</b>, checked "+esc(fmtDay(m.date))+". Not re-checked since.");
   }
@@ -8790,7 +8810,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0928.0126";
+const APP_BUILD="0928.1318";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

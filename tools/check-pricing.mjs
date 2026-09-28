@@ -1497,9 +1497,13 @@ console.log("\n  a book price says whether somebody paid it");
      phrasing the counter could not parse - "looked up by hand" meant nothing
      to him. The rule was always that the row must ADMIT it has no count; the
      words move, the rule does not. */
+  /* Was "read by a person". Jace read that and asked "somebody... WHO?" - a
+     fair question the card was dodging, so it names Claude now. The rule was
+     never the wording: a researched row must say WHO read it and that nothing
+     was counted. */
   ok(r.hand.kind === "research" && /nothing was counted/i.test(r.hand.text)
-     && /read by a person/i.test(r.hand.text),
-     "a hand-researched row says a person read it and nothing was counted");
+     && /read by claude/i.test(r.hand.text),
+     "a hand-researched row names who read it and says nothing was counted");
   ok(r.sold.px >= 20,
      "  and the verdict is the headline, not a footnote \u2014 " + r.sold.px + "px");
   ok(!/desk price list/i.test(r.sold.text),

@@ -1360,7 +1360,9 @@ console.log("\n  what it looks like with the tool shut");
                  conf: "m", date: todayStr(), src: "https://gunwatcher.com", note: "", stale: false};
     render();
     const w = document.querySelector(".rail .wCard");
-    return {midRun, settled: labels(), card: w ? w.textContent.replace(/\s+/g, " ") : ""};
+    return {midRun, settled: labels(), card: w ? w.textContent.replace(/\s+/g, " ") : "",
+            guardInside: !!(w && w.querySelector(".iGuard")),
+            guardCards: document.querySelectorAll(".rail .card.iGuard").length};
   });
   await pg.close();
   if (r.settled[0] !== "Behind this number") {
@@ -1373,9 +1375,19 @@ console.log("\n  what it looks like with the tool shut");
      that a PERSON read it and NOTHING was counted, not merely that it was
      "researched" - which is the word that was already there and already
      unclear. */
-  const says = /read by a person/.test(r.card) && /Nothing was counted/.test(r.card);
-  if (!says) { bad++; console.log("FAIL a researched price does not say a person read it and nothing was counted"); }
-  else console.log("ok   a researched price says who read it and that nothing was counted");
+  const says = /read by Claude/.test(r.card) && /Nothing was counted/.test(r.card)
+            && /worked out from that range/.test(r.card);
+  if (!says) { bad++; console.log("FAIL a researched price does not name who read it, say nothing was counted, and say where the dollars come from"); }
+  else console.log("ok   a researched price names who read it, and says where the dollars come from");
+  /* ONE CARD, NOT TWO. "Behind this number" and "How good is this number?"
+     sat one above the other saying the same thing - reported from the
+     counter as duplicated, and caused by moving the evidence card to the
+     top. The guard is inside the evidence card now, so it must be present
+     AND must not be a card of its own. */
+  if (!r.guardInside) { bad++; console.log("FAIL the guard is not inside the evidence card"); }
+  else console.log("ok   the guard sits inside the evidence card, not beside it");
+  if (r.guardCards) { bad++; console.log("FAIL the guard is still drawn as its own card too"); }
+  else console.log("ok   and is not drawn twice");
   if (/looked up by hand/.test(r.card)) { bad++; console.log("FAIL the old 'looked up by hand' wording is back"); }
   else console.log("ok   and does not say 'looked up by hand'");
 }
