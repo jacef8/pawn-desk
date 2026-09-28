@@ -1070,10 +1070,15 @@ function itemGuardHTML(x){
      then what the desk does about it. */
   return `<div class="iGuard">
     <div class="iRule"><span>What the desk does about it</span></div>
-    <div class="iHead ${G.warn?"warn":G.cut?"":"good"}">${G.warn?"⚠ ":""}${esc(G.head)}</div>
+    ${/* The verdict line went. It read "Soft - researched, never measured"
+          directly under a headline already reading "Estimate - no real sale
+          behind it", which was two of the five ways this card said one thing.
+          What is left is the only part that moves money, said in a sentence
+          instead of as two figures with the counter left to work out which
+          is which. */""}
     ${G.cut>0
-      ? `<div class="iLine">Loan off <b>${m0(G.guard)}</b>, not ${m0(G.mid)}. Buy keeps ${m0(G.mid)}.</div>`
-      : `<div class="iLine">Used as it stands.</div>`}
+      ? `<div class="iLine ${G.warn?"warn":""}">The loan is figured off <b>${m0(G.guard)}</b> instead of ${m0(G.mid)} &mdash; ${G.cut}% off, because the price above is not a measured one. A buy keeps the full ${m0(G.mid)}.</div>`
+      : `<div class="iLine good">Solid enough to use as it stands. The loan is figured off the full ${m0(G.mid)}.</div>`}
     <details class="fold iFold"><summary class="foldLine">Why, and why items have no trend read</summary>
       <div class="iMore">
         ${G.cut>0?`<p>A buy you can price and move. A pawn is 60 days on a number that came out of a sample, so the loan takes the ${G.cut}%. Type your own resale in and the guard steps aside.</p>`:""}
@@ -1624,11 +1629,17 @@ function weightHTML(x){
        One statement each: what they are, where from, why not better, and
        what it means for the number. */
     const askOnly=sold===0;
-    const head=askOnly ? n+" asking price"+(n===1?"":"s")
-             : share>=0.5 ? sold+" real sale"+(sold===1?"":"s")
-             : n+" listings";
-    const right=askOnly ? "nobody paid these"
-              : share>=0.5 ? "somebody paid these"
+    /* THE SAME THREE WORDS AS THE BOOK BRANCH. This is the live-comps copy
+       of the card and it kept the old wording after the book copy was
+       rewritten - caught by a suite, which is the second surface of the
+       drift this repo warns about: one card, two branches, and only one of
+       them was fixed. The count keeps its place on the right, where it is
+       news rather than a verdict. */
+    const head=askOnly ? "Asking prices"
+             : share>=0.5 ? "Measured"
+             : "Part measured";
+    const right=askOnly ? n+" asking price"+(n===1?"":"s")+", nobody paid these"
+              : share>=0.5 ? sold+" real sale"+(sold===1?"":"s")
               : sold+" sold \u00b7 "+asks+" asking";
     const VIA={soldcomps:"SoldComps \u2014 completed sales",
                marketplace_insights:"eBay \u2014 sold and completed",
@@ -1679,24 +1690,41 @@ function weightHTML(x){
        says either "14 eBay sales in the last 90 days" or "11 listings,
        asking prices - no sold data". So the panel leads with that, in the
        slot where every other branch of this function puts a verdict. */
+    /* THREE WORDS, ONE SLOT, PLAIN ENGLISH. Reported from the counter three
+       times running, the last time as "someone brand new to the tool has no
+       idea what this means, i dont even know what it means".
+       Two faults, and rewording was never going to fix either.
+       FIRST, it was written from the tool's point of view. "Nothing was
+       counted" only lands if you already know the tool SOMETIMES counts real
+       eBay sales; a new person does not, so the sentence answered a question
+       nobody asked.
+       SECOND, the card said the same thing five ways - "Researched", "fair
+       data", "not counted by the tool", "Nothing was counted", and "Soft -
+       researched, never measured" - and not one of them said what to DO.
+       So: Measured / Asking prices / Estimate. One word for what is behind
+       the price, the same slot every time, and then the action. */
     const ev=rowEvidence(m.note);
-    const head=ev.kind==="sold" ? (ev.n?ev.n+" real sales":"Sold prices")
+    const head=ev.kind==="sold" ? "Measured"
              : ev.kind==="asking" ? "Asking prices"
-             : "Researched";
-    const right=ev.kind==="sold" ? "somebody paid these"
+             : "Estimate";
+    const right=ev.kind==="sold" ? (ev.n?ev.n+" real sales":"real sales")
               : ev.kind==="asking" ? "nobody paid these"
-              : c[2];
+              : "no real sale behind it";
     const pct=ev.kind==="sold"?c[0]:ev.kind==="asking"?26:52;
     const tone=ev.kind==="sold"?c[1]:"warn";
-    const via=ev.kind==="sold" ? esc(srcName(m.src))+" \u2014 sold and completed"
-            : ev.kind==="asking" ? esc(srcName(m.src))+" \u2014 what was up for sale"
-            : esc(srcName(m.src))+" \u2014 read by Claude, not counted by the tool";
+    /* The name came off the card. He asked who "somebody" was and I put
+       Claude in - which answered him and gave a new person one more thing to
+       explain. Where it came from says it without that, and the fold still
+       carries the detail a tap away. */
+    const via=ev.kind==="sold" ? esc(srcName(m.src))+" \u2014 what they actually sold for"
+            : ev.kind==="asking" ? esc(srcName(m.src))+" \u2014 what sellers were asking"
+            : esc(srcName(m.src));   /* the date is on the last line already */
     return card(`<span class="wKind ${ev.kind}">${head}</span>`,right,bar(pct,tone),
       (m.mine?`<div class="wVia"><span>Source</span><b>Your own master sheet</b></div>`
              :`<div class="wVia"><span>Source</span><b>${via}</b></div>`)
       +(m.note?`<div class="wFrom">${esc(m.note)}</div>`:"")
       +(ev.kind==="asking"
-        ?`<b>Nobody paid these.</b> They are what sellers were hoping for, and they run high \u2014 treat the figure as a ceiling. `
+        ?`<b>Nobody paid these.</b> They are what sellers were hoping for, and asking prices run high. Treat it as a ceiling, not a price. `
         :ev.kind==="research"
         /* "SOMEBODY OPENED THAT SITE... WHO?" Asked at the counter, and it
            was a fair question with an answer the card was hiding. Claude did,
@@ -1720,7 +1748,7 @@ function weightHTML(x){
            same fact said three times. Two sentences now: what happened, and
            what it means for the money. The headline above already says
            Researched, so the card does not have to argue it. */
-        ?`<b>Nothing was counted.</b> Claude read that page in September and wrote the range \u2014 no sales were tallied. <b>All of these dollars are worked out from that one range:</b> if it is off, every figure here is off with it. `
+        ?`<b>Nobody checked what one actually sold for.</b> Treat it as a ballpark \u2014 and before real money goes across the counter, look one up. That swaps this estimate for a real price. `
         :"")
       +"For <b>"+esc(m.name||"this model")+"</b>, checked "+esc(fmtDay(m.date))+". Not re-checked since.");
   }
@@ -8852,7 +8880,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0928.1801";
+const APP_BUILD="0928.1958";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

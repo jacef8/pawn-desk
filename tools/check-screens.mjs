@@ -1386,15 +1386,22 @@ console.log("\n  what it looks like with the tool shut");
      that a PERSON read it and NOTHING was counted, not merely that it was
      "researched" - which is the word that was already there and already
      unclear. */
-  const says = /read by Claude/.test(r.card) && /Nothing was counted/.test(r.card)
-            /* Not just that it traces the dollars back to the range, but that
-               it says what that MEANS for the money. The first wording -
-               "the sums are exact, the figure they start from is not" - was
-               true and had to be explained at the counter, which is a fail. */
-            && /All of these dollars are worked out from that one range/.test(r.card)
-            && /every figure here is off with it/.test(r.card);
-  if (!says) { bad++; console.log("FAIL a researched price does not name who read it, say nothing was counted, and say where the dollars come from"); }
-  else console.log("ok   a researched price names who read it, and says where the dollars come from");
+  /* No trailing \\b: the card's own text runs "Estimateno real sale behind
+     it" with no space between elements, so a word boundary after the word
+     never matches and the assertion failed on copy that was there. */
+  const says = /\bEstimate/.test(r.card)
+            && /Nobody checked what one actually sold for/.test(r.card)
+            /* And that it says what to DO. Three wordings failed at the
+               counter before this one - "the sums are exact, the figure they
+               start from is not", then "all of these dollars are worked out
+               from that one range" - both true, both needing explanation,
+               and a line of counter copy that needs explaining has failed.
+               The test holds the ACTION, because that is the part a new
+               person can use without knowing how the tool works. */
+            && /look one up/i.test(r.card)
+            && /swaps this estimate for a real price/i.test(r.card);
+  if (!says) { bad++; console.log("FAIL an estimate does not say it is one, or does not say to look a real price up"); }
+  else console.log("ok   an estimate says so plainly, and says to look a real price up");
   /* ONE CARD, NOT TWO. "Behind this number" and "How good is this number?"
      sat one above the other saying the same thing - reported from the
      counter as duplicated, and caused by moving the evidence card to the

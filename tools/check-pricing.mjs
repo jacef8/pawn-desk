@@ -120,13 +120,23 @@ console.log("\n  the meter behind the number");
      whether anybody paid. */
   ok(w.sold && /9 real sales/.test(w.sold.text),
      "the headline is the verdict, with its count — " + (w.sold && w.sold.text.slice(0, 40)));
-  ok(w.sold && /somebody paid these/i.test(w.sold.text), "  and says somebody paid them");
+  /* "somebody paid these" became "N real sales" beside the word Measured.
+     The rule is that a measured row makes plain these are sales somebody
+     completed, not hopes; the words moved, the rule did not. */
+  ok(w.sold && /\bMeasured/.test(w.sold.text) && /real sales/i.test(w.sold.text),
+     "  and says plainly that they are real sales");
   ok(w.sold && /eBay 9/.test(w.sold.text), "names where they came from");
   ok(w.sold && !w.sold.tone.includes("warn"), "mostly-sold is NOT flagged");
   ok(w.sold && parseInt(w.sold.width) === 75, "the bar is the sold share — 9 of 12 = 75%, got " + (w.sold && w.sold.width));
 
   ok(w.asks && w.asks.tone.includes("warn"), "mostly-asking IS flagged");
-  ok(w.asks && /listings/i.test(w.asks.text) && /1 sold/.test(w.asks.text),
+  /* The headline was "N listings" and is "Part measured" now - one of the
+     three words the card uses in that slot everywhere. The rule was never
+     the word: a mixed row must show how many actually SOLD against how many
+     were only asking, so the counter can see the figure is half hope. Both
+     counts are still there, on the right where the counts live. */
+  ok(w.asks && /Part measured/i.test(w.asks.text)
+     && /1 sold/.test(w.asks.text) && /asking/i.test(w.asks.text),
      "a mixed row still counts the sold against the asking — " + (w.asks && w.asks.text.slice(0, 40)));
   ok(w.asks && /hoping for/i.test(w.asks.text), "and says what they are, in words, not just colour");
   ok(w.asks && /ceiling/i.test(w.asks.text), "and says what to do about it");
@@ -1487,10 +1497,10 @@ console.log("\n  a book price says whether somebody paid it");
   });
   ok(r.classify.join(",") === "sold,asking,research",
      "the three kinds of row are told apart by their own note \u2014 " + r.classify.join(", "));
-  ok(r.sold.kind === "sold" && /14 real sales/.test(r.sold.text) && /somebody paid these/i.test(r.sold.text),
-     "a sold row leads with the count and says somebody paid \u2014 " + r.sold.text.slice(0, 44));
-  ok(/sold and completed/i.test(r.sold.text),
-     "  and names the source as the sold search, not just the site");
+  ok(r.sold.kind === "sold" && /14 real sales/.test(r.sold.text) && /\bMeasured/.test(r.sold.text),
+     "a sold row leads with Measured and its count \u2014 " + r.sold.text.slice(0, 44));
+  ok(/what they actually sold for/i.test(r.sold.text),
+     "  and says the source is what they SOLD for, not just the site");
   ok(r.ask.kind === "asking" && /nobody paid these/i.test(r.ask.text) && /ceiling/i.test(r.ask.text),
      "an asking row says nobody paid, and to treat it as a ceiling");
   /* This asserted the words "researched rather than measured", which is the
@@ -1501,9 +1511,15 @@ console.log("\n  a book price says whether somebody paid it");
      fair question the card was dodging, so it names Claude now. The rule was
      never the wording: a researched row must say WHO read it and that nothing
      was counted. */
-  ok(r.hand.kind === "research" && /nothing was counted/i.test(r.hand.text)
-     && /read by claude/i.test(r.hand.text),
-     "a hand-researched row names who read it and says nothing was counted");
+  /* The name came off the card deliberately: "Claude" is one more thing a
+     new person has to have explained, and where it came from says it
+     without that. What must survive is the part that changes what the
+     counter DOES - that no real sale is behind the figure, and that looking
+     one up replaces it. That is the rule now, not the byline. */
+  ok(r.hand.kind === "research" && /\bEstimate/.test(r.hand.text)
+     && /nobody checked what one actually sold for/i.test(r.hand.text)
+     && /look one up/i.test(r.hand.text),
+     "an estimate says no real sale is behind it, and to look one up");
   ok(r.sold.px >= 20,
      "  and the verdict is the headline, not a footnote \u2014 " + r.sold.px + "px");
   ok(!/desk price list/i.test(r.sold.text),
@@ -1740,9 +1756,13 @@ console.log("\n  the item number is guarded by how good it is, and claims no tre
       const face = card ? card.innerText.replace(/\s+/g, " ").trim() : "";
       if (card) card.querySelectorAll("details").forEach(d => d.open = true);
       const full = card ? card.innerText.replace(/\s+/g, " ").trim() : "";
+      /* the guard is a block inside the evidence card now, so the kind of
+         evidence is read off the card and the haircut off the block */
+      const wrap = document.querySelector(".wCard");
       return {cut: x.guard && x.guard.cut, warn: x.guard && x.guard.warn,
               resale: Math.round(x.resale), guarded: Math.round(x.guardResale),
               target: x.target, buy: x.buy, face, text: full,
+              card: wrap ? wrap.innerText.replace(/\s+/g, " ").trim() : "",
               faceWords: face ? face.split(/\s+/).length : 0};
     };
     const out = {loaded: !!INOISE};
@@ -1766,7 +1786,10 @@ console.log("\n  the item number is guarded by how good it is, and claims no tre
     /* a soft number must not sail through */
     ["asking prices with a wide spread: guarded", r.ask && r.ask.cut >= 8],
     ["and that is flagged, not silent", r.ask && r.ask.warn === true],
-    ["it says they are asking prices, not sales", !!(r.ask && /asking prices/i.test(r.ask.text))],
+    /* The guard sub-block no longer names the kind - that was the same fact
+       said twice, once here and once in the headline directly above it. The
+       rule holds, one level up: the CARD must say these are asking prices. */
+    ["the card says they are asking prices, not sales", !!(r.ask && /asking prices/i.test(r.ask.card))],
     ["a thin sample gets a small guard, not a big one",
      r.thin && r.thin.cut > 0 && r.thin.cut < r.ask.cut],
     /* the split that stops the same doubt being charged twice */
