@@ -169,6 +169,88 @@
    "Christensen": [
     2.9,
     1481
+   ],
+   "Mossberg": [
+    2.7,
+    462
+   ],
+   "Seekins Precision": [
+    2.2,
+    1973
+   ],
+   "Connecticut Valley Arms (CVA)": [
+    1.6,
+    732
+   ],
+   "Howa": [
+    1.5,
+    675
+   ],
+   "Sako": [
+    1.4,
+    2195
+   ]
+  },
+  "families_new": {
+   "Tikka T3": [
+    6.8,
+    1040
+   ],
+   "Browning X-BOLT": [
+    4.8,
+    1289
+   ],
+   "Ruger American Predator": [
+    3.2,
+    568
+   ],
+   "Ruger M77 Hawkeye": [
+    3.2,
+    1277
+   ],
+   "Remington 700": [
+    3.1,
+    906
+   ],
+   "Ruger American Rifle": [
+    2.8,
+    591
+   ],
+   "CZ-USA Model 457 Rifles": [
+    2.7,
+    787
+   ],
+   "Ruger American Ranch": [
+    2.6,
+    570
+   ],
+   "Weatherby Vanguard": [
+    2.5,
+    647
+   ],
+   "Mossberg Patriot": [
+    2.1,
+    447
+   ],
+   "Winchester Model 70 Rifles": [
+    2,
+    1394
+   ],
+   "Weatherby Mark V": [
+    2,
+    2345
+   ],
+   "Winchester XPR": [
+    1.9,
+    1027
+   ],
+   "Bergara B-14 Rifles": [
+    1.8,
+    1047
+   ],
+   "Ruger American Rimfire": [
+    1.5,
+    424
    ]
   }
  },
@@ -296,6 +378,130 @@
     1,
     511
    ]
+  },
+  "brands_new": {
+   "Marlin": [
+    25.1,
+    1353
+   ],
+   "Henry": [
+    19.2,
+    931
+   ],
+   "Winchester": [
+    13,
+    1590
+   ],
+   "Smith & Wesson": [
+    5.8,
+    1267
+   ],
+   "Rossi": [
+    4.9,
+    627
+   ],
+   "Gforce Arms": [
+    4,
+    538
+   ],
+   "I.O. INC.": [
+    3.8,
+    951
+   ],
+   "Browning": [
+    3.5,
+    1446
+   ],
+   "Heritage": [
+    2.3,
+    526
+   ],
+   "Uberti": [
+    1.6,
+    1280
+   ],
+   "Cimarron": [
+    1.5,
+    1484
+   ],
+   "Chiappa": [
+    1,
+    957
+   ],
+   "LVE": [
+    0.9,
+    748
+   ],
+   "ARMSCOR/RIA": [
+    0.8,
+    622
+   ],
+   "TAYLOR'S & CO.": [
+    0.8,
+    1137
+   ]
+  },
+  "families_new": {
+   "Marlin Model 1895 Rifles": [
+    10,
+    1382
+   ],
+   "Marlin Model 1894 Rifles": [
+    6.8,
+    1257
+   ],
+   "Smith & Wesson Model 1854 Rifles": [
+    4.3,
+    1319
+   ],
+   "Henry H9": [
+    2.9,
+    1028
+   ],
+   "Henry SPD": [
+    2.7,
+    1666
+   ],
+   "Winchester Model 94 Rifles": [
+    2.7,
+    1412
+   ],
+   "Winchester Model 1892 Rifles": [
+    2.5,
+    1666
+   ],
+   "Marlin Model 336 Rifles": [
+    2.2,
+    1404
+   ],
+   "Winchester Model 1873 Rifles": [
+    1.9,
+    2060
+   ],
+   "Rossi R95": [
+    1.8,
+    766
+   ],
+   "Browning BLR": [
+    1.7,
+    1373
+   ],
+   "Henry H12": [
+    1.6,
+    881
+   ],
+   "Heritage 92": [
+    1.3,
+    597
+   ],
+   "Rossi R92": [
+    1.3,
+    631
+   ],
+   "Browning BL-22": [
+    1.2,
+    895
+   ]
   }
  },
  "over_under_shotguns": {
@@ -421,6 +627,130 @@
    "American Tactical (ATI) Cavalry": [
     0.5,
     431
+   ]
+  },
+  "brands_new": {
+   "Browning": [
+    21.5,
+    2970
+   ],
+   "Beretta": [
+    14.2,
+    3570
+   ],
+   "Gforce Arms": [
+    8.3,
+    358
+   ],
+   "CZ-USA": [
+    6.2,
+    840
+   ],
+   "Mossberg": [
+    5.6,
+    717
+   ],
+   "Savage": [
+    4.7,
+    645
+   ],
+   "Weatherby": [
+    4.7,
+    1070
+   ],
+   "Charles Daly": [
+    4.1,
+    882
+   ],
+   "Franchi": [
+    2.9,
+    1965
+   ],
+   "Stoeger": [
+    2.9,
+    406
+   ],
+   "Tristar": [
+    2.9,
+    882
+   ],
+   "American Tactical (ATI)": [
+    2.7,
+    584
+   ],
+   "Fair": [
+    2.7,
+    1580
+   ],
+   "Rizzini USA": [
+    2.7,
+    5506
+   ],
+   "Benelli": [
+    2.1,
+    3399
+   ]
+  },
+  "families_new": {
+   "Browning Citori": [
+    10.9,
+    2307
+   ],
+   "Gforce Arms GF Series": [
+    6.2,
+    362
+   ],
+   "Beretta Model 680 Shotguns": [
+    5.9,
+    3511
+   ],
+   "Browning Citori 825": [
+    5,
+    3767
+   ],
+   "Weatherby Orion": [
+    4.7,
+    1070
+   ],
+   "Savage Model 555 Shotguns": [
+    3.5,
+    695
+   ],
+   "Beretta Model 690 Shotguns": [
+    2.9,
+    4828
+   ],
+   "Franchi Instinct": [
+    2.9,
+    1965
+   ],
+   "Browning Cynergy": [
+    2.4,
+    1961
+   ],
+   "CZ-USA Drake": [
+    2.4,
+    628
+   ],
+   "Mossberg Mossberg International Silver Reserve": [
+    2.4,
+    680
+   ],
+   "Stoeger Condor": [
+    2.4,
+    417
+   ],
+   "Charles Daly 202": [
+    2.1,
+    339
+   ],
+   "CZ-USA Redhead": [
+    2.1,
+    955
+   ],
+   "Pointer Acrius": [
+    2.1,
+    403
    ]
   }
  },
@@ -548,6 +878,130 @@
     0.9,
     206
    ]
+  },
+  "brands_new": {
+   "Mossberg": [
+    47.2,
+    434
+   ],
+   "Gforce Arms": [
+    8.1,
+    133
+   ],
+   "Winchester": [
+    7.1,
+    356
+   ],
+   "Keltec": [
+    6.6,
+    478
+   ],
+   "Remington": [
+    6.6,
+    908
+   ],
+   "Charles Daly": [
+    3,
+    179
+   ],
+   "Escort": [
+    3,
+    322
+   ],
+   "Benelli": [
+    2.6,
+    460
+   ],
+   "Browning": [
+    2.6,
+    1260
+   ],
+   "ARMSCOR/RIA": [
+    1.5,
+    357
+   ],
+   "Savage": [
+    1.3,
+    168
+   ],
+   "Ithaca GUN CO.": [
+    1.1,
+    1297
+   ],
+   "Retay": [
+    0.9,
+    630
+   ],
+   "Stoeger": [
+    0.9,
+    339
+   ],
+   "Tokarev Shotguns": [
+    0.9,
+    228
+   ]
+  },
+  "families_new": {
+   "Mossberg Model 590 Shotguns": [
+    22.4,
+    558
+   ],
+   "Mossberg Maverick 88 Shotguns": [
+    11.5,
+    175
+   ],
+   "Mossberg Model 500 Shotguns": [
+    9,
+    472
+   ],
+   "Remington 870": [
+    5.3,
+    867
+   ],
+   "Keltec KSG": [
+    4.5,
+    563
+   ],
+   "Gforce Arms GF Series": [
+    4.1,
+    127
+   ],
+   "Winchester SXP": [
+    3.4,
+    321
+   ],
+   "Charles Daly Honcho": [
+    2.8,
+    169
+   ],
+   "Benelli Nova": [
+    2.6,
+    460
+   ],
+   "Browning BPS": [
+    2.4,
+    1122
+   ],
+   "Escort PS": [
+    2.4,
+    324
+   ],
+   "Mossberg Model 510 Shotguns": [
+    1.7,
+    423
+   ],
+   "Winchester SXP Field": [
+    1.7,
+    359
+   ],
+   "Savage Model 320 Shotguns": [
+    1.3,
+    168
+   ],
+   "Ithaca GUN CO. Model 37": [
+    0.9,
+    1247
+   ]
   }
  },
  "revolvers": {
@@ -673,6 +1127,130 @@
    "Ruger LCR": [
     1.1,
     447
+   ]
+  },
+  "brands_new": {
+   "Smith & Wesson": [
+    20,
+    1013
+   ],
+   "Ruger": [
+    18.7,
+    768
+   ],
+   "Colt": [
+    18.2,
+    2397
+   ],
+   "Taurus": [
+    11.5,
+    513
+   ],
+   "Heritage": [
+    4.3,
+    160
+   ],
+   "North American Arms (NAA)": [
+    4,
+    331
+   ],
+   "Cimarron": [
+    3.9,
+    681
+   ],
+   "Chiappa": [
+    2.9,
+    1299
+   ],
+   "Charter Arms": [
+    2.1,
+    398
+   ],
+   "Uberti": [
+    1.9,
+    852
+   ],
+   "TAYLOR'S & CO.": [
+    1.5,
+    663
+   ],
+   "Magnum Research": [
+    1.1,
+    1362
+   ],
+   "Diamondback": [
+    1.1,
+    510
+   ],
+   "Pietta": [
+    0.9,
+    679
+   ],
+   "Kimber": [
+    0.7,
+    958
+   ]
+  },
+  "families_new": {
+   "Taurus Small Frame Revolvers": [
+    4.9,
+    370
+   ],
+   "Colt Python": [
+    4.5,
+    1814
+   ],
+   "Ruger Vaquero": [
+    3.5,
+    904
+   ],
+   "Heritage Rough Rider": [
+    3.2,
+    142
+   ],
+   "Taurus Judge": [
+    2.8,
+    605
+   ],
+   "Ruger Super Redhawk": [
+    2.4,
+    1019
+   ],
+   "Colt King Cobra": [
+    2.1,
+    1185
+   ],
+   "Colt Anaconda": [
+    1.8,
+    1487
+   ],
+   "North American Arms (NAA) NAA": [
+    1.8,
+    300
+   ],
+   "Colt Single Action Army": [
+    1.7,
+    2416
+   ],
+   "Ruger Blackhawk": [
+    1.7,
+    800
+   ],
+   "Ruger LCR": [
+    1.6,
+    533
+   ],
+   "Ruger Wrangler": [
+    1.6,
+    183
+   ],
+   "Chiappa Rhino": [
+    1.5,
+    1055
+   ],
+   "Taurus Raging Hunter": [
+    1.4,
+    781
    ]
   }
  },
@@ -800,6 +1378,130 @@
     0.7,
     797
    ]
+  },
+  "brands_new": {
+   "SIG Sauer": [
+    8.6,
+    1148
+   ],
+   "Glock": [
+    8.5,
+    647
+   ],
+   "Ruger": [
+    7.8,
+    478
+   ],
+   "Smith & Wesson": [
+    6.7,
+    594
+   ],
+   "Taurus": [
+    6,
+    403
+   ],
+   "Springfield": [
+    4.6,
+    848
+   ],
+   "Colt": [
+    4.4,
+    1752
+   ],
+   "Kimber": [
+    4.1,
+    1214
+   ],
+   "Heckler & Koch": [
+    3.4,
+    1735
+   ],
+   "Canik": [
+    3.2,
+    751
+   ],
+   "Beretta": [
+    3.2,
+    736
+   ],
+   "FNH": [
+    2.9,
+    930
+   ],
+   "Walther": [
+    2.7,
+    779
+   ],
+   "CZ-USA": [
+    2.4,
+    970
+   ],
+   "Keltec": [
+    1.5,
+    455
+   ]
+  },
+  "families_new": {
+   "Taurus Taurustx": [
+    4,
+    467
+   ],
+   "SIG Sauer P365": [
+    2.9,
+    655
+   ],
+   "Ruger Mark IV": [
+    2.5,
+    549
+   ],
+   "SIG Sauer P320": [
+    1.7,
+    709
+   ],
+   "Canik Mete": [
+    1.5,
+    565
+   ],
+   "Smith & Wesson Bodyguard": [
+    1.3,
+    458
+   ],
+   "Smith & Wesson M&P": [
+    1.2,
+    584
+   ],
+   "Smith & Wesson Shield": [
+    1.2,
+    379
+   ],
+   "Beretta Model 90 Pistols": [
+    1.2,
+    937
+   ],
+   "Glock G19": [
+    1.1,
+    643
+   ],
+   "Ruger LCP MAX": [
+    1.1,
+    299
+   ],
+   "Colt Government": [
+    1,
+    1558
+   ],
+   "Glock G43": [
+    0.9,
+    578
+   ],
+   "SIG Sauer P226": [
+    0.7,
+    2586
+   ],
+   "Ruger RXM": [
+    0.7,
+    361
+   ]
   }
  },
  "semi_auto_rifles": {
@@ -926,6 +1628,130 @@
     0.7,
     851
    ]
+  },
+  "brands_new": {
+   "Ruger": [
+    22.5,
+    579
+   ],
+   "Smith & Wesson": [
+    4.2,
+    671
+   ],
+   "FNH": [
+    3.7,
+    3220
+   ],
+   "SIG Sauer": [
+    3.5,
+    1903
+   ],
+   "Daniel Defense": [
+    3.2,
+    1750
+   ],
+   "Springfield": [
+    3.1,
+    1370
+   ],
+   "Browning": [
+    2.9,
+    1187
+   ],
+   "Heckler & Koch": [
+    2.2,
+    2029
+   ],
+   "Colt": [
+    2.1,
+    1077
+   ],
+   "Keltec": [
+    1.9,
+    496
+   ],
+   "Israel Weapon Industries (IWI)": [
+    1.8,
+    1414
+   ],
+   "Anderson Manufacturing": [
+    1.6,
+    263
+   ],
+   "Zastava": [
+    1.6,
+    1388
+   ],
+   "American Tactical (ATI)": [
+    1.3,
+    1037
+   ],
+   "Aero Precision": [
+    1.2,
+    421
+   ]
+  },
+  "families_new": {
+   "Ruger 10/22": [
+    7.7,
+    407
+   ],
+   "Ruger MINI-14": [
+    2.1,
+    1249
+   ],
+   "Ruger LC Carbine": [
+    1.9,
+    579
+   ],
+   "Daniel Defense DDM4 Pistols": [
+    1.9,
+    1764
+   ],
+   "Smith & Wesson M&P": [
+    1.9,
+    590
+   ],
+   "Ruger 10/22 Takedown": [
+    1.6,
+    456
+   ],
+   "FNH Scar": [
+    1.4,
+    3356
+   ],
+   "SIG Sauer MCX Rifles": [
+    1.2,
+    2489
+   ],
+   "Smith & Wesson FPC": [
+    1.1,
+    577
+   ],
+   "Springfield M1A": [
+    1.1,
+    1568
+   ],
+   "Springfield Saint": [
+    1.1,
+    1087
+   ],
+   "Zastava Zpap Pistols": [
+    1,
+    1279
+   ],
+   "Ruger PC Carbine": [
+    1,
+    621
+   ],
+   "Browning BAR Rifles": [
+    0.9,
+    1615
+   ],
+   "Browning SA-22": [
+    0.8,
+    1311
+   ]
   }
  },
  "semi_auto_shotguns": {
@@ -1051,6 +1877,130 @@
    "Benelli M4": [
     1,
     1453
+   ]
+  },
+  "brands_new": {
+   "Benelli": [
+    15.9,
+    2671
+   ],
+   "Beretta": [
+    15.8,
+    1471
+   ],
+   "Gforce Arms": [
+    13.1,
+    256
+   ],
+   "Browning": [
+    7.4,
+    1603
+   ],
+   "Mossberg": [
+    6.8,
+    787
+   ],
+   "Franchi": [
+    3.7,
+    1024
+   ],
+   "Winchester": [
+    3.4,
+    937
+   ],
+   "Retay": [
+    2.5,
+    924
+   ],
+   "Escort": [
+    2.4,
+    295
+   ],
+   "Stoeger": [
+    2.4,
+    608
+   ],
+   "Tristar": [
+    2,
+    670
+   ],
+   "Military Armament Corp (MAC)": [
+    1.7,
+    504
+   ],
+   "Remington": [
+    1.5,
+    2030
+   ],
+   "Charles Daly": [
+    1.4,
+    262
+   ],
+   "ARMSCOR/RIA": [
+    1.3,
+    360
+   ]
+  },
+  "families_new": {
+   "Beretta A300": [
+    5.2,
+    949
+   ],
+   "Benelli Super Black Eagle": [
+    4.8,
+    3196
+   ],
+   "Beretta A400": [
+    4.8,
+    1840
+   ],
+   "Browning A5": [
+    3.8,
+    1770
+   ],
+   "Beretta Model 1301 Shotguns": [
+    3.5,
+    1508
+   ],
+   "Benelli M2": [
+    3.4,
+    1537
+   ],
+   "Franchi Affinity 3": [
+    2.4,
+    1015
+   ],
+   "Mossberg Model 940 Shotguns": [
+    2.4,
+    893
+   ],
+   "Benelli M4": [
+    1.9,
+    1985
+   ],
+   "Browning Maxus": [
+    1.9,
+    1543
+   ],
+   "Benelli Montefeltro": [
+    1.6,
+    1653
+   ],
+   "Browning Silver": [
+    1.4,
+    1065
+   ],
+   "Gforce Arms SAX-2": [
+    1.4,
+    390
+   ],
+   "Escort PS": [
+    1.3,
+    325
+   ],
+   "Tristar Viper G2": [
+    1.3,
+    777
    ]
   }
  }

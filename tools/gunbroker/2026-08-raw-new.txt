@@ -1,0 +1,240 @@
+Bolt Action Rifles|New|Brands|RUGER|23.4%|$774
+Bolt Action Rifles|New|Brands|SAVAGE|12.2%|$602
+Bolt Action Rifles|New|Brands|TIKKA|7.5%|$1,049
+Bolt Action Rifles|New|Brands|BROWNING|6.6%|$1,281
+Bolt Action Rifles|New|Brands|WINCHESTER|5.7%|$1,078
+Bolt Action Rifles|New|Brands|WEATHERBY|5.6%|$1,372
+Bolt Action Rifles|New|Brands|REMINGTON|4.9%|$841
+Bolt Action Rifles|New|Brands|BERGARA|4.2%|$1,062
+Bolt Action Rifles|New|Brands|CZ-USA|3.7%|$793
+Bolt Action Rifles|New|Brands|CHRISTENSEN|2.9%|$1,481
+Bolt Action Rifles|New|Brands|MOSSBERG|2.7%|$462
+Bolt Action Rifles|New|Brands|SEEKINS PRECISION|2.2%|$1,973
+Bolt Action Rifles|New|Brands|CONNECTICUT VALLEY ARMS (CVA)|1.6%|$732
+Bolt Action Rifles|New|Brands|HOWA|1.5%|$675
+Bolt Action Rifles|New|Brands|SAKO|1.4%|$2,195
+Bolt Action Rifles|New|Families|TIKKA T3|6.8%|$1,040
+Bolt Action Rifles|New|Families|BROWNING X-BOLT|4.8%|$1,289
+Bolt Action Rifles|New|Families|RUGER AMERICAN PREDATOR|3.2%|$568
+Bolt Action Rifles|New|Families|RUGER M77 HAWKEYE|3.2%|$1,277
+Bolt Action Rifles|New|Families|REMINGTON 700|3.1%|$906
+Bolt Action Rifles|New|Families|RUGER AMERICAN RIFLE|2.8%|$591
+Bolt Action Rifles|New|Families|CZ-USA MODEL 457 RIFLES|2.7%|$787
+Bolt Action Rifles|New|Families|RUGER AMERICAN RANCH|2.6%|$570
+Bolt Action Rifles|New|Families|WEATHERBY VANGUARD|2.5%|$647
+Bolt Action Rifles|New|Families|MOSSBERG PATRIOT|2.1%|$447
+Bolt Action Rifles|New|Families|WINCHESTER MODEL 70 RIFLES|2.0%|$1,394
+Bolt Action Rifles|New|Families|WEATHERBY MARK V|2.0%|$2,345
+Bolt Action Rifles|New|Families|WINCHESTER XPR|1.9%|$1,027
+Bolt Action Rifles|New|Families|BERGARA B-14 RIFLES|1.8%|$1,047
+Bolt Action Rifles|New|Families|RUGER AMERICAN RIMFIRE|1.5%|$424
+Lever Action Rifles|New|Brands|MARLIN|25.1%|$1,353
+Lever Action Rifles|New|Brands|HENRY|19.2%|$931
+Lever Action Rifles|New|Brands|WINCHESTER|13.0%|$1,590
+Lever Action Rifles|New|Brands|SMITH & WESSON|5.8%|$1,267
+Lever Action Rifles|New|Brands|ROSSI|4.9%|$627
+Lever Action Rifles|New|Brands|GFORCE ARMS|4.0%|$538
+Lever Action Rifles|New|Brands|I.O. INC.|3.8%|$951
+Lever Action Rifles|New|Brands|BROWNING|3.5%|$1,446
+Lever Action Rifles|New|Brands|HERITAGE|2.3%|$526
+Lever Action Rifles|New|Brands|UBERTI|1.6%|$1,280
+Lever Action Rifles|New|Brands|CIMARRON|1.5%|$1,484
+Lever Action Rifles|New|Brands|CHIAPPA|1.0%|$957
+Lever Action Rifles|New|Brands|LVE|0.9%|$748
+Lever Action Rifles|New|Brands|ARMSCOR/RIA|0.8%|$622
+Lever Action Rifles|New|Brands|TAYLOR'S & CO.|0.8%|$1,137
+Lever Action Rifles|New|Families|MARLIN MODEL 1895 RIFLES|10.0%|$1,382
+Lever Action Rifles|New|Families|MARLIN MODEL 1894 RIFLES|6.8%|$1,257
+Lever Action Rifles|New|Families|SMITH & WESSON MODEL 1854 RIFLES|4.3%|$1,319
+Lever Action Rifles|New|Families|HENRY H9|2.9%|$1,028
+Lever Action Rifles|New|Families|HENRY SPD|2.7%|$1,666
+Lever Action Rifles|New|Families|WINCHESTER MODEL 94 RIFLES|2.7%|$1,412
+Lever Action Rifles|New|Families|WINCHESTER MODEL 1892 RIFLES|2.5%|$1,666
+Lever Action Rifles|New|Families|MARLIN MODEL 336 RIFLES|2.2%|$1,404
+Lever Action Rifles|New|Families|WINCHESTER MODEL 1873 RIFLES|1.9%|$2,060
+Lever Action Rifles|New|Families|ROSSI R95|1.8%|$766
+Lever Action Rifles|New|Families|BROWNING BLR|1.7%|$1,373
+Lever Action Rifles|New|Families|HENRY H12|1.6%|$881
+Lever Action Rifles|New|Families|HERITAGE 92|1.3%|$597
+Lever Action Rifles|New|Families|ROSSI R92|1.3%|$631
+Lever Action Rifles|New|Families|BROWNING BL-22|1.2%|$895
+Over Under Shotguns|New|Brands|BROWNING|21.5%|$2,970
+Over Under Shotguns|New|Brands|BERETTA|14.2%|$3,570
+Over Under Shotguns|New|Brands|GFORCE ARMS|8.3%|$358
+Over Under Shotguns|New|Brands|CZ-USA|6.2%|$840
+Over Under Shotguns|New|Brands|MOSSBERG|5.6%|$717
+Over Under Shotguns|New|Brands|SAVAGE|4.7%|$645
+Over Under Shotguns|New|Brands|WEATHERBY|4.7%|$1,070
+Over Under Shotguns|New|Brands|CHARLES DALY|4.1%|$882
+Over Under Shotguns|New|Brands|FRANCHI|2.9%|$1,965
+Over Under Shotguns|New|Brands|STOEGER|2.9%|$406
+Over Under Shotguns|New|Brands|TRISTAR|2.9%|$882
+Over Under Shotguns|New|Brands|AMERICAN TACTICAL (ATI)|2.7%|$584
+Over Under Shotguns|New|Brands|FAIR|2.7%|$1,580
+Over Under Shotguns|New|Brands|RIZZINI USA|2.7%|$5,506
+Over Under Shotguns|New|Brands|BENELLI|2.1%|$3,399
+Over Under Shotguns|New|Families|BROWNING CITORI|10.9%|$2,307
+Over Under Shotguns|New|Families|GFORCE ARMS GF SERIES|6.2%|$362
+Over Under Shotguns|New|Families|BERETTA MODEL 680 SHOTGUNS|5.9%|$3,511
+Over Under Shotguns|New|Families|BROWNING CITORI 825|5.0%|$3,767
+Over Under Shotguns|New|Families|WEATHERBY ORION|4.7%|$1,070
+Over Under Shotguns|New|Families|SAVAGE MODEL 555 SHOTGUNS|3.5%|$695
+Over Under Shotguns|New|Families|BERETTA MODEL 690 SHOTGUNS|2.9%|$4,828
+Over Under Shotguns|New|Families|FRANCHI INSTINCT|2.9%|$1,965
+Over Under Shotguns|New|Families|BROWNING CYNERGY|2.4%|$1,961
+Over Under Shotguns|New|Families|CZ-USA DRAKE|2.4%|$628
+Over Under Shotguns|New|Families|MOSSBERG MOSSBERG INTERNATIONAL SILVER RESERVE|2.4%|$680
+Over Under Shotguns|New|Families|STOEGER CONDOR|2.4%|$417
+Over Under Shotguns|New|Families|CHARLES DALY 202|2.1%|$339
+Over Under Shotguns|New|Families|CZ-USA REDHEAD|2.1%|$955
+Over Under Shotguns|New|Families|POINTER ACRIUS|2.1%|$403
+Pump Action Shotguns|New|Brands|MOSSBERG|47.2%|$434
+Pump Action Shotguns|New|Brands|GFORCE ARMS|8.1%|$133
+Pump Action Shotguns|New|Brands|WINCHESTER|7.1%|$356
+Pump Action Shotguns|New|Brands|KELTEC|6.6%|$478
+Pump Action Shotguns|New|Brands|REMINGTON|6.6%|$908
+Pump Action Shotguns|New|Brands|CHARLES DALY|3.0%|$179
+Pump Action Shotguns|New|Brands|ESCORT|3.0%|$322
+Pump Action Shotguns|New|Brands|BENELLI|2.6%|$460
+Pump Action Shotguns|New|Brands|BROWNING|2.6%|$1,260
+Pump Action Shotguns|New|Brands|ARMSCOR/RIA|1.5%|$357
+Pump Action Shotguns|New|Brands|SAVAGE|1.3%|$168
+Pump Action Shotguns|New|Brands|ITHACA GUN CO.|1.1%|$1,297
+Pump Action Shotguns|New|Brands|RETAY|0.9%|$630
+Pump Action Shotguns|New|Brands|STOEGER|0.9%|$339
+Pump Action Shotguns|New|Brands|TOKAREV SHOTGUNS|0.9%|$228
+Pump Action Shotguns|New|Families|MOSSBERG MODEL 590 SHOTGUNS|22.4%|$558
+Pump Action Shotguns|New|Families|MOSSBERG MAVERICK 88 SHOTGUNS|11.5%|$175
+Pump Action Shotguns|New|Families|MOSSBERG MODEL 500 SHOTGUNS|9.0%|$472
+Pump Action Shotguns|New|Families|REMINGTON 870|5.3%|$867
+Pump Action Shotguns|New|Families|KELTEC KSG|4.5%|$563
+Pump Action Shotguns|New|Families|GFORCE ARMS GF SERIES|4.1%|$127
+Pump Action Shotguns|New|Families|WINCHESTER SXP|3.4%|$321
+Pump Action Shotguns|New|Families|CHARLES DALY HONCHO|2.8%|$169
+Pump Action Shotguns|New|Families|BENELLI NOVA|2.6%|$460
+Pump Action Shotguns|New|Families|BROWNING BPS|2.4%|$1,122
+Pump Action Shotguns|New|Families|ESCORT PS|2.4%|$324
+Pump Action Shotguns|New|Families|MOSSBERG MODEL 510 SHOTGUNS|1.7%|$423
+Pump Action Shotguns|New|Families|WINCHESTER SXP FIELD|1.7%|$359
+Pump Action Shotguns|New|Families|SAVAGE MODEL 320 SHOTGUNS|1.3%|$168
+Pump Action Shotguns|New|Families|ITHACA GUN CO. MODEL 37|0.9%|$1,247
+Revolvers|New|Brands|SMITH & WESSON|20.0%|$1,013
+Revolvers|New|Brands|RUGER|18.7%|$768
+Revolvers|New|Brands|COLT|18.2%|$2,397
+Revolvers|New|Brands|TAURUS|11.5%|$513
+Revolvers|New|Brands|HERITAGE|4.3%|$160
+Revolvers|New|Brands|NORTH AMERICAN ARMS (NAA)|4.0%|$331
+Revolvers|New|Brands|CIMARRON|3.9%|$681
+Revolvers|New|Brands|CHIAPPA|2.9%|$1,299
+Revolvers|New|Brands|CHARTER ARMS|2.1%|$398
+Revolvers|New|Brands|UBERTI|1.9%|$852
+Revolvers|New|Brands|TAYLOR'S & CO.|1.5%|$663
+Revolvers|New|Brands|MAGNUM RESEARCH|1.1%|$1,362
+Revolvers|New|Brands|DIAMONDBACK|1.1%|$510
+Revolvers|New|Brands|PIETTA|0.9%|$679
+Revolvers|New|Brands|KIMBER|0.7%|$958
+Revolvers|New|Families|TAURUS SMALL FRAME REVOLVERS|4.9%|$370
+Revolvers|New|Families|COLT PYTHON|4.5%|$1,814
+Revolvers|New|Families|RUGER VAQUERO|3.5%|$904
+Revolvers|New|Families|HERITAGE ROUGH RIDER|3.2%|$142
+Revolvers|New|Families|TAURUS JUDGE|2.8%|$605
+Revolvers|New|Families|RUGER SUPER REDHAWK|2.4%|$1,019
+Revolvers|New|Families|COLT KING COBRA|2.1%|$1,185
+Revolvers|New|Families|COLT ANACONDA|1.8%|$1,487
+Revolvers|New|Families|NORTH AMERICAN ARMS (NAA) NAA|1.8%|$300
+Revolvers|New|Families|COLT SINGLE ACTION ARMY|1.7%|$2,416
+Revolvers|New|Families|RUGER BLACKHAWK|1.7%|$800
+Revolvers|New|Families|RUGER LCR|1.6%|$533
+Revolvers|New|Families|RUGER WRANGLER|1.6%|$183
+Revolvers|New|Families|CHIAPPA RHINO|1.5%|$1,055
+Revolvers|New|Families|TAURUS RAGING HUNTER|1.4%|$781
+Semi Auto Pistols|New|Brands|SIG SAUER|8.6%|$1,148
+Semi Auto Pistols|New|Brands|GLOCK|8.5%|$647
+Semi Auto Pistols|New|Brands|RUGER|7.8%|$478
+Semi Auto Pistols|New|Brands|SMITH & WESSON|6.7%|$594
+Semi Auto Pistols|New|Brands|TAURUS|6.0%|$403
+Semi Auto Pistols|New|Brands|SPRINGFIELD|4.6%|$848
+Semi Auto Pistols|New|Brands|COLT|4.4%|$1,752
+Semi Auto Pistols|New|Brands|KIMBER|4.1%|$1,214
+Semi Auto Pistols|New|Brands|HECKLER & KOCH|3.4%|$1,735
+Semi Auto Pistols|New|Brands|CANIK|3.2%|$751
+Semi Auto Pistols|New|Brands|BERETTA|3.2%|$736
+Semi Auto Pistols|New|Brands|FNH|2.9%|$930
+Semi Auto Pistols|New|Brands|WALTHER|2.7%|$779
+Semi Auto Pistols|New|Brands|CZ-USA|2.4%|$970
+Semi Auto Pistols|New|Brands|KELTEC|1.5%|$455
+Semi Auto Pistols|New|Families|TAURUS TAURUSTX|4.0%|$467
+Semi Auto Pistols|New|Families|SIG SAUER P365|2.9%|$655
+Semi Auto Pistols|New|Families|RUGER MARK IV|2.5%|$549
+Semi Auto Pistols|New|Families|SIG SAUER P320|1.7%|$709
+Semi Auto Pistols|New|Families|CANIK METE|1.5%|$565
+Semi Auto Pistols|New|Families|SMITH & WESSON BODYGUARD|1.3%|$458
+Semi Auto Pistols|New|Families|SMITH & WESSON M&P|1.2%|$584
+Semi Auto Pistols|New|Families|SMITH & WESSON SHIELD|1.2%|$379
+Semi Auto Pistols|New|Families|BERETTA MODEL 90 PISTOLS|1.2%|$937
+Semi Auto Pistols|New|Families|GLOCK G19|1.1%|$643
+Semi Auto Pistols|New|Families|RUGER LCP MAX|1.1%|$299
+Semi Auto Pistols|New|Families|COLT GOVERNMENT|1.0%|$1,558
+Semi Auto Pistols|New|Families|GLOCK G43|0.9%|$578
+Semi Auto Pistols|New|Families|SIG SAUER P226|0.7%|$2,586
+Semi Auto Pistols|New|Families|RUGER RXM|0.7%|$361
+Semi Auto Rifles|New|Brands|RUGER|22.5%|$579
+Semi Auto Rifles|New|Brands|SMITH & WESSON|4.2%|$671
+Semi Auto Rifles|New|Brands|FNH|3.7%|$3,220
+Semi Auto Rifles|New|Brands|SIG SAUER|3.5%|$1,903
+Semi Auto Rifles|New|Brands|DANIEL DEFENSE|3.2%|$1,750
+Semi Auto Rifles|New|Brands|SPRINGFIELD|3.1%|$1,370
+Semi Auto Rifles|New|Brands|BROWNING|2.9%|$1,187
+Semi Auto Rifles|New|Brands|HECKLER & KOCH|2.2%|$2,029
+Semi Auto Rifles|New|Brands|COLT|2.1%|$1,077
+Semi Auto Rifles|New|Brands|KELTEC|1.9%|$496
+Semi Auto Rifles|New|Brands|ISRAEL WEAPON INDUSTRIES (IWI)|1.8%|$1,414
+Semi Auto Rifles|New|Brands|ANDERSON MANUFACTURING|1.6%|$263
+Semi Auto Rifles|New|Brands|ZASTAVA|1.6%|$1,388
+Semi Auto Rifles|New|Brands|AMERICAN TACTICAL (ATI)|1.3%|$1,037
+Semi Auto Rifles|New|Brands|AERO PRECISION|1.2%|$421
+Semi Auto Rifles|New|Families|RUGER 10/22|7.7%|$407
+Semi Auto Rifles|New|Families|RUGER MINI-14|2.1%|$1,249
+Semi Auto Rifles|New|Families|RUGER LC CARBINE|1.9%|$579
+Semi Auto Rifles|New|Families|DANIEL DEFENSE DDM4 PISTOLS|1.9%|$1,764
+Semi Auto Rifles|New|Families|SMITH & WESSON M&P|1.9%|$590
+Semi Auto Rifles|New|Families|RUGER 10/22 TAKEDOWN|1.6%|$456
+Semi Auto Rifles|New|Families|FNH SCAR|1.4%|$3,356
+Semi Auto Rifles|New|Families|SIG SAUER MCX RIFLES|1.2%|$2,489
+Semi Auto Rifles|New|Families|SMITH & WESSON FPC|1.1%|$577
+Semi Auto Rifles|New|Families|SPRINGFIELD M1A|1.1%|$1,568
+Semi Auto Rifles|New|Families|SPRINGFIELD SAINT|1.1%|$1,087
+Semi Auto Rifles|New|Families|ZASTAVA ZPAP PISTOLS|1.0%|$1,279
+Semi Auto Rifles|New|Families|RUGER PC CARBINE|1.0%|$621
+Semi Auto Rifles|New|Families|BROWNING BAR RIFLES|0.9%|$1,615
+Semi Auto Rifles|New|Families|BROWNING SA-22|0.8%|$1,311
+Semi Auto Shotguns|New|Brands|BENELLI|15.9%|$2,671
+Semi Auto Shotguns|New|Brands|BERETTA|15.8%|$1,471
+Semi Auto Shotguns|New|Brands|GFORCE ARMS|13.1%|$256
+Semi Auto Shotguns|New|Brands|BROWNING|7.4%|$1,603
+Semi Auto Shotguns|New|Brands|MOSSBERG|6.8%|$787
+Semi Auto Shotguns|New|Brands|FRANCHI|3.7%|$1,024
+Semi Auto Shotguns|New|Brands|WINCHESTER|3.4%|$937
+Semi Auto Shotguns|New|Brands|RETAY|2.5%|$924
+Semi Auto Shotguns|New|Brands|ESCORT|2.4%|$295
+Semi Auto Shotguns|New|Brands|STOEGER|2.4%|$608
+Semi Auto Shotguns|New|Brands|TRISTAR|2.0%|$670
+Semi Auto Shotguns|New|Brands|MILITARY ARMAMENT CORP (MAC)|1.7%|$504
+Semi Auto Shotguns|New|Brands|REMINGTON|1.5%|$2,030
+Semi Auto Shotguns|New|Brands|CHARLES DALY|1.4%|$262
+Semi Auto Shotguns|New|Brands|ARMSCOR/RIA|1.3%|$360
+Semi Auto Shotguns|New|Families|BERETTA A300|5.2%|$949
+Semi Auto Shotguns|New|Families|BENELLI SUPER BLACK EAGLE|4.8%|$3,196
+Semi Auto Shotguns|New|Families|BERETTA A400|4.8%|$1,840
+Semi Auto Shotguns|New|Families|BROWNING A5|3.8%|$1,770
+Semi Auto Shotguns|New|Families|BERETTA MODEL 1301 SHOTGUNS|3.5%|$1,508
+Semi Auto Shotguns|New|Families|BENELLI M2|3.4%|$1,537
+Semi Auto Shotguns|New|Families|FRANCHI AFFINITY 3|2.4%|$1,015
+Semi Auto Shotguns|New|Families|MOSSBERG MODEL 940 SHOTGUNS|2.4%|$893
+Semi Auto Shotguns|New|Families|BENELLI M4|1.9%|$1,985
+Semi Auto Shotguns|New|Families|BROWNING MAXUS|1.9%|$1,543
+Semi Auto Shotguns|New|Families|BENELLI MONTEFELTRO|1.6%|$1,653
+Semi Auto Shotguns|New|Families|BROWNING SILVER|1.4%|$1,065
+Semi Auto Shotguns|New|Families|GFORCE ARMS SAX-2|1.4%|$390
+Semi Auto Shotguns|New|Families|ESCORT PS|1.3%|$325
+Semi Auto Shotguns|New|Families|TRISTAR VIPER G2|1.3%|$777
