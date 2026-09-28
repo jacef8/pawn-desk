@@ -1337,6 +1337,49 @@ console.log("\n  what it looks like with the tool shut");
   else console.log("ok   and it is the only visible way to the camera, which is why it stays");
 }
 
+/* MONEY, THEN HOW GOOD THE NUMBER IS, THEN THE CAUTIONS. The rail read
+   price, warning, warning, and only then the card saying how much evidence
+   the price rests on - Jace circled that card and asked for it near the top.
+   The two cautions were the tail of the price card, so moving them meant
+   they started appearing MID-RUN, under the bare strip, where they had never
+   been. Both halves are asserted: the settled order, and that the mid-run
+   rail still carries nothing but the evidence card. */
+{
+  const pg = await browser.newPage({viewport: {width: 1400, height: 900}});
+  await pg.goto(BASE + "/index.html", {waitUntil: "networkidle"});
+  const r = await pg.evaluate(() => {
+    const c = CATALOG.find(x => x.items.some(i => i.id === "g6"));
+    const labels = () => [...document.querySelectorAll(".rail .label")].map(l => l.textContent.trim());
+    st.mode = "item"; st.catId = c.id; st.itemId = "g6"; st.picked = true; st.cond = "exc";
+    st.market = null; render();
+    const midRun = labels();
+    st.brandTyped = "Ruger"; st.brand = "hi"; st.brandSet = true; st.model = "10/22";
+    st.condSet = true; st.complete = true; st.completeSet = true;
+    (SPEC_CHOICES["g6"] || []).forEach((g, gi) => { st.specSel["g6:" + gi] = 0; });
+    st.market = {kind:"list", key: mkKey(), mid: 291, lo: 110, hi: 145, name: "Ruger 10/22",
+                 conf: "m", date: todayStr(), src: "https://gunwatcher.com", note: "", stale: false};
+    render();
+    const w = document.querySelector(".rail .wCard");
+    return {midRun, settled: labels(), card: w ? w.textContent.replace(/\s+/g, " ") : ""};
+  });
+  await pg.close();
+  if (r.settled[0] !== "Behind this number") {
+    bad++; console.log("FAIL the evidence card is not first in the rail: " + r.settled.join(" / "));
+  } else console.log("ok   the rail leads with how much is behind the number");
+  if (r.midRun.join(",") !== "Behind this number") {
+    bad++; console.log("FAIL the mid-run rail grew cards: " + r.midRun.join(" / "));
+  } else console.log("ok   and the mid-run rail is unchanged");
+  /* "Looked up by hand" meant nothing to the counter. The wording has to say
+     that a PERSON read it and NOTHING was counted, not merely that it was
+     "researched" - which is the word that was already there and already
+     unclear. */
+  const says = /read by a person/.test(r.card) && /Nothing was counted/.test(r.card);
+  if (!says) { bad++; console.log("FAIL a researched price does not say a person read it and nothing was counted"); }
+  else console.log("ok   a researched price says who read it and that nothing was counted");
+  if (/looked up by hand/.test(r.card)) { bad++; console.log("FAIL the old 'looked up by hand' wording is back"); }
+  else console.log("ok   and does not say 'looked up by hand'");
+}
+
 await browser.close();
 console.log(bad ? `FAILED (${bad})` : "all screens draw themselves, every id once");
 process.exit(bad ? 1 : 0);

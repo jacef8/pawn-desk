@@ -528,7 +528,14 @@ console.log("\n  the loan card does not repeat the rail");
       render();
       const t = document.getElementById("ticket");
       return {rail: deskRail(), txt: t ? t.innerText : "",
-              pin: (document.getElementById("pin") || {}).innerText || ""};
+              pin: (document.getElementById("pin") || {}).innerText || "",
+              /* The killer and the guard used to be the tail of the price
+                 card and are now placed by the rail beside it, so the rule
+                 - the rail carries what the answer card does not - is read
+                 off the whole rail. Reading #pin alone made this fail on a
+                 move that kept both cards exactly where the counter sees
+                 them. Stale selector, live rule. */
+              railTxt: (document.querySelector(".rail") || {}).innerText || ""};
     });
   };
   const wide = await look(1400), narrow = await look(900);
@@ -548,7 +555,7 @@ console.log("\n  the loan card does not repeat the rail");
      the answer card names day 30 and stops, so a two-month total in the
      rail is proof the rail is carrying what the card does not, rather
      than repeating it. */
-  ok(/what kills it/i.test(wide.pin) && /cushion/i.test(wide.pin)
+  ok(/what kills it/i.test(wide.railTxt) && /cushion/i.test(wide.pin)
      && /2 months/i.test(wide.pin),
      "  it carries what that card does not \u2014 the killer, the cushion and the second month");
   ok(!/LOW LOAN/.test(wide.txt) && !/SUGGESTED LOAN/.test(wide.txt) && !/TOP LOAN/.test(wide.txt),
@@ -1486,8 +1493,13 @@ console.log("\n  a book price says whether somebody paid it");
      "  and names the source as the sold search, not just the site");
   ok(r.ask.kind === "asking" && /nobody paid these/i.test(r.ask.text) && /ceiling/i.test(r.ask.text),
      "an asking row says nobody paid, and to treat it as a ceiling");
-  ok(r.hand.kind === "research" && /researched rather than measured/i.test(r.hand.text),
-     "a hand-researched row admits it has no count behind it");
+  /* This asserted the words "researched rather than measured", which is the
+     phrasing the counter could not parse - "looked up by hand" meant nothing
+     to him. The rule was always that the row must ADMIT it has no count; the
+     words move, the rule does not. */
+  ok(r.hand.kind === "research" && /nothing was counted/i.test(r.hand.text)
+     && /read by a person/i.test(r.hand.text),
+     "a hand-researched row says a person read it and nothing was counted");
   ok(r.sold.px >= 20,
      "  and the verdict is the headline, not a footnote \u2014 " + r.sold.px + "px");
   ok(!/desk price list/i.test(r.sold.text),

@@ -1473,8 +1473,7 @@ function railHTML(x){
     <div class="pinNote railNote">${x.checked?"":`<b style="color:var(--warn-ink)">Estimate \u2014 nothing looked up yet.</b> `}${thin
       ? `Not worth buying, and not worth lending on either.`
       : `Range ${money(x.low)}&ndash;${money(x.high)}. Never above the top.`}</div>
-    ${(typeof itemGuardHTML==="function")?itemGuardHTML(x):""}
-    ${killerHTML(x)}`;
+`;
 }
 /* HOW MUCH IS BEHIND THE NUMBER.
    The desk has always known this and said it in one line of small grey type:
@@ -1498,6 +1497,21 @@ function railHTML(x){
    on a desk is the rail: the price is settled, the offer is on the screen,
    and the only question left is whether the thing in your hands is the
    thing the price assumed. */
+/* WHERE THESE TWO SIT. They were the tail of the price card, which put the
+   cautions above "Behind this number" - so the rail read price, warning,
+   warning, and only then how much evidence the price rests on. Reported from
+   the counter: money first, then how good the number is, then what to watch
+   for. The rail places them now; they are still desk-rail only, which is
+   where they have always been. */
+function railGuardHTML(x,pin){
+  /* Only under the FULL price card. pinHTML falls back to a bare strip while
+     the run is unfinished or a check has failed, and these two never showed
+     under that - moving them out of the price card put "Before the money
+     moves" onto the mid-run screen, which nobody asked for. Reading the pin
+     that was already built beats restating the condition it was built from,
+     because a restated condition is one that drifts. */
+  return String(pin).includes('class="railTop') ? ((typeof itemGuardHTML==="function")?itemGuardHTML(x):"")+killerHTML(x) : "";
+}
 function killerHTML(x){
   const ov=itemOv()||{}, cat=x.cat||{};
   const kill=ov.killer||cat.killer||"", drive=ov.driver||cat.driver||"";
@@ -1636,7 +1650,7 @@ function weightHTML(x){
     const tone=ev.kind==="sold"?c[1]:"warn";
     const via=ev.kind==="sold" ? esc(srcName(m.src))+" \u2014 sold and completed"
             : ev.kind==="asking" ? esc(srcName(m.src))+" \u2014 what was up for sale"
-            : esc(srcName(m.src))+" \u2014 looked up by hand, not measured";
+            : esc(srcName(m.src))+" \u2014 read by a person, not counted by the tool";
     return card(`<span class="wKind ${ev.kind}">${head}</span>`,right,bar(pct,tone),
       (m.mine?`<div class="wVia"><span>Source</span><b>Your own master sheet</b></div>`
              :`<div class="wVia"><span>Source</span><b>${via}</b></div>`)
@@ -1644,7 +1658,7 @@ function weightHTML(x){
       +(ev.kind==="asking"
         ?`<b>Nobody paid these.</b> They are what sellers were hoping for, and they run high \u2014 treat the figure as a ceiling. `
         :ev.kind==="research"
-        ?`<b>No count behind this one.</b> It was researched rather than measured off a page of sales. `
+        ?`<b>Nothing was counted.</b> Somebody opened that site, read what this model has been going for and wrote a range into the price book. It is a judgement made from the page, not a tally of sales off it \u2014 so there is no number of sales behind it, and no way to tell how far the good ones sat from the bad. `
         :"")
       +"For <b>"+esc(m.name||"this model")+"</b>, checked "+esc(fmtDay(m.date))+". Not re-checked since.");
   }
@@ -3320,12 +3334,12 @@ function renderItem(){
   if(stepFlow()==="ask"&&st.picked)
     return omniHTML()
       +(deskWide()
-        ? `<div class="rail"><div id="pin">${pinHTML(x)}</div>${weightHTML(x)}${railComps?compsCardHTML(x):""}</div>`
+        ? (pin=>`<div class="rail"><div id="pin">${pin}</div>${weightHTML(x)}${railGuardHTML(x,pin)}${railComps?compsCardHTML(x):""}</div>`)(pinHTML(x))
           +`<div class="colQ">${askHTML(x)}<div id="ticket">${ticketHTML(x)}</div>${leftRef}${camRef}${logRef}</div>`
         : `<div id="pin">${pinHTML(x)}</div>`+weightHTML(x)+askHTML(x)
           +`<div id="ticket">${ticketHTML(x)}</div>`+logRef);
   if(deskRail())return omniHTML()+nextStepHTML(x)
-    +`<div class="rail"><div id="pin">${pinHTML(x)}</div>${weightHTML(x)}${railComps?compsCardHTML(x):""}</div>`
+    +(pin=>`<div class="rail"><div id="pin">${pin}</div>${weightHTML(x)}${railGuardHTML(x,pin)}${railComps?compsCardHTML(x):""}</div>`)(pinHTML(x))
     +`<div class="colQ">${left}${mid}<div id="ticket">${ticketHTML(x)}</div>`
       +`${leftRef}${camRef}${logRef}</div>`;
   /* The meter went out with the rail, and the rail needs 1080px - so on a
@@ -8776,7 +8790,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0927.2348";
+const APP_BUILD="0927.2357";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
