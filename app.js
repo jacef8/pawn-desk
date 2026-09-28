@@ -7914,7 +7914,7 @@ let MODEL_PRICES=[
  ["b30","g8","Ruger LCR",370,450,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=ruger+lcr",".357 and laser above .38 or .22"],
  ["b31a","g8","Ruger Blackhawk",575,775,"m","2026-09-27","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=ruger+blackhawk","Convertibles and Super Blackhawk add; three-screw guns far higher"],
  ["b31b","g8","Ruger Single-Six",400,525,"m","2026-09-27","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=ruger+single-six","Convertible with the .22 Mag cylinder adds"],
- ["b32","g8","Taurus Judge",320,400,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=taurus+judge","Public Defender, stainless and Magnum above basic"],
+ ["b32","g8","Taurus Judge",350,450,"m","2026-09-28","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=taurus+judge","Public Defender is the cheap 2in compact, not a step up; stainless, Magnum and Home Defender above the plain 3in"],
  ["b33","g8","Colt Python (2020+)",950,1200,"m","2026-09-19","https://www.webuyguns.com/valuations/colt/python","New retail near $1,100 caps it; older Pythons far more"],
  ["c1","p1","Stihl MS 170 / 180",170,230,"m","2026-09-22","shelf tags photographed 19 Sep 2026, Bristol area","MS 180 slightly more; easy start and good chain"],
  ["c3","p1","Stihl MS 271 Farm Boss",300,420,"m","2026-09-22","https://www.tractorhouse.com/listings/for-sale/stihl/ms/chainsaws/1186","20 in bar, low hours"],
@@ -8790,7 +8790,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0927.2357";
+const APP_BUILD="0928.0126";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

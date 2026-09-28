@@ -57,6 +57,27 @@ for(const g of got){
 const tt=await page.evaluate(()=>{ const r=mpFor("g7","taurus g2c"); return r&&{id:r[0],lo:r[3],hi:r[4]}; });
 ok(!!tt && tt.lo<=124, `Taurus row floor is at or under the $124 sold median (low $${tt&&tt.lo})`);
 
+/* The Taurus Judge. The row was $320-400 and its note said the Public
+   Defender sits ABOVE the basic gun. KYGUNCO lists 40 whole Judges and the
+   Public Defender is the CHEAPEST of them at $431 - it is the 2in compact,
+   a step down, not up. The plain 3in runs $471-568 new, and the measured
+   family ratio (0.67-0.85x of new, off 56 GunBroker pairs) puts a used one
+   near $340-450.
+   Asserted as a band with a reason, not a number: the evidence is a band.
+   And the note is asserted too, because a row whose PROSE is wrong sends the
+   counter the wrong way whatever the figure says. */
+{
+  const j = await page.evaluate(() => {
+    const r = MODEL_PRICES.find(z => z[0] === "b32");
+    return r && {lo: r[3], hi: r[4], note: r[8]};
+  });
+  ok(!!j, "the Judge row is still there");
+  ok(j && j.lo >= 340 && j.hi >= 440,
+     `the Judge sits near what a plain new one implies — $${j&&j.lo}-${j&&j.hi}`);
+  ok(j && !/public defender[^.]{0,30}above/i.test(j.note),
+     "and no longer calls the Public Defender a step up");
+}
+
 await browser.close();
 console.log(fails?`\ncheck-split FAIL (${fails})`:"\ncheck-split OK");
 process.exit(fails?1:0);
