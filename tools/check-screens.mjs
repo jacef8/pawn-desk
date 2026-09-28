@@ -1376,7 +1376,12 @@ console.log("\n  what it looks like with the tool shut");
      "researched" - which is the word that was already there and already
      unclear. */
   const says = /read by Claude/.test(r.card) && /Nothing was counted/.test(r.card)
-            && /worked out from that range/.test(r.card);
+            /* Not just that it traces the dollars back to the range, but that
+               it says what that MEANS for the money. The first wording -
+               "the sums are exact, the figure they start from is not" - was
+               true and had to be explained at the counter, which is a fail. */
+            && /All of these dollars are worked out from that one range/.test(r.card)
+            && /every figure here is off with it/.test(r.card);
   if (!says) { bad++; console.log("FAIL a researched price does not name who read it, say nothing was counted, and say where the dollars come from"); }
   else console.log("ok   a researched price names who read it, and says where the dollars come from");
   /* ONE CARD, NOT TWO. "Behind this number" and "How good is this number?"

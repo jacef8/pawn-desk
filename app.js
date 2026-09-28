@@ -1677,8 +1677,13 @@ function weightHTML(x){
            dollars come from? From arithmetic on this range - which is exact,
            and which cannot be better than the range it starts from. The card
            says so now, because a figure printed to the dollar reads as
-           measured whatever the headline above it says. */
-        ?`<b>Nothing was counted.</b> Claude read that site in September and wrote a range into the price book \u2014 a judgement about what the page showed, not a tally of sales off it. There is no number of sales behind it, and no way to tell how far the good ones sat from the bad. <b>Every dollar on this screen is worked out from that range:</b> the sums are exact, the figure they start from is not. `
+           measured whatever the headline above it says.
+           The first wording was "the sums are exact, the figure they start
+           from is not" and he asked what it meant - which is the answer: a
+           line of counter copy that needs explaining has failed, however
+           true it is. It says what to DO with it instead: if the range is
+           off, every figure here is off with it. */
+        ?`<b>Nothing was counted.</b> Claude read that site in September and wrote a range into the price book \u2014 a judgement about what the page showed, not a tally of sales off it. There is no number of sales behind it, and no way to tell how far the good ones sat from the bad. <b>All of these dollars are worked out from that one range.</b> If the range is off, every figure here is off with it. `
         :"")
       +"For <b>"+esc(m.name||"this model")+"</b>, checked "+esc(fmtDay(m.date))+". Not re-checked since.");
   }
@@ -8810,7 +8815,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0928.1318";
+const APP_BUILD="0928.1519";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
