@@ -748,7 +748,26 @@ const ladder = (p,c) => [
    loan the percentage alone does not cover writing the ticket. */
 const PAWN_CAP=25;
 function pawnPct(){ const n=Number(st.pawnPct); return Math.min(PAWN_CAP,Math.max(0,isNaN(n)?0:n)); }
-function pawnCharge(p){ return Math.max(5,Math.round((Number(p)||0)*pawnPct())/100); }
+/* ROUNDING MUST NEVER PUSH THE CHARGE OVER THE CEILING.
+   The arithmetic here was already under 25% to the cent - but every place
+   that SHOWS it runs through money(), which rounds to the nearest dollar,
+   and rounding up is how a legal charge becomes an illegal one. A $510 loan
+   is $127.50 at 25%; the fee tile printed $128, which is 25.098%, and $128
+   is the figure that gets written on the ticket. Swept whole-dollar loans
+   from $20 to $3,000: 1,490 of them - half - displayed a fee over the cap,
+   and the same rounding pushed "total to clear" over on all 1,490.
+
+   So the charge is floored to whole dollars at the source. The number shown
+   is then the number charged, and no display anywhere downstream can round
+   it up again - which a fix at each print site could not promise, because
+   there are nine of them and missing one is a breach.
+
+   It costs under a dollar a ticket. Overcharging voids the transaction and
+   forfeits twice the charge, so that is not a close call.
+
+   The $5 minimum stands: the same subsection allows it outright, and it is
+   the one case where the charge is above 25% of a small loan on purpose. */
+function pawnCharge(p){ return Math.max(5,Math.floor((Number(p)||0)*pawnPct()/100)); }
 
 /* ---------------- state ---------------- */
 const KEY="pawndesk:web:v1";
@@ -8815,7 +8834,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0928.1519";
+const APP_BUILD="0928.1754";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

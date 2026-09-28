@@ -2198,6 +2198,55 @@ console.log("\n  a price found from a photo is carried as what it is");
   await pg.close();
 }
 
+/* ROUNDING MUST NOT BREACH THE 25% CEILING.
+ * The charge was already under the cap to the cent. Every place that SHOWS
+ * it rounds to the nearest dollar, and rounding up turned a legal charge
+ * illegal: $510 lent is $127.50 at 25%, the fee tile printed $128, and $128
+ * is what gets written on the ticket. Half of all whole-dollar loans between
+ * $20 and $3,000 did this.
+ * The assertion is what the COUNTER READS, not what the arithmetic holds -
+ * testing the raw number would have passed throughout, because the raw
+ * number was never the bug. */
+console.log("\n  rounding never pushes the charge over the statutory ceiling");
+{
+  const p = await browser.newPage({viewport:{width:1400,height:900}});
+  await p.goto(BASE + "/index.html", {waitUntil:"networkidle"});
+  const r = await p.evaluate(() => {
+    const bad = {fee: [], total: [], ladder: []};
+    const num = s => Number(String(s).replace(/[^0-9.]/g, ""));
+    for (const rate of [25, 20, 12]) {
+      st.pawnPct = rate;
+      for (let loan = 20; loan <= 3000; loan++) {
+        const cap = loan * rate / 100;
+        const c = pawnCharge(loan);
+        /* the $5 minimum is allowed outright by the same subsection and is
+           the one case that sits above the percentage on a small loan */
+        if (c <= 5) continue;
+        const shownFee = num(money(c));
+        if (shownFee > cap + 1e-9) bad.fee.push([rate, loan, shownFee, cap]);
+        const shownTotal = num(money(loan + c));
+        if (shownTotal - loan > cap + 1e-9) bad.total.push([rate, loan, shownTotal - loan, cap]);
+        /* day 31-60 is capped at twice the 30-day charge */
+        const rung = ladder(loan, c)[1];
+        if (num(money(rung.due)) - loan > 2 * cap + 1e-9) bad.ladder.push([rate, loan]);
+      }
+    }
+    /* the sweep left the rate on its last value and the worked example was
+       read off 12%, not 25% - it reported $61 and looked like the fix had
+       failed. Put the shop's rate back before asking the question. */
+    st.pawnPct = 25;
+    return {bad, sample: {loan: 510, charge: pawnCharge(510), shown: money(pawnCharge(510))},
+            fiveStays: pawnCharge(4) === 5};
+  });
+  await p.close();
+  const one = a => a.length ? ` e.g. rate ${a[0][0]}%, $${a[0][1]} lent shows $${a[0][2]} against a $${Math.round(a[0][3]*100)/100} cap` : "";
+  ok(r.bad.fee.length === 0, `the fee the counter reads is never over the cap — ${r.bad.fee.length} breaches${one(r.bad.fee)}`);
+  ok(r.bad.total.length === 0, `nor is the total to clear it — ${r.bad.total.length} breaches${one(r.bad.total)}`);
+  ok(r.bad.ladder.length === 0, `nor day 31-60, which is capped at twice the 30-day charge — ${r.bad.ladder.length} breaches`);
+  ok(r.sample.shown === "$127", `$510 lent reads $127, not the $128 it used to — got ${r.sample.shown}`);
+  ok(r.fiveStays, "and the $5 minimum the statute allows outright still stands");
+}
+
 await browser.close();
 console.log(fails ? "\n  " + fails + " FAILED\n" : "\n  all passed\n");
 process.exit(fails ? 1 : 0);
