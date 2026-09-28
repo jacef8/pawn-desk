@@ -1416,8 +1416,10 @@ function dealPanelHTML(x){
     </div>
     <div class="oWhy">Low when cash is tight or the deal feels off. High for a
       regular you want back. Never above the top \u2014 that is your cushion.</div>
-    <div class="rbDay60">Day 30 it matures; day 60 it is <b>ours</b> \u2014 no
-      notice, no letter. Two months is as far as this goes.</div>
+    ${/* The day-30/day-60 line sat here and was called unnecessary at the
+          counter. It is statute background rather than a figure, and it is
+          already on step 8 - "what it costs him to get it back, and the day
+          it becomes ours" - and in the payback ladder. The rail is numbers. */""}
   </div>`;
 }
 function railHTML(x){
@@ -1494,12 +1496,21 @@ function railHTML(x){
           the loan and still says so, it just says it after the figure it
           moved rather than before it. */""}
     ${thin?"":dealPanelHTML(x)}
-    <div class="wRow"><i><svg viewBox="0 0 24 24" aria-hidden="true">${I.math}</svg></i>
-      <div class="t"><b>Your cushion</b><span>fee ${money(x.charge)} \u00b7 lending ${x.ltv}% of resale</span></div>
-      <div class="v">${money(x.margin)}</div></div>
-    <div class="pinNote railNote">${x.checked?"":`<b style="color:var(--warn-ink)">Estimate \u2014 nothing looked up yet.</b> `}${thin
+    ${/* THE CUSHION ROW AND THE RANGE LINE BOTH WENT, called redundant at the
+          counter and they were. The row's fee repeated "Interest, per month"
+          two rows above it; its "lending N% of resale" is a setting, not a
+          figure for this deal; and the cushion itself is a tile on step 7,
+          the card literally named "cushion, fee, and why it is this much".
+          The range line repeated the Go low / Go high tiles directly above
+          it, and "Never above the top" was already the last sentence of the
+          note beside those tiles - the same warning twice in four lines.
+          What the note said that nothing else does is kept below: that
+          nothing has been looked up yet, and that the thing is too thin to
+          deal on at all. Those only render when they are true, so the rail
+          ends on the figures rather than on a line of filler. */""}
+    ${(!x.checked||thin)?`<div class="pinNote railNote">${x.checked?"":`<b style="color:var(--warn-ink)">Estimate \u2014 nothing looked up yet.</b> `}${thin
       ? `Not worth buying, and not worth lending on either.`
-      : `Range ${money(x.low)}&ndash;${money(x.high)}. Never above the top.`}</div>
+      : ``}</div>`:""}
 `;
 }
 /* HOW MUCH IS BEHIND THE NUMBER.
@@ -1702,7 +1713,14 @@ function weightHTML(x){
            line of counter copy that needs explaining has failed, however
            true it is. It says what to DO with it instead: if the range is
            off, every figure here is off with it. */
-        ?`<b>Nothing was counted.</b> Claude read that site in September and wrote a range into the price book \u2014 a judgement about what the page showed, not a tally of sales off it. There is no number of sales behind it, and no way to tell how far the good ones sat from the bad. <b>All of these dollars are worked out from that one range.</b> If the range is off, every figure here is off with it. `
+        /* STILL CONFUSING, reported again after the rewrite - and it was
+           five sentences making one point three ways. "A judgement about
+           what the page showed, not a tally of sales off it" and "there is
+           no number of sales behind it" and "nothing was counted" are the
+           same fact said three times. Two sentences now: what happened, and
+           what it means for the money. The headline above already says
+           Researched, so the card does not have to argue it. */
+        ?`<b>Nothing was counted.</b> Claude read that page in September and wrote the range \u2014 no sales were tallied. <b>All of these dollars are worked out from that one range:</b> if it is off, every figure here is off with it. `
         :"")
       +"For <b>"+esc(m.name||"this model")+"</b>, checked "+esc(fmtDay(m.date))+". Not re-checked since.");
   }
@@ -8834,7 +8852,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0928.1754";
+const APP_BUILD="0928.1801";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

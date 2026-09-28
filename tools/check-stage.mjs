@@ -62,7 +62,11 @@ const read = () => page.evaluate(() => {
       const y = sel => { const e = document.querySelector(sel);
         return e ? Math.round(e.getBoundingClientRect().top) : null; };
       return {money: y(".rail .railBack"), cushion: y(".rail .wRow"),
-              guard: y(".rail .iGuard"), killer: y(".rail .killCard")};
+              guard: y(".rail .iGuard"), killer: y(".rail .killCard"),
+              cushionKept: (() => {
+                document.querySelectorAll("details").forEach(d => d.open = true);
+                return /cushion \(resale/i.test(document.body.innerText);
+              })()};
     })(),
     marketRail: has(document.querySelector(".rail"), /against the market/i),
     marketMid:  has(col, /against the market/i)};
@@ -124,8 +128,15 @@ ok(o.money != null && o.guard != null && o.money < o.guard,
    `the figures come before the guard on the rail - money at ${o.money}px, guard at ${o.guard}px`);
 ok(o.money != null && o.killer != null && o.money < o.killer,
    `and before what kills it - killer at ${o.killer}px`);
-ok(o.cushion != null && o.guard != null && o.cushion < o.guard,
-   "the cushion is money too, so it stays above the cautions");
+/* The cushion ROW came off the rail at the counter's request - its fee
+   repeated "Interest, per month" two rows above it and the cushion itself is
+   a tile on step 7, the card named "cushion, fee, and why it is this much".
+   The rule this line stood for is money before cautions, and that is
+   asserted twice directly above on the figures that remain. What is left to
+   check is that the cushion did not simply vanish: verified on the rendered
+   page before repointing, not assumed. */
+ok(o.cushion == null, "the cushion row is off the rail, where it repeated the fee");
+ok(o.cushionKept, "and is still on the detail card, which is named for it");
 
 ok(errs.length === 0, "no page errors at any stage");
 await browser.close();

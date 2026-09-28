@@ -761,7 +761,10 @@ console.log("\n  the rail says what it costs him to get it back, not just what h
                  so the rail's day-30 rung has to sit under them. */
               answerSize: (() => { const a = document.querySelector("#askCard .adDeal .d");
                 return a ? parseFloat(getComputedStyle(a).fontSize) : 0; })(),
-              forfeit: !!(back && /day 60 it is/i.test(back.textContent)),
+              forfeitAnywhere: (() => {
+                document.querySelectorAll("details").forEach(d => d.open = true);
+                return /day 60 it['’]?s ours|day 60 it is/i.test(document.body.innerText);
+              })(),
               target: x.target, charge: x.charge,
               /* a stray comment rendering as text is a real failure mode here */
               leaked: !!(back && /\/\*|\*\//.test(back.textContent))};
@@ -803,7 +806,15 @@ console.log("\n  the rail says what it costs him to get it back, not just what h
          must not do is shout louder than the answer card itself. */
       if (!(pay.answerSize > pay.litSize)) pay_bad.push(
         `the rail's repayment (${pay.litSize}px) competes with the answer card (${pay.answerSize}px)`);
-      if (!pay.forfeit) pay_bad.push("the day-60 forfeit line is not on the card");
+      /* The day-60 line came off the rail at the counter's request - statute
+         background, not a figure. The rule it stood for is that the counter
+         can still find out the item is forfeit on day 60, and that holds:
+         the payback fold says it in full ("no notice, no letter, no
+         auction") and step 8 is named for it. Verified on the rendered page
+         with every fold open before this was repointed, because deleting a
+         guard on an unchecked assumption is how the fact goes missing.
+         Asserted where it now lives rather than where it used to. */
+      if (!pay.forfeitAnywhere) pay_bad.push("day-60 forfeit is not stated anywhere the counter can reach");
       if (pay.leaked) pay_bad.push("a source comment is rendering as text inside the repayment block");
       /* the arithmetic on the card must be the arithmetic in the book */
       const want = ["$" + (pay.target + pay.charge), "$" + (pay.target + pay.charge * 2)];
