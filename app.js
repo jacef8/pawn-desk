@@ -796,7 +796,7 @@ function pawnCharge(p){ return Math.max(5,Math.floor((Number(p)||0)*pawnPct()/10
 /* ---------------- state ---------------- */
 const KEY="pawndesk:web:v1";
 let st={mode:"item",catId:"guns",itemId:"g1",picked:false,needItem:false,askFrom:null,cond:"good",brand:"mid",complete:true,completeSet:false,struck:"",struckKind:"loan",liq:null,brandTyped:"",model:"",detail:"",specSel:{},
-        overrides:{},bookVals:{},modelVals:{},ltvs:{},buys:{},buyFloor:25,buyMult:2,pawnPct:25,pawnSet:false,payPct:70,payTouched:false,loanPct:48,loanTouched:false,editing:false,
+        overrides:{},bookVals:{},modelVals:{},ltvs:{},buys:{},buyFloor:25,buyMult:2,pawnPct:25,pawnSet:false,spotHold:null,payPct:70,payTouched:false,loanPct:48,loanTouched:false,editing:false,
         manual:null, /* {date, spot:{gold,silver}, avg90:{gold,silver}} — a same-day hand edit beats the feed */
         deal:"buy",metal:"gold",karat:"14k",grams:"",whyOpen:false,photoRead:null,bookQ:"",bookName:""};
 try{
@@ -842,7 +842,55 @@ function flashSave(msg){
   const el=document.getElementById("saveNote"); if(!el)return;
   el.textContent=msg; clearTimeout(saveTimer); saveTimer=setTimeout(()=>{el.textContent="";},1600);
 }
-function spotOf(m){ return st.manual ? st.manual.spot[m] : FEED[m]; }
+/* THE PRICE FREEZES ONCE IT IS QUOTED.
+   "freeze the price once it's quoted." Asked for as soon as the refetch
+   went from once-a-boot to every fifteen minutes, and he is right that the
+   two go together: a number that refreshes while somebody is deciding is
+   worse than one that is slightly old. You say $559, he thinks about it,
+   the timer fires, and the screen now says $551 with a customer looking at
+   it.
+
+   So the moment there is a real figure on the glass - a weight entered -
+   the spot behind it is held, and every figure on that ticket is worked
+   out from the held number until the deal is done or it is deliberately
+   re-quoted. The live price keeps running and is shown beside it when it
+   has drifted, so the counter can see the market moved and choose.
+
+   THE SPLIT INSIDE THE GUARD IS THE SUBTLE PART, and it already falls the
+   right way. metalState reads two different things:
+
+     the BAND (calm/normal/busy/violent) comes from 21 days of returns over
+     the logged SERIES, which spotLogWrite keeps filling with whatever
+     arrives. Freezing a quote does not freeze that, so the regime read
+     stays current.
+     the LEVEL (premium over the 90-day, drawdown off the peak) comes from
+     spotOf, which IS the held number while a quote stands.
+
+   That is what it has to be. If the level went on using the live price the
+   guard would keep moving lendOz underneath a frozen melt, and the figure
+   on the glass would drift anyway through the back door - a freeze that
+   only looks like one. And if the freeze reached the series, a quote left
+   open over lunch would stop the guard learning the day. */
+function spotHeld(m){ return (st.spotHold&&st.spotHold[m]>0)?st.spotHold[m]:0; }
+function holdSpot(){
+  if(st.manual)return;                       /* a typed number is already fixed */
+  if(!st.spotHold)st.spotHold={};
+  if(st.spotHold[st.metal]>0)return;         /* first figure wins, not the latest */
+  const v=FEED[st.metal];
+  if(v>0){ st.spotHold[st.metal]=v; st.spotHold.at=FEED.at||null;
+           st.spotHold.struck=Date.now(); }
+}
+function releaseSpot(){ st.spotHold=null; }
+/* What the market says NOW, whatever is being quoted off. The guard and the
+   drift line read this; the offer does not. */
+function spotLive(m){ return st.manual ? st.manual.spot[m] : FEED[m]; }
+/* A HAND-TYPED NUMBER OUTRANKS A HELD ONE. This read spotHeld() first and
+   a test caught it: strike a quote, then type today's spot over it, and
+   the typed number was ignored in favour of the hold. The counter typing a
+   figure IS the most deliberate act on this page - "your number wins for
+   the day" is what the card promises - and a freeze that overrides it is a
+   freeze that stopped serving the person it was built for. */
+function spotOf(m){ return st.manual ? spotLive(m) : (spotHeld(m)||spotLive(m)); }
 function avgOf(m){ return st.manual ? st.manual.avg90[m] : FEED[m+"90"]; }
 function makeManual(){ if(!st.manual) st.manual={date:FEED.date,spot:{gold:FEED.gold,silver:FEED.silver},avg90:{gold:FEED.gold90,silver:FEED.silver90}}; }
 
@@ -922,7 +970,7 @@ function homeHeroHTML(opts){
   return `<div class="hero homeHero">
     <div class="heroWho">${esc(fmtDay(t.day)||"Today")}</div>
     <div class="heroWhat">Nothing on the counter</div>
-    <div class="heroLab">Gold, per troy ounce</div>
+    <div class="heroLab">Gold, per troy ounce${feedClock()?" · "+esc(feedClock()):""}</div>
     <div class="heroBig">${gold?money(Math.round(gold)):"\u2014"}</div>
     <div class="heroSub">${silver?"Silver "+money(Math.round(silver*100)/100)+" \u00b7 ":""}${t.rows.length
       ? t.rows.length+" logged today \u00b7 "+money(t.out)+" out"
@@ -4670,13 +4718,59 @@ function calcMetal(){
           premium,guard:G,lendOz,buyOz,
           guarded:lendOz<spot,trimmed:buyOz<spot};
 }
+/* When the quote was struck, in words, off the feed's own timestamp rather
+   than this device's clock. */
+/* THE CLOCK TIME THE PRICE WAS STRUCK. "We should probably add a time
+   metals was updated next to the date" - asked looking at the phone's hero
+   card, which said "Sep 29" over $4,123 and gave no hint whether that
+   number was twenty seconds or nine hours old. A date alone cannot tell
+   those apart, and now that the price refreshes on a timer rather than
+   once at boot, the difference is the whole point.
+   Empty when the feed never answered, because a time invented from this
+   device's clock would be the exact lie this is here to stop. */
+function feedClock(){
+  const t=FEED.at?Date.parse(FEED.at):0;
+  if(!t)return "";
+  return new Date(t).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"})
+    .replace(/\s?([AP])M/i,(m,a)=>a.toLowerCase()+"m");
+}
+function feedAgo(){
+  const t=FEED.at?Date.parse(FEED.at):0;
+  if(!t)return "";
+  const s=Math.max(0,Math.round((Date.now()-t)/1000));
+  if(s<90)return "seconds ago";
+  const m=Math.round(s/60);
+  if(m<90)return m+" minute"+(m===1?"":"s")+" ago";
+  const h=Math.round(m/60);
+  return h+" hour"+(h===1?"":"s")+" ago";
+}
 function feedTagHTML(){
-  const days=Math.round((Date.now()-new Date(FEED.date+"T12:00:00").getTime())/86400000);
+  /* Age off the FEED'S OWN timestamp when it has one. FEED.date is stamped
+     from this device's clock at fetch time, so it says "today" for a number
+     that arrived this morning and has not moved since - which is exactly
+     the case this line exists to warn about. */
+  const at=FEED.at?Date.parse(FEED.at):0;
+  const days=at?Math.floor((Date.now()-at)/86400000)
+               :Math.round((Date.now()-new Date(FEED.date+"T12:00:00").getTime())/86400000);
   const stale=days>3;
   if(st.manual) return `<div class="feedTag">Your hand-entered number for today — the morning update takes back over tomorrow.</div>`;
+  /* THE QUOTE IS HELD AND THE MARKET IS NOT. Both said, because saying only
+     one of them is what makes a counter distrust the screen: a price that
+     silently refuses to move looks as broken as one that moves while
+     somebody is deciding. Drift under a tenth of a percent is not said at
+     all - it is noise, and a line that appears constantly gets ignored. */
+  const held=spotHeld(st.metal), live=FEED[st.metal];
+  if(held>0&&live>0){
+    const d=(live-held)/held*100;
+    const moved=Math.abs(d)>=0.1;
+    return `<div class="feedTag">
+      <b>Quoted at ${money(held)}</b> — held for this ticket, so the figures below will not move while he decides.
+      ${moved?`Spot is <b>${money(live)}</b> now, ${d>0?"up":"down"} ${Math.abs(d).toFixed(1)}%${feedAgo()?" as of "+feedAgo():""}. <button type="button" id="reQuote" class="ghostBtn" style="padding:6px 12px;margin-left:6px">Re-quote at ${money(live)}</button>`
+              :`Spot has not moved since.`}</div>`;
+  }
   return `<div class="feedTag${stale?" stale":""}">${stale
     ? `Last updated ${days} days ago (${FEED.date}) — check Kitco and type today's number in.`
-    : `<b>Auto-filled ${FEED.date}</b> from ${FEED.source} — updated every morning. Type over it any time; your number wins for the day.`}</div>`;
+    : `<b>${money(FEED[st.metal])}</b> from ${FEED.source}${feedAgo()?", struck "+feedAgo():""} — it refreshes by itself and holds still once you enter a weight. Type over it any time; your number wins for the day.`}</div>`;
 }
 /* The centre column used to sit empty. Two things belong there: the arithmetic
    behind the number (so it can be walked through with a doubtful customer) and,
@@ -4925,8 +5019,16 @@ function wireMetal(){
   const aIn=document.getElementById("avgIn");
   aIn.oninput=()=>{makeManual();st.manual.avg90[st.metal]=parseFloat(aIn.value)||0;upd();};
   aIn.onblur=()=>persist();
+  const rq=document.getElementById("reQuote");
+  if(rq)rq.onclick=()=>{ releaseSpot(); holdSpot(); upd(); };
   const gIn=document.getElementById("gramsIn");
-  gIn.oninput=()=>{st.grams=gIn.value;upd();};
+  gIn.oninput=()=>{ st.grams=gIn.value;
+    /* A weight is the moment a figure exists, so it is the moment to hold.
+       Clearing the weight means there is nothing quoted, so it lets go
+       again - otherwise the next customer is priced off the last one's
+       market. */
+    if(parseFloat(st.grams)>0)holdSpot(); else releaseSpot();
+    upd(); };
   paintSlider(p);
   p.oninput=()=>{setTouched(true);setRate(Number(p.value));if(pn)pn.value=p.value;paintSlider(p);upd();};
   p.onchange=()=>persist();
@@ -8118,6 +8220,8 @@ function startOver(){
   st.ask=0; st.askKey=""; st.needKind=false; st.needItem=false;
   st.photoRead=null; st.compRead=null;
   st.fakeAns={}; st.fakeKey=""; st.stepAt=0; st.openS3=st.openS4=st.openS5=false;
+  /* A held quote belongs to the customer it was struck for. */
+  st.spotHold=null;
   photoFile=null; findMsg="";
   render();
   const o=document.getElementById("omniIn"); if(o)o.focus();
@@ -9668,7 +9772,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0930.0231";
+const APP_BUILD="0930.0338";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -11331,7 +11435,7 @@ function render(){
   /* Short enough to sit on the same row as the title and the tabs. It used
      to wrap onto a second row, which left a gap beside the title and another
      beside itself. The green dot already says SYS.OK, so the words went. */
-  if(sy)sy.textContent=fmtDay(FEED.date)+" · Gold $"+Math.round(FEED.gold).toLocaleString("en-US")+" · Silver $"+Number(FEED.silver).toFixed(2)
+  if(sy)sy.textContent=fmtDay(FEED.date)+(feedClock()?" "+feedClock():"")+" · Gold $"+Math.round(FEED.gold).toLocaleString("en-US")+" · Silver $"+Number(FEED.silver).toFixed(2)
     +(BUILD?" · build "+BUILD+(st.newBuild?" (old — "+st.newBuild+" is out)":""):"");
   if(st.mode==="item"){dealGuard();recordGuard();v.innerHTML=renderItem();wireItem();}
   else if(st.mode==="metal"){v.innerHTML=renderMetal();wireMetal();}
@@ -11359,7 +11463,7 @@ function render(){
       if(l){ l.hidden=true; o.setAttribute("aria-expanded","false"); } }
     else omniShow(); } }
   document.getElementById("foot").innerHTML=
-   `Metal prices refresh automatically each morning (last: ${FEED.date}). Your item prices, lending rates, and any same-day hand edits save on this device only — set them once on the counter tablet. Starting numbers are estimates for rural North Florida — the tool is only as good as what you put in it.<span class="saveNote" id="saveNote"></span>`;
+   `Metal prices refresh by themselves every ${Math.round(METAL_FETCH_MS/60000)} minutes and whenever you come back to this window, and hold still once you enter a weight (last: ${FEED.date}${feedClock()?" "+feedClock():""}). Your item prices, lending rates, and any same-day hand edits save on this device only — set them once on the counter tablet. Starting numbers are estimates for rural North Florida — the tool is only as good as what you put in it.<span class="saveNote" id="saveNote"></span>`;
 }
 /* Settings handed over by QR have to land before anything asks whether the
    service is on, so this runs ahead of the first draw. */
