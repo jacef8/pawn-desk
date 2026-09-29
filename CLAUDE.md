@@ -22,7 +22,7 @@ it is the ritual. Bump `APP_BUILD` and forget the service-worker cache key
 and the desk keeps serving the old version while you report success — the
 worst kind of failure, because everything looks fine from here.
 
-**Run the suites.** `tools/check-*.mjs`, nineteen of them:
+**Run the suites.** `tools/check-*.mjs`, twenty of them:
 
     python3 -m http.server 8099 &
     node tools/check-screens.mjs        # ~75s, the slow one
@@ -145,7 +145,7 @@ especially where a green test meant nothing.
     app.js              the desk, ~10k lines — catalog, pricing, rendering
     phone.js            the phone's own screens
     server/             the Railway service: /ebay, /sync, /json, /limits
-    tools/check-*.mjs   nineteen Playwright suites
+    tools/check-*.mjs   twenty Playwright suites
     tools/*findings.md  what was measured and what it said
     DESIGN.md           the design rules, each tied to the test that holds it
     HANDOVER.md         everything a clone does NOT give you

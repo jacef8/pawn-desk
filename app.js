@@ -106,6 +106,30 @@ const CATALOG = [
    {id:"e3",name:"Tablet",value:150,liq:"normal"},
    {id:"e4",name:"Smartphone",value:200,liq:"fast"},
    {id:"e5",name:"Game console — current gen",value:225,liq:"fast"},
+   /* FOUR CONSOLE ROWS WHERE THERE WAS ONE. A PS4, an N64 and a Dreamcast
+      all landed on "current gen" at $225 - three different markets and one
+      number. The values below are the class typical divided by
+      CATALOG_AT_GOOD, the same arithmetic as the compound bow row, off
+      PriceCharting loose (completed eBay sales) cross-checked against
+      Racketboy:
+
+        last gen    PS4 $90-140, Xbox One $121, Wii U $143      -> ~$115
+        2005-2012   PS3 $75-87, 360 $52-117, Wii $50-74         -> ~$75
+        retro       Saturn $180, Dreamcast $162, SNES $110,
+                    PS2 $105, Xbox $95, NES $94, GameCube
+                    $92-115, N64 $90, Genesis $75, PS1 $60      -> ~$95
+        handhelds   Game Boy $66, DSi $61-95, PSP $64, DS $39-56 -> ~$60
+
+      Read them as ceilings: PriceCharting excludes shipping
+      inconsistently, which on a heavy boxed console is real money, and it
+      runs high on hardware specifically. The liquidity drops as the band
+      gets older because it should - a retro machine in Bristol is a
+      months-or-never item however well it does on eBay, and that is what
+      the liq flag is for. */
+   {id:"e5a",name:"Game console — last gen (PS4 / Xbox One)",value:144,liq:"normal"},
+   {id:"e5b",name:"Game console — 2005–2012 (PS3 / 360 / Wii)",value:94,liq:"normal"},
+   {id:"e5c",name:"Game console — retro, pre-2001",value:119,liq:"slow"},
+   {id:"e5d",name:"Handheld — retro (Game Boy / DS / PSP)",value:75,liq:"slow"},
    {id:"e6",name:"Bluetooth / smart speaker",value:50,liq:"normal"},
    {id:"e7",name:"Car audio — amp & sub",value:80,liq:"slow"}]},
  /* Big, heavy, and slow to move - a pawn shop is not an appliance store.
@@ -1971,6 +1995,152 @@ const CH_GRADE={label:"Grade",options:[
   {t:"Homeowner",m:1},
   {t:"Farm / ranch",m:1.1,note:"farm grade: +10%"},
   {t:"Pro / commercial",m:1.25,note:"pro grade: +25%"}]};
+/* CONSOLES ARE FOUR MARKETS AND THE DESK HAD ONE ROW.
+   Measured 29 Sep off PriceCharting loose prices, which are completed eBay
+   sales and not asks. Cross-checked against Racketboy's hardware guide,
+   which is an enthusiast reference built the other way round - by hand,
+   from what the community sees - and the two agree: Racketboy puts a loose
+   NES at $50-$160 and PriceCharting's figure is $94, SNES $50-$225 against
+   $110, Genesis $40-$160 against $75. PriceCharting sits mid-range of the
+   community guide every time. That is the second source the gun data had
+   and the console data did not.
+
+   THE LINE IS ROUGHLY 2001, and it is the media rather than nostalgia.
+   Cartridge and early-optical machines stopped being manufactured and the
+   things that play those games are finite; a PS4 is not finite. Pre-2001
+   has stopped falling and started rising (retro up about 15% year on year
+   across two sources). Post-2001 is a used appliance still on the way down.
+
+   The aisle's own completeness toggle is 0.90, and that figure is right -
+   for the machines it was measured on. It came off four CURRENT-GEN
+   consoles listed "console only" against ones with a controller: 0.92,
+   0.94, 0.89, 0.88. A tenth off. Retro does not behave like that, so these
+   groups carry covers:"complete" and take the question over. */
+
+/* WHAT CAME WITH IT. Two independent routes to the same number, neither of
+   them a direct measurement of the pair:
+
+     Racketboy's own bands   loose LOW is "console only, no packaging,
+                             minimal accessories" and loose HIGH is "a
+                             controller or two, power and video cables,
+                             excellent cosmetic". NES $50 against a $94
+                             mid is 0.53.
+     Built up from parts     PriceCharting loose for a console INCLUDES
+                             cables and one controller. An official N64
+                             controller is $19 loose and the cables about
+                             $12, so a bare N64 is 90-19-12 = $59 on a $90
+                             console: 0.66.
+
+   0.53 and 0.66, arrived at from opposite directions, so 0.6 sits between
+   them. NOT 3x, which is what Racketboy's full loose spread looks like at
+   a glance - that spread also contains cosmetic condition, and the run
+   asks about condition separately. Pricing the scratches here and again on
+   the condition card is the double-charge this codebase has shipped before.
+
+   The +10% for extras is the weakest number on the group and says so: it
+   is the controller's own $19 against a $90 console, not a measured pair.
+   The current-gen harvest found extras worth NOTHING (1.03x, 0.95x, 1.04x)
+   - but that was on machines where a controller is a twentieth of the
+   price rather than a fifth. Recheck it when there are retro pairs to
+   measure. */
+const CH_CONSOLE_KIT={label:"What came with it",covers:"complete",options:[
+  {t:"Console, a controller and all the cables",m:1},
+  {t:"Console and cables — no controller",m:.8,note:"no controller: −20%"},
+  {t:"Console alone — no cables, no controller",q:"console only",m:.6,
+   note:"bare console: −40%. Two sources, 0.53 and 0.66, meeting in the middle"},
+  {t:"Two or more controllers, memory card, extras",m:1.1,
+   note:"extras: +10% — built from the controller's own price, not a measured pair"}]};
+
+/* BOX AND PAPERS, RETRO. Measured loose -> CIB, same source, same day:
+
+     SNES     $110 -> $390   3.5x        Xbox     $95 -> $223   2.3x
+     N64       $90 -> $308   3.4x        GameCube $92 -> $192   2.1x
+     Saturn   $180 -> $575   3.2x        Dreamcast $162 -> $232 1.4x
+     Game Boy  $66 -> $201   3.0x        PS1       $60 ->  $75  1.3x
+     NES       $94 -> $268   2.8x
+     PS2      $105 -> $271   2.6x        median about 2.8x
+
+   PS1 and Dreamcast are the exceptions and both make sense: PS1s are
+   everywhere, and a Dreamcast box is cardboard that mostly did not
+   survive being a 1999 toy.
+
+   THE +60% IS NOT THE 2.8x, ON PURPOSE. spec.mult is clamped to 1.8 in
+   calcItem, and a genuine CIB machine is exactly the case where a book row
+   should stand aside rather than guess - "complete in box" covers a beaten
+   box with no manual and a mint one with the inner tray, and those are not
+   the same item. The multiplier is a floor and the note says to look it up.
+   Printing 2.8 while the arithmetic did 1.8 is the bug this file has been
+   burned by before: the number shown has to be the number used. */
+const CH_CONSOLE_BOX={label:"Box and papers",options:[
+  {t:"No box — the machine on its own",m:1},
+  {t:"Box, but rough or missing the inserts",m:1.25,note:"box only: +25%"},
+  {t:"Complete in box — manuals, inserts, clean",m:1.6,
+   note:"CIB: +60% here, but measured loose→CIB is about 2.8x. If it really is complete, look it up — this is a floor"},
+  {t:"Sealed, never opened",m:1.6,
+   note:"SEALED IS NOT A BOOK ITEM. Measured 10x to 45x a loose one, on two or three sales a YEAR. The +60% is a floor, not a price — look it up before you lend"}]};
+
+/* THE SAME QUESTION FOR THE 2005-2012 MACHINES, WHERE THE BOX IS WORTH
+   FAR LESS. Measured loose -> CIB: Xbox One 1.13x, 360 Slim 1.16x, PS3
+   160GB 1.31x, PS4 1.30x, Wii U 1.74x. Median 1.30, and 1.25 is taken
+   rather than the median because the Wii U row is thin and the white-Wii
+   row on the same page reads 4.1x, which is not credible for a machine
+   that sold a hundred million units and is the kind of figure that means
+   somebody listed a bundle. */
+const CH_CONSOLE_BOX_LATE={label:"Box and papers",options:[
+  {t:"No box",m:1},
+  {t:"Boxed, with the papers",m:1.25,note:"boxed: +25%"}]};
+
+/* IS IT A SPECIAL EDITION - AND WHY THIS GROUP MOVES NO MONEY.
+   The variant is worth more than the machine once you are in the collector
+   band, and it is a spec you cannot see from across a counter. Measured,
+   all loose, all the same day:
+
+     N64 standard        $90      PS3 160GB            $75
+     N64 Funtastic  $157-$245     PS3 80GB backward-compatible  $206
+     N64 Gold           $236      PS3 60GB backward-compatible  $330
+     N64 Pikachu        $390      Wii white $50 against Wii blue $121
+
+   That is 1.7x to 4.4x on the same shelf. EVERY OPTION HERE IS 1.0 AND
+   THAT IS THE POINT. A single multiplier inside a 1.8 clamp would be
+   wrong at both ends - it would under-price a Pikachu by half and
+   over-price an ordinary blue Wii - and a special edition is precisely
+   the case where the book should send the counter to a lookup instead of
+   answering. What the question buys is the prompt and a better search:
+   the answer goes into the query, so the sold-price search asks about the
+   machine in front of them rather than a generic one. */
+/* A HANDHELD HAS NO CONTROLLER AND NO CABLES, so it must not be asked
+   about them. This is the weedeater fault reported from the counter -
+   "i clciked the outdoor power tools button it went straight to bar
+   lenght. what if it was a weedeater or a blower?" - and it would have
+   shipped again here: CH_CONSOLE_KIT opens with "Console, a controller and
+   all the cables", which is nonsense held in one hand.
+
+   What actually moves a handheld, in the order the counter can see it:
+
+     CHARGER. Proprietary on every one of these and long out of
+     production. A DS Lite charger does not fit a DSi, which does not fit
+     a 3DS. Treated as a fifth of the machine - the same shape as the bare
+     drill finding, where the missing part is the part nobody has spare.
+     A judgement, anchored on chargers running $10-15 against a $60
+     handheld, not a measured pair.
+     BATTERY COVER AND STYLUS. Famously gone, individually cheap. A tenth.
+     BATTERY CORROSION. Not a discount, a different item. A Game Boy that
+     sat thirty years with cells in it has green crust on the terminals,
+     and it spreads to the board - flagged as the thing that decides
+     whether this is a machine or a parts donor. */
+const CH_HANDHELD_KIT={label:"What came with it",covers:"complete",options:[
+  {t:"All there — charger, cover, stylus if it takes one",m:1},
+  {t:"No charger",m:.8,note:"no charger: −20%. These are proprietary and out of production"},
+  {t:"Missing the battery cover or stylus",m:.9,note:"small bits missing: −10%"},
+  {t:"No charger AND bits missing",m:.7,note:"both: −30%"},
+  {t:"Corroded battery compartment",q:"for parts not working",m:.4,
+   note:"GREEN CRUST IS NOT WEAR. It spreads to the board — price it as a parts donor until it powers on and holds a charge"}]};
+const CH_CONSOLE_VARIANT={label:"Plain one, or special?",options:[
+  {t:"Plain — standard colour, standard model",m:1},
+  {t:"Special colour, limited run, or a bundle",m:1,q:"limited edition",
+   note:"LOOK THIS ONE UP. Measured 1.7x to 4.4x over the plain machine — far too wide for the book to guess, and no multiplier is applied here"},
+  {t:"Not sure",m:1,
+   note:"If the colour is anything but the standard one, or the label says a game's name, treat it as special and look it up"}]};
 /* THE SAME MISSING BATTERY, PRICED TWICE.
    Caught by an outside review and confirmed with numbers. A cordless drill
    is asked "what came with it" - tool only is .52, because a bare tool IS
@@ -1998,6 +2168,21 @@ const CH_APPL_AGE={label:"Age",options:[
  {t:"8\u201312 yr",m:.7,note:"getting old: \u221230%"},
  {t:"Over 12 yr / unknown",m:.45,note:"old or unknown age \u2014 it is scrap with a cord on it"}]};
 const SPEC_CHOICES={
+ /* The retro bands get all three questions. The 2005-2012 band gets the
+    kit question and the lighter box question but NOT the variant one: its
+    special editions exist (a blue Wii, a backward-compatible PS3) and are
+    worth real money, so the variant question is on it too - the PS3 60GB
+    is a 4.4x on a shelf full of 1.0x machines and is the single most
+    expensive thing in this aisle to miss.
+
+    Last gen gets the kit question only. A boxed PS4 is 1.30x and that is
+    inside the noise of what condition already does; there is no collector
+    variant market for a machine still being sold second-hand by the
+    thousand. */
+ e5a:[CH_CONSOLE_KIT],
+ e5b:[CH_CONSOLE_KIT,CH_CONSOLE_BOX_LATE,CH_CONSOLE_VARIANT],
+ e5c:[CH_CONSOLE_KIT,CH_CONSOLE_BOX,CH_CONSOLE_VARIANT],
+ e5d:[CH_HANDHELD_KIT,CH_CONSOLE_BOX,CH_CONSOLE_VARIANT],
  g1:[CH_GAUGE,CH_BARREL],g2:[CH_GAUGE,CH_BARREL],
  g3:[CH_CALIBER,CH_OPTIC],g4:[CH_CALIBER,CH_OPTIC],
  g5:[CH_CALIBER,{label:"Build",options:[{t:"Basic / irons",m:1},{t:"Optic + real upgrades",m:1.15,note:"upgraded build: +15%"}]}],
@@ -5601,6 +5786,30 @@ const FB_MARKETPLACE_SEARCH="https://www.facebook.com/marketplace/search/?query=
 /* Where it earns its keep. Not a blanket button: everywhere else has a
    model number and eBay is better at those. */
 const WORTHPOINT_CATS={jewel:1,coll:1,music:1};
+/* PRICECHARTING, AND WHY IT IS ON THE CONSOLE ROWS AND NOWHERE ELSE.
+   It is completed eBay sales - the same kind of figure WatchCount gives -
+   but indexed the way this market is actually shaped: BY VARIANT. eBay
+   searched for "nintendo 64" returns one blended number across a $90 plain
+   machine and a $390 Pikachu. PriceCharting has them as separate rows with
+   separate prices, which is the whole difficulty of the collector band and
+   the reason the variant question exists.
+
+   It also splits loose / CIB / sealed, which is the other two questions on
+   these rows, so the counter can read the answer to what the run just
+   asked instead of doing the arithmetic in their head.
+
+   Free, no sign-in, and a LINK OUT only - nothing reads a number back off
+   it and nothing enters the book by this route, the same line WorthPoint
+   and Facebook Marketplace sit on. Its own figures were the source for the
+   console rows, measured 29 Sep; see tools/console-findings.md, including
+   what is wrong with them (it excludes shipping inconsistently and runs
+   high on heavy hardware). */
+const PRICECHARTING_ITEMS={e5:1,e5a:1,e5b:1,e5c:1,e5d:1,"Handheld game console":1};
+/* WORTHPOINT ON THE RETRO BANDS ONLY. The argument for it is the one the
+   jewellery row makes: eBay reaches back 90 days, and a Sega Saturn is a
+   four-listing market. WorthPoint goes back years. It is NOT put on the
+   post-2001 rows - a PS4 sells every day and eBay prices it fine. */
+const WORTHPOINT_ITEMS={e5c:1,e5d:1};
 function compTargets(x){
   const q=compQuery(x), e=encodeURIComponent(q), t=[], guns=(st.catId==="guns");
   if(guns){
@@ -5693,7 +5902,11 @@ function compTargets(x){
     t.push({id:"cl",name:"Craigslist \u2014 Tallahassee",sub:"asking, the panhandle",
       url:"https://tallahassee.craigslist.org/search/sss?query="+e});
   }
-  if(WORTHPOINT_CATS[st.catId])
+  if(PRICECHARTING_ITEMS[st.itemId])
+    t.push({id:"pc",name:"PriceCharting",
+      sub:"sold, split by variant &amp; box",
+      url:"https://www.pricecharting.com/search-products?q="+e+"&type=prices"});
+  if(WORTHPOINT_CATS[st.catId]||WORTHPOINT_ITEMS[st.itemId])
     t.push({id:"wp",name:"WorthPoint",
       sub:"marks &amp; makers \u2014 paid sign-in",
       url:WORTHPOINT_SEARCH+encodeURIComponent(q)});
@@ -6522,7 +6735,20 @@ const ITEM_SYN={
  h4:"trail camera trail cam game camera deer camera",h5:"compound bow archery",h6:"crossbow cross bow",
  h7:"rod reel combo fishing pole fishing rod",h8:"trolling motor",h9:"outboard boat motor",
  e1:"tv television smart flat screen",e2:"laptop notebook computer chromebook",e3:"tablet",
- e4:"smartphone phone cell cellphone android",e5:"game console gaming playstation xbox",
+ e4:"smartphone phone cell cellphone android",
+ /* ROUTING THE FOUR BANDS. Before this, every one of these words landed on
+    e5 "current gen" at $225 - measured last session, and the reason a PS4,
+    an N64 and a Dreamcast all priced the same. The generation names are
+    spelled out because that is what gets typed at a counter: nobody writes
+    "fifth generation console", they write "n64" or "super nintendo" or
+    "sega genesis". The bare word "playstation" or "xbox" with no number
+    stays on current gen, which is the right guess when there is nothing
+    else to go on - the model question and MP_MATCH sort the rest. */
+ e5:"game console gaming playstation 5 ps5 xbox series x xbox series s switch oled",
+ e5a:"ps4 playstation 4 xbox one xbox one s xbox one x wii u wiiu last gen previous gen",
+ e5b:"ps3 playstation 3 xbox 360 xbox360 nintendo wii",
+ e5c:"n64 nintendo 64 super nintendo snes nes famicom sega genesis mega drive sega saturn dreamcast gamecube game cube ps2 playstation 2 ps1 psx playstation 1 psone original xbox retro console vintage console",
+ e5d:"game boy gameboy game boy color game boy advance gba sp nintendo ds ds lite dsi psp playstation portable game gear handheld retro",
  /* "I typed Google home mini but then you asked for make." Chasing that
      found something worse than a wasted question: "google home mini" was
      landing on f6, HOME GYM / POWER RACK, at $200 - on the word "home". A
@@ -6665,7 +6891,20 @@ const OMNI_IDX=(function(){
 })();
 function findEntry(ref){
   if(!ref)return null;
-  return /^[a-z]\d$/.test(ref) ? OMNI_IDX.find(e=>e.kind==="item"&&e.itemId===ref)||null
+  /* THIS TEST USED TO BE /^[a-z]\d$/ - ONE LETTER, ONE DIGIT. Every
+     catalog item was e1..e7, g1..g10, so it held for years and nobody had
+     reason to look at it. Adding e5a..e5d broke it silently: findEntry
+     fell through to the book branch, searched PRICEBOOK for an entry NAMED
+     "e5a", found none, and returned null. The effect at the counter was
+     that typing "playstation 4" matched the PS4 model row, could not
+     resolve the item it points at, dropped the strong match, and answered
+     from the keyword map instead - which put it back on "current gen" at
+     $225. The row was right, the price was right, and the lookup threw
+     them away one step before the screen.
+     A book entry is a NAME ("Handheld game console"), an item is a short
+     id, so the two are told apart on shape: letters, digits, and an
+     optional letter suffix, with no spaces. */
+  return /^[a-z]+\d+[a-z]?$/.test(ref) ? OMNI_IDX.find(e=>e.kind==="item"&&e.itemId===ref)||null
                                : OMNI_IDX.find(e=>e.kind==="book"&&e.name===ref)||null;
 }
 
@@ -6774,7 +7013,7 @@ const BRAND_FIRST={"weed eater":["p2"],"glock":["g7"],"sig sauer":["g7"],"canik"
     not reported: "sonos" alone still missed after the keywords were widened,
     because a make the desk RECOGNISES never reaches the keyword list. */
  "sonos":["e6"],
- "apple":["e4","e3","e2"],"nintendo":["e5","Handheld game console"],"xbox":["e5"],"gibson":["m2","m1"],"martin":["m1"],"taylor":["m1"],
+ "apple":["e4","e3","e2"],"nintendo":["e5","e5c","e5d","Handheld game console"],"xbox":["e5"],"sega":["e5c"],"gibson":["m2","m1"],"martin":["m1"],"taylor":["m1"],
  "fender":["m2","m3","Bass guitar"],"squier":["m2","Bass guitar"],"epiphone":["m2"],"marshall":["m3"],"mesa boogie":["m3"],"orange":["m3"]};
 function brandEntry(name){ const k=String(name||"").toLowerCase(); return BRAND_IDX.find(b=>b.name.toLowerCase()===k)||null; }
 function findBrand(text){
@@ -6955,11 +7194,48 @@ const MODELBOOK=[
     A Book, a Laptop and a Studio are laptops; a Pro and a Go are tablets. */
  MB(/\bsurface\s*(book|laptop|studio)(\s*\d+)?\b/,"Microsoft","e2",{label:m=>"Surface "+pretty(m[1])+(m[2]||"")}),
  MB(/\bsurface\s*(pro|go)(\s*\d+)?\b/,"Microsoft","e3",{label:m=>"Surface "+pretty(m[1])+(m[2]||"")}),
- MB(/\b(sony\s*)?(ps5|ps4|playstation\s*\d?)(\s*(pro|slim|digital))?\b/,"Sony","e5",{label:m=>pretty(m[2].replace("playstation","PlayStation"))+(m[3]?" "+pretty(m[3]):""),
-   spec:m=>/ps4|playstation\s*4/.test(m[0])?{Version:"Previous gen"}:/digital/.test(m[0])?{Version:"Current gen, digital"}:null}),
- MB(/\bxbox(\s*(series\s*[xs]|one\s*[xs]?|one|360))?\b/,"Microsoft","e5",{label:m=>"Xbox"+(m[1]?" "+pretty(m[1]):""),
-   spec:m=>/one|360/.test(m[0])?{Version:"Previous gen"}:/series\s*s/.test(m[0])?{Version:"Current gen, digital"}:null}),
+ /* THE GENERATION IS THE ITEM NOW, so the brand-model reader has to say
+    which one. It returned "e5" for every PlayStation and every Xbox ever
+    made, and that is not a cosmetic miss: a modelItem match is STRONG and
+    leads the list, so "playstation 2" came back as "Game console - current
+    gen, $225" while the measured $90-120 PS2 row sat underneath it,
+    correct and ignored. The row was right and the reader threw it away.
+    A bare "playstation" or "xbox" with no number still goes to current
+    gen. That is the right guess with nothing else to go on, and the model
+    question sorts it from there. */
+ MB(/\b(sony\s*)?(ps[1-5]|psx|psone|playstation\s*\d?)(\s*(pro|slim|digital))?\b/,"Sony",
+   m=>{ const g=m[2];
+        if(/ps4|playstation\s*4/.test(g))return "e5a";
+        if(/ps3|playstation\s*3/.test(g))return "e5b";
+        if(/ps2|playstation\s*2|ps1\b|psx|psone|playstation\s*1/.test(g))return "e5c";
+        return "e5"; },
+   {label:m=>(/psone|ps1\b|playstation\s*1/.test(m[2])?"PlayStation 1":
+              pretty(m[2].replace("playstation","PlayStation")))+(m[3]?" "+pretty(m[3]):""),
+    spec:m=>/digital/.test(m[0])?{Version:"Current gen, digital"}:null}),
+ MB(/\b(original\s*xbox|xbox\s*(classic|og)|\bogxbox\b)\b/,"Microsoft","e5c",{label:"Xbox (original)"}),
+ MB(/\bxbox(\s*(series\s*[xs]|one\s*[xs]?|one|360))?\b/,"Microsoft",
+   m=>/360/.test(m[0])?"e5b":/one/.test(m[0])?"e5a":"e5",
+   {label:m=>"Xbox"+(m[1]?" "+pretty(m[1]):""),
+    spec:m=>/series\s*s/.test(m[0])?{Version:"Current gen, digital"}:null}),
  MB(/\b(nintendo\s*)?switch(\s*(oled|lite|2))?\b/,"Nintendo",m=>/lite/.test(m[0])?"Handheld game console":"e5",{label:m=>"Switch"+(m[2]?" "+pretty(m[2]):"")}),
+ /* The rest of the aisle, which the reader had never heard of at all.
+    Order is deliberate where two patterns could both fire: Wii U before
+    Wii, SNES before NES, Advance before Game Boy, DSi before DS. */
+ MB(/\b(nintendo\s*)?wii\s*u\b|\bwiiu\b/,"Nintendo","e5a",{label:"Wii U"}),
+ MB(/\b(nintendo\s*)?wii\b/,"Nintendo","e5b",{label:"Wii"}),
+ MB(/\bsuper\s*(nintendo|nes)\b|\bsnes\b/,"Nintendo","e5c",{label:"Super Nintendo"}),
+ MB(/\bn\s*-?\s*64\b|\bnintendo\s*64\b/,"Nintendo","e5c",{label:"Nintendo 64"}),
+ MB(/\bgame\s*cube\b|\bgamecube\b|\bgcn\b/,"Nintendo","e5c",{label:"GameCube"}),
+ MB(/\bnes\b|\bnintendo\s*entertainment\s*system\b/,"Nintendo","e5c",{label:"NES"}),
+ MB(/\bdream\s*cast\b|\bdreamcast\b/,"Sega","e5c",{label:"Dreamcast"}),
+ MB(/\bsega\s*saturn\b|\bsaturn\b/,"Sega","e5c",{label:"Saturn"}),
+ MB(/\b(sega\s*)?(genesis|mega\s*drive)\b/,"Sega","e5c",{label:"Genesis"}),
+ MB(/\bgame\s*boy\s*advance(\s*sp)?\b|\bgba(\s*sp)?\b/,"Nintendo","e5d",{label:"Game Boy Advance"}),
+ MB(/\bgame\s*boy(\s*(color|colour|pocket))?\b|\bgameboy\b|\bdmg\b/,"Nintendo","e5d",{label:"Game Boy"}),
+ MB(/\bdsi\b/,"Nintendo","e5d",{label:"DSi"}),
+ MB(/\b(nintendo\s*)?ds\s*lite\b|\bndsl\b|\bnintendo\s*ds\b/,"Nintendo","e5d",{label:"Nintendo DS"}),
+ MB(/\bpsp\b|\bplaystation\s*portable\b/,"Sony","e5d",{label:"PSP"}),
+ MB(/\bgame\s*gear\b/,"Sega","e5d",{label:"Game Gear"}),
  MB(/\bsteam\s*deck\b/,"","Handheld game console",{label:"Steam Deck"}),
  MB(/\brog\s*ally\b/,"ASUS","Handheld game console",{label:"ROG Ally"}),
  MB(/\bgopro(\s*hero\s*\d+(\s*black)?|\s*max)?\b|\bhero\s*\d{1,2}\s*black\b/,"GoPro","GoPro / action camera",{label:m=>pretty(m[0].replace("gopro",""))}),
@@ -7455,17 +7731,10 @@ const MODEL_SPEC={
   "d8":{"Class":"GPS / spot-lock"},
   "d9":{"Class":"Basic 12V"},
   "e14":{"Version":"Current gen, digital"},
-  "e15":{"Version":"Previous gen"},
   "e17":{"Version":"Current gen, digital"},
-  "e18":{"Version":"Previous gen"},
   "e24":{"Class":"Standard"},
   "e25":{"Class":"Standard"},
-  "h11":{"Version":"Previous gen"},
-  "h141":{"Version":"Previous gen"},
-  "h143":{"Version":"Previous gen"},
   "h148":{"Version":"Previous gen"},
-  "h150":{"Version":"Previous gen"},
-  "h156":{"Version":"Previous gen"},
   "h161":{"Version":"Current gen, digital"},
   "h226":{"Size":"Standard portable"},
   "h228":{"Size":"Standard portable"},
@@ -7531,7 +7800,6 @@ const MODEL_SPEC={
   "h642":{"Type":"Standard 3-9x class"},
   "h645":{"Type":"Standard 3-9x class"},
   "h647":{"Type":"Standard 3-9x class"},
-  "h9":{"Version":"Previous gen"}
 };
 /* The facts the record supplied, so the run can decline to ask them and the
    answer card can show where they came from. Cleared with the draft. */
@@ -8286,10 +8554,10 @@ let MODEL_PRICES=[
  ["e12","e3","iPad 10th gen",220,300,"m","2026-09-19","https://swappa.com/prices/apple-ipad-10th-gen","Cheap refurbs drag it down"],
  ["e13","e5","PlayStation 5 (disc)",370,460,"h","2026-09-19","https://www.pricecharting.com/game/playstation-5/playstation-5-console-disc-version","Slim about $40 over original"],
  ["e14","e5","PlayStation 5 digital",329,430,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=PlayStation%205%20digital&LH_Sold=1&LH_Complete=1","14 eBay sales in the last 90 days",""],
- ["e15","e5","PlayStation 4",90,140,"h","2026-09-19","https://www.pricecharting.com/console/playstation-4?genre-name=systems","PS4 Pro runs $150–200"],
+ ["e15","e5a","PlayStation 4",90,140,"h","2026-09-19","https://www.pricecharting.com/console/playstation-4?genre-name=systems","PS4 Pro runs $150–200"],
  ["e16","e5","Xbox Series X",470,560,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Xbox%20Series%20X&LH_Sold=1&LH_Complete=1","23 eBay sales in the last 90 days",""],
  ["e17","e5","Xbox Series S",210,305,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Xbox%20Series%20S&LH_Sold=1&LH_Complete=1","28 eBay sales in the last 90 days",""],
- ["e18","e5","Xbox One S / One X",100,170,"m","2026-09-19","https://www.pricecharting.com/console/xbox-one?genre-name=systems","One X $140–180"],
+ ["e18","e5a","Xbox One S / One X",100,170,"m","2026-09-19","https://www.pricecharting.com/console/xbox-one?genre-name=systems","One X $140–180"],
  ["e19","e5","Nintendo Switch OLED",175,190,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Nintendo%20Switch%20OLED&LH_Sold=1&LH_Complete=1","16 eBay sales in the last 90 days",""],
  ["e20","e5","Nintendo Switch",135,180,"h","2026-09-19","https://www.pricecharting.com/console/nintendo-switch?genre-name=systems","Needs dock and Joy-Cons; drift cuts value"],
  ["e21","e5|Handheld game console","Nintendo Switch Lite",95,130,"h","2026-09-19","https://www.pricecharting.com/console/nintendo-switch?genre-name=systems","Special editions $140–160"],
@@ -8319,8 +8587,8 @@ let MODEL_PRICES=[
  ["h2","e3","Samsung Galaxy Tab A8",61,116,"m","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Samsung%20Galaxy%20Tab%20A8&LH_Sold=1&LH_Complete=1","5 eBay sales in the last 90 days",""],
  ["h4","e5","PlayStation 5 disc",400,449,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=PlayStation%205%20disc&LH_Sold=1&LH_Complete=1","16 eBay sales in the last 90 days",""],
  ["h7","e5","PlayStation 5 Slim",360,462,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=PlayStation%205%20Slim&LH_Sold=1&LH_Complete=1","17 eBay sales in the last 90 days",""],
- ["h9","e5","PlayStation 4 Pro",125,180,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=PlayStation%204%20Pro&LH_Sold=1&LH_Complete=1","19 eBay sales in the last 90 days",""],
- ["h11","e5","PlayStation 4 Slim",100,135,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=PlayStation%204%20Slim&LH_Sold=1&LH_Complete=1","27 eBay sales in the last 90 days",""],
+ ["h9","e5a","PlayStation 4 Pro",125,180,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=PlayStation%204%20Pro&LH_Sold=1&LH_Complete=1","19 eBay sales in the last 90 days",""],
+ ["h11","e5a","PlayStation 4 Slim",100,135,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=PlayStation%204%20Slim&LH_Sold=1&LH_Complete=1","27 eBay sales in the last 90 days",""],
  ["h14","Headphones — over-ear","Sony WH-1000XM4",95,150,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Sony%20WH-1000XM4&LH_Sold=1&LH_Complete=1","18 eBay sales in the last 90 days",""],
  ["h16","Headphones — over-ear","Sony WH-1000XM5",109,128,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Sony%20WH-1000XM5&LH_Sold=1&LH_Complete=1","20 eBay sales in the last 90 days",""],
  ["h18","Headphones — over-ear","Sony WH-CH720N",35,55,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Sony%20WH-CH720N&LH_Sold=1&LH_Complete=1","16 eBay sales in the last 90 days",""],
@@ -8384,15 +8652,15 @@ let MODEL_PRICES=[
  ["h134","Game controller","PowerA Enhanced Wired",13,20,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=PowerA%20Enhanced%20Wired&LH_Sold=1&LH_Complete=1","15 eBay sales in the last 90 days",""],
  ["h136","Game controller","Turtle Beach Recon Controller",7,16,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Turtle%20Beach%20Recon%20Controller&LH_Sold=1&LH_Complete=1","20 eBay sales in the last 90 days",""],
  ["h138","Game controller","Hori Split Pad Pro",12,19,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Hori%20Split%20Pad%20Pro&LH_Sold=1&LH_Complete=1","20 eBay sales in the last 90 days",""],
- ["h141","e5","Xbox One X",120,410,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Xbox%20One%20X&LH_Sold=1&LH_Complete=1","26 eBay sales in the last 90 days",""],
- ["h143","e5","Xbox One S",80,100,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Xbox%20One%20S&LH_Sold=1&LH_Complete=1","23 eBay sales in the last 90 days",""],
+ ["h141","e5a","Xbox One X",120,410,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Xbox%20One%20X&LH_Sold=1&LH_Complete=1","26 eBay sales in the last 90 days",""],
+ ["h143","e5a","Xbox One S",80,100,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Xbox%20One%20S&LH_Sold=1&LH_Complete=1","23 eBay sales in the last 90 days",""],
  ["h146","e5","Nintendo Switch V2",103,140,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Nintendo%20Switch%20V2&LH_Sold=1&LH_Complete=1","12 eBay sales in the last 90 days",""],
  ["h148","e5","Nintendo Switch Lite",95,109,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Nintendo%20Switch%20Lite&LH_Sold=1&LH_Complete=1","17 eBay sales in the last 90 days",""],
- ["h150","e5","Xbox One",71,99,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Xbox%20One&LH_Sold=1&LH_Complete=1","24 eBay sales in the last 90 days",""],
- ["h152","e5","Xbox 360",60,110,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Xbox%20360&LH_Sold=1&LH_Complete=1","18 eBay sales in the last 90 days",""],
- ["h154","e5","PlayStation 3",70,290,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=PlayStation%203&LH_Sold=1&LH_Complete=1","16 eBay sales in the last 90 days",""],
- ["h156","e5","Nintendo Wii U",65,160,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Nintendo%20Wii%20U&LH_Sold=1&LH_Complete=1","20 eBay sales in the last 90 days",""],
- ["h158","e5","Nintendo Wii",45,160,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Nintendo%20Wii&LH_Sold=1&LH_Complete=1","17 eBay sales in the last 90 days",""],
+ ["h150","e5a","Xbox One",71,99,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Xbox%20One&LH_Sold=1&LH_Complete=1","24 eBay sales in the last 90 days",""],
+ ["h152","e5b","Xbox 360",60,110,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Xbox%20360&LH_Sold=1&LH_Complete=1","18 eBay sales in the last 90 days",""],
+ ["h154","e5b","PlayStation 3",70,290,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=PlayStation%203&LH_Sold=1&LH_Complete=1","16 eBay sales in the last 90 days",""],
+ ["h156","e5a","Nintendo Wii U",65,160,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Nintendo%20Wii%20U&LH_Sold=1&LH_Complete=1","20 eBay sales in the last 90 days",""],
+ ["h158","e5b","Nintendo Wii",45,160,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Nintendo%20Wii&LH_Sold=1&LH_Complete=1","17 eBay sales in the last 90 days",""],
  ["h161","e5","Xbox Series X Digital",265,470,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Xbox%20Series%20X%20Digital&LH_Sold=1&LH_Complete=1","24 eBay sales in the last 90 days",""],
  ["h163","Handheld game console","Nintendo Switch Lite",91,105,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Nintendo%20Switch%20Lite&LH_Sold=1&LH_Complete=1","21 eBay sales in the last 90 days",""],
  ["h165","Handheld game console","Nintendo Switch OLED",175,190,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Nintendo%20Switch%20OLED&LH_Sold=1&LH_Complete=1","16 eBay sales in the last 90 days",""],
@@ -8635,13 +8903,51 @@ let MODEL_PRICES=[
  ["h693","h6","Barnett Whitetail Hunter STR",200,338,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Barnett%20Whitetail%20Hunter%20STR&LH_Sold=1&LH_Complete=1","12 eBay sales in the last 90 days",""],
  ["h695","h6","Barnett Hyper Raptor",375,500,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Barnett%20Hyper%20Raptor&LH_Sold=1&LH_Complete=1","6 eBay sales in the last 90 days",""],
  ["h697","h6","Excalibur Matrix",466,600,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Excalibur%20Matrix&LH_Sold=1&LH_Complete=1","9 eBay sales in the last 90 days",""],
- ["h699","h6","CenterPoint Sniper 370",150,200,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=CenterPoint%20Sniper%20370&LH_Sold=1&LH_Complete=1","29 eBay sales in the last 90 days",""]
+ ["h699","h6","CenterPoint Sniper 370",150,200,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=CenterPoint%20Sniper%20370&LH_Sold=1&LH_Complete=1","29 eBay sales in the last 90 days",""],
+ ["gc5","e5c","Sega Saturn",150,200,"l","2026-09-29","https://www.pricecharting.com/search-products?q=sega+saturn+system&type=prices","Four listings on the whole page — treat the figure as thin"],
+ ["gc6","e5c","Sega Dreamcast",140,180,"m","2026-09-29","https://www.pricecharting.com/search-products?q=sega+dreamcast+system&type=prices","Box rarely survived: loose→CIB is only 1.4x, against 2.8x typical"],
+ ["gc7","e5c","Super Nintendo (SNES)",95,130,"h","2026-09-29","https://www.pricecharting.com/search-products?q=super+nintendo+system&type=prices","1 sale a day loose. CIB $390"],
+ ["gc8","e5c","PlayStation 2",90,120,"h","2026-09-29","https://www.pricecharting.com/search-products?q=playstation+2+system&type=prices","2 sales a week loose. Check the laser with more than one disc"],
+ ["gc9","e5c","Xbox (original)",80,110,"m","2026-09-29","https://www.pricecharting.com/search-products?q=original+xbox+system&type=prices","1 sale a week loose. 2001 machine — the clock capacitor leaks"],
+ ["gc10","e5c","Nintendo NES",80,110,"h","2026-09-29","https://www.pricecharting.com/search-products?q=nes+system&type=prices","Racketboy $50–160, PriceCharting $94 — two sources agreeing"],
+ ["gc11","e5c","Nintendo GameCube",85,115,"m","2026-09-29","https://www.pricecharting.com/search-products?q=gamecube+system&type=prices","Special editions run to $2,499 — look at the colour before you price it"],
+ ["gc12","e5c","Nintendo 64",80,110,"h","2026-09-29","https://www.pricecharting.com/search-products?q=nintendo+64+system&type=prices","1 sale a day. Funtastic colours $157–245, Gold $236, Pikachu $390"],
+ ["gc13","e5c","Sega Genesis",65,90,"m","2026-09-29","https://www.pricecharting.com/search-products?q=sega+genesis+model+1+system&type=prices","Model 1 $75; Racketboy $40–160 over the same machine"],
+ ["gc14","e5c","PlayStation 1 / PSone",50,75,"h","2026-09-29","https://www.pricecharting.com/search-products?q=playstation+system&type=prices","1 sale a day. The box adds almost nothing — 1.3x, PS1s are everywhere"],
+ ["gc15","e5d","Game Boy (original)",55,80,"m","2026-09-29","https://www.pricecharting.com/search-products?q=gameboy+system&type=prices","Check the battery terminals for green crust before anything else"],
+ ["gc16","e5d","Game Boy Advance SP",50,85,"m","2026-09-29","https://www.pricecharting.com/search-products?q=gameboy+advance+sp+system&type=prices","Pokemon and Pikachu editions $1,000–4,500 CIB — look at the shell"],
+ ["gc17","e5d","Nintendo DS / DS Lite",35,60,"m","2026-09-29","https://www.pricecharting.com/search-products?q=nintendo+ds+lite+system&type=prices","The cheapest thing in the aisle and still falling"],
+ ["gc18","e5d","Nintendo DSi",55,95,"m","2026-09-29","https://www.pricecharting.com/search-products?q=nintendo+dsi+system&type=prices","Pokemon White DSi is $279 loose, $1,200 CIB"],
+ ["gc19","e5d","Sony PSP",55,80,"m","2026-09-29","https://www.pricecharting.com/search-products?q=psp+system&type=prices","US figures thin — the page came back PAL. Look it up before you lend"]
 ];
 /* =================================================================================== */
 
 /* how each row is recognized from the brand, model and details typed.
    First match wins, so the specific models sit above the general ones. */
 const MP_MATCH=[
+ /* THE CONSOLES HAD TO BE WRITTEN BY HAND, and the reason is worth saying
+    because it is not obvious: mpAuto matches a bulk row on its own name,
+    but only on "a token with a digit in it". Most of this aisle has no
+    digit anywhere. Dreamcast, Saturn, Genesis, GameCube, NES, Game Boy -
+    none of them would ever have matched, and typing "dreamcast" would have
+    fallen through to the category and priced a $162 machine off the class
+    figure. The ones that DO carry a number (Nintendo 64, PlayStation 2)
+    are here anyway, because "n64" and "ps2" are what gets typed and neither
+    is the row's spelling.
+    Order matters only within one item, and where it does it is deliberate:
+    SNES before NES, Wii U before Wii, DSi before DS, Advance before Game
+    Boy. The item gate above (r[1] must be the row being priced) is what
+    keeps a bare /xbox/ on the original machine from stealing a Series X. */
+ ["gc7",/super\s*nintendo|\bsnes\b|super\s*nes/],["gc10",/\bnes\b|nintendo\s*entertainment/],
+ ["gc12",/\bn\s*-?\s*64\b|nintendo\s*64/],["gc11",/game\s*cube|\bgcn\b/],
+ ["gc6",/dream\s*cast/],["gc5",/\bsaturn\b/],["gc13",/\bgenesis\b|mega\s*drive/],
+ ["gc8",/\bps\s*-?\s*2\b|playstation\s*2/],["gc14",/\bps\s*-?\s*(1|x)\b|playstation\s*(1|one)\b|\bpsone\b/],
+ ["gc9",/\bxbox\b/],
+ ["h156",/wii\s*u\b|\bwiiu\b/],["h158",/\bwii\b(?!\s*u)/],
+ ["h154",/\bps\s*-?\s*3\b|playstation\s*3/],["h152",/\b360\b/],
+ ["gc18",/\bdsi\b/],["gc16",/game\s*boy\s*advance|\bgba\b/],
+ ["gc15",/game\s*boy(?!\s*advance)|\bdmg\b/],["gc17",/\bds\s*lite\b|\bndsl?\b|nintendo\s*ds\b/],
+ ["gc19",/\bpsp\b|playstation\s*portable/],
  ["a2",/wingmaster/],["a1",/\b870\b/],["a5",/maverick\s*88/],["a4",/\b590(a1)?\b/],["a6",/\b835\b/],["a3",/mossberg.*\b500\b/],
  ["a7",/\b(super\s*)?nova\b/],["a8",/\bbps\b/],["a10",/\b11\s*-?\s*87\b|\b1187\b/],["a9",/\b1100\b/],["a11",/\ba300\b/],["a12",/\ba400\b/],
  ["a14",/\bsbe\b|super\s*black\s*eagle/],["a13",/\bm2\b/],["a15",/\ba5\b|auto\s*-?\s*5\b/],["a16b",/\b940\b/],["a16a",/\b930\b/],
@@ -9093,7 +9399,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0929.1902";
+const APP_BUILD="0929.2114";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

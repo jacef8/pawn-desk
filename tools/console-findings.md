@@ -132,3 +132,85 @@ pays. The category rate still does that work.
 US PlayStation Vita. Neo Geo. TurboGrafx-16. Atari 2600/5200/7800.
 Intellivision, ColecoVision. 3DS and New 3DS. Sega Game Gear. Switch and
 Switch Lite (the search returned accessories, not systems).
+
+---
+
+# The cross-check, 29 Sep
+
+The section above was one-sourced and said so. This is the second source.
+
+## Racketboy's hardware price guide
+
+An enthusiast reference built the opposite way round from PriceCharting -
+by hand, from what the community sees, rather than scraped off completed
+listings. Its loose bands against PriceCharting's single figure:
+
+    NES       $50-$160     PriceCharting $94
+    SNES      $50-$225     PriceCharting $110
+    Genesis   $40-$160     PriceCharting $75
+
+**PriceCharting sits mid-range of the community guide every time.** Two
+sources built by different methods, agreeing. That is the cross-check the
+gun data had (46/46 against GunBroker) and the console data did not.
+
+It also explains the SPREAD, which the single figure hid. Racketboy states
+what its ends mean: the LOW is "console hardware only, no packaging,
+minimal accessories like a power adapter", working; the HIGH includes "a
+controller or two, power and video cables, and excellent cosmetic
+condition". So the 3x range is completeness AND cosmetics together - not
+completeness alone, which is the mistake it would be easy to make here.
+The desk asks about condition separately, and pricing the scratches twice
+is a bug this codebase has already shipped once.
+
+Caveat: Racketboy's figures were last updated November 2023, and retro has
+risen about 15% a year since across two sources. Its RATIOS are what was
+used, not its levels.
+
+## The variant spread, quantified
+
+The one-source section called this "the trap". Pulled in full, it is worse
+than that section made it sound. All loose, all the same day:
+
+    N64 standard         $90      PS3 160GB                      $75
+    N64 Jungle Green    $157      PS3 80GB backward-compatible  $206
+    N64 Ice Blue        $169      PS3 60GB backward-compatible  $330
+    N64 Grape Purple    $200      PS3 20GB                      $269
+    N64 Fire Orange     $222
+    N64 Smoke Black     $223      Wii white                      $50
+    N64 Gold            $236      Wii black                      $74
+    N64 Watermelon      $245      Wii blue                      $121
+    N64 Pikachu         $390
+
+1.7x to 4.4x on the same shelf, and on the PS3 it is a spec you cannot see
+at all from across a counter.
+
+## CIB premium, second source
+
+Two trade write-ups put a CIB game at 2x-5x a loose one, or "40-80% more"
+more conservatively. Measured loose->CIB on CONSOLES is 2.8x median
+(SNES 3.5x, N64 3.4x, Saturn 3.2x, Game Boy 3.0x, NES 2.8x, PS2 2.6x,
+Xbox 2.3x, GameCube 2.1x; Dreamcast 1.4x and PS1 1.3x are the exceptions).
+Consistent with the upper half of the independent range.
+
+## What a dealer actually pays
+
+The figures in this file are RESALE. Two pawn-trade sources put a shop's
+offer at 25-60% of resale, and one names an Xbox 360 at $10-30 at the
+counter against a $52-117 resale - which is 20-40%, and consistent. The
+category rate already does this conversion; nothing here changes it.
+
+eStarland's and DKOldies' own buy prices would have been the best source
+of all for this - a dealer's posted cash offer is exactly the number Jace
+needs - and both return 403 to an automated fetch. Not pursued further:
+their terms are the same line WorthPoint sits on, and a person clicking
+through is fine where a program is not.
+
+## What is still one-sourced
+
+The absolute price levels for Saturn, Dreamcast, GameCube, PS2, original
+Xbox, PS1 and every handheld. Racketboy covers NES, SNES and Genesis only,
+so those three are the only rows with two independent price sources behind
+them. The rest rest on PriceCharting alone, with the shipping bias above.
+
+No US PlayStation Vita figure. Neo Geo, TurboGrafx-16, Atari, Intellivision
+and ColecoVision remain unmeasured and have no row.
