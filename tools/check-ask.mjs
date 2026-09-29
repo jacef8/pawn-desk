@@ -512,10 +512,19 @@ console.log("\n  the run asks which one it is");
        happen; without one nothing fetches and it goes last, so the counter
        answers the taps first and leaves the app once. Reading one mode
        would let the other drift. */
-    const under = on => { const save = CAP.sample;
+    /* ON AN ITEM THE SERVICE CAN ACTUALLY PRICE. This block is set up on
+       g1, a shotgun, and the two modes below are about WHERE THE LOOKUP
+       SITS WHEN IT FIRES - which on a firearm it never does, because eBay
+       does not sell guns. Reading the with-a-service rule off a gun was
+       asserting the old bug: it passed only while the gate asked "is there
+       a service?" instead of "will it answer for this?". The blind aisles
+       get their own assertions further down; these two are about the item
+       that fetches. */
+    const under = on => { const save = CAP.sample, sc = st.catId, si = st.itemId;
+      st.catId = "elec"; st.itemId = "e2";
       CAP.sample = on ? {json: () => {}, limits: () => {}} : null;
       const a = askQueue(calcItem()).map(z => z.id);
-      CAP.sample = save; return a; };
+      CAP.sample = save; st.catId = sc; st.itemId = si; return a; };
     const autoIds = under(true), manIds = under(false);
     return {ids, iExtra, iWorth, iModel, autoIds, manIds,
             lastSpec: spec.length ? Math.max(...spec) : -1,
@@ -556,6 +565,58 @@ console.log("\n  the run asks which one it is");
        "  and is the last thing asked bar the optional box");
     ok(r.manIds.length === r.autoIds.length && r.manIds.every(id => r.autoIds.includes(id)),
        "  nothing added or lost by the move, only reordered");
+  }
+
+  /* THE CASE NEITHER MODE ABOVE COVERED, and the one he hit. Reported with
+     a Browning on the glass: "this question is still being asked before the
+     other relevant questions" - sold price at 3 of 8, ahead of caliber,
+     optics, completeness and condition.
+
+     It only reproduces WITH A SERVICE CONFIGURED, which is why it looked
+     fixed from this container: both modes above use an item eBay can
+     price, and on a desk with no token everything already went last. His
+     desk has a token. The old gate asked "is there a service?" and stopped
+     there.
+
+     But eBay does not sell firearms. priceFind bails on ebayBlind before it
+     fetches anything, and the card three lines under the question said so
+     on his screen - "So this one is yours to look up". The desk knew
+     nothing would fetch and still put the step third to fetch in the
+     background. That is the whole guns aisle, the whole rolling aisle, and
+     every EBAY_CANNOT_ITEM - mowers, fridges, treadmills, outboards.
+
+     Asserted per aisle rather than as one rule, because "the service is
+     configured" and "the service will answer for THIS" are the two things
+     that got conflated and a single assertion would let them merge again. */
+  {
+    const r2 = await page.evaluate(() => {
+      const save = CAP.sample, savedCat = st.catId, savedItem = st.itemId;
+      CAP.sample = {json: () => {}, limits: () => {}};   /* his desk */
+      const at = (cat, item) => {
+        st.mode = "item"; st.catId = cat; st.itemId = item; st.picked = true;
+        st.brandSet = false; st.model = "";
+        const ids = askQueue(calcItem()).map(z => z.id);
+        return {ids, worth: ids.indexOf("worth"), n: ids.length,
+                blind: !!ebayBlind(calcItem())};
+      };
+      const out = {gun: at("guns", "g10"), quad: at("rolling", "r1"),
+                   laptop: at("elec", "e2")};
+      CAP.sample = save; st.catId = savedCat; st.itemId = savedItem;
+      st.picked = true; render();
+      return out;
+    });
+    ok(r2.gun.blind, "  eBay is blind to a firearm, service or no service");
+    ok(r2.gun.worth >= r2.gun.n - 2,
+       `  SO THE PRICE STEP GOES LAST ON A GUN even with a service — ${r2.gun.worth + 1} of ${r2.gun.n}`);
+    ok(r2.gun.ids.indexOf("worth") > r2.gun.ids.indexOf("cond"),
+       `    after caliber, optics and condition, not before them — ${r2.gun.ids.join(" > ")}`);
+    ok(r2.quad.blind && r2.quad.worth >= r2.quad.n - 2,
+       `  and last on a quad, for the same reason — ${r2.quad.worth + 1} of ${r2.quad.n}`);
+    /* The other half, which must NOT move: where the lookup really does
+       fire, third is right and the whole argument for it still holds. */
+    ok(!r2.laptop.blind, "  eBay can price a laptop");
+    ok(r2.laptop.ids.indexOf("worth") === r2.laptop.ids.indexOf("model") + 1,
+       `  so that one still sits third, fetching while the taps happen — ${r2.laptop.worth + 1} of ${r2.laptop.n}`);
   }
 
   /* THE END OF THE RUN IS NOT A DEAD BUTTON.

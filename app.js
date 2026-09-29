@@ -2958,8 +2958,32 @@ function askQueue(x){
      and it goes last, so the cheap answers are done and the app is left
      once, at the end.
      Not a preference either way - one rule, applied to whichever situation
-     the desk is actually in. */
-  if(!(typeof CAP!=="undefined"&&CAP.sample)){
+     the desk is actually in.
+
+     AND THE GATE WAS THE WRONG QUESTION. Reported with a Browning on the
+     glass: "this question is still being asked before the other relevant
+     questions" - the sold-price step at 3 of 8, ahead of caliber, optics,
+     completeness and condition. It reproduced only with a service
+     configured, which is why it looked fixed from here: on a desk with no
+     token the step already went last.
+
+     The gate asked "IS THERE A SERVICE?" when the rule above turns on
+     "WILL THE LOOKUP ACTUALLY HAPPEN FOR THIS ITEM?", and for a firearm
+     the answer is never. eBay does not sell guns; priceFind bails out on
+     ebayBlind before it fetches anything; and the card on his screen SAID
+     SO, three lines under the question - "So this one is yours to look
+     up." The desk knew the service would not answer and put the step third
+     anyway, to fetch in the background while the taps happen. Nothing was
+     fetching. That is the whole guns aisle, the whole rolling aisle, and
+     every item in EBAY_CANNOT_ITEM - mowers, fridges, treadmills,
+     outboards, welders: the ones where the counter is always the one doing
+     the looking.
+
+     canLook, which is the same test line 1480 already uses to decide
+     whether to offer the automatic lookup at all. One predicate for "the
+     desk will do this for you", asked in both places. */
+  const willFetch=(typeof CAP!=="undefined"&&CAP.sample&&!ebayBlind(x));
+  if(!willFetch){
     const wi=q.findIndex(z=>z.id==="worth");
     if(wi>=0){
       const [w]=q.splice(wi,1);
@@ -9463,7 +9487,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0929.2248";
+const APP_BUILD="0929.2332";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
