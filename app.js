@@ -1604,7 +1604,7 @@ function weightHTML(x){
      same shape as the sentence underneath it. */
   if(!m||!x.checked)
     return card("Not checked","nothing looked up",bar(0,"none"),
-      "No sale behind this yet. The figure is a built-in starting point, not a price anybody paid. Look one up and this bar fills with what it found.");
+      "No sale behind this yet \u2014 the figure is a built-in starting point, not a price anybody paid. The buttons on the right open a sold page in your browser; read the middle price off it and type it in, and this bar fills.");
 
   if(m.kind==="found"||m.kind==="harvest"){
     const n=m.n||0, sold=m.sold||0, share=n?sold/n:0;
@@ -5557,7 +5557,7 @@ function compTargets(x){
      rather than a list to eyeball. It needs a seller sign-in, which the
      desk has; WatchCount above is the no-sign-in lane and is unchanged. */
   t.push({id:"ebay",name:"eBay Seller Hub",
-    sub:"a full year",
+    sub:"",   /* "the ebay button doesn't need to say a full year" */
     /* "OUR SERVER FAILED TO RESPOND TO YOUR QUERY" - every single time, on
        a URL this line builds. Five of the seven parameters were decoration:
        categoryId=0 names no category, offset=0 and limit=50 are the
@@ -8993,7 +8993,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0929.1256";
+const APP_BUILD="0929.1301";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
