@@ -2014,19 +2014,84 @@ const SPECBOOK={
 /* STRUCTURED SPEC CHOICES — pick, don't type. First option is always the
    baseline. Each item asks 2–3 questions; every answer carries its exact
    multiplier and reasoning. Stacked, capped 0.4–1.8. */
+/* Same fault on a shotgun: the gauge was asked and never reached the
+   search. gunQuery's comment said the gauge "only blurs it" on GunWatcher,
+   which was a judgement made from here and never tested against the site -
+   and the counter is now asking for the opposite. It goes in; the query
+   box on the card shows exactly what the buttons will search for, so it is
+   one glance to see whether it helped. */
 const CH_GAUGE={label:"Gauge",options:[
-  {t:"12 ga",m:1},{t:"20 ga",m:1},
-  {t:"16 ga",m:.85,note:"16 gauge — ammo scarce: −15%, and slower"},
-  {t:"28 ga",m:1.3,note:"28 gauge — boutique: +30%, fewer buyers — consider Slow"},
-  {t:".410",m:1.1,note:".410 — popular little bore: +10%"}]};
+  {t:"12 ga",q:"12 gauge",m:1},{t:"20 ga",q:"20 gauge",m:1},
+  {t:"16 ga",q:"16 gauge",m:.85,note:"16 gauge — ammo scarce: −15%, and slower"},
+  {t:"28 ga",q:"28 gauge",m:1.3,note:"28 gauge — boutique: +30%, fewer buyers — consider Slow"},
+  {t:".410",q:"410",m:1.1,note:".410 — popular little bore: +10%"}]};
 const CH_BARREL={label:"Barrel",options:[
   {t:"Field length (24–28 in)",m:1},
   {t:"Short / home-defense (18–20 in)",m:1.05,note:"defense length: +5%"},
   {t:"Extra-long (30 in +)",m:.9,note:"long target barrel — fewer local buyers: −10%"}]};
-const CH_CALIBER={label:"Caliber",options:[
-  {t:"Common (9mm, .223, .308…)",m:1},
-  {t:"Desirable (10mm, .45-70…)",m:1.08,note:"desirable caliber: +8%"},
-  {t:"Oddball",m:.85,note:"oddball caliber — fewer local buyers: −15%, consider Slow"}]};
+/* THE CALIBER WAS A PRICE BAND AND THE SEARCH NEEDED AN IDENTITY.
+   "i think guns should have a specific claiber selection so that when i
+   clck the gunwatcher or gunbbroker search button, it gives me more
+   accurate data."
+
+   The question asked was Common / Desirable / Oddball. Those are the right
+   three buckets for the MULTIPLIER and they are useless to a search: you
+   cannot look up "Common" on GunBroker. So the caliber was being asked,
+   and then thrown away before the buttons were built - his query box read
+   "Browning Semi-auto rifle" with the caliber he had just supplied nowhere
+   in it. On a rifle that is most of the identity. A BAR in .30-06 and a
+   BAR in .338 are different guns at different money.
+
+   Each option now carries both jobs: q is what goes in the search, m is
+   the band it falls in.
+
+   NO NEW PRICE CLAIMS. The multipliers are the three shipped bands, 1.0 /
+   1.08 / 0.85, re-expressed per caliber - not a new set of numbers. The
+   only two calibers named as desirable are the two the old option itself
+   named, 10mm and .45-70; everything listed sits at 1.0, which is where
+   the default "Common" already put them, and "not on this list" takes the
+   oddball 0.85 the old option gave it. So no gun changes price because of
+   this, and a caliber that ought to move bands moves on a counter report,
+   not on my guess.
+
+   FIRST OPTION IS "NOT SAID", NEUTRAL, AND CARRIES NO q. specBase picks
+   the first m===1 option as the fallback, so without this the first real
+   caliber would become a silent default and every unanswered rifle would
+   be searched as something nobody said it was. */
+const CAL_NOT={t:"Not said",m:1};
+const CH_CALIBER={label:"Caliber",options:[CAL_NOT,
+  {t:".223 / 5.56",q:"223",m:1},{t:".22-250",q:"22-250",m:1},
+  {t:".243",q:"243",m:1},{t:".270",q:"270",m:1},
+  {t:".308 / 7.62",q:"308",m:1},{t:".30-06",q:"30-06",m:1},
+  {t:"6.5 Creedmoor",q:"6.5 Creedmoor",m:1},
+  {t:"7mm Rem Mag",q:"7mm Rem Mag",m:1},
+  {t:".300 Win Mag",q:"300 Win Mag",m:1},
+  {t:".350 Legend",q:"350 Legend",m:1},
+  {t:".45-70",q:"45-70",m:1.08,note:"desirable caliber: +8%"},
+  {t:"Not on this list",m:.85,note:"oddball caliber — fewer local buyers: −15%, consider Slow"}]};
+/* A lever gun takes a different set entirely, and offering a .270 on a
+   Marlin 336 is the bar-length-on-a-weedeater fault again. */
+const CH_CAL_LEVER={label:"Caliber",options:[CAL_NOT,
+  {t:".30-30",q:"30-30",m:1},{t:".45-70",q:"45-70",m:1.08,note:"desirable caliber: +8%"},
+  {t:".357 Mag",q:"357 Magnum",m:1},{t:".44 Mag",q:"44 Magnum",m:1},
+  {t:".22 LR",q:"22 LR",m:1},{t:".450 Bushmaster",q:"450 Bushmaster",m:1},
+  {t:"Not on this list",m:.85,note:"oddball caliber — fewer local buyers: −15%, consider Slow"}]};
+const CH_CAL_AR={label:"Caliber",options:[CAL_NOT,
+  {t:"5.56 / .223",q:"5.56",m:1},{t:".300 Blackout",q:"300 Blackout",m:1},
+  {t:"7.62x39",q:"7.62x39",m:1},{t:".308 / 7.62 NATO",q:"308",m:1},
+  {t:"6.5 Grendel",q:"6.5 Grendel",m:1},{t:".22 LR",q:"22 LR",m:1},
+  {t:"Not on this list",m:.85,note:"oddball caliber — fewer local buyers: −15%, consider Slow"}]};
+const CH_CAL_PISTOL={label:"Caliber",options:[CAL_NOT,
+  {t:"9mm",q:"9mm",m:1},{t:".380 ACP",q:"380 ACP",m:1},
+  {t:".40 S&W",q:"40 S&W",m:1},{t:".45 ACP",q:"45 ACP",m:1},
+  {t:".22 LR",q:"22 LR",m:1},
+  {t:"10mm",q:"10mm",m:1.08,note:"desirable caliber: +8%"},
+  {t:"Not on this list",m:.85,note:"oddball caliber — fewer local buyers: −15%, consider Slow"}]};
+const CH_CAL_REVOLVER={label:"Caliber",options:[CAL_NOT,
+  {t:".38 Special",q:"38 Special",m:1},{t:".357 Magnum",q:"357 Magnum",m:1},
+  {t:".22 LR",q:"22 LR",m:1},{t:".44 Magnum",q:"44 Magnum",m:1},
+  {t:".45 Colt",q:"45 Colt",m:1},{t:".327 Federal",q:"327 Federal",m:1},
+  {t:"Not on this list",m:.85,note:"oddball caliber — fewer local buyers: −15%, consider Slow"}]};
 const CH_OPTIC={label:"Optics mounted",options:[
   {t:"None / irons",m:1},
   {t:"Scoped — decent glass",m:1.15,note:"decent glass on top: +15%"},
@@ -2262,11 +2327,11 @@ const SPEC_CHOICES={
  e5c:[CH_CONSOLE_KIT,CH_CONSOLE_BOX,CH_CONSOLE_VARIANT],
  e5d:[CH_HANDHELD_KIT,CH_CONSOLE_BOX,CH_CONSOLE_VARIANT],
  g1:[CH_GAUGE,CH_BARREL],g2:[CH_GAUGE,CH_BARREL],
- g3:[CH_CALIBER,CH_OPTIC],g4:[CH_CALIBER,CH_OPTIC],
- g5:[CH_CALIBER,{label:"Build",options:[{t:"Basic / irons",m:1},{t:"Optic + real upgrades",m:1.15,note:"upgraded build: +15%"}]}],
+ g3:[CH_CALIBER,CH_OPTIC],g4:[CH_CAL_LEVER,CH_OPTIC],
+ g5:[CH_CAL_AR,{label:"Build",options:[{t:"Basic / irons",m:1},{t:"Optic + real upgrades",m:1.15,note:"upgraded build: +15%"}]}],
  g6:[{label:"Action",options:[{t:"Semi-auto (10/22 class)",m:1},{t:"Bolt / single-shot",m:.85,note:"bolt/single .22s sell slower: −15%"}]},CH_OPTIC],
- g7:[CH_CALIBER,{label:"Size",options:[{t:"Full / compact",m:1},{t:"Pocket (.25/.380 junk-class)",m:.8,note:"pocket-class: −20%"}]}],
- g8:[CH_CALIBER,{label:"Barrel",options:[{t:"3–6 in",m:1},{t:"Snub 2 in",m:1},{t:"7 in + hunter",m:.9,note:"long hunter barrel — narrower market: −10%"}]}],
+ g7:[CH_CAL_PISTOL,{label:"Size",options:[{t:"Full / compact",m:1},{t:"Pocket (.25/.380 junk-class)",m:.8,note:"pocket-class: −20%"}]}],
+ g8:[CH_CAL_REVOLVER,{label:"Barrel",options:[{t:"3–6 in",m:1},{t:"Snub 2 in",m:1},{t:"7 in + hunter",m:.9,note:"long hunter barrel — narrower market: −10%"}]}],
  g9:[{label:"Type",options:[{t:"In-line (modern)",m:1},{t:"Sidelock / traditional",m:.8,note:"traditional — thin buyer pool: −20%"}]},CH_OPTIC],
  g10:[CH_CALIBER,CH_OPTIC],
  p1:[CH_RUNS,{label:"Bar length",options:[{t:"Under 16 in",m:.85,note:"short bar — homeowner saw: −15%"},{t:"16–18 in",m:1},{t:"19 in +",m:1.15,note:"pro-length bar: +15%, slower buyer"}]},CH_GRADE],
@@ -5831,9 +5896,21 @@ function wireBookHits(){
    "tool only" and "combo kit" - and only those. Every other answer stays
    out: the voltage is already in the model number, and each extra word
    narrows an eBay search that is thin to begin with. */
+/* ONLY WORDS SOMEBODY ACTUALLY CHOSE GO INTO A SEARCH.
+   This used to fall back to specBase when a group was unanswered, so an
+   option's q could enter the query with nobody having picked it. Nothing
+   shipped tripped it - no base option carried a q - but the caliber lists
+   below make it live and dangerous: the first real caliber in a list would
+   become the default, and every unanswered rifle would be searched as a
+   .223 that nobody said it was. A silent wrong search is worse than a
+   vague right one, because the counter cannot see what it asked for.
+   The MULTIPLIER still falls back to the neutral option, as it always did.
+   This is about the words, not the arithmetic. */
 function specQuery(){
   return (SPEC_CHOICES[st.itemId]||[]).map((g,gi)=>{
-    const o=g.options[st.specSel[st.itemId+":"+gi]??specBase(g)];
+    const sel=st.specSel[st.itemId+":"+gi];
+    if(sel==null)return "";
+    const o=g.options[sel];
     return (o&&o.q)||"";
   }).filter(Boolean).join(" ");
 }
@@ -5862,11 +5939,29 @@ function compQuery(x){
    built-in price row is in play its own name is better still: that is the
    name GunWatcher published the sold prices under. */
 function gunQuery(x){
-  const row=st.mpPin&&MP_BY_ID[st.mpPin.id];
-  if(row)return String(row[2]).slice(0,80);
-  if(String(st.model||"").trim())
-    return [st.brandTyped||"",st.model||""].map(t=>String(t).trim()).filter(Boolean).join(" ").slice(0,80);
-  return compQuery(x);
+  /* THE CALIBER GOES IN. "i think guns should have a specific claiber
+     selection so that when i clck the gunwatcher or gunbbroker search
+     button, it gives me more accurate data." It was asked and then
+     dropped: this function returned the row name or brand+model and never
+     touched specQuery, so the one thing the counter had just told the desk
+     about the gun was the one thing missing from the search for it.
+     The old comment here said the gauge "only blurs it" on GunWatcher.
+     That was a judgement made from this container, never tested against
+     the site - it answers a server with 403, so it never could be - and
+     the counter is reporting the opposite from in front of it. His read
+     wins over my untested one. It is one line to put back, and the query
+     box on the card shows exactly what the buttons will search for, so it
+     takes one glance to see whether it helped or hurt. */
+  const cal=specQuery();
+  const head=(()=>{
+    const row=st.mpPin&&MP_BY_ID[st.mpPin.id];
+    if(row)return String(row[2]);
+    if(String(st.model||"").trim())
+      return [st.brandTyped||"",st.model||""].map(t=>String(t).trim()).filter(Boolean).join(" ");
+    return "";
+  })();
+  if(!head)return compQuery(x);
+  return [head,cal].filter(Boolean).join(" ").trim().slice(0,80);
 }
 function watchCountUrl(q){
   /* WatchCount puts the search words in the path, so a slash would split it
@@ -7808,33 +7903,33 @@ function omniHlPaint(){
    question, because a question gets answered by somebody holding the saw.
    The other ~490 rows have none of this yet. */
 const MODEL_SPEC={
-  "b1":{"Caliber":"Common (9mm, .223, .308…)","Size":"Full / compact"},
-  "b10":{"Caliber":"Common (9mm, .223, .308…)","Size":"Full / compact"},
-  "b11":{"Caliber":"Common (9mm, .223, .308…)","Size":"Full / compact"},
-  "b12":{"Caliber":"Common (9mm, .223, .308…)"},
-  "b13":{"Caliber":"Common (9mm, .223, .308…)","Size":"Full / compact"},
-  "b14":{"Caliber":"Common (9mm, .223, .308…)","Size":"Full / compact"},
-  "b15":{"Caliber":"Common (9mm, .223, .308…)","Size":"Full / compact"},
-  "b16":{"Caliber":"Common (9mm, .223, .308…)","Size":"Full / compact"},
-  "b17":{"Caliber":"Common (9mm, .223, .308…)","Size":"Pocket (.25/.380 junk-class)"},
-  "b18":{"Caliber":"Common (9mm, .223, .308…)","Size":"Full / compact"},
-  "b19":{"Caliber":"Common (9mm, .223, .308…)","Size":"Full / compact"},
-  "b2":{"Caliber":"Common (9mm, .223, .308…)","Size":"Full / compact"},
-  "b20":{"Caliber":"Common (9mm, .223, .308…)","Size":"Full / compact"},
-  "b21a":{"Caliber":"Common (9mm, .223, .308…)","Size":"Full / compact"},
-  "b21b":{"Caliber":"Common (9mm, .223, .308…)","Size":"Full / compact"},
-  "b22":{"Caliber":"Common (9mm, .223, .308…)","Size":"Full / compact"},
-  "b23":{"Caliber":"Common (9mm, .223, .308…)","Size":"Full / compact"},
-  "b24":{"Caliber":"Common (9mm, .223, .308…)","Size":"Full / compact"},
-  "b25":{"Caliber":"Common (9mm, .223, .308…)","Size":"Full / compact"},
-  "b3":{"Caliber":"Common (9mm, .223, .308…)","Size":"Full / compact"},
-  "b4":{"Caliber":"Common (9mm, .223, .308…)","Size":"Full / compact"},
-  "b5":{"Caliber":"Common (9mm, .223, .308…)","Size":"Full / compact"},
-  "b6":{"Caliber":"Common (9mm, .223, .308…)","Size":"Full / compact"},
-  "b7":{"Caliber":"Common (9mm, .223, .308…)","Size":"Full / compact"},
-  "b8":{"Caliber":"Common (9mm, .223, .308…)","Size":"Full / compact"},
-  "b9a":{"Caliber":"Common (9mm, .223, .308…)","Size":"Full / compact"},
-  "b9b":{"Caliber":"Common (9mm, .223, .308…)","Size":"Full / compact"},
+  "b1":{"Caliber":"9mm","Size":"Full / compact"},
+  "b10":{"Caliber":"9mm","Size":"Full / compact"},
+  "b11":{"Size":"Full / compact"},
+  "b12":{"Caliber":".380 ACP"},
+  "b13":{"Caliber":"9mm","Size":"Full / compact"},
+  "b14":{"Size":"Full / compact"},
+  "b15":{"Caliber":"9mm","Size":"Full / compact"},
+  "b16":{"Caliber":"9mm","Size":"Full / compact"},
+  "b17":{"Caliber":".380 ACP","Size":"Pocket (.25/.380 junk-class)"},
+  "b18":{"Caliber":"9mm","Size":"Full / compact"},
+  "b19":{"Caliber":".22 LR","Size":"Full / compact"},
+  "b2":{"Caliber":"9mm","Size":"Full / compact"},
+  "b20":{"Caliber":"9mm","Size":"Full / compact"},
+  "b21a":{"Caliber":"9mm","Size":"Full / compact"},
+  "b21b":{"Caliber":"9mm","Size":"Full / compact"},
+  "b22":{"Caliber":"9mm","Size":"Full / compact"},
+  "b23":{"Size":"Full / compact"},
+  "b24":{"Caliber":"9mm","Size":"Full / compact"},
+  "b25":{"Caliber":"9mm","Size":"Full / compact"},
+  "b3":{"Caliber":"9mm","Size":"Full / compact"},
+  "b4":{"Caliber":"9mm","Size":"Full / compact"},
+  "b5":{"Caliber":"9mm","Size":"Full / compact"},
+  "b6":{"Caliber":".40 S&W","Size":"Full / compact"},
+  "b7":{"Caliber":"9mm","Size":"Full / compact"},
+  "b8":{"Size":"Full / compact"},
+  "b9a":{"Size":"Full / compact"},
+  "b9b":{"Size":"Full / compact"},
   "c1":{"Bar length":"16–18 in","Grade":"Homeowner"},
   "c12":{"Grade":"Homeowner"},
   "c13":{"Grade":"Farm / ranch"},
@@ -9528,7 +9623,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0930.0018";
+const APP_BUILD="0930.0142";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
