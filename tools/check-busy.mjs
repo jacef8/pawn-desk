@@ -83,6 +83,20 @@ ok(p.wheels.length > 0 && Math.max(...p.wheels) >= 40,
 ok(p.clears, "and it clears");
 ok(p.errs.length === 0, "no page errors");
 
+/* ONE RING, NOT TWO. "When an item is being searched, the round thinking
+   animation is in two places - one in the middle section and again at the
+   top window of right sidebar. It should only be in the middle."
+   Both were mine: the rail got a big one when he asked for a ring instead
+   of a speck, then step4Inner got its own when he said he meant the window
+   where the prices appear, and the first was never removed. The count is
+   the assertion - checking the middle one exists would have passed all
+   along, because it always did. */
+console.log("\n  and only in that one place");
+ok(d.wheels.length === 1,
+   `the desk shows one spinner while it searches, not two - found ${d.wheels.length}`);
+ok(p.wheels.length === 1,
+   `and the phone likewise - found ${p.wheels.length}`);
+
 await browser.close();
 console.log(fails ? `\n${fails} FAILED` : "\nall good");
 process.exit(fails ? 1 : 0);

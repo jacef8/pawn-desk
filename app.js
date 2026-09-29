@@ -1262,7 +1262,6 @@ function pinHTML(x){
      thought they were the ones being waited on.
      The wheel goes where the eye already is, in the box that is otherwise
      telling them what is still missing. */
-  const working=(typeof findBusy!=="undefined"&&findBusy)||(typeof pickChase!=="undefined"&&pickChase);
   /* A TINY WHEEL IN A WALL OF TEXT IS NOT AN ANSWER EITHER.
      First cut put an 11px spinner beside the label and pushed "Looking it
      up" into the front of the paragraph that was already there. Reported:
@@ -1275,18 +1274,18 @@ function pinHTML(x){
      layout: the ring at 46px, one line saying what it is doing, and the
      list of what is still missing kept underneath in small type, because
      that is still true and still worth reading while you wait. */
-  const bare=t=>working
-    ? `<div class="pinStrip working">
-         <div class="pinWork">
-           <span class="pinSpin lg" aria-hidden="true"></span>
-           <div class="pinWorkT">
-             <b>Looking it up\u2026</b>
-             <span>checking what these actually sell for</span>
-           </div>
-         </div>
-         <span class="pinNote">${t}</span>
-       </div>`
-    : `<div class="pinStrip"><span class="pinLab">${window.PHONE?"What it's worth to you":"The numbers"}</span><span class="pinNote">${t}</span></div>`;
+  /* ONE SPINNER, AND IT IS THE ONE IN THE MIDDLE. "When an item is being
+     searched, the round thinking animation is in two places - one in the
+     middle section and again at the top window of right sidebar. It should
+     only be in the middle." Both of those are mine: this one went in when he
+     asked for a big ring instead of a speck, and then step4Inner got its own
+     when he said he meant the window where the prices appear. The second was
+     the right place and the first was never taken out.
+     Safe on both surfaces: step4Inner is in app.js and the phone runs the
+     same question, so the field screen keeps its ring too. The `working`
+     flag went with it - nothing else in here read it, and a live-looking
+     variable that decides nothing is how the next person reads this wrong. */
+  const bare=t=>`<div class="pinStrip"><span class="pinLab">${window.PHONE?"What it's worth to you":"The numbers"}</span><span class="pinNote">${t}</span></div>`;
   if(F&&F.blocks)return bare(F.verdict==="fail"?"A check failed \u2014 don't lend on the name."
     :"Not checked yet \u2014 "+F.done+" of "+F.n+" on the "+esc(F.sh.title.toLowerCase())+" sheet.");
   if(!priceReady(x))return bare("<b>No price yet \u2014 still needs "+esc(needList(x))
@@ -5559,8 +5558,19 @@ function compTargets(x){
      desk has; WatchCount above is the no-sign-in lane and is unchanged. */
   t.push({id:"ebay",name:"eBay Seller Hub",
     sub:"a full year",
+    /* "OUR SERVER FAILED TO RESPOND TO YOUR QUERY" - every single time, on
+       a URL this line builds. Five of the seven parameters were decoration:
+       categoryId=0 names no category, offset=0 and limit=50 are the
+       defaults, and sorting=-sold is a sort key I never verified against
+       Terapeak's own. Any one of them can be the thing the server rejects,
+       and none of them is worth a failed lookup at the counter.
+       Keywords, the year, and the Sold tab. That is the whole request.
+       Untested from here - Terapeak needs a seller sign-in this container
+       does not have - so it is cut to the fewest parts that can be refused
+       rather than swapped for a different guess. WatchCount above needs no
+       sign-in and is the lane that still works either way. */
     url:"https://www.ebay.com/sh/research?marketplace=EBAY-US&keywords="+e
-       +"&dayRange=365&categoryId=0&offset=0&limit=50&tabName=SOLD&sorting=-sold"});
+       +"&dayRange=365&tabName=SOLD"});
 
   /* WORTHPOINT, AND ONLY WHERE IT BEATS EBAY.
      eBay reaches back 90 days and indexes by model number. That is the
@@ -8983,7 +8993,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0929.0229";
+const APP_BUILD="0929.1256";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
