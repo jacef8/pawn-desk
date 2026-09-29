@@ -771,7 +771,7 @@ function pawnCharge(p){ return Math.max(5,Math.floor((Number(p)||0)*pawnPct()/10
 
 /* ---------------- state ---------------- */
 const KEY="pawndesk:web:v1";
-let st={mode:"item",catId:"guns",itemId:"g1",picked:false,cond:"good",brand:"mid",complete:true,completeSet:false,struck:"",struckKind:"loan",liq:null,brandTyped:"",model:"",detail:"",specSel:{},
+let st={mode:"item",catId:"guns",itemId:"g1",picked:false,needItem:false,cond:"good",brand:"mid",complete:true,completeSet:false,struck:"",struckKind:"loan",liq:null,brandTyped:"",model:"",detail:"",specSel:{},
         overrides:{},bookVals:{},modelVals:{},ltvs:{},buys:{},buyFloor:25,buyMult:2,pawnPct:25,pawnSet:false,payPct:70,payTouched:false,loanPct:48,loanTouched:false,editing:false,
         manual:null, /* {date, spot:{gold,silver}, avg90:{gold,silver}} — a same-day hand edit beats the feed */
         deal:"buy",metal:"gold",karat:"14k",grams:"",whyOpen:false,photoRead:null,bookQ:"",bookName:""};
@@ -1771,7 +1771,7 @@ function weightHTML(x){
 
   if(m.kind==="hand")
     return card("Your own figure","typed in",bar(100,""),
-      "You set this by hand, so it is taken as this one sits - condition does not adjust it again.");
+      "You typed this price for the item in front of you, so it is used exactly as you entered it. Picking a condition will not change it \u2014 the wear is already in your number.");
 
   return "";
 }
@@ -2476,6 +2476,30 @@ function askQueue(x){
       opts:CATALOG.map(c=>({t:c.label, on:false, set:"kind", v:c.id})),
       answered:false});
   }
+  /* AND WHICH OF THAT CATEGORY'S THINGS IT IS. "When i clicked the outdoor
+     power tools button it went straight to bar length. What if it was a
+     weedeater or a blower?" Outdoor power holds seven kinds and tapping the
+     tile silently made it the first one, a chainsaw, bar length and all.
+     Same shape as needKind above and the same answer: the desk did not know,
+     so it asks, in the run, rather than assuming and hoping the counter
+     spots it. st.picked is false exactly when nothing has actually chosen an
+     item - the setter at the top of the file guarantees that - so this is
+     the condition, not a new flag to keep in step. */
+  if(st.needItem&&!st.needKind){
+    q.push({id:"which", title:"Which of these is it?",
+      hint:"Tapping "+esc(String(cat.label||"a category").toLowerCase())+" narrowed it this far. Pick the thing itself and the questions that follow are its own.",
+      opts:cat.items.map(i=>({t:i.name, on:false, set:"item", v:i.id}))
+        .concat([{t:"Not on any list — I set the price", on:false, set:"item", v:custId(cat.id)}]),
+      answered:false});
+    /* AND NOTHING AFTER IT UNTIL IT IS ANSWERED. The fallback item is still
+       a chainsaw, so its questions queued up behind this one and the numbers
+       card read "still needs which one it is, the make, the model ... bar
+       length" - the exact question he was told makes no sense for a blower,
+       listed before he has had the chance to say it is not one. One question
+       on the screen until the thing is chosen; the rest belong to the item
+       and are built the moment there is one. */
+    return q;
+  }
   if(cat.brand.on){
     const tiers=(ov&&ov.tiers)||cat.brand;
     /* If the make is known, that IS the answer - show it answered rather
@@ -2536,7 +2560,16 @@ function askQueue(x){
      searching for "laptop".
      Never required. A model nobody knows is a blank box and a Skip. */
   q.push({id:"model", title:"Which one is it?", kind:"model", optional:easy,
-    hint:"Model number or name, and anything that changes the price. Skip it if you cannot see one.",
+    /* "ARE THESE BASICALLY ASKING THE SAME THING?" - this and Anything else.
+       They are not, but this hint said they were: "and anything that changes
+       the price" is word for word what the later box asks for, so the two
+       screens read as one question posed twice.
+       The real split is what KIND of fact, not where it goes - both end up in
+       the sold-price search. This box is the name of the exact thing, which
+       is what finds the right product. The later box is the facts that move
+       its worth when no question above covered them. So this one asks for the
+       model and nothing else. */
+    hint:"The model number or name — just that. Skip it if you cannot see one.",
     /* Skip is an ANSWER here, not a dodge: plenty of things - a wheelbarrow,
        a gold chain - carry no model at all, and the price now waits for
        every question, so a question with no way to say "there isn't one"
@@ -2689,10 +2722,15 @@ function firstOpenAsk(x){
   return i<0?0:i;
 }
 function priceReady(x){ return !!st.picked && askQueue(x).every(q=>q.answered||q.optional); }
-const NEED_WORD={brand:"the make", model:"the model", worth:"what it sells for",
+const NEED_WORD={which:"which one it is", brand:"the make", model:"the model",
+                 worth:"what it sells for",
                  cond:"the condition", complete:"what's with it"};
 function priceMissing(x){
-  if(!st.picked)return [];
+  /* needItem counts as started: the category is chosen and the one thing
+     outstanding is which of its kinds it is. Returning nothing here printed
+     "still needs ." on the numbers card - a sentence with its subject
+     missing, on the screen that is meant to say what is left. */
+  if(!st.picked&&!st.needItem)return [];
   return askQueue(x).filter(q=>!q.answered&&!q.optional).map(q=>NEED_WORD[q.id]
     || (String(q.id).indexOf("spec:")===0
         ? String(q.title||"").replace(/\?+$/,"").toLowerCase()
@@ -3191,7 +3229,8 @@ function stepHead(n,title,answer,live){
     +`<span class="stepT">${title}</span><span class="stepA">${answer||"&mdash;"}</span></summary>`;
 }
 function brandAnswer(x){
-  const bits=[st.brandTyped||(x.brandName||""),st.model||"",st.detail||""].map(t=>String(t).trim()).filter(Boolean);
+  const bits=[makeIfMissing(st.brandTyped||(x.brandName||""),st.model||""),
+              st.model||"",st.detail||""].map(t=>String(t).trim()).filter(Boolean);
   return bits.length?esc(bits.join(" \u00b7 ")):"not set";
 }
 function renderItem(){
@@ -3330,7 +3369,7 @@ function renderItem(){
      presses Rough, watches the price not move, and reasonably concludes the
      thing is broken. */
   mid+=`<span class="label">Condition${x.handSet?" &mdash; already in your figure":(x.checked?" &mdash; next to a typical used one":"")}</span>`
-    +(x.handSet?`<div class="tagNote">You typed the resale value yourself, so this doesn't move the price &mdash; your number is taken as this one sits, wear and all. Clear it in <b>Resale value</b> to price off the list again and have condition adjust it.</div>`:"")
+    +(x.handSet?`<div class="tagNote">You typed the resale value yourself, so condition does not move the price &mdash; the wear is already in your number. Clear it in <b>Resale value</b> to price off the list again and have condition adjust it.</div>`:"")
     +`<div class="pills mb14" style="border-radius:var(--r-s)">${CONDITIONS.map(c=>`<button class="${c.id===st.cond?"on":""}" style="flex:1;padding:7px 5px;font-size:11px${x.handSet?";opacity:.55":""}" data-cond="${c.id}" title="${x.handSet?"Does not change the price while the resale value is your own figure":c.hint}">${c.label.replace("New in box","New")}</button>`).join("")}</div>`;
   if(cat.complete.on){
     mid+=`<span class="label">${cat.complete.label}</span><div class="pills mb14" style="border-radius:var(--r-s)">
@@ -3383,7 +3422,7 @@ function renderItem(){
      functions the phone calls, so the two cannot drift. The ways in
      keep the main column; the day sits in the rail, where the money
      sits once something is on the counter. */
-  if(!st.picked&&!window.PHONE)return `<div class="startHome">
+  if(!st.picked&&!st.needItem&&!window.PHONE)return `<div class="startHome">
     <div class="startMain">
       ${omniHTML()}
       <!-- The worked examples used to sit here: eight chips that typed
@@ -3439,7 +3478,10 @@ function renderItem(){
   /* One question on the screen, the number beside it, and nothing else to
      scroll past. The reference cards and the ticket live at the foot for
      when somebody wants them, but the run itself is the card. */
-  if(stepFlow()==="ask"&&st.picked)
+  /* needItem runs too: the category is chosen, the thing in it is not, and
+     the question that settles it is the first one in the queue. Gating on
+     st.picked alone sent that screen to the step list instead. */
+  if(stepFlow()==="ask"&&(st.picked||st.needItem))
     return omniHTML()
       +(deskWide()
         ? (pin=>`<div class="rail"><div id="pin">${pin}</div>${weightHTML(x)}${railGuardHTML(x,pin)}${railComps?compsCardHTML(x):""}</div>`)(pinHTML(x))
@@ -3503,7 +3545,18 @@ function wireItem(){
     const typed=un||((st.mpNone&&isCustom()&&st.bookName)?st.bookName:"");
     st.catId=b.dataset.cat;st.market=null;st.omniDone="";st.mpPin=null;st.condSet=false;st.cond="good";
     if(typed){ st.itemId=custId(st.catId); st.bookName=typed; st.mpNone=true; }
-    else { st.mpNone=false; const c=CATALOG.find(x=>x.id===st.catId); st.itemId=c.items[0].id; st.bookName=""; }
+    /* TAPPING A CATEGORY IS NOT PICKING THE FIRST THING IN IT. Reported from
+       the counter: "when i clicked the outdoor power tools button it went
+       straight to bar length. what if it was a weedeater or a blower?" It
+       went to p1, Chainsaw, because this line sets itemId to items[0] - and
+       the setter at the top of the file flips st.picked on ANY assignment,
+       so the fallback became a choice nobody made. The rule is already
+       written up there: "the catalog's first item is only a fallback so the
+       math always has something to hold - it is not a choice the clerk
+       made." The arithmetic still needs an item, so the fallback stays and
+       picked goes back to false, which is what puts the seven kinds on the
+       screen instead of a chainsaw's bar length. */
+    else { st.mpNone=false; const c=CATALOG.find(x=>x.id===st.catId); st.itemId=c.items[0].id; st.bookName=""; st.picked=false; st.needItem=true; }
     st.needKind=false;
     if(un&&st.photoRead)st.photoRead=Object.assign({},st.photoRead,{unplaced:false});
     st.liq=null;st.brandTyped="";st.brandQ="";st.model="";st.detail="";st.complete=true;st.completeSet=false;clearDeal();st.askEdit=false;st.editing=false;
@@ -3526,7 +3579,7 @@ function wireItem(){
     st.brand=h?h.tier:"mid";
     if(h){ st.brandTyped=h.name; st.brandQ=h.name; st.brandSet=true; }
     render();});
-  v.querySelectorAll("[data-item]").forEach(b=>b.onclick=()=>{st.needKind=false;st.itemId=b.dataset.item;st.market=null;st.omniDone="";st.mpPin=null;st.mpNone=false;st.condSet=false;st.cond="good";st.bookName="";st.liq=null;st.brand="mid";st.brandTyped="";st.brandQ="";st.model="";st.detail="";st.complete=true;st.completeSet=false;clearDeal();st.askEdit=false;st.askAt=0;st.brandSet=false;
+  v.querySelectorAll("[data-item]").forEach(b=>b.onclick=()=>{st.needKind=false;st.needItem=false;st.itemId=b.dataset.item;st.market=null;st.omniDone="";st.mpPin=null;st.mpNone=false;st.condSet=false;st.cond="good";st.bookName="";st.liq=null;st.brand="mid";st.brandTyped="";st.brandQ="";st.model="";st.detail="";st.complete=true;st.completeSet=false;clearDeal();st.askEdit=false;st.askAt=0;st.brandSet=false;
     /* picking "Something else" with no saved value drops you straight into the price box */
     st.editing=(st.itemId===custId(st.catId));
     render();if(st.editing)document.getElementById("valIn")?.focus();});
@@ -3581,6 +3634,17 @@ function wireItem(){
       const bh=typed?brandFromName(val,typed):null;
       st.brand=bh?bh.tier:"mid";
       st.brandTyped=bh?bh.name:""; st.brandQ=st.brandTyped; st.brandSet=!!bh;
+    }
+    /* Picking the thing itself. The same reset the item buttons do, because
+       the questions after this one belong to the item that was just chosen
+       and the answers to a chainsaw's are no use to a blower. */
+    else if(kind==="item"){
+      st.needItem=false; st.itemId=val; st.market=null; st.mpPin=null; st.mpNone=false;
+      st.condSet=false; st.cond="good"; st.bookName=""; st.liq=null;
+      st.brand="mid"; st.brandTyped=""; st.brandQ=""; st.brandSet=false;
+      st.model=""; st.detail=""; st.complete=true; st.completeSet=false;
+      st.specSel={}; clearDeal();
+      st.editing=(val===custId(st.catId));
     }
     else if(kind==="comp"){ st.complete=val==="1"; st.completeSet=true; }
     else if(kind==="cond"){ st.cond=val; st.condSet=true; }
@@ -5277,6 +5341,21 @@ function displayName(x){ return (isCustom()&&st.bookName) ? st.bookName : x.item
    name, which is right for "Microsoft laptop" and wrong the moment the name
    is the counter's own words - because those words are where the make was
    read FROM. Say it once. */
+/* "I type google home mini, then click the brand Google, and it searches for
+   google google home mini." The make is prepended to the model without ever
+   looking at whether the model already starts with it - and when the counter
+   types the whole name, which is the normal way to use the box, it always
+   does. A doubled word costs sold-price hits: eBay is matching titles, and no
+   seller writes the make twice.
+   dedupeMake below does this already but lower-cases what it returns, which
+   is right for an internal key and wrong for a label the counter reads. This
+   one returns the make only when the name is missing it, so it drops out of
+   the list instead of being glued on. */
+function makeIfMissing(make,name){
+  const m=String(make||"").trim(), n=String(name||"").trim();
+  if(!m)return "";
+  return n.toLowerCase().includes(m.toLowerCase()) ? "" : m;
+}
 function dedupeMake(make,name){
   const n=String(name||"").toLowerCase().trim(), m=String(make||"").toLowerCase().trim();
   if(!m)return n;
@@ -5409,9 +5488,9 @@ function compQuery(x){
      stays. */
   const named=!!(String(st.brandTyped||"").trim()&&String(st.model||"").trim());
   const bits=named
-    ? [st.brandTyped, st.model, st.detail||"", specQuery()]
-    : [st.brandTyped||"", st.model||"", displayName(x).replace(/\s*—.*$/,""),
-       st.detail||"", specQuery()];
+    ? [makeIfMissing(st.brandTyped,st.model), st.model, st.detail||"", specQuery()]
+    : [makeIfMissing(st.brandTyped||"",st.model||""), st.model||"",
+       displayName(x).replace(/\s*—.*$/,""), st.detail||"", specQuery()];
   return bits.map(s=>String(s).trim()).filter(Boolean).join(" ").slice(0,120);
 }
 /* GunWatcher looks a gun up by model name. The category word the keyword
@@ -8898,7 +8977,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0929.0116";
+const APP_BUILD="0929.0210";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -10323,7 +10402,7 @@ function nextStepHTML(x){
        away, so saying them again here made one figure appear five times on a
        screen. What it cannot show is where they came from. That is this. */
     h=`Where those numbers come from.`;
-    sub=`<b>Resale value ${money(m.mid)}</b> ${x.handSet?"&mdash; your own figure, taken as this one sits"
+    sub=`<b>Resale value ${money(m.mid)}</b> ${x.handSet?"&mdash; your own figure, used exactly as you typed it"
         :`used (${esc(nsSrcShort(m))})${Math.round(x.resale)!==m.mid?`, ${money(x.resale)} in ${cw[0].toLowerCase()} shape`:""}`}.<br>
       Lend <b>${x.ltv}%</b> of that, buy at <b>${x.buyPct}%</b>. A loan he clears with the interest to get it back; a buy is yours to sell.<br>
       The offer is on the right, and it moves as you change the answers.`;

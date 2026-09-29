@@ -143,7 +143,13 @@ console.log("\n  the meter behind the number");
   ok(w.asks && parseInt(w.asks.width) === 10, "its bar is 1 of 10 = 10%, got " + (w.asks && w.asks.width));
 
   ok(w.hand && /your own figure/i.test(w.hand.text), "a typed number is named as yours");
-  ok(w.hand && /condition does not adjust/i.test(w.hand.text), "and repeats that condition will not touch it");
+  /* Was matching "condition does not adjust it again" - the phrase the
+     counter circled, because "taken as this one sits" told nobody that the
+     wear is already inside the figure they typed. The rule is that the card
+     must say condition will not move it AND why; the words moved. */
+  ok(w.hand && /will not change it/i.test(w.hand.text)
+     && /already in your number/i.test(w.hand.text),
+     "and says condition will not touch it, and why");
 }
 
 /* The strip beside the number. "12 sold" is a claim; the pictures are the
@@ -900,6 +906,35 @@ console.log("\n  the search is what a person would type, not the row's name");
   ok(!/chainsaw/i.test(r.saw), "  same for a saw — " + r.saw);
   ok(/gimbal/i.test(r.bare) && /chainsaw/i.test(r.bareSaw),
      "  but with no model it is the only description there is — " + r.bare + " / " + r.bareSaw);
+
+  /* AND IT NEVER SAYS THE MAKE TWICE. Reported from the counter: "I type
+     google home mini, then click the brand Google, and it searches for
+     google google home mini." The make was prepended to the model without
+     ever checking whether the model already carried it - and when somebody
+     types the whole name, which is the normal way to use that box, it
+     always does. eBay is matching titles and no seller writes the make
+     twice, so the doubled word costs sold-price hits silently.
+     Asserted on the WORDS, not on one example: no word may appear twice in
+     the query. A test for "google google" would pass the day it becomes
+     "stihl stihl". */
+  const dup = await page.evaluate(() => {
+    const out = {};
+    for (const [k, brand, model] of [["google", "Google", "Google Home Mini"],
+                                     ["stihl", "Stihl", "Stihl MS 271"],
+                                     ["apart", "Stihl", "MS 271"]]) {
+      st.market = null; st.mpPin = null; st.mpNone = false; st.specSel = {};
+      st.brandTyped = brand; st.brandSet = true; st.model = model; st.detail = "";
+      out[k] = compQuery(calcItem());
+    }
+    return out;
+  });
+  const twice = s => { const w = String(s).toLowerCase().match(/[a-z0-9]+/g) || [];
+    return w.filter((x, i) => w.indexOf(x) !== i); };
+  ok(twice(dup.google).length === 0,
+     "the make is not repeated when the model already carries it — \"" + dup.google + "\"");
+  ok(twice(dup.stihl).length === 0, "  nor for any other make — \"" + dup.stihl + "\"");
+  ok(/stihl/i.test(dup.apart) && /271/.test(dup.apart),
+     "  and a model typed WITHOUT its make still gets one — \"" + dup.apart + "\"");
 }
 
 /* THE MERGE'S SPREAD GUARD, ON THE LIVE LOOKUP. A DJI Osmo Action 4

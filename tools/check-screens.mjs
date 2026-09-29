@@ -322,13 +322,24 @@ console.log("");
     out.kinds = CATALOG.length;
     /* the tiles are the way in that is left, so they have to work */
     if (tiles.length) {
+      const want = tiles[0].dataset.cat;
       tiles[0].click();
-      out.landed = st.catId === tiles[0].dataset.cat && !!st.picked;
+      /* Was `&& !!st.picked` - which is the bug the counter reported:
+         "when i clicked the outdoor power tools button it went straight to
+         bar length. what if it was a weedeater or a blower?" A category with
+         seven kinds in it had silently become the first one. The tile still
+         has to WORK, which is the rule; what it must not do is answer the
+         question for him. So: it lands on that category, it starts the run,
+         and the run's first question is which of the kinds it is. */
+      const q = askQueue(calcItem());
+      out.landed = st.catId === want && !st.picked && !!st.needItem
+                && q.length === 1 && q[0].id === "which"
+                && q[0].opts.length === (CATALOG.find(c => c.id === want).items.length + 1);
     }
     return out;
   });
   const ok = r.chips === 0 && r.tiles === r.kinds && r.landed;
-  if (!ok) { bad++; console.log(`FAIL front page ways in — worked-example chips:${r.chips} (want 0) tiles:${r.tiles}/${r.kinds} tileOpens:${r.landed}`); }
+  if (!ok) { bad++; console.log(`FAIL front page ways in — worked-example chips:${r.chips} (want 0) tiles:${r.tiles}/${r.kinds} tileAsksWhichKind:${r.landed}`); }
   else console.log(`ok   no worked-example chips, ${r.tiles} kinds laid out and each one opens`);
   if (errs.length) { bad++; console.log("FAIL front page — page errors: " + errs.join(" | ")); }
   await p.close();
