@@ -46,6 +46,9 @@ const read = () => page.evaluate(() => {
      see that rather than falling over on it. */
   const qEl = c.querySelector(".askQ");
   return { where: c.querySelector(".askWhere").textContent.trim(),
+    /* the queue itself, for rules about what the run CONTAINS rather than
+       about where a particular walk happened to stop */
+    queue: askQueue(calcItem()).map(z => z.id),
     finished: !qEl && !!c.querySelector(".askDone"),
     q: qEl ? qEl.textContent.trim() : "",
     opts: [...c.querySelectorAll(".askOpt .askT")].map(t => t.textContent.trim()),
@@ -115,7 +118,15 @@ ok(!/battery platform/.test(seen.join(" | ").toLowerCase()),
    "  and the voltage is not, because the model settles that");
 ok(/tool only|came with it|batter/.test(all),
    "  so is what came with it — which for this item IS the completeness question");
-ok(/sell for used/.test(all), "  and the price is the end of the run, not a separate page");
+/* Was matched on the WALK - whether stepping through landed on the price
+   card. It no longer does for this item, and that is the tool improving:
+   the walker taps the first option on the model card, which pins a measured
+   row, which answers the price - and advancing now skips a question that is
+   already answered instead of parking on it. The rule was never "the walk
+   visits it": it is that the price is a question IN the run rather than a
+   separate page, so that is what is checked, on the queue itself. */
+ok(r.queue && r.queue.includes("worth"),
+   "  and the price is a question in the run, not a separate page \u2014 " + (r.queue||[]).join(" > "));
 
 /* a simpler item asks fewer - the queue is built from the item */
 await start("e1");

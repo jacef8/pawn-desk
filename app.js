@@ -2695,6 +2695,26 @@ function askQueue(x){
      simply not presented as questions. "Shouldn't the tool already know the
      answer to this question?" It does, for these, and stopping to ask
      anyway is the tool pretending it does not. */
+  /* WHERE THE LOOKUP SITS - TRIED, BACKED OUT, AND WHY.
+     "Should this question be moved to later given that there are still
+     other questions that need to be answered before we set a price?" Asked
+     for, and I said twenty minutes and one assertion. It is not.
+     The move itself is two lines: when there is no service the lookup is
+     the one step that throws the counter into a browser tab, so put it
+     after the cheap taps. Everything hanging off the ORDER is the cost:
+       - answering the condition then walked onto an already-answered
+         lookup, because advancing was at+1 flat and runFinished needs the
+         counter on the last card. Fixed, and kept - see nextOpenAsk, which
+         is right whatever sits where.
+       - "Change an answer" reaches lastReal, the last non-optional
+         question. With the lookup last that is the lookup, so the button
+         reopens a price instead of the condition just answered.
+       - three suites, eight assertions, several of them recording the
+         DELIBERATE move of this step up to third after counter feedback.
+     Two of those are flow code that other things read. Backed out rather
+     than half-done at the end of a long session. Skip already does this by
+     hand today: tap it, answer the taps, and the button says "Next -> What
+     does one sell for used" and brings you back. */
   return q.filter(z=>!z.fromRecord);
 }
 /* NOTHING IS PRICED UNTIL THE RUN HAS BEEN MADE.
@@ -2725,6 +2745,19 @@ function firstOpenAsk(x){
   const q=askQueue(x);
   const i=q.findIndex(z=>!z.answered&&!z.optional);
   return i<0?0:i;
+}
+/* FORWARD FROM HERE TO THE NEXT THING THAT IS ACTUALLY OPEN.
+   Advancing was at+1 flat, which was harmless while every answered question
+   sat at the front. Moving the sold-price lookup to the end when the service
+   is off put an ANSWERED question after the condition, and answering the
+   condition then walked onto "What does one sell for used?" with the answer
+   already in it - the run refusing to end because runFinished needs the
+   counter on the last card.
+   When nothing is left open it lands on the last card, which is what makes
+   the run read as finished rather than stopping one short. */
+function nextOpenAsk(q,at){
+  for(let i=at+1;i<q.length;i++) if(!q[i].answered) return i;
+  return q.length-1;
 }
 function priceReady(x){ return !!st.picked && askQueue(x).every(q=>q.answered||q.optional); }
 const NEED_WORD={which:"which one it is", brand:"the make", model:"the model",
@@ -3656,7 +3689,7 @@ function wireItem(){
     else if(kind==="spec"){ const [gi,oi]=val.split(":"); st.specSel[st.itemId+":"+gi]=Number(oi); }
     const q=askQueue(calcItem());
     const at=Math.max(0,Math.min(q.length-1,Number(st.askAt)||0));
-    if(at<q.length-1)st.askAt=at+1;
+    if(at<q.length-1)st.askAt=nextOpenAsk(q,at);
     persist(); render();
   });
   v.querySelectorAll("[data-askmove]").forEach(b=>b.onclick=()=>{
@@ -3751,7 +3784,7 @@ function wireItem(){
     /* Answering is moving on here too, the same as tapping a tier. */
     const q=askQueue(calcItem());
     const at=Math.max(0,Math.min(q.length-1,Number(st.askAt)||0));
-    if(at<q.length-1)st.askAt=at+1;
+    if(at<q.length-1)st.askAt=nextOpenAsk(q,at);
     persist(); render(); });
   /* A measured row picked by hand - the same thing the phone's list does,
      so the model is spelled the way the sold-price search expects. */
@@ -3762,7 +3795,7 @@ function wireItem(){
     /* Answering is moving on, the same as a tier or a make. */
     const q=askQueue(calcItem());
     const at=Math.max(0,Math.min(q.length-1,Number(st.askAt)||0));
-    if(at<q.length-1)st.askAt=at+1;
+    if(at<q.length-1)st.askAt=nextOpenAsk(q,at);
     persist(); render(); });
   const mIn=document.getElementById("modelIn");
   if(mIn)mIn.oninput=()=>{st.model=mIn.value;specRefresh();};
@@ -9012,7 +9045,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0929.1537";
+const APP_BUILD="0929.1630";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
