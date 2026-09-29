@@ -507,7 +507,18 @@ console.log("\n  the run asks which one it is");
     const iModel = ids.indexOf("model");
     const spec = ids.map((id, i) => id.startsWith("spec:") ? i : -1).filter(i => i >= 0);
     st.askAt = iExtra; render();
-    return {ids, iExtra, iWorth, iModel, lastSpec: spec.length ? Math.max(...spec) : -1,
+    /* THE ORDER UNDER BOTH MODES, because the sold-price step moves. With
+       a service it stays third, fetching in the background while the taps
+       happen; without one nothing fetches and it goes last, so the counter
+       answers the taps first and leaves the app once. Reading one mode
+       would let the other drift. */
+    const under = on => { const save = CAP.sample;
+      CAP.sample = on ? {json: () => {}, limits: () => {}} : null;
+      const a = askQueue(calcItem()).map(z => z.id);
+      CAP.sample = save; return a; };
+    const autoIds = under(true), manIds = under(false);
+    return {ids, iExtra, iWorth, iModel, autoIds, manIds,
+            lastSpec: spec.length ? Math.max(...spec) : -1,
             det: !!document.getElementById("detailIn"),
             answered: q[iExtra] && q[iExtra].answered,
             optional: !!(q[iExtra] && q[iExtra].optional),
@@ -528,8 +539,24 @@ console.log("\n  the run asks which one it is");
      extra words narrow a search until it finds a different product. */
   ok(r.iExtra > r.iWorth, "  and after the price step, which no longer depends on it");
   ok(r.det, "  its card carries the box");
-  ok(r.iWorth === r.iModel + 1,
-     "  and the price step sits right after the model, not at the far end");
+  /* Was a flat "right after the model". True with a service and only then:
+     that position exists so the automatic lookup, which fires when the item
+     is picked, has already run by the time the counter arrives. With no
+     service nothing fires and third is the step that throws him into a
+     browser tab mid-run, so it goes last. Both are asserted; checking one
+     would let the other move unnoticed. */
+  {
+    const ai = r.autoIds.indexOf("worth"), am = r.autoIds.indexOf("model");
+    ok(ai === am + 1,
+       "  with a service the price step sits right after the model — " + r.autoIds.join(" > "));
+    const mi = r.manIds.indexOf("worth"), mc = r.manIds.indexOf("cond");
+    ok(mi > mc,
+       "  without one it comes after the condition, so the taps are done first — " + r.manIds.join(" > "));
+    ok(mi === r.manIds.length - 1 || mi === r.manIds.length - 2,
+       "  and is the last thing asked bar the optional box");
+    ok(r.manIds.length === r.autoIds.length && r.manIds.every(id => r.autoIds.includes(id)),
+       "  nothing added or lost by the move, only reordered");
+  }
 
   /* THE END OF THE RUN IS NOT A DEAD BUTTON.
      The last card used to carry a DISABLED button still labelled "Next":
@@ -1146,8 +1173,14 @@ console.log("\n  the answered question gives up the card to its answer");
     out.dot = (document.getElementById("askCard").querySelector(".askQ")||{}).textContent;
     return out;
   });
-  ok(r.order.slice(-2).join(",") === "cond,extra",
-     "the condition is 7 and the notepad is 8 \u2014 " + r.order.slice(-2).join(" then "));
+  /* Was "the last two are cond then extra". The rule he asked for is that
+     the condition comes BEFORE the notepad and the notepad is last - 7 and
+     8 swapped. Both still hold; with no service the sold-price step now
+     sits between them, so adjacency is not the rule and never was. */
+  ok(r.order[r.order.length - 1] === "extra",
+     "the notepad is last \u2014 " + r.order.join(" > "));
+  ok(r.order.indexOf("cond") < r.order.indexOf("extra"),
+     "  and the condition comes before it, which is the swap he asked for");
   ok(r.before.conds === 5 && !r.before.answer,
      "unanswered, the card is the question \u2014 " + JSON.stringify(r.before.q));
   ok(r.after.q === false && r.after.conds === 0 && r.after.answer === true,

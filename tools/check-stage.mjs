@@ -76,7 +76,14 @@ const set = f => page.evaluate(f);
 const start = () => set(() => {
   st.mode="item"; st.catId="elec"; st.itemId="e1"; st.picked=true;
   st.brandTyped="Google"; st.brandSet=true; st.brand="mid"; st.model="Pixel 8";
-  st.askAt=2; st.askEdit=false; st.market=null; render(); });
+  st.askEdit=false; st.market=null;
+  /* "Mid-run, still working out what it is worth" means ON that card, so it
+     is found by id. It was index 2, which was the sold-price question until
+     the run started putting it last when there is no service to fetch it. A
+     hard-coded position in a queue that reorders is a test of the wrong
+     thing. */
+  st.askAt = Math.max(0, askQueue(calcItem()).findIndex(z => z.id === "worth"));
+  render(); });
 
 console.log("  mid-run, still working out what it is worth");
 await start();

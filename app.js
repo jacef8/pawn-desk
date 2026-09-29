@@ -771,7 +771,7 @@ function pawnCharge(p){ return Math.max(5,Math.floor((Number(p)||0)*pawnPct()/10
 
 /* ---------------- state ---------------- */
 const KEY="pawndesk:web:v1";
-let st={mode:"item",catId:"guns",itemId:"g1",picked:false,needItem:false,cond:"good",brand:"mid",complete:true,completeSet:false,struck:"",struckKind:"loan",liq:null,brandTyped:"",model:"",detail:"",specSel:{},
+let st={mode:"item",catId:"guns",itemId:"g1",picked:false,needItem:false,askFrom:null,cond:"good",brand:"mid",complete:true,completeSet:false,struck:"",struckKind:"loan",liq:null,brandTyped:"",model:"",detail:"",specSel:{},
         overrides:{},bookVals:{},modelVals:{},ltvs:{},buys:{},buyFloor:25,buyMult:2,pawnPct:25,pawnSet:false,payPct:70,payTouched:false,loanPct:48,loanTouched:false,editing:false,
         manual:null, /* {date, spot:{gold,silver}, avg90:{gold,silver}} — a same-day hand edit beats the feed */
         deal:"buy",metal:"gold",karat:"14k",grams:"",whyOpen:false,photoRead:null,bookQ:"",bookName:""};
@@ -2695,26 +2695,29 @@ function askQueue(x){
      simply not presented as questions. "Shouldn't the tool already know the
      answer to this question?" It does, for these, and stopping to ask
      anyway is the tool pretending it does not. */
-  /* WHERE THE LOOKUP SITS - TRIED, BACKED OUT, AND WHY.
-     "Should this question be moved to later given that there are still
-     other questions that need to be answered before we set a price?" Asked
-     for, and I said twenty minutes and one assertion. It is not.
-     The move itself is two lines: when there is no service the lookup is
-     the one step that throws the counter into a browser tab, so put it
-     after the cheap taps. Everything hanging off the ORDER is the cost:
-       - answering the condition then walked onto an already-answered
-         lookup, because advancing was at+1 flat and runFinished needs the
-         counter on the last card. Fixed, and kept - see nextOpenAsk, which
-         is right whatever sits where.
-       - "Change an answer" reaches lastReal, the last non-optional
-         question. With the lookup last that is the lookup, so the button
-         reopens a price instead of the condition just answered.
-       - three suites, eight assertions, several of them recording the
-         DELIBERATE move of this step up to third after counter feedback.
-     Two of those are flow code that other things read. Backed out rather
-     than half-done at the end of a long session. Skip already does this by
-     hand today: tap it, answer the taps, and the button says "Next -> What
-     does one sell for used" and brings you back. */
+  /* WHERE THE LOOKUP SITS FOLLOWS WHO DOES THE LOOKING.
+     This step is third on purpose and the note above it says why - it was
+     moved UP from 7 of 8 because arriving at it second-to-last "reads as a
+     form asking you for the answer you came to get". That reasoning ends on
+     the thing that settles both cases: "the automatic lookup fires when the
+     item is picked, well before either position."
+     It does not fire when there is no service. Then third is the one step
+     that throws the counter out of the app into a browser tab, in the
+     middle of a run whose remaining questions are all single taps and none
+     of which change what you search for. So the position follows the work:
+     automatic and it stays third, fetching while the taps happen; by hand
+     and it goes last, so the cheap answers are done and the app is left
+     once, at the end.
+     Not a preference either way - one rule, applied to whichever situation
+     the desk is actually in. */
+  if(!(typeof CAP!=="undefined"&&CAP.sample)){
+    const wi=q.findIndex(z=>z.id==="worth");
+    if(wi>=0){
+      const [w]=q.splice(wi,1);
+      const xi=q.findIndex(z=>z.id==="extra");
+      q.splice(xi<0?q.length:xi,0,w);
+    }
+  }
   return q.filter(z=>!z.fromRecord);
 }
 /* NOTHING IS PRICED UNTIL THE RUN HAS BEEN MADE.
@@ -3124,7 +3127,21 @@ function askHTML(x){
      so the button reopened an empty text box - technically the card it had
      taken over, and useless. It goes to the last question that actually
      asked something, which is the condition. */
-  const lastReal=(()=>{ for(let i=q.length-1;i>=0;i--) if(!q[i].optional)return i; return Math.max(0,q.length-1); })();
+  /* THE QUESTION THIS CARD REPLACED, which is not the same as the last one
+     in the list. lastReal walked backwards for the final non-optional
+     question, and that was the condition while the condition was last. Move
+     the sold-price lookup to the end - which happens whenever there is no
+     service - and the last non-optional question IS the lookup, so the
+     button reopened a price instead of the condition just answered.
+     st.askFrom is the card the run actually left. The old walk stays as the
+     fallback: a run restored from storage, or one that finished without
+     ever advancing, has no card to go back to. */
+  const lastReal=(()=>{
+    const f=Number(st.askFrom);
+    if(Number.isInteger(f)&&f>=0&&f<q.length&&!q[f].optional)return f;
+    for(let i=q.length-1;i>=0;i--) if(!q[i].optional)return i;
+    return Math.max(0,q.length-1);
+  })();
   if(finished)return `<div class="card askCard askFin" id="askCard">
     <div class="askWhere">${q.length} of ${q.length} \u00b7 all answered</div>
     ${askDoneHTML(x)}
@@ -3617,7 +3634,7 @@ function wireItem(){
     st.brand=h?h.tier:"mid";
     if(h){ st.brandTyped=h.name; st.brandQ=h.name; st.brandSet=true; }
     render();});
-  v.querySelectorAll("[data-item]").forEach(b=>b.onclick=()=>{st.needKind=false;st.needItem=false;st.itemId=b.dataset.item;st.market=null;st.omniDone="";st.mpPin=null;st.mpNone=false;st.condSet=false;st.cond="good";st.bookName="";st.liq=null;st.brand="mid";st.brandTyped="";st.brandQ="";st.model="";st.detail="";st.complete=true;st.completeSet=false;clearDeal();st.askEdit=false;st.askAt=0;st.brandSet=false;
+  v.querySelectorAll("[data-item]").forEach(b=>b.onclick=()=>{st.needKind=false;st.needItem=false;st.itemId=b.dataset.item;st.market=null;st.omniDone="";st.mpPin=null;st.mpNone=false;st.condSet=false;st.cond="good";st.bookName="";st.liq=null;st.brand="mid";st.brandTyped="";st.brandQ="";st.model="";st.detail="";st.complete=true;st.completeSet=false;clearDeal();st.askEdit=false;st.askAt=0;st.askFrom=null;st.brandSet=false;
     /* picking "Something else" with no saved value drops you straight into the price box */
     st.editing=(st.itemId===custId(st.catId));
     render();if(st.editing)document.getElementById("valIn")?.focus();});
@@ -3650,7 +3667,7 @@ function wireItem(){
   const ru=document.getElementById("recUndo");
   if(ru)ru.onclick=()=>{
     for(const k of Object.keys(specFromRecord))delete st.specSel[k];
-    specFromRecord={}; st.askEdit=false; st.askAt=0; render(); };
+    specFromRecord={}; st.askEdit=false; st.askAt=0; st.askFrom=null; render(); };
   v.querySelectorAll("[data-ideal]").forEach(b=>b.onclick=()=>{
     st.struckKind=b.dataset.ideal==="buy"?"buy":"loan"; persist(); render(); });
   v.querySelectorAll("[data-comp]").forEach(b=>b.onclick=()=>{st.complete=b.dataset.comp==="1";st.completeSet=true;render();});
@@ -3689,7 +3706,7 @@ function wireItem(){
     else if(kind==="spec"){ const [gi,oi]=val.split(":"); st.specSel[st.itemId+":"+gi]=Number(oi); }
     const q=askQueue(calcItem());
     const at=Math.max(0,Math.min(q.length-1,Number(st.askAt)||0));
-    if(at<q.length-1)st.askAt=nextOpenAsk(q,at);
+    st.askFrom=at; if(at<q.length-1)st.askAt=nextOpenAsk(q,at);
     persist(); render();
   });
   v.querySelectorAll("[data-askmove]").forEach(b=>b.onclick=()=>{
@@ -3697,8 +3714,21 @@ function wireItem(){
     const at=Math.max(0,Math.min(q.length-1,Number(st.askAt)||0));
     /* Moving on from the model question without typing one IS the answer
        "there is no model". Every other question stays where it is. */
-    if(Number(b.dataset.askmove)>0&&q[at]&&q[at].id==="model"&&!q[at].answered)st.mpNone=true;
-    st.askAt=Math.max(0,Math.min(q.length-1,at+Number(b.dataset.askmove)));
+    const d=Number(b.dataset.askmove);
+    if(d>0&&q[at]&&q[at].id==="model"&&!q[at].answered)st.mpNone=true;
+    /* FORWARD SKIPS WHAT IS ANSWERED. BACK DOES NOT. Going on should not
+       park the counter on a question that already has its answer in it -
+       that is the same rule the option handlers follow. Going BACK is the
+       opposite: the whole reason to step back is to reach an answer and
+       change it, so it moves one card at a time.
+       This handler was a flat delta both ways, which was invisible while
+       every answered question sat at the front. With the sold-price step
+       moved to the end when there is no service, Next out of the reopened
+       condition landed on an answered lookup instead of returning to the
+       answer card. */
+    st.askFrom=at;
+    st.askAt=d>0 ? nextOpenAsk(q,at)
+                 : Math.max(0,Math.min(q.length-1,at+d));
     st.askEdit=false;
     render();
   });
@@ -3784,7 +3814,7 @@ function wireItem(){
     /* Answering is moving on here too, the same as tapping a tier. */
     const q=askQueue(calcItem());
     const at=Math.max(0,Math.min(q.length-1,Number(st.askAt)||0));
-    if(at<q.length-1)st.askAt=nextOpenAsk(q,at);
+    st.askFrom=at; if(at<q.length-1)st.askAt=nextOpenAsk(q,at);
     persist(); render(); });
   /* A measured row picked by hand - the same thing the phone's list does,
      so the model is spelled the way the sold-price search expects. */
@@ -3795,7 +3825,7 @@ function wireItem(){
     /* Answering is moving on, the same as a tier or a make. */
     const q=askQueue(calcItem());
     const at=Math.max(0,Math.min(q.length-1,Number(st.askAt)||0));
-    if(at<q.length-1)st.askAt=nextOpenAsk(q,at);
+    st.askFrom=at; if(at<q.length-1)st.askAt=nextOpenAsk(q,at);
     persist(); render(); });
   const mIn=document.getElementById("modelIn");
   if(mIn)mIn.oninput=()=>{st.model=mIn.value;specRefresh();};
@@ -7640,7 +7670,7 @@ function omniPick(r){
      The answered ones are still there - the dots reach them, Back reaches
      them, a make read off a name can still be overruled - they are just
      not where the run starts. */
-  st.askAt=firstOpenAsk(calcItem());
+  st.askAt=firstOpenAsk(calcItem()); st.askFrom=null;
   render();
   try{ autoPriceOnPick(); }catch(e){}
   if(st.editing){ const vi=document.getElementById("valIn"); if(vi)vi.focus(); }
@@ -9045,7 +9075,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0929.1630";
+const APP_BUILD="0929.1641";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

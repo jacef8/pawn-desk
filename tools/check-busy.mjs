@@ -36,10 +36,21 @@ async function look(file, w, h) {
   await pg.goto(BASE + "/" + file);
   await pg.waitForTimeout(1100);
   const out = await pg.evaluate(() => {
+    /* THE SERVICE IS ON HERE, ON PURPOSE. A spinner only exists while an
+       automatic lookup is running, and an automatic lookup only exists when
+       there is a service - so this is the only mode in which the thing
+       under test can happen. It also settles where the lookup card sits:
+       with the service on it stays third, which is the index below. With it
+       off the run puts it last (see askQueue), there is nothing fetching,
+       and there is no wheel to find. */
+    if (!CAP.sample) CAP.sample = {json: () => {}, limits: () => {}};
     const arm = busy => {
       st.mode="item"; st.catId="elec"; st.itemId="e5"; st.picked=true;
       st.brandTyped="Sony"; st.brandSet=true; st.brand="mid"; st.model="PlayStation 5";
-      st.askAt=2; st.askEdit=false; findBusy = busy; pickChase = false; render();
+      st.askEdit=false;
+      /* by id, not by a number - the index moved once already */
+      st.askAt = Math.max(0, askQueue(calcItem()).findIndex(z => z.id === "worth"));
+      findBusy = busy; pickChase = false; render();
     };
     const wheels = () => [...document.querySelectorAll(".pinSpin")]
       .map(e => Math.round(e.getBoundingClientRect().width));
