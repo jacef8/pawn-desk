@@ -918,7 +918,58 @@ console.log("\n  the free-text box stops asking for what the buttons ask");
      "a riding mower asks deck and hours as buttons — " + r.covered.join(", "));
   ok(/deck/i.test(r.line) && /hours/i.test(r.line) && /asked next/.test(r.line),
      "  so the model step says they are coming — " + r.line);
-  ok(!/deck/i.test(r.ph), "  and stops offering them as a placeholder — " + (r.ph || "(empty)"));
+  /* THIS LINE PASSED ON NOTHING FOR MONTHS. It read the placeholder on the
+     MODEL step, where there is no detailIn at all, so r.ph was "" and
+     !/deck/ was true of the empty string. A green tick that could not go
+     red - the third time in this project - and it is exactly why the real
+     fault survived to be reported from the counter.
+     The box lives on the ANYTHING-ELSE card. That is where it is read now. */
+  ok(!/deck/i.test(r.ph), "  and the model step offers no box to type them in — " + (r.ph || "(empty)"));
+
+  const e = await page.evaluate(() => {
+    const out = {};
+    const at = (cat, item) => {
+      st.flow="ask"; st.mode="item"; st.catId=cat; st.itemId=item; st.picked=true;
+      st.brandTyped=""; st.brandQ=""; st.model="X"; st.detail=""; st.mpPin=null;
+      st.mpNone=false; st.market=null; st.specSel={};
+      const q = askQueue(calcItem());
+      st.askAt = q.findIndex(z => z.id === "extra"); render();
+      const el = document.getElementById("detailIn");
+      return {ph: el ? el.placeholder || "" : "(no box)",
+              covered: specCovered(),
+              iWorth: q.findIndex(z => z.id === "worth"),
+              iExtra: q.findIndex(z => z.id === "extra"), n: q.length};
+    };
+    out.mower  = at("power", "p5");
+    out.rifle  = at("guns",  "g10");
+    out.shot   = at("guns",  "g1");
+    out.laptop = at("elec",  "e2");
+    return out;
+  });
+  ok(e.mower.ph === "" ,
+     `  ON THE CARD THAT HAS THE BOX, a riding mower offers nothing — "${e.mower.ph}"`);
+  /* "ALSO THIS PAGE, SHOULDNT IT COME BEFORE THE PAGE ASKING FOR PRICE?"
+     The order was already right - price 7, anything-else 8. What read
+     backwards was this box still offering "caliber & barrel" on the last
+     card, two screens after the caliber picker had asked for it. A card
+     asking for the caliber after the price card looks like a card in the
+     wrong place, and it was the box lying about what the card was for. */
+  ok(!/caliber/i.test(e.rifle.ph),
+     `  and a rifle does not ask for the caliber it picked at step 3 — "${e.rifle.ph}"`);
+  ok(!/barrel|gauge/i.test(e.shot.ph),
+     `  nor a shotgun for its gauge or barrel — "${e.shot.ph}"`);
+  /* THE OTHER HALF, and the one that caught me. The first version matched
+     substrings, so a laptop's "size / year / storage" was emptied because
+     the Age group's label is inside stor-AGE. A filter that eats hints it
+     should leave alone is worse than no filter: it takes away the only
+     guidance on a box people are meant to walk past. */
+  ok(/storage|year/i.test(e.laptop.ph),
+     `  but a laptop KEEPS its hint — "age" inside "storage" is not the Age question — "${e.laptop.ph}"`);
+
+  /* And the order he asked about, stated outright so it cannot drift. */
+  for (const k of ["rifle", "shot", "mower"])
+    ok(e[k].iWorth >= 0 && e[k].iExtra === e[k].iWorth + 1,
+       `  the price step comes BEFORE anything-else — ${k}: ${e[k].iWorth + 1} then ${e[k].iExtra + 1} of ${e[k].n}`);
 }
 
 /* REPORTED FROM THE COUNTER: "the default answers for all the steps should

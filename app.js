@@ -3178,6 +3178,51 @@ function brandHits(catId,q){
 function specCovered(){
   return (SPEC_CHOICES[st.itemId]||[]).map(g=>String(g.label||"").toLowerCase()).filter(Boolean);
 }
+/* AND THE BOX ITSELF STOPS SUGGESTING THEM.
+   "ALSO THIS PAGE, SHOULDNT IT COME BEFORE THE PAGE ASKING FOR PRICE?" -
+   asked on "Anything else?" at 8 of 8, and the order was already right:
+   the price is 7 and this is 8. What made it read backwards was the BOX,
+   which still offered "caliber & barrel - 12ga 28in, 9mm..." as its
+   placeholder. The caliber is question 3 now, with a picker. So the last
+   card was inviting him to type the thing the desk had already asked him
+   two screens earlier, and a card asking for the caliber after the price
+   card reads exactly like a card that is in the wrong place.
+
+   coveredLine() has said "asked next - no need to type them here" since
+   the riding mower had the same fault, and it was only ever a NOTE. The
+   placeholder went on suggesting them regardless, on the one card where
+   there is nothing else to read.
+
+   The synonyms are an explicit short list rather than anything clever.
+   Guessing at synonyms is how a filter starts eating placeholders it
+   should have left alone; if a new one is needed it gets added here, by
+   somebody who has looked at both strings. */
+const PH_SYN={"battery platform":["voltage"],"what came with it":["kit","came with"],
+              "does it start?":["runs","starts"]};
+/* WORDS, NOT SUBSTRINGS. The first version used includes(), and the very
+   comment above it warned that a careless filter eats placeholders it
+   should leave alone - then it did, immediately: a laptop's "size / year /
+   storage" lost its hint because the Age group's label "age" is inside
+   stor-AGE. Found by printing one card of every aisle rather than by
+   reading the code, which is the only way these ever turn up. */
+function phWord(t,w){
+  return new RegExp("\\b"+String(w).replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\b").test(t);
+}
+function phCovered(ph){
+  const t=String(ph||"").toLowerCase();
+  if(!t)return false;
+  return specCovered().some(lab=>
+    phWord(t,lab)||(PH_SYN[lab]||[]).some(w=>phWord(t,w)));
+}
+/* The placeholder with anything the buttons already ask stripped out - and
+   "stripped" means gone, not trimmed. These hints are prose, not a list,
+   so editing half a sentence out leaves something worse than nothing. The
+   card's own line already says what to do with an empty box: "Usually
+   nothing - skip it." */
+function detailPh(x){
+  const ph=detailHint(x).ph;
+  return phCovered(ph)?"":ph;
+}
 function coveredLine(){
   const c=specCovered(); if(!c.length)return "";
   const list=c.length<2?c[0]:c.slice(0,-1).join(", ")+" and "+c[c.length-1];
@@ -3387,7 +3432,7 @@ function askDoneHTML(x){
          card: it comes into the answer, beside the amount, where the last
          thing before writing a ticket is "anything odd about this one". -->
     <label class="adNote"><span>Anything else? <i>optional &mdash; only what changes the price</i></span>
-      <input id="detailIn" type="text" autocomplete="off" placeholder="${esc(detailHint(x).ph)}" value="${esc(st.detail)}" class="numIn"></label>
+      <input id="detailIn" type="text" autocomplete="off" placeholder="${esc(detailPh(x))}" value="${esc(st.detail)}" class="numIn"></label>
   </div>`;
 }
 /* IS THE RUN OVER. It was a local inside askHTML, which was fine while the
@@ -3450,7 +3495,7 @@ function askHTML(x){
        </div>`
     : cur.kind==="extra"
     ? `<div class="askWorth">
-         <input id="detailIn" type="text" autocomplete="off" placeholder="${esc(dh.ph)}" value="${esc(st.detail)}" class="numIn" style="font-family:var(--sans);font-size:15px">
+         <input id="detailIn" type="text" autocomplete="off" placeholder="${esc(detailPh(x))}" value="${esc(st.detail)}" class="numIn" style="font-family:var(--sans);font-size:15px">
          ${/* Three sentences of theory about how search narrowing works, on
               a box most people should walk straight past. "I have no idea
               what the second picture is." The reason extra words hurt is
@@ -3768,7 +3813,7 @@ function renderItem(){
     <span class="label">Model (optional)</span>
     <input id="modelIn" type="text" autocomplete="off" placeholder="870 Wingmaster, MS 271, 10/22…" value="${esc(st.model)}" class="numIn" style="font-family:var(--sans);font-size:15px">
     <span class="label" style="margin-top:12px">Details — ${_ov?"specs for this item":cat.id==="guns"?"caliber & barrel":cat.id==="power"?"size & wattage":cat.id==="elec"?"size & year":"specs"} (optional)</span>
-    <input id="detailIn" type="text" autocomplete="off" placeholder="${dh.ph}" value="${esc(st.detail)}" class="numIn" style="font-family:var(--sans);font-size:15px">
+    <input id="detailIn" type="text" autocomplete="off" placeholder="${esc(detailPh(x))}" value="${esc(st.detail)}" class="numIn" style="font-family:var(--sans);font-size:15px">
     <div class="cardHint" id="specVerdict">${specVerdictHTML(x)}</div>
     ${_sc&&!x.checked?`<div class="cardHint" style="opacity:.8">This item prices from the pickers, not the text boxes — those are for the ticket record${/gener/i.test(x.item.name)?" (watts typed here still compute a value)":""}.</div>`:""}
     <div class="cardHint">${dh.hint?dh.hint+" ":""}The exact model and specs can move money more than anything else on this page — when they matter, check sold listings and put the real number in step 4.</div>
@@ -9623,7 +9668,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0930.0142";
+const APP_BUILD="0930.0231";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
