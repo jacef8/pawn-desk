@@ -203,6 +203,44 @@ console.log("\n  the WorthPoint link-out, where it belongs and where it does not
   ok(jewel.some(t => t.id === "wc") && jewel.some(t => t.id === "ebay"),
      "  WatchCount and Seller Hub are still on the card");
 
+  /* "i get this error every single time." Every Seller Hub click came back
+     "Our server failed to respond to your query". Two fixes were shipped at
+     it and neither worked; what the second one taught is that Terapeak
+     working at 90 days IN THE PAGE is a different fact from our LINK
+     working at 90 days, and Jace said so plainly: "it still has the server
+     failed message even after selecting 90 days."
+     The only URL with evidence behind it is the one in his address bar
+     while the numbers were up, and its shape is what this asserts: an
+     explicit startDate/endDate pair 90 days apart, plus the offset and
+     limit that an earlier round had thrown away as decoration.
+     The dates are checked by ARITHMETIC, not by presence. A link that
+     merely contains "startDate" would pass on a version that wrote the
+     wrong span, and a green tick that cannot go red for the actual bug has
+     cost this project a session before. */
+  const eb = jewel.find(t => t.id === "ebay");
+  const qs = eb ? new URL(eb.url).searchParams : null;
+  ok(!!qs, "the Seller Hub link parses as a URL at all");
+  ok(qs && qs.get("dayRange") === "90",
+     "  it asks for 90 days — " + (qs ? qs.get("dayRange") : "no button"));
+  /* Number(null) is 0, and 0 is finite. The first version of the next line
+     read Number.isFinite on a missing parameter and went green against the
+     very URL it was written to catch. Read the raw strings. */
+  const rawS = qs && qs.get("startDate"), rawE = qs && qs.get("endDate");
+  ok(/^\d{10,}$/.test(rawS || "") && /^\d{10,}$/.test(rawE || ""),
+     "  and carries the explicit date pair Terapeak's own UI writes — " +
+     (rawS || "no startDate") + " to " + (rawE || "no endDate"));
+  const sd = Number(rawS), ed = Number(rawE);
+  const span = (ed - sd) / 864e5;
+  ok(Math.abs(span - 90) < 0.01,
+     `  spanning exactly 90 days, not merely present — ${span.toFixed(3)} days`);
+  ok(/^\d{10,}$/.test(rawE || "") && Math.abs(Date.now() - ed) < 6e4,
+     "  ending now, so the window moves with the counter rather than a fixed date");
+  ok(qs && qs.get("offset") === "0" && qs.get("limit") === "50",
+     "  with the offset and limit the working URL had — " +
+     (qs ? qs.get("offset") + "/" + qs.get("limit") : "none"));
+  ok(qs && qs.get("tabName") === "SOLD" && !!qs.get("keywords"),
+     "  on the Sold tab, with the search words on it");
+
   ok(!errs.length, "no page errors" + (errs.length ? ": " + errs[0] : ""));
   await page.close();
 }

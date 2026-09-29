@@ -5616,24 +5616,42 @@ function compTargets(x){
      reaches back 90 days and no further, so anything that sells a few times
      a year comes back empty - a Kobalt string trimmer returns nothing at
      all, and an empty page reads as "worthless" when it means "not this
-     quarter". Seller Hub research covers a full year and gives an average
+     quarter". Seller Hub research gives an average and a sell-through rate
      rather than a list to eyeball. It needs a seller sign-in, which the
-     desk has; WatchCount above is the no-sign-in lane and is unchanged. */
+     desk has; WatchCount above is the no-sign-in lane and is unchanged.
+     It does NOT reach back further: see the dayRange note below. */
   t.push({id:"ebay",name:"eBay Seller Hub",
     sub:"",   /* "the ebay button doesn't need to say a full year" */
     /* "OUR SERVER FAILED TO RESPOND TO YOUR QUERY" - every single time, on
-       a URL this line builds. Five of the seven parameters were decoration:
-       categoryId=0 names no category, offset=0 and limit=50 are the
-       defaults, and sorting=-sold is a sort key I never verified against
-       Terapeak's own. Any one of them can be the thing the server rejects,
-       and none of them is worth a failed lookup at the counter.
-       Keywords, the year, and the Sold tab. That is the whole request.
-       Untested from here - Terapeak needs a seller sign-in this container
-       does not have - so it is cut to the fewest parts that can be refused
-       rather than swapped for a different guess. WatchCount above needs no
-       sign-in and is the lane that still works either way. */
-    url:"https://www.ebay.com/sh/research?marketplace=EBAY-US&keywords="+e
-       +"&dayRange=365&tabName=SOLD"});
+       a URL this line builds, and TWO guesses at it were wrong before this
+       one. Guess one was clutter: categoryId=0 named no category, offset=0
+       and limit=50 were the defaults, sorting=-sold was a sort key never
+       checked against Terapeak's own, so all five came off. It still
+       failed. Guess two was the window: Jace got a good answer out of
+       Terapeak at 90 days - avg sold $46.65, 32.36% sell-through, 16,005
+       sellers - so dayRange=365 looked like a year his account is not
+       entitled to. He tried it. "it still has the server failed message
+       even after selecting 90 days." Wrong again, and worth writing down:
+       the page working at 90 days is not the same fact as OUR LINK working
+       at 90 days, and I treated them as one.
+       What is actually known is one URL, the one in his address bar while
+       the numbers were on the screen:
+         ...&dayRange=90&endDate=1790700432987&startDate=1782924432987
+            &offset=0&limit=50&tabName=SOLD
+       Those two stamps are exactly 90 days apart. Terapeak's own UI writes
+       an explicit date pair - and offset and limit, the two I threw away as
+       decoration - and dayRange alone is apparently not a request it will
+       answer cold. So this stops guessing at which parameter offends and
+       REBUILDS THE ONE URL THAT WORKED, parameter for parameter, with the
+       dates computed at render.
+       Still unconfirmed from this container: Terapeak needs a seller
+       sign-in there is no way to have here, so every version of this line
+       has been tested at the counter or not at all. WatchCount above needs
+       no sign-in and is the lane that has worked throughout. */
+    url:(()=>{ const end=Date.now(), st90=end-90*864e5;
+      return "https://www.ebay.com/sh/research?marketplace=EBAY-US&keywords="+e
+        +"&dayRange=90&endDate="+end+"&startDate="+st90
+        +"&offset=0&limit=50&tabName=SOLD"; })()});
 
   /* WORTHPOINT, AND ONLY WHERE IT BEATS EBAY.
      eBay reaches back 90 days and indexes by model number. That is the
@@ -9075,7 +9093,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0929.1641";
+const APP_BUILD="0929.1902";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
