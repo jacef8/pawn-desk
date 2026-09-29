@@ -1400,7 +1400,15 @@ console.log("\n  what it looks like with the tool shut");
     st.condSet = true; st.complete = true; st.completeSet = true;
     (SPEC_CHOICES["g6"] || []).forEach((g, gi) => { st.specSel["g6:" + gi] = 0; });
     st.market = {kind:"list", key: mkKey(), mid: 291, lo: 110, hi: 145, name: "Ruger 10/22",
-                 conf: "m", date: todayStr(), src: "https://gunwatcher.com", note: "", stale: false};
+                 /* src WAS "https://gunwatcher.com", and the assertion below
+                    demanded the card say nobody checked what one sold for -
+                    on a GunBroker sold page. That is the 117-row
+                    contradiction, encoded here as the expected result.
+                    Emptied, so this holds the rule on a row it is true of:
+                    a figure with NO source must admit it and say to go and
+                    look. The read-off-a-sold-page case is asserted in
+                    check-pricing and check-provenance. */
+                 conf: "m", date: todayStr(), src: "", note: "", stale: false};
     render();
     const w = document.querySelector(".rail .wCard");
     return {midRun, settled: labels(), card: w ? w.textContent.replace(/\s+/g, " ") : "",
@@ -1421,8 +1429,8 @@ console.log("\n  what it looks like with the tool shut");
   /* No trailing \\b: the card's own text runs "Estimateno real sale behind
      it" with no space between elements, so a word boundary after the word
      never matches and the assertion failed on copy that was there. */
-  const says = /\bEstimate/.test(r.card)
-            && /Nobody checked what one actually sold for/.test(r.card)
+  const says = /Nothing looked up/i.test(r.card)
+            && /nothing was looked up/i.test(r.card)
             /* And that it says what to DO. Three wordings failed at the
                counter before this one - "the sums are exact, the figure they
                start from is not", then "all of these dollars are worked out
@@ -1430,8 +1438,11 @@ console.log("\n  what it looks like with the tool shut");
                and a line of counter copy that needs explaining has failed.
                The test holds the ACTION, because that is the part a new
                person can use without knowing how the tool works. */
-            && /look one up/i.test(r.card)
-            && /swaps this estimate for a real price/i.test(r.card);
+            /* The ACTION survives the rewrite; the sentence around it does
+               not. "swaps this estimate for a real price" was a third
+               explanation of the same fact and went with the rest. */
+            && /sold page/i.test(r.card)
+            && /before real money moves/i.test(r.card);
   if (!says) { bad++; console.log("FAIL an estimate does not say it is one, or does not say to look a real price up"); }
   else console.log("ok   an estimate says so plainly, and says to look a real price up");
   /* ONE CARD, NOT TWO. "Behind this number" and "How good is this number?"

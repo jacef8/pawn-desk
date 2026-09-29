@@ -1605,20 +1605,38 @@ console.log("\n  a book price says whether somebody paid it");
       /* the real row behind the screenshot */
       sold: look("14 eBay sales in the last 90 days", "https://www.ebay.com/sch/i.html?_nkw=x&LH_Sold=1"),
       ask:  look("11 listings, asking prices - no sold data", "https://www.ebay.com/sch/i.html?_nkw=x"),
-      /* one of the 161 rows researched by hand in September - neither, and
-         it must not dress itself as either */
+      /* THIS FIXTURE WAS THE BUG, WRITTEN DOWN AS CORRECT. It is the
+         Remington 870 Express - a note about barrel combos, and a
+         GunWatcher src, which is GunBroker SOLD prices - and the assertion
+         underneath demanded the card say "no real sale is behind it". It
+         is one of the 117 rows that were saying exactly that while naming
+         a sold-price page two lines above. Kept, with the truth asserted
+         instead, and a genuinely sourceless row added beside it so the
+         "nothing was looked up" rule still has something to hold. */
       hand: look("Super Mag or extra barrels add; rust lowers", "https://gunwatcher.com/x"),
-      classify: [rowEvidence("14 eBay sales in the last 90 days"),
-                 rowEvidence("11 listings, asking prices - no sold data"),
-                 rowEvidence("Bluing and wood; 16, 28 and .410 bring far more")].map(e => e.kind)
+      none: look("Thin sales data; CS-4010 is newer", ""),
+      classify: [rowEvidence("14 eBay sales in the last 90 days", ""),
+                 rowEvidence("11 listings, asking prices - no sold data", ""),
+                 rowEvidence("Bluing and wood; 16, 28 and .410 bring far more", "https://gunwatcher.com/x"),
+                 rowEvidence("Thin sales data; CS-4010 is newer", "")].map(e => e.kind)
     };
   });
-  ok(r.classify.join(",") === "sold,asking,research",
-     "the three kinds of row are told apart by their own note \u2014 " + r.classify.join(", "));
-  ok(r.sold.kind === "sold" && /14 real sales/.test(r.sold.text) && /\bMeasured/.test(r.sold.text),
-     "a sold row leads with Measured and its count \u2014 " + r.sold.text.slice(0, 44));
-  ok(/what they actually sold for/i.test(r.sold.text),
-     "  and says the source is what they SOLD for, not just the site");
+  /* Was "told apart by their own NOTE", and the note was the whole
+     mistake - it is a remark about feed tubes or barrel combos, not a
+     provenance field. Told apart by their SOURCE now, which is the field
+     that records where the number came from. */
+  ok(r.classify.join(",") === "sold,asking,read,research",
+     "the four kinds of row are told apart by their source \u2014 " + r.classify.join(", "));
+  ok(r.sold.kind === "sold" && /14 counted/.test(r.sold.text) && /\bReal sales/.test(r.sold.text),
+     "a sold row leads with what it is and its count \u2014 " + r.sold.text.slice(0, 44));
+  /* The rule here was never the phrase "what they actually sold for" - it
+     was that the counter can tell a sold price from an asking one, which
+     was reported from the counter ("says eBay without stating if it is
+     sold prices or for sale prices"). That suffix used to hang off the
+     source row; the headline and the sentence carry it now, which is
+     where it belongs and one fewer thing to read. */
+  ok(/real sales/i.test(r.sold.text) && /sales counted/i.test(r.sold.text),
+     "  and the card says these were SOLD, not just which site \u2014 twice, in the headline and the line");
   ok(r.ask.kind === "asking" && /nobody paid these/i.test(r.ask.text) && /ceiling/i.test(r.ask.text),
      "an asking row says nobody paid, and to treat it as a ceiling");
   /* This asserted the words "researched rather than measured", which is the
@@ -1634,10 +1652,27 @@ console.log("\n  a book price says whether somebody paid it");
      without that. What must survive is the part that changes what the
      counter DOES - that no real sale is behind the figure, and that looking
      one up replaces it. That is the rule now, not the byline. */
-  ok(r.hand.kind === "research" && /\bEstimate/.test(r.hand.text)
-     && /nobody checked what one actually sold for/i.test(r.hand.text)
-     && /look one up/i.test(r.hand.text),
-     "an estimate says no real sale is behind it, and to look one up");
+  /* THE ASSERTION THIS REPLACES DEMANDED THE FALSEHOOD. It required the
+     870's card to read "nobody checked what one actually sold for" on a
+     row whose source is a GunBroker sold page. Now it must say the
+     opposite, and still be honest that nobody tallied the sales. */
+  ok(r.hand.kind === "read" && /real sales/i.test(r.hand.text)
+     && /not a count/i.test(r.hand.text)
+     && !/nobody checked what one actually sold for/i.test(r.hand.text),
+     "a range read off a sold page says so, and admits nobody counted \u2014 " + r.hand.text.slice(0, 48));
+  /* The RANGE, on the card. He asked where the number came from twice and
+     the card had never once shown him the figure it was all worked out
+     from - it printed $241 and $120 and $110 and never $175-250. The
+     fixture's own range, whatever it is, must appear. */
+  ok(/\$\d/.test(r.hand.text),
+     "  and shows the range every other figure is worked out from \u2014 " +
+     (r.hand.text.match(/\$[\d,]+(\u2013\$?[\d,]+)?/) || ["none"])[0]);
+  /* The rule that survives from the old assertion, moved to a row it is
+     actually true of: six rows have no source at all, and those must
+     admit it and say to go and look. */
+  ok(r.none.kind === "research" && /nothing was looked up/i.test(r.none.text)
+     && /sold page/i.test(r.none.text),
+     "a row with NO source admits it and says to look one up \u2014 " + r.none.text.slice(0, 48));
   ok(r.sold.px >= 20,
      "  and the verdict is the headline, not a footnote \u2014 " + r.sold.px + "px");
   ok(!/desk price list/i.test(r.sold.text),

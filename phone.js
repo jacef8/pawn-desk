@@ -572,18 +572,32 @@ function snapHTML(){
        price list / eBay, as of Sep 24". eBay answers both questions, so
        the hostname settles nothing, and "Desk price list" is my name for
        the tool wearing a noun.
-       The row's note says which it is; rowEvidence reads it. */
+       AND THE FOURTH TIME, from the desk side: "still dont understand how
+       we got a number of the item was not looked up." rowEvidence used to
+       read the NOTE to decide, which on 117 rows is a sentence about feed
+       tubes or barrel combos and says nothing about provenance - so those
+       rows claimed nothing was looked up while naming a GunBroker sold
+       page as their source, two lines apart. It reads the SOURCE now, and
+       "read off a sold page" is its own state rather than being lumped in
+       with "no source at all". */
     if(mk==="list"){
-      const ev=(typeof rowEvidence==="function")?rowEvidence(m.note):{kind:"research",n:0};
+      const ev=(typeof rowEvidence==="function")?rowEvidence(m.note,m.src):{kind:"research",n:0};
       const site=esc(srcName(m.src)), when=esc(fmtDay(m.date));
+      const band=(m.lo&&m.hi)?money(m.lo)+"\u2013"+money(m.hi):money(m.mid);
       if(ev.kind==="sold")
-        return {b:(ev.n?ev.n+" real sales":"Sold prices"),s:site+", "+when,
+        return {b:(ev.n?ev.n+" real sales":"Sold prices"),s:band+" off "+site+", "+when,
                 pct:m.conf==="h"?100:62,tone:m.conf==="h"?"":"warn"};
+      if(ev.kind==="read")
+        return {b:"Real sales",s:band+" read off "+site+" on "+when+" \u2014 not counted",
+                pct:52,tone:"warn"};
+      if(ev.kind==="guide")
+        return {b:"A value guide",s:band+" off "+site+", "+when+" \u2014 not sold prices",
+                pct:34,tone:"warn"};
       if(ev.kind==="asking")
         return {b:(ev.n?ev.n+" asking prices":"Asking prices"),
                 s:"nobody paid these \u2014 "+site+", "+when,pct:26,tone:"warn"};
-      return {b:"Researched",s:"not counted off sales \u2014 "+site+", "+when,
-              pct:m.conf==="h"?70:45,tone:"warn"};
+      return {b:"Nothing looked up",s:band+" is a built-in starting figure",
+              pct:8,tone:"warn"};
     }
     return {b:"Checked",s:esc(checkedNote(x)),pct:100,tone:""};
   })();

@@ -458,6 +458,12 @@
   /* green for a sale, amber for a hope, plain for hearsay - the same
      colours the rest of the desk uses for the same distinction */
   .wKind.sold{color:var(--accent-ink)}
+  /* "read" is a real sold price, so it gets the sold colour rather than
+     the warning one. The qualification ("read off the page, not counted")
+     is in the words beside it; colouring it like an unknown was part of
+     what made 117 rows look like guesses. */
+  .wKind.read{color:var(--accent-ink)}
+  .wKind.guide{color:var(--warn-ink)}
   .wKind.asking{color:var(--warn-ink)}
   .wBar{height:7px;border-radius:99px;background:var(--well);overflow:hidden;margin-top:9px;
     box-shadow:var(--well-sh)}

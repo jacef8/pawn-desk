@@ -1046,7 +1046,7 @@ function itemGuard(x){
   if(m.kind==="hand")return {kind:"hand",mid,guard:mid,cut:0,why:[],warn:false,
     head:"Your own number for this one",
     detail:"You typed this in, so it is about the thing in front of you rather than a sample of listings. Nothing to guard."};
-  const ev=(typeof rowEvidence==="function")?rowEvidence(m.note):{kind:"research",n:0};
+  const ev=(typeof rowEvidence==="function")?rowEvidence(m.note,m.src):{kind:"research",n:0};
   const spread=(hi>lo&&mid>0)?(hi-lo)/mid:0;
   const age=Number(m.age)||0;
   const decay=FAST_DECAY[x.cat&&x.cat.id]||0;
@@ -1056,7 +1056,9 @@ function itemGuard(x){
      waiting, and they get stacked into one line. */
   if(ev.kind==="asking"){ cut+=INOISE.noiseMid/2;
     why.push(`${ev.n||"a few"} asking prices, not sales`); }
-  else if(ev.kind==="research"){ cut+=8; why.push("researched, never measured"); }
+  else if(ev.kind==="research"){ cut+=8; why.push("nothing looked up"); }
+  else if(ev.kind==="read"){ cut+=8; why.push("a range read off a sold page, not a tally"); }
+  else if(ev.kind==="guide"){ cut+=8; why.push("a value guide, not sold prices"); }
   else if(ev.n&&ev.n<5){ cut+=5; why.push(`only ${ev.n} sale${ev.n===1?"":"s"}`); }
   if(spread>(INOISE.spread75||51)/100){ cut+=5;
     why.push(`${money(lo)}\u2013${money(hi)}, a ${Math.round(spread*100)}% spread`); }
@@ -1602,7 +1604,53 @@ function killerHTML(x){
      "11 listings, asking prices - no sold data" a measured ask
    and anything else is one of the 161 rows that were researched by hand in
    September, which are neither and should not pretend to be either. */
-function rowEvidence(note){
+/* "still dont understand how we got a number of the item was not looked up"
+   - reported with a Marlin Model 60 on the screen, and it was the third
+   time this card had been queried. The first two times I rewrote the
+   wording. This time I counted, and the wording was never the fault.
+
+   THE CARD WAS CONTRADICTING ITSELF, THREE LINES APART. It printed
+   "SOURCE  GunWatcher (GunBroker sales)" and then, underneath,
+   "Nobody checked what one actually sold for." Both on screen at once. Of
+   course it made no sense - it was two opposite claims about the same
+   number, and he was reading it correctly.
+
+   The cause: this function decided where a price came from by GREPPING THE
+   FREE-TEXT NOTE. The Marlin's note is "Feed tube condition matters" -
+   a sentence about feed tubes, with no word like "sales" in it - so it
+   fell through to "no evidence". The src field on the same row reads
+   gunwatcher.com/gun-value-sold-information, which is GunBroker sold
+   prices, and nothing ever looked at it.
+
+   Counted across the book: 117 rows said "no real sale behind it" while
+   carrying a sold-price source. SIX rows genuinely have no source at all.
+   The card was wrong 117 times and right 6.
+
+   So provenance is read off the SOURCE, which is the field that records
+   it, and the note goes back to being what it is - a remark about feed
+   tubes. Four states now, because "read off a sold page" and "nothing at
+   all" are not the same thing and collapsing them is what caused this:
+
+     sold      individual sales counted, n known
+     read      a real sold-price source, but a RANGE read off the page by
+               eye rather than a tally. This is the 117.
+     asking    listings. Nobody paid these.
+     guide     something WAS consulted and it was not a sold-price page:
+               a published value guide (jdpower), a forum thread, a
+               dealer's own page, shelf tags photographed in Bristol. 55
+               rows. These were being told "nothing was looked up" too,
+               which is just as false - "you had to of used something to
+               base your number from" is exactly right about them.
+     research  no source at all. Six rows, and only six.
+
+   The cut arithmetic above treats "read" exactly as it treated "research"
+   (8 points), ON PURPOSE: not one price in the book moves because of this
+   change. What was wrong was what the desk SAID about the number, not the
+   number, and fixing the words is not licence to quietly reprice 117 rows
+   of firearms. If the haircut on a read-off range should differ from the
+   haircut on nothing at all, that is its own change with its own argument. */
+const SOLD_SRC=/gunwatcher|gunbroker|pricecharting|worthpoint|swappa|lh_sold|lh_complete|tabname=sold|sh\/research/i;
+function rowEvidence(note,src){
   const t=String(note||"");
   const sold=t.match(/(\d+)\s+[^.]*\bsales?\b[^.]*\blast\b/i);
   if(sold)return {kind:"sold", n:Number(sold[1])||0};
@@ -1610,6 +1658,9 @@ function rowEvidence(note){
     const n=t.match(/(\d+)\s+listing/i);
     return {kind:"asking", n:n?Number(n[1]):0};
   }
+  const u=String(src||"");
+  if(SOLD_SRC.test(u))return {kind:"read", n:0};
+  if(u.trim())return {kind:"guide", n:0};
   return {kind:"research", n:0};
 }
 function weightHTML(x){
@@ -1732,54 +1783,67 @@ function weightHTML(x){
        researched, never measured" - and not one of them said what to DO.
        So: Measured / Asking prices / Estimate. One word for what is behind
        the price, the same slot every time, and then the action. */
-    const ev=rowEvidence(m.note);
-    const head=ev.kind==="sold" ? "Measured"
+    /* "the explanations need to be simpler and just show where the number
+       came from. you had to of used something to base your number from."
+       That is the whole brief, and it is the right one - he is not asking
+       to be reassured about the evidence, he is asking the plainest
+       possible question about a figure that is about to leave the till.
+
+       So the card answers it in ONE SENTENCE that names the range, the
+       source and the day. Everything that used to argue about how much to
+       trust it is gone from here: the headline word says what kind of
+       evidence it is, the fold below already carries what the desk does
+       about it, and five sentences of hedging is what made the last two
+       versions unreadable. */
+    const ev=rowEvidence(m.note,m.src);
+    const head=ev.kind==="sold"   ? "Real sales"
+             : ev.kind==="read"   ? "Real sales"
              : ev.kind==="asking" ? "Asking prices"
-             : "Estimate";
-    const right=ev.kind==="sold" ? (ev.n?ev.n+" real sales":"real sales")
+             : ev.kind==="guide"  ? "A value guide"
+             : "Nothing looked up";
+    const right=ev.kind==="sold"   ? (ev.n?ev.n+" counted":"counted")
+              : ev.kind==="read"   ? "read off the page, not counted"
               : ev.kind==="asking" ? "nobody paid these"
-              : "no real sale behind it";
-    const pct=ev.kind==="sold"?c[0]:ev.kind==="asking"?26:52;
+              : ev.kind==="guide"  ? "not sold prices"
+              : "no source at all";
+    const pct=ev.kind==="sold"?c[0]:ev.kind==="read"?52:ev.kind==="asking"?26:ev.kind==="guide"?34:8;
     const tone=ev.kind==="sold"?c[1]:"warn";
-    /* The name came off the card. He asked who "somebody" was and I put
-       Claude in - which answered him and gave a new person one more thing to
-       explain. Where it came from says it without that, and the fold still
-       carries the detail a tap away. */
-    const via=ev.kind==="sold" ? esc(srcName(m.src))+" \u2014 what they actually sold for"
-            : ev.kind==="asking" ? esc(srcName(m.src))+" \u2014 what sellers were asking"
-            : esc(srcName(m.src));   /* the date is on the last line already */
+    const via=esc(srcName(m.src));
+    /* THE RANGE ITSELF, SPELLED OUT. He asked where the number came from
+       twice and the card never once showed him the number it came from -
+       it showed $241 and $120 and $110, all worked out from $175-250, and
+       never printed $175-250 anywhere. That omission is most of why the
+       question kept coming back. */
+    const band=(m.lo&&m.hi)?money(m.lo)+"\u2013"+money(m.hi):money(m.mid);
+    const when=esc(fmtDay(m.date));
+    const line=ev.kind==="sold"
+      ?`<b>${band}</b>, from ${ev.n?ev.n+" sales":"sales"} counted on ${when}.`
+      :ev.kind==="read"
+      /* "look one up" survives here in four words. Three wordings of this
+         card failed at the counter before the rule was learned: a line
+         that is true but needs explaining has failed, and what a new
+         person can always use is the ACTION. Open it and check. */
+      ?`<b>${band}</b> was read off that page on ${when} and typed in. Real sold prices \u2014 but a range read by eye, not a count. Open it and check.`
+      :ev.kind==="asking"
+      /* "Treat it as a ceiling, not a price" came off in the first draft of
+         this rewrite and check-pricing caught it. That was me being wrong,
+         not the test being stale: asks run high, and high is the wrong way
+         to be wrong when money is going out of the till. Simpler is the
+         brief; simpler is not licence to drop the one line on this card
+         that protects the money. */
+      ?`<b>${band}</b>, from ${ev.n?ev.n+" listings":"listings"} on ${when}. What sellers wanted, not what anybody paid \u2014 a ceiling, not a price.`
+      :ev.kind==="guide"
+      ?`<b>${band}</b> came off that page on ${when}. A published guide \u2014 not a record of what one sold for.`
+      :`<b>${band}</b> is a built-in starting figure. Nothing was looked up \u2014 open a sold page before real money moves.`;
     return card(`<span class="wKind ${ev.kind}">${head}</span>`,right,bar(pct,tone),
+      /* srcName("") returns the words "the source", so a row with nothing
+         behind it was printing "Source: the source" directly above a line
+         saying nothing was looked up. Caught by rendering one card of each
+         kind rather than by reading the code. No source, no Source row. */
       (m.mine?`<div class="wVia"><span>Source</span><b>Your own master sheet</b></div>`
-             :`<div class="wVia"><span>Source</span><b>${via}</b></div>`)
+             :m.src?`<div class="wVia"><span>Source</span><b>${via}</b></div>`:"")
       +(m.note?`<div class="wFrom">${esc(m.note)}</div>`:"")
-      +(ev.kind==="asking"
-        ?`<b>Nobody paid these.</b> They are what sellers were hoping for, and asking prices run high. Treat it as a ceiling, not a price. `
-        :ev.kind==="research"
-        /* "SOMEBODY OPENED THAT SITE... WHO?" Asked at the counter, and it
-           was a fair question with an answer the card was hiding. Claude did,
-           in September, for the 161 rows that were never measured. Naming it
-           costs nothing and vagueness about where money comes from is the one
-           thing this card exists to stop.
-           He asked the harder one too: if nothing was counted, where do the
-           dollars come from? From arithmetic on this range - which is exact,
-           and which cannot be better than the range it starts from. The card
-           says so now, because a figure printed to the dollar reads as
-           measured whatever the headline above it says.
-           The first wording was "the sums are exact, the figure they start
-           from is not" and he asked what it meant - which is the answer: a
-           line of counter copy that needs explaining has failed, however
-           true it is. It says what to DO with it instead: if the range is
-           off, every figure here is off with it. */
-        /* STILL CONFUSING, reported again after the rewrite - and it was
-           five sentences making one point three ways. "A judgement about
-           what the page showed, not a tally of sales off it" and "there is
-           no number of sales behind it" and "nothing was counted" are the
-           same fact said three times. Two sentences now: what happened, and
-           what it means for the money. The headline above already says
-           Researched, so the card does not have to argue it. */
-        ?`<b>Nobody checked what one actually sold for.</b> Treat it as a ballpark \u2014 and before real money goes across the counter, look one up. That swaps this estimate for a real price. `
-        :"")
-      +"For <b>"+esc(m.name||"this model")+"</b>, checked "+esc(fmtDay(m.date))+". Not re-checked since.");
+      +line);
   }
 
   if(m.kind==="shot")
@@ -9399,7 +9463,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0929.2114";
+const APP_BUILD="0929.2248";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -9630,12 +9694,20 @@ function marketSrcHTML(m){
        label "What moves it:" - which is for a note like "hours; electric
        start working", not for the count the price rests on.
        It leads now, in the first clause, before the site. */
-    const ev=rowEvidence(m.note);
+    const ev=rowEvidence(m.note,m.src);
     const lead=ev.kind==="sold"
       ? `<b style="color:var(--accent-ink)">${ev.n?ev.n+" real sales":"Sold prices"}</b> on <b>${esc(srcName(m.src))}</b>`
       : ev.kind==="asking"
       ? `<b style="color:var(--warn-ink)">${ev.n?ev.n+" asking prices, not sales":"Asking prices, not sales"}</b> on <b>${esc(srcName(m.src))}</b>`
-      : `<b>Researched</b> from <b>${esc(srcName(m.src))}</b>, not counted off sales`;
+      /* "Researched" was the word on 117 rows whose source is a GunBroker
+         sold page, and it read as "nobody looked". Say what happened: a
+         range was read off a real sold-price page, by eye. The six rows
+         with no source at all now say so in their own words. */
+      : ev.kind==="read"
+      ? `<b style="color:var(--accent-ink)">Real sold prices</b> read off <b>${esc(srcName(m.src))}</b> by eye, not counted`
+      : ev.kind==="guide"
+      ? `<b>${esc(srcName(m.src))}</b>, a value guide rather than sold prices`
+      : `<b>Nothing looked up</b> \u2014 a built-in starting figure`;
     return `${lead}, ${esc(fmtDay(m.date))}. ${srcLink(m.src)}${
       ev.kind==="asking"
       ? ` <span style="color:var(--warn-ink)">${money(m.mid)} is a ceiling, not a price.</span>`
@@ -9687,7 +9759,7 @@ function step4Inner(x,bare){
     h+=`<div class="mkRow"><div><div class="mkBig">${money(m.mid)}</div>${m.lo!=null&&m.hi!=null&&m.lo!==m.hi?`<div class="mkRange">usually ${money(m.lo)} to ${money(m.hi)}</div>`:""}</div><span class="mkOk">&#10003; Checked</span></div>
       <div class="mkWhat">Not the loan &mdash; the loan is worked out from it.</div>
       <div class="mkSrc">${marketSrcHTML(m)}</div>
-      ${(m.note&&rowEvidence(m.note).kind==="research")?`<div class="cardHint" style="font-size:13.5px;color:var(--ink-2)">What moves it: ${esc(m.note)}.</div>`:""}
+      ${(m.note&&["research","read"].indexOf(rowEvidence(m.note,m.src).kind)>=0)?`<div class="cardHint" style="font-size:13.5px;color:var(--ink-2)">What moves it: ${esc(m.note)}.</div>`:""}
 
       <div class="row2" style="gap:8px;margin-top:10px;flex-wrap:wrap"><button class="ghostBtn" id="valEdit">Type my own number</button>${m.kind!=="list"?`<button class="ghostBtn" id="mkClear">Clear it</button>`:""}</div>`;
   } else {
