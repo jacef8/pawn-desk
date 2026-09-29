@@ -551,7 +551,17 @@ console.log("\n  the loan card does not repeat the rail");
                  off the whole rail. Reading #pin alone made this fail on a
                  move that kept both cards exactly where the counter sees
                  them. Stale selector, live rule. */
-              railTxt: (document.querySelector(".rail") || {}).innerText || ""};
+              railTxt: (document.querySelector(".rail") || {}).innerText || "",
+              /* Read HERE, inside the wide page this helper builds. My first
+                 attempt evaluated on the shared page, where neither .colQ
+                 nor .rail exists - so it compared two empty lists, reported
+                 "shared: none", and PASSED on the reverted code that still
+                 had the duplication. An assertion that cannot fail. */
+              midCash: (() => { const el = document.querySelector(".colQ");
+                return [...new Set(((el ? el.innerText : "").match(/\$[\d,]+/g) || []))]; })(),
+              railCash: (() => { const el = document.querySelector(".rail");
+                return [...new Set(((el ? el.innerText : "").match(/\$[\d,]+/g) || []))]; })(),
+              suggested: "$" + calcItem().target.toLocaleString("en-US")};
     });
   };
   const wide = await look(1400), narrow = await look(900);
@@ -577,6 +587,51 @@ console.log("\n  the loan card does not repeat the rail");
   ok(!/LOW LOAN/.test(wide.txt) && !/SUGGESTED LOAN/.test(wide.txt) && !/TOP LOAN/.test(wide.txt),
      "  so the card drops the three range tiles");
   ok(!/OR BUY IT OUTRIGHT/.test(wide.txt), "  and the buy row");
+  /* "DUPLICATE INFO." Reported with a screenshot of the two side by side:
+     the answer card said PAWN LOAN $45 and "to get it back $56 by day 30 -
+     the $45 plus $11 interest", and the rail beside it said You hand over
+     $45, Interest per month $11, Total to clear 1 month $56, and Lend
+     anywhere in $25-$60 against its own Go low $25 / Go high $60. Four
+     figures printed twice.
+     The rule above has been in this file since the buy row was cut and it
+     kept drifting back, because it only ever named ONE phrase. This counts
+     instead: no dollar figure may appear in both columns. The suggested
+     loan is the one allowed repeat - it is the middle of the Go low / Go
+     high row and the row means nothing without it. */
+  /* "DUPLICATE INFO", with a screenshot of the two columns side by side:
+     the answer card said PAWN LOAN $45 and "to get it back $56 by day 30 -
+     the $45 plus $11 interest", while the rail beside it printed You hand
+     over $45, Interest per month $11, and Total to clear 1 month $56.
+     Asserted on the RAIL, not by diffing the two columns - the answer card
+     only draws once the counter steps to the end of the run, so a
+     cross-column diff sat there comparing an empty list and passing. This
+     one names the rows that were the duplicates: what the rail may carry is
+     the figure the card does not, and for a pawn that is the second month
+     alone. */
+  {
+    const pg = await browser.newPage({viewport:{width:1400, height:1000}});
+    await pg.goto(BASE + "/index.html", {waitUntil:"networkidle"});
+    const d = await pg.evaluate(() => {
+      const c = CATALOG.find(z => z.items.some(i => i.id === "g6"));
+      st.mode="item"; st.catId=c.id; st.itemId="g6"; st.picked=true; st.needItem=false;
+      st.brandTyped="Ruger"; st.brand="hi"; st.brandSet=true; st.model="10/22";
+      st.cond="good"; st.condSet=true; st.complete=true; st.completeSet=true;
+      (SPEC_CHOICES["g6"]||[]).forEach((g,gi)=>{ st.specSel["g6:"+gi]=0; });
+      st.market={kind:"list", key:mkKey(), mid:291, lo:215, hi:300, name:"Ruger 10/22",
+                 conf:"m", date:todayStr(), src:"https://gunwatcher.com", note:"", stale:false};
+      const grab = kind => { st.struckKind=kind; st.struck="1"; render();
+        return [...document.querySelectorAll(".rail .dealRows .dRow")]
+          .map(r => r.innerText.replace(/\s+/g, " ").trim()); };
+      return {loan: grab("loan"), buy: grab("buy")};
+    });
+    await pg.close();
+    ok(d.loan.length === 1 && /2 months/i.test(d.loan[0]),
+       "the pawn panel carries only what the answer card does not — " + JSON.stringify(d.loan));
+    ok(!d.loan.some(r => /hand over|per month|1 month/i.test(r)),
+       "  not the loan, the monthly interest or the first month, which are all on the card");
+    ok(d.buy.length === 1 && /once it sells/i.test(d.buy[0]),
+       "  and the buy panel likewise — " + JSON.stringify(d.buy));
+  }
   ok(wide.txt.length < narrow.txt.length / 1.5,
      "  leaving a much shorter card — " + wide.txt.length + " chars against " + narrow.txt.length);
   /* what the rail cannot say has to survive */

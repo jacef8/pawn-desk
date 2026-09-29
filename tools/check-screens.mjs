@@ -777,6 +777,7 @@ console.log("\n  the rail says what it costs him to get it back, not just what h
                 return /day 60 it['’]?s ours|day 60 it is/i.test(document.body.innerText);
               })(),
               target: x.target, charge: x.charge,
+              cardText: (document.querySelector("#askCard") || {}).innerText || "",
               /* a stray comment rendering as text is a real failure mode here */
               leaked: !!(back && /\/\*|\*\//.test(back.textContent))};
     });
@@ -789,13 +790,27 @@ console.log("\n  the rail says what it costs him to get it back, not just what h
          from the counter: the interest for a month, the total at one
          month, the total at two. Day 90 came out; the ticket is dead at
          day 60 and a figure past it is arithmetic nobody can collect. */
-      if (pay.rows !== 4) pay_bad.push(`the pawn panel has ${pay.rows} rows, expected 4`);
-      if (pay.totAmounts.length !== 2) pay_bad.push(
-        `${pay.totAmounts.length} totals, expected 2 - one month and two`);
-      if (!/interest/i.test(pay.labels.join(" "))) pay_bad.push(
-        "the panel never names the interest on its own");
-      if (!pay.labels.some(l => /1 month/i.test(l)) || !pay.labels.some(l => /2 months/i.test(l)))
-        pay_bad.push("the two totals are not labelled by month: " + pay.labels.join(" / "));
+      /* TWO OF HIS REQUESTS MET EACH OTHER HERE. The four rows above were
+         asked for directly - "the interest for a month, the total at one
+         month, the total at two" - and then: "duplicate info", with a
+         screenshot of the rail printing You hand over $45, Interest per
+         month $11, Total to clear 1 month $56 beside an answer card already
+         saying "PAWN LOAN $45 ... to get it back $56 by day 30 - the $45
+         plus $11 interest".
+         Both hold. The three figures he asked for are on the ANSWER CARD
+         now, which did not exist when he asked; what the rail adds is the
+         second month. So the requirement moves to where it is met rather
+         than being dropped - it is checked across the screen, and the rail
+         is checked for carrying only what the card does not. */
+      if (pay.rows !== 1) pay_bad.push(`the pawn panel has ${pay.rows} rows, expected 1 - the card carries the rest`);
+      if (!pay.labels.some(l => /2 months/i.test(l)))
+        pay_bad.push("the rail does not carry the two-month total, which is its whole job here: " + pay.labels.join(" / "));
+      if (pay.labels.some(l => /hand over|per month|1 month/i.test(l)))
+        pay_bad.push("the rail still repeats the card: " + pay.labels.join(" / "));
+      if (!/interest/i.test(pay.cardText)) pay_bad.push(
+        "the interest for a month is named nowhere - he asked for it by name");
+      if (!/day 30/i.test(pay.cardText)) pay_bad.push(
+        "the total at one month is named nowhere");
       if (/pays back/i.test(pay.labels.join(" "))) pay_bad.push(
         "'pays back' is the phrase that got read as interest at the counter");
       if (pay.pressable) pay_bad.push(
@@ -809,8 +824,9 @@ console.log("\n  the rail says what it costs him to get it back, not just what h
         if (!(t.ratio >= 4.5)) pay_bad.push(
           `the ${t.deal} tile's figure is ${t.ratio}:1 when ${t.on ? "chosen" : "not chosen"} - needs 4.5`);
       }
-      if (!(pay.litSize > pay.plainSize)) pay_bad.push(
-        `the totals (${pay.litSize}px) are not larger than the parts (${pay.plainSize}px)`);
+      /* Only one row left in the panel, so there are no "parts" beside the
+         total to be larger than. The size rule that matters is the one
+         below: the rail must not shout louder than the answer card. */
       /* There is no hero in the rail any more - it was a second copy of the
          answer card beside it and came out at the counter's request - so the
          day-30 rung is now the largest number the rail carries, and what it
@@ -828,10 +844,15 @@ console.log("\n  the rail says what it costs him to get it back, not just what h
       if (!pay.forfeitAnywhere) pay_bad.push("day-60 forfeit is not stated anywhere the counter can reach");
       if (pay.leaked) pay_bad.push("a source comment is rendering as text inside the repayment block");
       /* the arithmetic on the card must be the arithmetic in the book */
-      const want = ["$" + (pay.target + pay.charge), "$" + (pay.target + pay.charge * 2)];
+      /* Both totals are still checked, each where it is now printed: the
+         first month on the answer card, the second on the rail. Checking
+         only the rail's would have let the card's drift unwatched. */
+      const m1 = "$" + (pay.target + pay.charge), m2 = "$" + (pay.target + pay.charge * 2);
       const got = pay.totAmounts.map(a => String(a).replace(/[,\s]/g, ""));
-      if (got[0] !== want[0] || got[1] !== want[1])
-        pay_bad.push(`the totals are wrong: showed ${got.join(", ")}, expected ${want.join(", ")}`);
+      if (got.length !== 1 || got[0] !== m2)
+        pay_bad.push(`the rail's two-month total is wrong: showed ${got.join(", ") || "none"}, expected ${m2}`);
+      if (!pay.cardText.replace(/[,\s]/g, "").includes(m1))
+        pay_bad.push(`the card's day-30 total is wrong or missing: expected ${m1}`);
     }
   await dk.close();
   if (pay_bad.length) { bad++; console.log("FAIL the repayment on the rail: " + pay_bad.join(" | ")); }

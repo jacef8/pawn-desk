@@ -1385,9 +1385,10 @@ function dealPanelHTML(x){
   const m1=x.target+x.charge, m2=x.target+x.charge*2;
   if(st.struckKind==="buy") return `<div class="railBack">
     <div class="railBackHd"><b>If you buy it</b><span>no ticket, no clock</span></div>
+    ${/* Same cut on the buy side: the card carries BUY IT OUTRIGHT and the
+          line under it already says what it resells for. What it does not
+          say is what is left over once it sells. */""}
     <div class="dealRows">
-      <div class="dRow"><span>You hand over</span><b>${money(x.buy)}</b></div>
-      <div class="dRow"><span>It resells for</span><b>${money(Math.round(x.resale))}</b></div>
       <div class="dRow tot"><span>You make, once it sells</span><b>${money(Math.round(x.resale)-x.buy)}</b></div>
     </div>
     <div class="rbDay60">Yours the moment you pay. Nothing to hold, nothing
@@ -1395,10 +1396,15 @@ function dealPanelHTML(x){
   </div>`;
   return `<div class="railBack">
     <div class="railBackHd"><b>If he pawns it</b><span>${pawnPct()}% per 30 days</span></div>
+    ${/* "DUPLICATE INFO." Four figures printed twice, a few inches apart:
+          the answer card says PAWN LOAN $45 and "to get it back $56 by day
+          30 - the $45 plus $11 interest", and this panel said You hand over
+          $45, Interest per month $11, Total to clear 1 month $56. The rule
+          for this rail was already written when the buy side was cut - it
+          must NOT restate what the answer card says, and it must carry what
+          that card does not. Only the two-month total does, so that is all
+          that is left of these rows. */""}
     <div class="dealRows">
-      <div class="dRow"><span>You hand over</span><b>${money(x.target)}</b></div>
-      <div class="dRow"><span>Interest, per month</span><b>${money(x.charge)}</b></div>
-      <div class="dRow tot"><span>Total to clear it \u2014 1 month</span><b>${money(m1)}</b></div>
       <div class="dRow tot"><span>Total to clear it \u2014 2 months</span><b>${money(m2)}</b></div>
     </div>
     ${/* THE CONSERVATIVE-VS-AGGRESSIVE LIST, PUT BACK.
@@ -2984,7 +2990,7 @@ function askDoneHTML(x){
           came from, and every one is still reachable through the dots to
           be overruled on the one in his hands. */""}
     ${Object.keys(specFromRecord).length?`<button type="button" class="adRec" id="recUndo"><b>From the record</b>${st.mpPin&&st.mpPin.model?` for ${esc(st.mpPin.model)}`:""} &mdash; ${Object.values(specFromRecord).map(esc).join(" \u00b7 ")}. <span class="adRecHow">Press to answer these yourself if this one differs.</span></button>`:""}
-    <div class="adWhy">${x.checked?"":`<b style="color:var(--warn-ink)">Estimate &mdash; nothing looked up.</b> `}<b>Resells for ${money(Math.round(x.resale))}</b> in this shape &mdash; that is where both numbers come from. Lend anywhere in ${money(x.low)}&ndash;${money(x.high)}, never above the top.</div>
+    <div class="adWhy">${x.checked?"":`<b style="color:var(--warn-ink)">Estimate &mdash; nothing looked up.</b> `}<b>Resells for ${money(Math.round(x.resale))}</b> in this shape &mdash; that is where both numbers come from.${deskRail()?"":` Lend anywhere in ${money(x.low)}&ndash;${money(x.high)}, never above the top.`}</div>
     ${struckHTML(x)}
     <!-- ANYTHING ELSE IS A NOTEPAD, NOT A QUESTION, AND IT IS STEP 8 NOW.
          Moving it after the condition made it the last card - and the
@@ -8977,7 +8983,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0929.0210";
+const APP_BUILD="0929.0229";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

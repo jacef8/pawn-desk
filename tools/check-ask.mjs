@@ -896,6 +896,7 @@ console.log("\n  the run ends in an answer, on the card that asked the last ques
       cells: done ? [...done.querySelectorAll(".adDeal .d")].map(e => e.textContent.trim()) : [],
       keys:  done ? [...done.querySelectorAll(".adDeal .k")].map(e => e.textContent.trim()) : [],
       why:   done ? (done.querySelector(".adWhy")||{}).textContent || "" : "",
+      railWhy: (document.querySelector(".rail .oWhy")||{}).textContent || "",
       open:  askQueue(calcItem()).filter(z => !z.answered).length};
   });
   ok(r.open === 0, "everything is answered");
@@ -905,7 +906,15 @@ console.log("\n  the run ends in an answer, on the card that asked the last ques
      "  the two decisions, both money \u2014 " + r.cells.join(" / "));
   ok(/buy it outright/i.test(r.keys.join(" ")) && /pawn loan/i.test(r.keys.join(" ")),
      "  named by the kind of deal \u2014 " + r.keys.join(" | "));
-  ok(/never above the top/i.test(r.why), "  and the window is stated with it");
+  /* The card said "Lend anywhere in $25-$60, never above the top" while the
+     rail beside it printed Go low $25 / Go high $60 and its own "never above
+     the top" - the duplication reported from the counter. The card drops it
+     only where the rail is there to carry it; on a phone there is no rail,
+     so the sentence stays and this would otherwise have shipped a window
+     stated NOWHERE on the surface that buys in the field. Asserted across
+     the screen rather than in one element. */
+  ok(/never above the top/i.test(r.why + " " + (r.railWhy || "")),
+     "  and the window is stated, on the card or the rail beside it");
 }
 
 /* REPORTED FROM THE COUNTER: "there's this window that I may want to lend
