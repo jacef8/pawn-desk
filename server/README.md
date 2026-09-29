@@ -8,9 +8,34 @@ Once it's running you get, on the phone and at the desk:
 
 - **Photograph an item** and have it identified
 - **Photograph a price tag** and have it read into your shelf record
-- **Look up what it sells for used** — eBay completed, Google Shopping used,
-  and GunBroker for firearms, all at once, with no tab opening
+- **Look up what it sells for used** — eBay **asking** prices (`/ebay`), plus
+  SoldComps for real sold prices while its quota lasts, plus Claude with web
+  search for anything neither covers
 - **Read sold prices off a screenshot**
+
+### What this service does NOT do, despite what this file used to say
+
+It used to claim "eBay completed, Google Shopping used, and GunBroker for
+firearms, all at once, with no tab opening". Asked at the counter — "why
+cant you click these for me and get the numbers?" — and checked: the
+service contacts **three hosts and no others**, `api.anthropic.com`,
+`api.ebay.com` and `api.sold-comps.com`. There is no GunBroker code in this
+directory and there never was. There is no Google Shopping call either.
+
+- **eBay completed** was applied for and **declined on 23 Sep 2026** —
+  Marketplace Insights is "generally reserved for eBay's approved partners".
+  `/ebay` returns Browse results, which are ASKING prices, and the app
+  labels them as such. See `tools/source-findings.md`.
+- **GunBroker and GunWatcher** are link-outs in the app and nothing more.
+  eBay does not sell firearms at all, so the one API here that could answer
+  is blind to the whole guns aisle; that is why `EBAY_CANNOT.guns` exists
+  and why the automatic lookup does not fire on a gun.
+- The way to get gun numbers in without typing them is the **screenshot
+  reader**, which is real and wired: screenshot the completed-auctions page,
+  paste it into the desk, and Claude reads the prices off the picture. It
+  costs a Claude call per read and says so on the button.
+
+Do not restore the old sentence without code to back it.
 
 ## The files
 
