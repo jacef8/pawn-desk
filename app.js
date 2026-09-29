@@ -106,7 +106,7 @@ const CATALOG = [
    {id:"e3",name:"Tablet",value:150,liq:"normal"},
    {id:"e4",name:"Smartphone",value:200,liq:"fast"},
    {id:"e5",name:"Game console — current gen",value:225,liq:"fast"},
-   {id:"e6",name:"Bluetooth speaker",value:50,liq:"normal"},
+   {id:"e6",name:"Bluetooth / smart speaker",value:50,liq:"normal"},
    {id:"e7",name:"Car audio — amp & sub",value:80,liq:"slow"}]},
  /* Big, heavy, and slow to move - a pawn shop is not an appliance store.
     They are worth taking, but at a fraction of what they cost, and the offer
@@ -6442,7 +6442,19 @@ const ITEM_SYN={
  h7:"rod reel combo fishing pole fishing rod",h8:"trolling motor",h9:"outboard boat motor",
  e1:"tv television smart flat screen",e2:"laptop notebook computer chromebook",e3:"tablet",
  e4:"smartphone phone cell cellphone android",e5:"game console gaming playstation xbox",
- e6:"bluetooth speaker",e7:"car audio amp sub subwoofer",
+ /* "I typed Google home mini but then you asked for make." Chasing that
+     found something worse than a wasted question: "google home mini" was
+     landing on f6, HOME GYM / POWER RACK, at $200 - on the word "home". A
+     $20 speaker priced as a $200 rack, and Google is not a fitness make, so
+     the run stopped to ask for a make it had already read.
+     It was not one bad match. Every voice assistant missed, and two landed
+     somewhere dearer: "amazon echo dot" found RED DOT SIGHT, "apple
+     homepod" found Smartphone, "google nest hub" found a smart doorbell.
+     The row existed - e6 - with "bluetooth speaker" as its whole vocabulary,
+     which none of those four say. The names people actually use are here
+     now, and the row is named for what it holds. */
+ e6:"bluetooth speaker smart speaker voice assistant alexa echo dot echo show google home nest mini nest hub homepod sonos jbl bose soundlink flip charge",
+ e7:"car audio amp sub subwoofer",
  j1:"rolex omega cartier submariner datejust daytona seamaster speedmaster tudor breitling luxury watch wristwatch",
  j2:"seiko citizen tissot tag heuer movado bulova fossil timex invicta watch watches wristwatch chronograph dive quartz automatic eco-drive ecodrive kinetic",
  j3:"tiffany david yurman pandora james avery van cleef bulgari designer jewelry necklace bracelet cuff pendant earrings ring charm",
@@ -6674,6 +6686,13 @@ const BRAND_FIRST={"weed eater":["p2"],"glock":["g7"],"sig sauer":["g7"],"canik"
  "leupold":["h1"],"nightforce":["h1"],"trijicon":["h1","Red dot sight"],"aimpoint":["Red dot sight"],"eotech":["Red dot sight"],
  "holosun":["Red dot sight"],"moultrie":["h4"],"tactacam":["h4"],"spypoint":["h4"],"reconyx":["h4"],"generac":["p7"],"champion":["p7"],
  "predator":["p7"],"exmark":["Zero-turn mower","p5"],"scag":["Zero-turn mower"],"bad boy":["Zero-turn mower"],"gravely":["Zero-turn mower"],
+ /* Sonos is a known electronics make, so the desk routed it to that
+    aisle's likeliest thing - a TV - and a $100 speaker came back priced as
+    a television. Vizio going to a TV is right and stays; Sonos makes
+    speakers and nothing else. Found while checking the smart-speaker fix,
+    not reported: "sonos" alone still missed after the keywords were widened,
+    because a make the desk RECOGNISES never reaches the keyword list. */
+ "sonos":["e6"],
  "apple":["e4","e3","e2"],"nintendo":["e5","Handheld game console"],"xbox":["e5"],"gibson":["m2","m1"],"martin":["m1"],"taylor":["m1"],
  "fender":["m2","m3","Bass guitar"],"squier":["m2","Bass guitar"],"epiphone":["m2"],"marshall":["m3"],"mesa boogie":["m3"],"orange":["m3"]};
 function brandEntry(name){ const k=String(name||"").toLowerCase(); return BRAND_IDX.find(b=>b.name.toLowerCase()===k)||null; }
@@ -8993,7 +9012,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0929.1301";
+const APP_BUILD="0929.1537";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

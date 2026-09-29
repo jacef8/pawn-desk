@@ -794,6 +794,34 @@ console.log("\n  DJI's lines go to the right rows, and a mad answer says so");
    pointed at the muzzleloader row, so a Compass and a Venture - plain
    bolt-action centrefire rifles - came back muzzleloaders.
    The rows all existed. Nothing pointed at them. */
+/* A SMART SPEAKER IS NOT A HOME GYM. Chasing "I typed Google home mini but
+   then you asked for make" turned up the reason: it was landing on f6, HOME
+   GYM / POWER RACK at $200, on the word "home" - so a $20 speaker priced as
+   a $200 rack, and Google is not a fitness make, which is why the run
+   stopped to ask for a make it had already read.
+   Four of these missed and two landed somewhere DEARER, which is the
+   direction that costs money. The assertion names the wrong answers as well
+   as the right one: checking only that they reach e6 would still pass the
+   day one of them starts finding a red dot sight again. */
+console.log("\n  a smart speaker is not a home gym, a red dot sight or a phone");
+{
+  const r = await page.evaluate(() => {
+    const top = (q) => { const R = omniRows(q) || {}, rows = R.rows || [];
+      const h = rows.find(x => x.kind === "item" || x.kind === "book" || x.kind === "mp");
+      return h ? String(h.label || h.name || h.title || "") : null; };
+    const out = {};
+    for (const q of ["google home mini", "google home", "amazon echo dot",
+                     "google nest hub", "apple homepod", "echo show", "sonos one"])
+      out[q] = top(q);
+    return out;
+  });
+  const wrong = /home gym|power rack|red dot|smartphone|doorbell|rifle/i;
+  for (const [q, got] of Object.entries(r)) {
+    ok(/speaker/i.test(got || ""), `"${q}" finds a speaker — ${got}`);
+    ok(!wrong.test(got || ""), `  and not something dearer — ${got}`);
+  }
+}
+
 console.log("\n  a make that makes several things lands on the right one");
 {
   const r = await page.evaluate(() => {
