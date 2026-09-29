@@ -589,6 +589,10 @@
   .omniClr{border:none;background:transparent;color:var(--ink-2);font-size:26px;line-height:1;
     width:42px;height:42px;border-radius:50%;cursor:pointer;flex-shrink:0}
   #omniIn:placeholder-shown ~ .omniClr{visibility:hidden}
+  /* ...UNLESS THERE IS SOMETHING TO BACK OUT OF. Tapping a category tile
+     leaves the box empty, which hid the only control on a desk screen that
+     goes back to the start. */
+  .omniLive #omniIn:placeholder-shown ~ .omniClr{visibility:visible;color:var(--ink)}
   .omniHint{font-size:13.5px;color:var(--ink-2);margin:clamp(13px,1.2vw,17px) 4px 0;line-height:1.5}
   .omniHint b{color:var(--ink);font-weight:600}
   /* A DROPDOWN IS NOT A WINDOW.

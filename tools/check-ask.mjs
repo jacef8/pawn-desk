@@ -721,7 +721,16 @@ console.log("\n  the run asks which one it is");
   });
   ok(!one.dead, "question one carries no dead Back button");
   ok(one.out, "  it carries a live way out instead");
-  ok(/another|pick/i.test(one.label), "  that says what it does — \"" + one.label + "\"");
+  /* Matched /another|pick/, i.e. the words "Pick another". The rule is
+     that the button SAYS WHAT IT DOES, and the wording moved: "Pick
+     another" reads as "choose a different one from this list", which on
+     the Which-of-these card is a different action entirely - and the
+     rail's button for the identical thing was already called "Start
+     over". Two names for one action is why "how do i back out back to the
+     beginning?" got asked twice. One name now, asserted as the name. */
+  ok(/start over/i.test(one.label), "  that says what it does — \"" + one.label + "\"");
+  ok(!/pick another/i.test(one.label),
+     "    and not a second name for what the X and the rail already call Start over");
 
   const left = await page.evaluate(async () => {
     document.querySelector("[data-askout]").click();

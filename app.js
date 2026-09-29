@@ -990,6 +990,20 @@ document.getElementById("view").addEventListener("click",e=>{
 });
 document.getElementById("tabs").addEventListener("click",e=>{
   const b=e.target.closest("[data-tab]"); if(!b)return;
+  /* TAPPING THE TAB YOU ARE ALREADY ON GOES BACK TO THE TOP OF IT.
+     "how do i back out back to the beginning?" - asked with a run in
+     progress, and the honest answer was that the only ways out were a
+     button in a rail that card does not draw and a second one named
+     something else. Meanwhile the one thing always on screen, the Price
+     tab he was already looking at, did nothing at all when tapped: the
+     handler set st.mode to the mode it was already in and re-rendered the
+     same screen.
+     Every phone app in his pocket returns to the root of a section when
+     you tap its current tab. It costs nothing, it is always reachable, and
+     it needs no explaining. Only when something is actually in progress -
+     otherwise it is still the no-op it always was. */
+  if(b.dataset.tab===st.mode&&st.mode==="item"&&(st.picked||st.needItem)){
+    startOver(); return; }
   st.mode=b.dataset.tab; st.editing=false; render();
 });
 
@@ -3440,7 +3454,13 @@ function askHTML(x){
            should be reads as broken, exactly as the dead "Next" did on
            the last card, and it was reported as broken for the same
            reason. So question one goes back to the search. */
-        ? `<button class="ghostBtn" data-askout="1" title="Pick something else">&larr; Pick another</button>`
+        /* Was "Pick another", while the rail's button for the identical
+           action said "Start over". Two names for one thing, and he asked
+           twice how to get back to the beginning - once as "how do i reset
+           and start a new lookup?" and again here. "Pick another" reads as
+           "choose a different one from this list", which on the Which-of-
+           these card is a different action entirely. */
+        ? `<button class="ghostBtn" data-askout="1" title="Clear this item and go back to the search box">&larr; Start over</button>`
         : `<button class="ghostBtn" data-askmove="-1">&larr; Back</button>`}
       <div class="askDots">${q.map((z,i)=>`<i class="${i===at?"on":""}${z.answered?" done":""}" title="${esc(z.title)}" data-askgo="${i}"></i>`).join("")}</div>
       ${at>=q.length-1
@@ -4006,11 +4026,13 @@ function wireItem(){
     render();
   });
   v.querySelectorAll("[data-askout]").forEach(b=>b.onclick=()=>{
-    /* Back to the search box, the same way the rail's "Another" does it. */
-    const n=document.getElementById("pinNew");
-    if(n){ n.click(); return; }
-    st.picked=false; st.omniDone=""; st.market=null; render();
-    const inp=document.getElementById("omniIn"); if(inp)inp.focus();
+    /* CALL IT, do not click a button that might not be on the page. This
+       reached for #pinNew - the rail's Start over - and only fell back to
+       its own partial reset when the rail was absent. On the "Which of
+       these is it?" card there IS no rail, so the fallback is what ran,
+       and the fallback cleared four things out of the twenty startOver
+       clears. Same function, one behaviour, everywhere. */
+    startOver();
   });
   v.querySelectorAll("[data-askdone]").forEach(b=>b.onclick=()=>{
     if(b.dataset.askdone==="here"){
@@ -7678,9 +7700,21 @@ function omniHintHTML(){
 }
 const SEARCH_SVG=`<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="var(--accent-ink)" stroke-width="2.6"/><path d="M15.5 15.5L21 21" stroke="var(--accent-ink)" stroke-width="2.6" stroke-linecap="round"/></svg>`;
 function omniHTML(){
-  return `<div class="omni" id="omni"><div class="omniWrap">
+  /* WITH A RUN LIVE, THE X IS NOT "CLEAR THE TEXT" - IT IS THE WAY OUT.
+     "how do i back out back to the beginning?", asked looking at the
+     Which-of-these card. The X above the question already calls startOver,
+     and it was invisible: the CSS hides it on :placeholder-shown, and he
+     had tapped a category tile without typing anything, so the box was
+     empty and the one control that does what he wanted was not drawn.
+     Worse on the desk than it sounds, because the desk rail carries no
+     Start over button at all - pinHTML hands off to railHTML at desk
+     width, and only the narrow strip has one. Mid-run there was nothing on
+     that screen that went back.
+     So: something picked, the X shows whether or not anything is typed. */
+  const live=!!(st.picked||st.needItem);
+  return `<div class="omni${live?" omniLive":""}" id="omni"><div class="omniWrap">
     <div class="omniBox">${SEARCH_SVG}<input id="omniIn" type="text" inputmode="search" enterkeyhint="search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
-      placeholder="What's on the counter? Type a brand, model or item" value="${esc(st.omniQ||"")}" aria-label="Search items" aria-controls="omniList" aria-expanded="false"><button class="omniClr" id="omniClr" type="button" aria-label="Clear the search">&times;</button></div>
+      placeholder="What's on the counter? Type a brand, model or item" value="${esc(st.omniQ||"")}" aria-label="Search items" aria-controls="omniList" aria-expanded="false"><button class="omniClr" id="omniClr" type="button" aria-label="${live?"Start over \u2014 clear this item and go back to the beginning":"Clear the search"}" title="${live?"Start over":"Clear the search"}">&times;</button></div>
     <div class="omniList" id="omniList" role="listbox" hidden></div></div>
     <div class="omniHint" id="omniHint">${omniHintHTML()}</div></div>`;
 }
@@ -7935,7 +7969,14 @@ function startOver(){
   st.picked=false; st.bookName=""; st.brandTyped="";st.brandQ=""; st.model=""; st.detail="";
   st.brand="mid"; st.brandSet=false; st.liq=null; st.market=null; st.mpPin=null; st.mpNone=false;
   st.cond="good"; st.condSet=false; st.complete=true;st.completeSet=false;clearDeal();st.askEdit=false; st.specSel={}; st.editing=false;
-  st.ask=0; st.askKey=""; st.needKind=false; st.photoRead=null; st.compRead=null;
+  /* needItem was added with the "Which of these is it?" card and never
+     added here, so Start over left the desk in a half-state: picked false,
+     needItem still true. The home screen is gated on !picked && !needItem
+     and the ask flow on picked || needItem, so BOTH were false at once -
+     no start page, and a run still running. That is what "how do i back
+     out back to the beginning?" was looking at. */
+  st.ask=0; st.askKey=""; st.needKind=false; st.needItem=false;
+  st.photoRead=null; st.compRead=null;
   st.fakeAns={}; st.fakeKey=""; st.stepAt=0; st.openS3=st.openS4=st.openS5=false;
   photoFile=null; findMsg="";
   render();
@@ -9487,7 +9528,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0929.2332";
+const APP_BUILD="0930.0018";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
