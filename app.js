@@ -2501,6 +2501,15 @@ function askQueue(x){
     const unknownTyped=!!st.brandTyped&&!named;
     const known=!!named||!!st.brandSet;
     const sel=known?x.brandTier:null;
+    /* "I typed Google home mini but then you asked for make." Right, and the
+       desk had already read Google off it - the question came up with Google
+       lit and the make underneath. Filtering it out of the queue the way the
+       record specs are filtered was the obvious fix and it is WRONG: five
+       suites went red, and one of them for the right reason - "the answered
+       ones are still reachable, the dots still open the make". A question
+       that is gone from the queue is gone from the dots, so a misread make
+       could never be corrected. The run should OPEN past it, not lose it.
+       Left as it was until that is done properly. */
     q.push({id:"brand", title:"What make is it?", optional:easy,
       named:named&&named.name,
       /* The lit button wears the actual make, with the tier it sits in
@@ -3011,7 +3020,13 @@ function askHTML(x){
     : cur.kind==="extra"
     ? `<div class="askWorth">
          <input id="detailIn" type="text" autocomplete="off" placeholder="${esc(dh.ph)}" value="${esc(st.detail)}" class="numIn" style="font-family:var(--sans);font-size:15px">
-         <div class="cardHint" style="margin-top:8px">Most of the time the answer is nothing, and Skip is the right move. Extra words narrow a sold-price search, and a search that is too narrow finds a different product instead of fewer of the right one.</div>
+         ${/* Three sentences of theory about how search narrowing works, on
+              a box most people should walk straight past. "I have no idea
+              what the second picture is." The reason extra words hurt is
+              true and belongs in the commit, not on the counter's screen at
+              the moment he is deciding whether to type anything. One line:
+              what to do, and the one case where typing helps. */""}
+         <div class="cardHint" style="margin-top:8px">Usually nothing &mdash; skip it. Only type something if it changes the price and nothing above asked for it.</div>
        </div>`
     : `<div class="askOpts">${(cur.opts||[]).map(opt).join("")}</div>`;
   /* THE LAST QUESTION STAYED ON SCREEN AFTER IT WAS ANSWERED.
@@ -3081,7 +3096,10 @@ function askHTML(x){
                deal wants logging. Say which. */
              const open=q.findIndex(z=>!z.answered);
              if(open<0)return `<button class="brassBtn" data-askdone="log">Write the ticket &darr;</button>`;
-             if(open!==at)return `<button class="brassBtn" data-askgo="${open}">Still to answer: ${esc(q[open].title)}</button>`;
+             /* "Still to answer: What does one sell for used?" reads as a
+                question printed on a button rather than somewhere to go.
+                The move first, the destination after it. */
+             if(open!==at)return `<button class="brassBtn" data-askgo="${open}">Next → ${esc(q[open].title.replace(/\?$/,""))}</button>`;
              return `<button class="brassBtn" data-askdone="here">Pick one above &uarr;</button>`;
            })()
         : `<button class="brassBtn" data-askmove="1">${cur.answered?"Next":"Skip"} &rarr;</button>`}
@@ -8880,7 +8898,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0928.1958";
+const APP_BUILD="0929.0116";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

@@ -569,7 +569,14 @@ console.log("\n  the run asks which one it is");
     out.done = read();
     return out;
   });
-  ok(lbl.gap && /still to answer/i.test(lbl.gap.t) && lbl.gap.k === "go",
+  /* Was "Still to answer: What does one sell for used?" - a question printed
+     on a button, which reads as something to answer there rather than
+     somewhere to go. It is "Next -> ..." now. The rule was never the prefix:
+     the button must NAME the gap and jump to it, so that is what is checked,
+     and it is checked by the destination appearing in the label rather than
+     by any wording of my own. */
+  ok(lbl.gap && lbl.gap.k === "go" && /^next\b/i.test(lbl.gap.t)
+     && lbl.gap.t.replace(/^next\s*.?\s*/i, "").length > 3,
      "a gap earlier in the run is named and jumped to — \"" + (lbl.gap||{}).t + "\"");
   ok(lbl.done && /write the ticket/i.test(lbl.done.t) && lbl.done.k === "log",
      "  and a finished run offers the thing you actually do next — \"" + (lbl.done||{}).t + "\"");
