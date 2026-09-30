@@ -209,17 +209,23 @@ console.log("\n  the number says when it was struck, off the feed's own clock");
   const c = await page.evaluate(() => {
     FEED.gold=4123; FEED.silver=61;
     FEED.at=new Date(2026, 8, 29, 19, 44).toISOString();
-    const withTime = {clock: feedClock(),
-                      hero: (homeHeroHTML({acts:false}).match(/heroLab[^>]*>([^<]*)/)||[])[1]||""};
+    /* Read off heroWho, the DATE line - "The time should be up next to the
+       date", reported with it sitting beside "GOLD, PER TROY OUNCE"
+       instead. */
+    const who = h => (h.match(/heroWho[^>]*>([\s\S]*?)<\/div>/)||[])[1]||"";
+    const withTime = {clock: feedClock(), hero: who(homeHeroHTML({acts:false}))};
     FEED.at=null;
-    const without = {clock: feedClock(),
-                     hero: (homeHeroHTML({acts:false}).match(/heroLab[^>]*>([^<]*)/)||[])[1]||""};
+    const without = {clock: feedClock(), hero: who(homeHeroHTML({acts:false}))};
     return {withTime, without};
   });
   ok(/7:44\s*pm/i.test(c.withTime.clock),
      `  the feed's clock time reads back \u2014 "${c.withTime.clock}"`);
   ok(c.withTime.hero.includes(c.withTime.clock),
-     `  and sits beside the price on the hero card \u2014 "${c.withTime.hero}"`);
+     `  and sits NEXT TO THE DATE, not beside the label \u2014 "${c.withTime.hero}"`);
+  /* Both halves off the feed's own stamp: a date from the device clock
+     beside a time from the feed reads as one fact and is not. */
+  ok(/Sep 29/.test(c.withTime.hero),
+     `  with the date the price is actually from \u2014 "${c.withTime.hero}"`);
   /* A time invented from this device's clock when the feed never answered
      would be the exact lie the timestamp exists to stop. */
   ok(c.without.clock === "" && !/\d:\d/.test(c.without.hero),

@@ -971,9 +971,25 @@ function homeHeroHTML(opts){
     +`<i><svg viewBox="0 0 24 24" aria-hidden="true">${ic}</svg></i><span>${l}</span></button>`;
   const camOn=!!(CAP.sample&&CAP.images);
   return `<div class="hero homeHero">
-    <div class="heroWho">${esc(fmtDay(t.day)||"Today")}</div>
+    ${/* "The time should be up next to the date." It was down beside
+          "GOLD, PER TROY OUNCE", which put it next to the label rather
+          than next to the day it belongs to.
+          BOTH HALVES COME OFF THE FEED'S OWN STAMP, not the device clock
+          and not the app's idea of today. A date from one source next to a
+          time from another is the kind of pair that reads as one fact and
+          is not: if the price last arrived yesterday evening, this says
+          "Sep 29 · 8:30pm" rather than pinning yesterday's time to today's
+          date. When the feed has not answered at all there is no time to
+          show, so it falls back to the plain day. */""}
+    <div class="heroWho">${(()=>{
+      const t0=FEED.at?Date.parse(FEED.at):0;
+      if(!t0)return esc(fmtDay(t.day)||"Today");
+      const d=new Date(t0), z=n=>String(n).padStart(2,"0");
+      const ds=d.getFullYear()+"-"+z(d.getMonth()+1)+"-"+z(d.getDate());
+      return esc(fmtDay(ds))+" \u00b7 "+esc(feedClock());
+    })()}</div>
     <div class="heroWhat">Nothing on the counter</div>
-    <div class="heroLab">Gold, per troy ounce${feedClock()?" · "+esc(feedClock()):""}</div>
+    <div class="heroLab">Gold, per troy ounce</div>
     <div class="heroBig">${gold?money(Math.round(gold)):"\u2014"}</div>
     ${/* The phone's hero IS its header - there is no system line on a
           field screen - so the share of melt rides here for the same
@@ -9958,7 +9974,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0930.0618";
+const APP_BUILD="0930.0704";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
