@@ -4067,8 +4067,13 @@ function wireItem(){
   /* The home card's four actions, on whichever machine drew it. */
   v.querySelectorAll("[data-whome]").forEach(b=>b.onclick=()=>{
     const a=b.dataset.whome;
-    if(a==="snap"){ const c=document.getElementById("photoCam")||document.getElementById("photoIn");
-                    if(c)c.click(); return; }
+    if(a==="snap"){
+      /* The live camera first. This button said "Camera" and opened a
+         gallery three builds running, because every version of it went
+         through a picker the device controls. */
+      if(typeof camLiveOK==="function"&&camLiveOK()&&typeof openCam==="function"){ openCam(); return; }
+      const c=document.getElementById("photoCam")||document.getElementById("photoIn");
+      if(c)c.click(); return; }
     if(a==="pick"){ const g=document.getElementById("photoIn")||document.getElementById("photoCam");
                     if(g)g.click(); return; }
     if(a==="gold"){ st.mode="metal"; render(); return; }
@@ -8922,8 +8927,26 @@ function camButtonHTML(lead){
    #photoCam keeps capture and really opens the camera, #photoIn has none
    and really opens the gallery - so the label on each is what happens,
    whatever the device thinks. */
-  if(isTouch())return `<label class="brassBtn camBtn${lead?" camBtnLead":""}" style="cursor:pointer;margin:0;padding:${lead?"18px 24px":"10px 18px"};display:inline-flex;align-items:center;justify-content:center;${lead?"flex:1;min-width:190px;font-size:17px;":""}">${lead?"\uD83D\uDCF7 Take a picture":"Take picture"}<input id="photoCam" type="file" accept="image/*" capture="environment" style="display:none"></label>`
-    +`<label class="ghostBtn camBtn" style="cursor:pointer;margin:0 0 0 8px;padding:${lead?"18px 20px":"10px 16px"};display:inline-flex;align-items:center">Choose a picture<input id="photoIn" type="file" accept="image/jpeg,image/png,image/webp" style="display:none"></label>`;
+  const gallery=`<label class="ghostBtn camBtn" style="cursor:pointer;margin:0;padding:${lead?"18px 20px":"10px 16px"};display:inline-flex;align-items:center">Choose a picture<input id="photoIn" type="file" accept="image/jpeg,image/png,image/webp" style="display:none"></label>`;
+  if(isTouch()){
+    /* THE LIVE CAMERA FIRST, the file input only when there is not one.
+       Every previous version of this button went through a picker the
+       device controls, and the device kept choosing the gallery. */
+    const shoot=camLiveOK()
+      ? `<button id="camLive" class="brassBtn camBtn${lead?" camBtnLead":""}" style="margin:0;padding:${lead?"18px 24px":"10px 18px"};${lead?"flex:1;min-width:190px;font-size:17px;":""}">${lead?"\uD83D\uDCF7 Take a picture":"Take picture"}</button>`
+      : `<label class="brassBtn camBtn${lead?" camBtnLead":""}" style="cursor:pointer;margin:0;padding:${lead?"18px 24px":"10px 18px"};display:inline-flex;align-items:center;justify-content:center;${lead?"flex:1;min-width:190px;font-size:17px;":""}">${lead?"\uD83D\uDCF7 Take a picture":"Take picture"}<input id="photoCam" type="file" accept="image/*" capture="environment" style="display:none"></label>`;
+    /* Wrapped in their own row. .snapCam on the phone is a COLUMN, so the
+       pair would have stacked with the gallery button carrying a stray
+       left margin - and the desk's card is a row, so neither container
+       could be relied on to lay them out. The pair brings its own. */
+    return `<div style="display:flex;align-items:stretch;gap:8px;flex-wrap:wrap">${shoot}${gallery}</div>`;
+  }
+  /* NOT the gallery here. The desk's photo card already draws its own
+     #photoIn a few hundred lines up, and emitting a second one gave two
+     nodes the same id - getElementById returns the first, so wirePhoto
+     would have wired one and the counter clicked the other. The touch
+     branch above needs the pair because it IS the whole control; the desk
+     card is not. check-screens' "every id once" sweep is what caught it. */
   if(camLiveOK())return `<button id="camLive" class="brassBtn" style="padding:10px 18px">Use camera</button>`;
   return "";
 }
@@ -10006,7 +10029,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0930.0918";
+const APP_BUILD="0930.1042";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

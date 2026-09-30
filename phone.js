@@ -277,7 +277,14 @@ function phoneBoot(){
          the same "look it up" in a different shape. */
       document.querySelectorAll("[data-whome]").forEach(btn=>btn.onclick=()=>{
         const a=btn.dataset.whome;
-        if(a==="snap"){ const c=document.getElementById("photoCam"); if(c)c.click(); return; }
+        if(a==="snap"){
+          /* Live camera first - see the note in app.js's [data-whome]
+             handler. The phone had its own copy of this line and its own
+             #photoCam to click, which is exactly how it kept opening the
+             gallery after the desk was fixed. */
+          if(typeof camLiveOK==="function"&&camLiveOK()&&typeof openCam==="function"){ openCam(); return; }
+          const c=document.getElementById("photoCam")||document.getElementById("photoIn");
+          if(c)c.click(); return; }
         if(a==="pick"){ const g=document.getElementById("photoIn")||document.getElementById("photoCam");
                         if(g)g.click(); return; }
         if(a==="gold"){ st.mode="metal"; render(); return; }
@@ -399,9 +406,14 @@ function snapHTML(){
   const bits=[st.detail,COND_WORDS[st.cond]&&COND_WORDS[st.cond][0]].filter(Boolean).join(" \u00b7 ");
 
   /* The camera, full width, before anything else. */
-  /* Written out rather than reusing camButtonHTML: that one carries an inline
-     style, and an inline style beats any rule aimed at it - which is how the
-     button ended up sharing a row instead of owning one. */
+  /* This used to say: "Written out rather than reusing camButtonHTML: that
+     one carries an inline style, and an inline style beats any rule aimed
+     at it - which is how the button ended up sharing a row instead of
+     owning one." True then, and the reason it is reused now: sharing a row
+     IS the layout, because there are two buttons - Take a picture and
+     Choose a picture - and camButtonHTML's flex:1 is what makes the first
+     one take the space the second does not. Writing it out a second time
+     is what let capture drift between the copies. */
   const camOn=CAP.sample&&CAP.images;
   /* Switched off, this is the 524px setup card - and it was sitting between
      the header and the number, so on an 844px phone "Pay up to" landed below
@@ -411,15 +423,21 @@ function snapHTML(){
      card stays at the top: that IS the phone's first move. */
   const cam=camOn
     ? `<div class="snapCam">
-        ${/* capture is BACK on this one - see the note on the desk's
-             camBtnHTML. Taking it off did not produce the OS sheet, it
-             produced the opposite fault: the gallery every time and no
-             camera at all. This button is the camera; the line under it is
-             the gallery; neither is a guess. */""}
-        <label class="brassBtn camBtn snapShoot">\uD83D\uDCF7 Take a picture<input id="photoCam" type="file" accept="image/*" capture="environment" style="display:none"></label>
+        ${/* ONE CALL INTO THE DESK'S OWN BUTTON, not a second copy of it.
+             This screen had its own hand-written label with its own
+             capture attribute, and there was a THIRD copy in the hidden
+             block further down - which is how "capture is back on" could
+             be true in the file I was editing and false in the one that
+             fired, three builds running.
+             camButtonHTML gives the live camera when getUserMedia is
+             available and the capture file input when it is not, plus the
+             gallery route, and phone.html loads app.js, so this is one
+             call rather than a port. CLAUDE.md says to prefer exactly
+             that, and this is the bug it says to prefer it for. */""}
+        ${(typeof camButtonHTML==="function")?camButtonHTML(true):""}
         ${photoBusy
           ? `<div class="snapBusy">Reading the picture\u2026 <button class="ghostBtn" id="photoStop">Stop</button></div>`
-          : `<label class="snapAlt">or go straight to the gallery<input id="photoIn" type="file" accept="image/jpeg,image/png,image/webp" style="display:none"></label>`}
+          : ``}
         ${photoErrHTML()}
        </div>`
     : (has ? "" : pdConnectHTML());

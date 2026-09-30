@@ -999,12 +999,20 @@ console.log("\n  the phone's front screen can take a picture");
     /* the input existing is not the same as the input being READ: an
        unwired one opens the camera and then swallows the picture. */
     out.inputWired = typeof (document.getElementById("photoCam") || {}).onchange === "function";
-    /* and it actually opens the picker rather than doing nothing */
-    let clicked = false;
+    /* AND IT OPENS SOMETHING rather than doing nothing. "the picker" was
+       the whole assumption and it is not true any more: with getUserMedia
+       available the button opens the live camera instead, which is the
+       entire point of this build - three attempts at making a picker show
+       the lens, and the counter still reporting "No camera still". Either
+       route counts; doing nothing does not. */
+    let clicked = false, live = false;
     const inp = document.getElementById("photoCam");
     if (inp) inp.click = () => { clicked = true; };
+    const realOpen = window.openCam; window.openCam = () => { live = true; };
     if (snap) snap.click();
-    out.opensPicker = clicked;
+    window.openCam = realOpen;
+    out.opensPicker = clicked || live;
+    out.opensWhat = live ? "the live camera" : clicked ? "the picker" : "nothing";
     /* BOTH ROUTES, EACH WITH ITS OWN ATTRIBUTES. This asserted "no capture
        anywhere", which encoded my own wrong fix: capture="environment" had
        been hiding the gallery, so I took it off everywhere and expected the
@@ -1034,7 +1042,7 @@ console.log("\n  the phone's front screen can take a picture");
     ["and is not disabled on a connected phone", r.snapLive],
     ["the camera input is on the page", r.inputThere],
     ["and something reads what comes back", r.inputWired],
-    ["and pressing Snap it opens it", r.opensPicker],
+    ["and pressing Snap it opens something \u2014 " + r.opensWhat, r.opensPicker],
     ["the framing tip is shown with a camera", r.tip],
     ["and not shown without one", !r.tipWhenOff],
   ];
@@ -1406,12 +1414,21 @@ console.log("\n  what it looks like with the tool shut");
           const hit = {};
           if (cam) cam.click = () => { hit.cam = true; };
           if (pic) pic.click = () => { hit.pic = true; };
+          /* THE CAMERA BUTTON SHOULD NOT REACH A FILE INPUT AT ALL when
+             getUserMedia is available. Three builds were spent trying to
+             make a picker open the lens; openCam does not ask a picker -
+             it takes the stream itself and hands back a file this code
+             made. The file input stays as the fallback for a device with
+             no getUserMedia, or a refused permission. */
+          let live = false; const realOpen = window.openCam;
+          window.openCam = () => { live = true; };
           document.querySelectorAll('[data-whome="snap"]').forEach(b => b.click());
-          const snapHit = hit.cam ? "photoCam" : hit.pic ? "photoIn" : "nothing";
+          window.openCam = realOpen;
+          const snapHit = live ? "live" : hit.cam ? "photoCam" : hit.pic ? "photoIn" : "nothing";
           delete hit.cam; delete hit.pic;
           document.querySelectorAll('[data-whome="pick"]').forEach(b => b.click());
           const pickHit = hit.pic ? "photoIn" : hit.cam ? "photoCam" : "nothing";
-          return {main: !!cam, alt: !!pic,
+          return {main: !!cam, alt: !!pic, liveOK: typeof camLiveOK === "function" && camLiveOK(),
                   camHasCapture: !!(cam && cam.hasAttribute("capture")),
                   picHasCapture: !!(pic && pic.hasAttribute("capture")),
                   snapHit, pickHit,
@@ -1436,7 +1453,10 @@ console.log("\n  what it looks like with the tool shut");
      ph.cam.main && ph.cam.camHasCapture],
     ["the gallery input really opens the gallery (no capture) \u2014 " + !ph.cam.picHasCapture,
      ph.cam.alt && !ph.cam.picHasCapture],
-    ["Camera reaches the camera input \u2014 " + ph.cam.snapHit, ph.cam.snapHit === "photoCam"],
+    ["the live camera is offered on a phone at all \u2014 " + ph.cam.liveOK, ph.cam.liveOK === true],
+    ["Camera opens the LIVE camera, not a picker \u2014 " + ph.cam.snapHit,
+     ph.cam.snapHit === "live"],
+    ["and the capture input is still there as the fallback \u2014 " + ph.cam.main, ph.cam.main === true],
     ["Gallery reaches the gallery input \u2014 " + ph.cam.pickHit, ph.cam.pickHit === "photoIn"],
   ];
   for (const [what, good] of camT) { if (good) console.log("ok   " + what);
