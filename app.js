@@ -1327,7 +1327,27 @@ function calcItem(){
      those still get adjusted. */
   const handSet=checked&&market.kind==="hand";
   const cond=handSet?1:(COND_MULT[st.cond]||1);
-  const resale=checked ? market.mid*cond*completeMult
+  /* THE SPECIFICATION REACHES A MEASURED PRICE TOO, and for six months it
+     did not. brandMult staying out is right - a measured figure for a Sega
+     Saturn already has Sega in it. spec.mult staying out was not: what the
+     thing IS is not what the thing is WORTH, and a book row prices the
+     standard configuration, not the one on the counter.
+     Swept the whole book to find out how much was being thrown away: 377
+     of 507 rows drive a price, and 649 specification answers across them
+     reached nothing. A chainsaw that will not start (0.4) priced as a
+     running one on 19 rows. A bare DeWalt with no battery (0.6) priced as
+     a two-battery kit. An iCloud-locked iPhone (0.85) priced as clean. A
+     quartz Datejust (0.55) priced as an automatic. A Saturn with no
+     controller and no cables (0.6) priced the same as one complete in box
+     (1.6) - which is where this started: "the next question still asks me
+     for a brand/make."
+     THE BASELINE IS WHAT MAKES THIS SOUND. Audited all 125 spec groups:
+     every one has an option at exactly 1.0, and specBase already returns
+     the first m===1 option as the unanswered default. So the neutral of
+     every group IS the standard configuration, which is what the measured
+     row was measured on. Nothing is rebased; an unanswered run multiplies
+     by 1 and lands exactly where it landed yesterday. */
+  const resale=checked ? market.mid*cond*completeMult*spec.mult
                        : baseValue*CATALOG_AT_GOOD*cond*brandMult*completeMult*spec.mult;
   const ltv=Math.max(10,baseLtv+liquidity.adj);
   /* set by hand for the category > this item's own rate > the category's */
@@ -3727,6 +3747,7 @@ function askHTML(x){
   })();
   if(finished)return `<div class="card askCard askFin" id="askCard">
     <div class="askWhere">${q.length} of ${q.length} \u00b7 all answered</div>
+    ${x&&x.spec&&x.spec.stop?`<div class="tagWarn" style="border-left-color:var(--bad);background:var(--bad-wash);color:var(--bad-ink);margin-bottom:10px"><b>NO TITLE &mdash; NO DEAL.</b> Don't negotiate around a missing title, at any price.</div>`:""}
     ${askDoneHTML(x)}
     <div class="askNav">
       <button class="ghostBtn" data-askgo="${lastReal}">&larr; Change an answer</button>
@@ -3734,8 +3755,21 @@ function askHTML(x){
       <button class="brassBtn" data-askdone="log">Write the ticket &darr;</button>
     </div>
   </div>`;
+  /* A STOP HAS TO LAND WHEN IT IS SAID, NOT SEVEN QUESTIONS LATER.
+     "NO title" sets spec.stop the moment it is tapped, and the banner that
+     says NO DEAL AT ANY PRICE was only on the answer card at the end of the
+     run. So the counter told the desk the quad has no title and the desk
+     asked him what class it was, what shape it was in, what came with it,
+     and what one sells for - and only then said not to buy it. Found by
+     the dead-question sweep, which is the same family: an answer the screen
+     collects and does not act on. It rides the run now, above the question,
+     from the tap onward. */
+  const stopNow=x&&x.spec&&x.spec.stop
+    ?`<div class="tagWarn" style="border-left-color:var(--bad);background:var(--bad-wash);color:var(--bad-ink);margin-bottom:10px"><b>NO TITLE &mdash; NO DEAL.</b> Don't negotiate around a missing title, at any price. Nothing below changes that.</div>`
+    :"";
   return `<div class="card askCard" id="askCard">
     <div class="askWhere">${at+1} of ${q.length}${allDone?" \u00b7 all answered":""}</div>
+    ${stopNow}
     <div class="askQ">${esc(cur.title)}</div>
     ${/* When a measured row is driving the price the tier is not in that
           arithmetic, so the card has to say the tap will not move the
@@ -10182,7 +10216,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0930.1703";
+const APP_BUILD="0930.1812";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
