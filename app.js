@@ -4330,42 +4330,91 @@ function wireItem(){
 }
 
 /* ---------------- gold tab ---------------- */
-/* Suggested pay% — the peak/valley buy rule:
-   gold base 70, silver base 62 (thinner refiner spreads, wilder swings).
-   Trim as spot runs above its own 90-day average; a valley keeps the normal
-   rate — the discipline there is shipping on day 31, not paying up. */
+/* THE TARGET IS A SHARE OF MELT, AND THE RATE IS WORKED BACK FROM IT.
+   "do all 3 and target 80% but make sure we are still accounting for the
+   trends so we don't over pay between buy date and sell date."
+
+   Before this, the rate was a number (70) and what actually went out the
+   door was something else (65%), because the guard took its cut after. He
+   set one figure and the desk delivered another, which is how "are we
+   competitive?" became impossible to answer from the screen.
+
+   Now the TARGET is the thing he picks, and it is the share of melt that
+   reaches the customer in NORMAL conditions. The rate is derived from it,
+   so the number he aims at is the number that lands.
+
+   WHERE 80 CAME FROM: a competitor's posted sheet, which he sent in. US
+   Gold Buyers pays 84.6% of melt on lots under 3 ozt, 95.5% at 5-25 ozt -
+   but that is a mail-in refiner buy with no Florida holding period. For a
+   walk-in counter the trade puts it at 75-85% (a verified goldsmith: "If I
+   like you, I pay 80%. I know some shops that only pay 40-60%"; a jeweler:
+   "scrap credit of about 75-85% to my client"). 80 sits with the jewelers
+   rather than the low-end shops, and it is his call, not a measurement.
+
+   SILVER at 70 is not a second guess - it keeps the ratio he had already
+   set himself. The old bases were gold 70 and silver 62; 62/70 is 0.886,
+   and 80 x 0.886 is 70.9.
+
+   THE LOAN IS A DIFFERENT DECISION AND HE DID NOT ASK ME TO MOVE IT. Its
+   targets are set to what the desk delivers today - gold 42%, silver 37% -
+   so nothing about lending changes here. They are named rather than
+   buried, so moving them later is one number instead of an archaeology
+   expedition. */
+const MELT_TARGET={gold:{buy:80,loan:42}, silver:{buy:70,loan:37}};
+/* The measured cut for a hold of the right length, by today's conditions.
+   buy = 30 calendar days, because s. 539.001(9)(c) makes it 30 whatever the
+   refiner could do; loan = 60, because a pawn is 30 to maturity and 30 more
+   the statute makes you hold. */
+function meltCut(metal,band,which){
+  const R=MRISK&&MRISK.metals&&MRISK.metals[metal];
+  const b=R&&R.byVol&&R.byVol[band||"normal"];
+  if(!b)return 0;
+  const v=which==="loan"?b.p5:b.q5;
+  return Math.max(0,Math.min(30,Math.abs(Number(v)||0)));
+}
+/* Suggested rate - the share of MELT he is aiming at, turned into the
+   slider number that gets there.
+
+   The rate is worked back from the NORMAL band, not from today's, and that
+   is the whole mechanism: in a normal market the customer gets the target,
+   and when the market is worse than normal the guard pulls the delivered
+   figure BELOW it. That is "still accounting for the trends so we don't
+   over pay between buy date and sell date" - the pull-back is real and it
+   is measured over the 30 days the metal actually has to sit here.
+
+   Gold, measured over 6,705 LBMA fixings since 2000:
+     calm    30-day cut 5.2%   ->  80.1% of melt reaches him
+     normal              5.3%  ->  80.0%
+     busy                6.9%  ->  78.6%
+     violent            10.9%  ->  75.3%
+
+   WHAT CAME OUT OF THIS FUNCTION: the premium tiers (-4/-8/-10 as spot ran
+   over its 90-day average) and the weekly-slide trim (-2/-5/-8). Both were
+   charging for things already charged elsewhere - the premium by the
+   guard's own premium bucket and by the loan's min(spot, 90-day) floor, the
+   slide by the guard's volatility band and by the trend read below. That
+   was the triple charge: at a 16% premium a loan fell from 43% of melt to
+   28%, and only part of that was a decision anybody made on purpose.
+
+   WHAT STAYED: the trend read, which is DIRECTION and nothing else. The
+   guard's bands see how hard a market is moving and where it sits against
+   its own average; neither sees a metal 21% off its peak and under its
+   200-day. That is a different fact and it is the only one still allowed
+   to move the rate. */
 function suggestPay(){
-  const spot=spotOf(st.metal), avg=avgOf(st.metal);
-  if(!avg||avg<=0)return null;
-  const prem=(spot-avg)/avg;
-  const base=st.metal==="gold"?70:62;
-  let cut=0, why;
-  const p=Math.round(prem*100);
-  if(prem>0.15){cut=st.metal==="gold"?10:12; why=`today's price is ${p}% over its 90-day average — that is a hard spike, and spikes like this usually snap back; the discount is your insurance for the 30-day hold`;}
-  else if(prem>PEAK_OVER){cut=st.metal==="gold"?8:10; why=`today's price is ${p}% over its 90-day average — peak conditions; sellers are walking in anyway, you don't have to pay up to win deals`;}
-  else if(prem>0.05){cut=4; why=`today's price is ${p}% over its 90-day average — running warm, trim a little`;}
-  else if(prem<-0.05){cut=0; why=`today's price is ${Math.abs(p)}% UNDER its 90-day average — hold the normal rate and ship on day 31 like always; "it's cheap" is not a reason to buy heavy`;}
-  else {cut=0; why=`today's price is close to its 90-day average — nothing unusual happening, so use the normal rate`;}
-  /* Trend read: a steady weekly slide raises the odds of more slide during the
-     30-day hold — a fast drop trims ON TOP of the level rule. Rising weeks
-     add nothing; the level tiers already handle a run-up. */
-  const wk=FEED[st.metal+"7"];
-  if(wk&&wk>0){
-    const tr=(spotOf(st.metal)-wk)/wk, t=Math.round(Math.abs(tr)*100);
-    if(tr<-0.06){cut+=8; why+=`. And it has dropped ${t}% in a week — it is dropping fast and has not stopped; every day of your 30-day hold is exposed to more of that`;}
-    else if(tr<-0.03){cut+=5; why+=`. And it's down ${t}% on the week — sliding; trim extra for the hold window`;}
-    else if(tr<-0.015){cut+=2; why+=`. Down ${t}% on the week — drifting lower, take a small extra point`;}
-  }
-  /* The trend's own word, added to the level rule above. Small on purpose:
-     the guard price has already taken the big cut off the per-ounce figure,
-     and the same worry must not be charged twice. */
-  const T=(typeof metalTrend==="function")?metalTrend(st.metal):null;
-  /* Carried separately so the card can show what the rate would be WITHOUT
-     the trend read. A suggestion you cannot see the alternative to is not a
-     suggestion, it is just the number. */
-  const bare=Math.max(50,base-cut);
-  if(T&&T.cut>0){ cut+=T.cut; why+=`. And ${T.detail.replace(/\.$/,"")}`; }
-  return {pay:Math.max(50,base-cut), bare, why, trend:T};
+  const metal=st.metal, S=metalState(metal);
+  const T=(typeof metalTrend==="function")?metalTrend(metal):null;
+  const tgt=(MELT_TARGET[metal]||MELT_TARGET.gold).buy;
+  const nc=meltCut(metal,"normal","buy");
+  const base=nc>0?tgt/(1-nc/100):tgt;
+  const band=S?S.band:"normal";
+  const todayCut=meltCut(metal,band,"buy");
+  const lands=Math.round(base*(1-todayCut/100));
+  const bare=Math.max(50,Math.round(base));
+  let cut=0;
+  let why=`you are aiming at <b>${tgt}% of melt</b>. The ${todayCut.toFixed(1)}% guard for a 30-day hold in ${band==="violent"?"a market moving this hard":band==="busy"?"a busy market":band==="calm"?"a calm market":"a normal market"} brings that to about <b>${lands}%</b> out the door`;
+  if(T&&T.cut>0){ cut+=T.cut; why+=`. And ${String(T.detail||"").replace(/\.$/,"")}`; }
+  return {pay:Math.max(50,Math.round(base-cut)), bare, why, trend:T, target:tgt, lands};
 }
 /* The rate DEFAULTS to today's suggestion and keeps tracking it as spot, the
    average or the metal changes — until the counter moves the slider, which
@@ -4375,14 +4424,69 @@ function suggestRate(){
   if(!PAWN()) return s;
   /* A loan runs about 30% under a buy: you carry the price for 60 days before
      the metal is even yours. Same market reasoning, lower landing point. */
-  return {pay:Math.max(25,Math.round(s.pay*0.7)),
-          bare:Math.max(25,Math.round((s.bare||s.pay)*0.7)), trend:s.trend,
-          why:s.why+". A loan lands about 30% under the buy rate, because you carry the price for 60 days"};
+  /* THE LOAN HAS ITS OWN TARGET NOW. It used to be the buy rate x 0.7,
+     which meant raising the buy to hit 80% of melt would have quietly
+     raised every loan with it - from 42% of melt to about 52%, a change to
+     the shop's risk that nobody asked for. The targets are named in
+     MELT_TARGET and the loan's is set to what the desk delivers today, so
+     lending is untouched by the buy-side change and moves only when
+     somebody moves it on purpose. */
+  const metal=st.metal, S=metalState(metal);
+  const tgt=(MELT_TARGET[metal]||MELT_TARGET.gold).loan;
+  const nc=meltCut(metal,"normal","loan");
+  const base=nc>0?tgt/(1-nc/100):tgt;
+  const todayCut=meltCut(metal,S?S.band:"normal","loan");
+  const lands=Math.round(base*(1-todayCut/100));
+  let cut=0;
+  let why=`a pawn is a 60-day position, so it aims lower: <b>${tgt}% of melt</b>. The ${todayCut.toFixed(1)}% guard for 60 days brings it to about <b>${lands}%</b> out the door`;
+  if(s.trend&&s.trend.cut>0){ cut+=s.trend.cut; why+=`. And ${String(s.trend.detail||"").replace(/\.$/,"")}`; }
+  return {pay:Math.max(25,Math.round(base-cut)),
+          bare:Math.max(25,Math.round(base)), trend:s.trend, target:tgt, lands, why};
 }
 function syncPay(){
   if(curTouched()) return;
   const s=suggestRate();
   if(s) setRate(s.pay);
+}
+/* WHAT IS BETWEEN MELT AND THE OFFER, AS A LADDER YOU CAN READ.
+   "if we haircut the haircut the haircut we're not going to be competitive
+   on our gold prices and we're going to miss sales." He was right that it
+   was stacked, and the reason he could not tell was that none of it was on
+   screen: the card showed a rate, and the money was somewhere else.
+   Every rung is named, with its reason and its size, and they add up to the
+   figure at the bottom - which is the figure the customer is handed. If a
+   rung looks wrong he can see which one it is instead of guessing at the
+   whole. */
+function meltLadderHTML(){
+  const m=(typeof calcMetal==="function")?calcMetal():null;
+  if(!m||!(m.melt>0))return "";
+  const pawn=PAWN(), s=suggestRate(), S=metalState(st.metal);
+  if(!s)return "";
+  const out=pawn?m.loan:m.buy;
+  const pct=Math.round(out/m.melt*100);
+  const band=S?S.band:"normal";
+  const nc=meltCut(st.metal,"normal",pawn?"loan":"buy");
+  const tc=meltCut(st.metal,band,pawn?"loan":"buy");
+  const guardPts=Math.round(s.target*((1-nc/100)-(1-tc/100))/(1-nc/100));
+  const trendPts=(s.trend&&s.trend.cut>0)?s.trend.cut:0;
+  const row=(l,r,note,tone)=>`<div style="display:flex;gap:10px;align-items:baseline;padding:3px 0">
+    <span style="flex:0 0 96px;font-family:var(--mono);font-size:12.5px;color:${tone||"var(--ink-2)"}">${r}</span>
+    <span style="flex:0 0 auto;font-size:13px;color:var(--ink)">${l}</span>
+    <span style="font-size:12.5px;color:var(--ink-2)">${note||""}</span></div>`;
+  return `<div style="border-top:1px solid rgba(255,255,255,.08);margin-top:10px;padding-top:9px">
+    <span class="label" style="margin:0 0 4px">What is between melt and the offer</span>
+    ${/* "what the metal in it is worth at spot" - and check-screens was
+          right to fail it. There is a standing rule that the screen says
+          "today's price" everywhere it means today's price, and teaches
+          the word "spot" exactly once, in the card that exists to teach
+          it. A ladder whose whole job is making the arithmetic plain is
+          the last place to drop a word the counter has not been given. */""}
+    ${row(`Melt`,money(m.melt),"what the metal in it is worth at today's price","var(--ink)")}
+    ${row(`Your target`,s.target+"%","what you aim to pay in a normal market")}
+    ${trendPts?row(`Falling market`,"−"+trendPts,esc(String((s.trend&&s.trend.short)||"the direction has been down")),"var(--warn-ink)"):""}
+    ${guardPts>0?row(`Moving hard`,"−"+guardPts,`1 in 20 ${pawn?"sixty":"thirty"}-day holds lost more than ${tc.toFixed(1)}% in a ${band} market`,"var(--warn-ink)"):""}
+    ${row(`<b>You pay</b>`,"<b>"+money(out)+"</b>",`<b>${pct}% of melt</b>`,"var(--accent)")}
+  </div>`;
 }
 function suggestHTML(){
   const s=suggestRate();
@@ -4392,6 +4496,7 @@ function suggestHTML(){
     <span style="color:var(--accent);font-family:var(--mono);font-weight:600">Suggested today: ${s.pay}%</span> — ${s.why}.
     ${match?`<span style="color:var(--ink-2)"> ${curTouched()?"You're on it.":"Filled in for you \u2014 drag the slider to set your own for today."}</span>`
       :`<button id="useSuggest" class="ghostBtn" style="padding:5px 12px;font-size:11.5px;margin-left:8px">Use ${s.pay}%</button>`}
+    ${meltLadderHTML()}
   </div>`;
 }
 /* The slider is a share of melt, but a loan also takes the peak guard and the
@@ -4400,10 +4505,16 @@ function suggestHTML(){
 /* What a refiner actually returns on scrap, as a share of melt. Widely
    quoted at 90-95%; no refiner is lined up yet, so the card shows the band. */
 const REFINER_LO=0.90, REFINER_HI=0.95;
-/* When spot is this far above its 90-day average, the loan is sized off the
-   average instead. It was written out at each of the three places that ask
-   the question, which is how two of them end up disagreeing later. */
-const PEAK_OVER=0.08;
+/* PEAK_OVER WAS HERE AND IS GONE. It was the threshold at which spot
+   counted as "over its 90-day average", and its own comment said the
+   trouble with it: "written out at each of the three places that ask the
+   question, which is how two of them end up disagreeing later." That is
+   exactly what happened - suggestPay trimmed the rate for it, oldGuard
+   multiplied the ounce by 0.9 for it, and loanPctOfMelt applied it a third
+   time while reporting. The premium is priced once now, by the loan's
+   min(spot, 90-day average) floor, and there is no threshold left to
+   disagree about. Dead constants with comments claiming they matter are
+   worse than no comment at all. */
 /* What a jeweller sells a piece for against what they paid, from Folmar's in
    Tallahassee and matching the trade's triple-keystone convention. The card
    used to multiply by 3 and 4 and then say "three to four" in words beside
@@ -4415,13 +4526,23 @@ function setRate(n){ if(PAWN())st.loanPct=n; else st.payPct=n; }
 function curTouched(){ return PAWN()?st.loanTouched:st.payTouched; }
 function setTouched(v){ if(PAWN())st.loanTouched=v; else st.payTouched=v; }
 function rateBounds(){ return PAWN()?{min:25,max:75}:{min:50,max:100}; }
-function loanPctOfMelt(){
-  const spot=spotOf(st.metal), avg=avgOf(st.metal);
-  if(!spot||spot<=0)return null;
-  const guardOz=Math.min(spot,avg||spot);
-  const prem=avg>0?(spot-avg)/avg:0;
-  return Math.round((guardOz/spot)*(st.loanPct/100)*(prem>PEAK_OVER?0.9:1)*100);
+/* THE CARD USED TO WORK THIS OUT A SECOND TIME AND GET IT WRONG.
+   It re-derived the share of melt from spot, the 90-day average and the
+   rate - and left out metalGuard's cut entirely, which is most of the
+   difference. So the card said "48% of melt" while calcMetal handed the
+   customer 42%, a six-point lie in the only place the counter could have
+   checked. It closed to zero only when the market ran hot enough for the
+   old floor to bind, which is why it looked right whenever anybody went
+   looking at a spike.
+   One source now: ask calcMetal what it actually did and report that. The
+   label cannot disagree with the money because it is the money. */
+function pctOfMelt(which){
+  const m=(typeof calcMetal==="function")?calcMetal():null;
+  if(!m||!(m.melt>0))return null;
+  const out=(which==="buy")?m.buy:m.loan;
+  return Math.round(out/m.melt*100);
 }
+function loanPctOfMelt(){ return pctOfMelt("loan"); }
 /* ================= WHAT THE MARKET HAS ACTUALLY DONE =================
    The counter's question, in his words: don't just lend off today's rate.
    He is right, and the reason is arithmetic rather than opinion. A buy is
@@ -4709,7 +4830,13 @@ function calcMetal(){
      a pawn sits. The old rule stays as the floor: if it is more cautious
      than the measurement on a given day, it wins. */
   const G=(typeof metalGuard==="function")?metalGuard(st.metal):null;
-  const oldGuard=Math.min(spot,avg||spot)*(premium>PEAK_OVER?0.9:1);
+  /* THE x0.9 CAME OFF. min(spot, 90-day average) is already the premium
+     charge - it refuses to lend off a spike by pricing the ounce at the
+     average instead. Multiplying by 0.9 on top charged the same fact a
+     second time, and suggestPay used to charge it a third. The floor
+     stays, because "do not lend off a spike" is a real rule and it is the
+     one place that fact is now priced. */
+  const oldGuard=Math.min(spot,avg||spot);
   const lendOz=G?Math.min(G.lend,oldGuard):oldGuard;
   const buyOz=G?Math.min(G.buy,spot):spot;
   const meltGuard=(lendOz/31.1035)*purity*g;
@@ -9772,7 +9899,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0930.0338";
+const APP_BUILD="0930.0512";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

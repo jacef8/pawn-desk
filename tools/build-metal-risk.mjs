@@ -44,17 +44,63 @@ const SRC = {gold: "https://prices.lbma.org.uk/json/gold_pm.json",
              silver: "https://prices.lbma.org.uk/json/silver.json"};
 const FROM = "2000-01-01";
 const HOLD = 42;        /* fixings ~ 60 calendar days - the pawn window */
-/* A BUY IS NOT A LOAN AND MUST NOT CARRY THE LOAN'S HAIRCUT.
-   Metal you have bought is yours the moment it crosses the counter: it goes
-   in the next refiner lot and the money is back in days, not sixty. So the
-   buy side is measured over a SHORT hold, and it comes out a fraction of
-   the loan's risk - which is the whole reason the two prices differ. */
-const QUICK = 7;        /* fixings ~ 10 calendar days - the buy window */
+/* A BUY IS NOT A LOAN, BUT IN FLORIDA IT IS NOT A WEEK EITHER.
+   This said: "Metal you have bought is yours the moment it crosses the
+   counter: it goes in the next refiner lot and the money is back in days,
+   not sixty." That is false here, and the desk's own gold page has been
+   saying so the whole time, three inches from the number:
 
+     "This does not ship for 30 days. Everything we buy or take in has to
+      sit unaltered, here in Liberty County, for 30 calendar days before it
+      can be sold or disposed of - s. 539.001(9)(c)."
+
+   So a buy is a 30-day position by statute, not a 10-day one, and the buy
+   guard was measuring a window the shop is not allowed to use. Caught when
+   the counter sent in a competitor's payout sheet and asked whether we were
+   being left behind - and the trade says the same thing from the other
+   side: "It depends on price volatility risk and how long you are required
+   to hold the items... some states have a 30 day holding period so expect
+   to get paid less there."
+
+   21 fixings is about 30 calendar days. It comes out harsher than the old
+   7, which is the honest direction: the exposure was always 30 days, the
+   measurement just did not know it. */
+const QUICK_DAYS = 30;   /* what QUICK is in calendar days, for the log and the file */
+const QUICK = 21;       /* fixings ~ 30 calendar days - s. 539.001(9)(c) */
+
+/* READ A LOCAL COPY WHEN THERE IS ONE. Node's own fetch ignores the proxy
+   this container puts in front of outbound HTTPS, so it gets the proxy's
+   HTML interstitial and dies on "Unexpected token '<'" - while curl, which
+   is configured for it, pulls the same URL fine. Rather than leave this
+   builder unrunnable from here, it takes a directory of already-downloaded
+   files:
+
+     curl -sS -o /tmp/lbma/gold_pm.json https://prices.lbma.org.uk/json/gold_pm.json
+     curl -sS -o /tmp/lbma/silver.json  https://prices.lbma.org.uk/json/silver.json
+     LBMA_DIR=/tmp/lbma node tools/build-metal-risk.mjs
+
+   The download is flaky - gold came back as the interstitial once and
+   needed a retry - so check the file is bigger than a few KB before
+   trusting it. */
 async function pull(url) {
+  const dir = process.env.LBMA_DIR;
+  if (dir) {
+    const fs = await import("node:fs");
+    const path = dir.replace(/\/$/, "") + "/" + url.split("/").pop();
+    if (fs.existsSync(path)) {
+      const txt = fs.readFileSync(path, "utf8");
+      if (txt.trim().startsWith("<"))
+        throw new Error(path + " is HTML, not JSON - the download was an interstitial, fetch it again");
+      return shape(JSON.parse(txt));
+    }
+  }
   const r = await fetch(url);
   if (!r.ok) throw new Error(url + " -> " + r.status);
-  const rows = await r.json();
+  return shape(await r.json());
+}
+/* One place that turns LBMA's rows into [date, price], so the local-file
+   path and the fetch path cannot drift apart. */
+function shape(rows) {
   const out = [];
   for (const x of rows) {
     const v = (x.v || [])[0];
@@ -131,7 +177,7 @@ function analyse(series) {
 
 const out = {built: new Date().toISOString().slice(0, 10),
              source: "LBMA daily fixings, prices.lbma.org.uk",
-             holdDays: 60, quickDays: 10, note: "Forward return over ~60 calendar days. p5 = one hold in twenty was at least this bad.",
+             holdDays: 60, quickDays: QUICK_DAYS, note: "Forward return over ~60 calendar days. p5 = one hold in twenty was at least this bad.",
              metals: {}};
 const hist = {built: out.built, source: out.source, days: {}};
 
@@ -148,7 +194,7 @@ for (const [metal, url] of Object.entries(SRC)) {
   console.log(`   all days          p5 ${m.all.p5}%   worst ${m.all.worst}%   down ${m.all.down}% of the time`);
   for (const k of ["calm", "normal", "busy", "violent"]) {
     const b = m.byVol[k];
-    if (b) console.log(`   vol ${k.padEnd(8)} n=${String(b.n).padStart(4)} (~${b.indep} indep)  60-day p5 ${String(b.p5).padStart(6)}%   10-day p5 ${String(b.q5).padStart(6)}%   down ${b.down}%`);
+    if (b) console.log(`   vol ${k.padEnd(8)} n=${String(b.n).padStart(4)} (~${b.indep} indep)  60-day p5 ${String(b.p5).padStart(6)}%   ${String(QUICK_DAYS)+"-day p5"} ${String(b.q5).padStart(6)}%   down ${b.down}%`);
   }
   for (const k of ["under", "at", "warm", "hot", "spike"]) {
     const b = m.byPrem[k];
