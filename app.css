@@ -1084,6 +1084,20 @@
   .heroBig{font:800 clamp(46px,15vw,62px) var(--disp);color:var(--on-hero);letter-spacing:-.05em;
     line-height:.95;font-variant-numeric:tabular-nums;margin-top:2px}
   .heroBig.bad{color:#FFD5DA}
+  /* THE TWO METALS, SIDE BY SIDE AT ONE SIZE, with a hairline rule
+     between them and each one's buy rate named underneath. metBig is
+     smaller than heroBig was because there are two of them now and they
+     have to sit inside 390px with a gutter - "$4,123" and "$61.00" both
+     fit at 38px with the tabular figures on. */
+  .heroMet{display:flex;align-items:stretch;margin-top:15px}
+  .metCell{flex:1 1 0;min-width:0}
+  .metCell .heroLab{margin-top:0}
+  .metSep{flex:0 0 1px;align-self:stretch;background:rgba(255,255,255,.3);margin:0 14px}
+  .metBig{font:800 clamp(30px,8.6vw,38px) var(--disp);color:var(--on-hero);
+    letter-spacing:-.04em;line-height:1;font-variant-numeric:tabular-nums;margin-top:3px}
+  .metBuy{font:600 12.5px var(--sans);color:var(--on-hero-2);margin-top:8px;line-height:1.3}
+  .metBuy b{font-weight:800;color:var(--on-hero)}
+  .metBuyOff{opacity:.76}
   .heroSub{font:500 13.5px var(--sans);color:var(--on-hero-2);margin-top:6px;line-height:1.45}
   .heroBar{height:6px;border-radius:99px;background:rgba(0,0,0,.28);overflow:hidden;margin-top:12px}
   .heroBar i{display:block;height:100%;border-radius:99px;background:#fff;min-width:4px;
@@ -1300,6 +1314,7 @@
   .startHome{display:grid;gap:clamp(12px,1.3vw,18px);grid-template-columns:minmax(0,1fr)}
   .startMain,.startRail{display:flex;flex-direction:column;gap:clamp(12px,1.3vw,18px);min-width:0}
   .homeHero .heroBig{font-size:clamp(40px,3vw,52px)}
+  .homeHero .metBig{font-size:clamp(28px,2.3vw,36px)}
   @media (min-width:1080px){
     .startHome{grid-template-columns:minmax(0,1fr) minmax(0,356px);align-items:start}
     #view.item.start{overflow:auto;scrollbar-width:thin}

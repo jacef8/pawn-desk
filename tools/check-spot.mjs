@@ -241,7 +241,7 @@ console.log("\n  the number says when it was struck, off the feed's own clock");
     FEED.gold=4123; FEED.silver=61; FEED.at=new Date().toISOString();
     const h=homeHeroHTML({acts:false});
     return {h, what:/heroWhat/.test(h), counter:/on the counter/i.test(h),
-            big:/heroBig/.test(h), lab:/troy ounce/i.test(h)};
+            big:/metBig/.test(h), lab:/troy oz/i.test(h)};
   });
   ok(hw.big && hw.lab, "  the home hero still renders its price and label");
   ok(!hw.what && !hw.counter,

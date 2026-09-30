@@ -996,15 +996,40 @@ function homeHeroHTML(opts){
           the blue box on home screen to say 'nothing on the counter'."
           The class stays - phone.js uses .heroWhat for the real item
           heroes, where the line names something. */""}
-    <div class="heroLab">Gold, per troy ounce</div>
-    <div class="heroBig">${gold?money(Math.round(gold)):"\u2014"}</div>
-    ${/* The phone's hero IS its header - there is no system line on a
-          field screen - so the share of melt rides here for the same
-          reason: the number that decides what leaves the till must not be
-          somewhere you have to go and look. */""}
-    <div class="heroSub">${silver?"Silver "+money(Math.round(silver*100)/100)+" \u00b7 ":""}${(()=>{
-      const g=(typeof meltPctNow==="function")?meltPctNow("gold","buy"):null;
-      return g?"buying "+g+"% of melt \u00b7 ":""; })()}${t.rows.length
+    ${/* TWO METALS, ONE SIZE, A RULE BETWEEN THEM. Gold was a 62px
+          numeral with its own label and silver was four words inside the
+          grey line underneath, next to the day's log - so the card read
+          as "the gold price, plus some notes", and one of those notes was
+          the rate the till pays. "lets make the gold and silver prices
+          the same size with a seperator. then have our buy percent
+          clearly labeled."
+          THE PERCENT NOW SITS UNDER THE METAL IT BELONGS TO, which is the
+          point rather than a layout nicety: gold targets 80% of melt and
+          silver 70%, and a single "buying 80% of melt" line under two
+          prices is exactly the mistake he was guarding against when he
+          asked for it on the card at all - "We don't need a mistake by
+          not realizing that our buy rate or percentage is set to the
+          wrong thing on a hidden window." Two prices, two rates, each
+          named.
+          Both come off meltPctNow, which divides the guarded buy by melt.
+          It is what the till will actually hand over, not the target it
+          aims at - a target printed here would be the card lying by six
+          points again. No price means no rate to state, so it says so
+          instead of falling back to the target. */""}
+    <div class="heroMet">${(()=>{
+      const cell=(metal,lab,v,dp)=>{
+        const g=(typeof meltPctNow==="function")?meltPctNow(metal,"buy"):null;
+        return `<div class="metCell"><div class="heroLab">${lab}</div>`
+          +`<div class="metBig">${v?(dp?"$"+v.toFixed(2):money(Math.round(v))):"\u2014"}</div>`
+          +(v&&g?`<div class="metBuy">Buying <b>${g}%</b> of melt</div>`
+                :`<div class="metBuy metBuyOff">Buy rate needs a price</div>`)
+          +`</div>`;
+      };
+      return cell("gold","Gold / troy oz",gold,false)
+        +`<i class="metSep" aria-hidden="true"></i>`
+        +cell("silver","Silver / troy oz",silver,true);
+    })()}</div>
+    <div class="heroSub">${t.rows.length
       ? t.rows.length+" logged today \u00b7 "+money(t.out)+" out"
       : "nothing logged yet today"}</div>
     ${/* TWO BUTTONS, BECAUSE ONE CANNOT DO BOTH RELIABLY.
@@ -4456,7 +4481,20 @@ function meltPctNow(metal,which){
     const oz=(which==="loan")
       ? Math.min(G?G.lend:spot, Math.min(spot,avg||spot))
       : Math.min(G?G.buy:spot, spot);
-    const rate=(which==="loan")?st.loanPct:st.payPct;
+    /* THE STORED RATE IS ONE NUMBER AND THERE ARE TWO METALS. On a metal
+       screen st.payPct is right - it is what the slider is set to, moved
+       or not. On the home card, where nothing has been picked, it is
+       whatever the last thing priced left behind, so gold and silver both
+       read off a rate that belongs to neither: 62% and 56% on a card
+       whose targets are 80 and 70. Untouched, take the suggestion for
+       THIS metal; touched, the counter's own number still wins, because
+       a moved slider is a decision and this must not paper over it. */
+    let rate=(which==="loan")?st.loanPct:st.payPct;
+    const touched=(typeof curTouched==="function")?curTouched():true;
+    if(!touched){
+      const sr=(typeof suggestRate==="function")?suggestRate():null;
+      if(sr&&sr.pay>0)rate=sr.pay;
+    }
     return Math.round((oz/spot)*(rate/100)*100);
   } finally { st.metal=keepM; st.deal=keepD; }
 }
@@ -10072,7 +10110,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0930.1416";
+const APP_BUILD="0930.1502";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

@@ -268,8 +268,18 @@ console.log("\n  the phone");
   /* The phone has no system line - its hero IS the header - so the share of
      melt has to ride there or the field screen becomes the hidden window
      the whole change was about. */
-  ok(/buying \d+% of melt/.test(r.hero),
-     `  and its hero says what is being paid — "${(r.hero.match(/buying[^·]*/)||["MISSING"])[0].trim()}"`);
+  /* THE OLD ASSERTION LOOKED FOR ONE RATE AND THERE ARE TWO NOW. It was
+     right about what it wanted - the field screen must say what is being
+     paid - and the wording moved under it, so it is repointed rather than
+     relaxed: it now demands a named rate under EACH metal, which is more
+     than it could ask before. A hero that dropped the rate, or printed
+     gold's rate under silver, still goes red. */
+  ok(/gold[\s\S]*?buying \d+% of melt/i.test(r.hero),
+     `  and its hero says what is being paid for gold — "${(r.hero.match(/[Bb]uying[^·]*/)||["MISSING"])[0].trim()}"`);
+  ok(/silver[\s\S]*?buying \d+% of melt/i.test(r.hero),
+     "  and separately for silver, which buys at a different rate");
+  ok((r.hero.match(/buying \d+% of melt/gi)||[]).length === 2,
+     `  two prices, two named rates — ${(r.hero.match(/buying \d+% of melt/gi)||[]).length}`);
   ok(r.got > 60, `  and lands in the same place — ${r.got}% of melt`);
   ok(perr.length === 0, "  no page errors on the phone" + (perr.length ? ": " + perr[0] : ""));
   await ph.close();
