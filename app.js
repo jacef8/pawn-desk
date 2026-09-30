@@ -8086,7 +8086,60 @@ function omniParse(q){
   for(const [re,c] of COND_RE){ if(re.test(t)){ P.cond=P.cond||c; t=t.replace(re," "); } }
   if(INCOMPLETE_RE.test(t)){ P.complete=false; t=t.replace(INCOMPLETE_RE," "); }
   const pre=findBrand(t);
-  const mh=modelHit(t,pre?pre.b.name:"");
+  let mh=modelHit(t,pre?pre.b.name:"");
+  /* A MODEL PATTERN FROM A DIFFERENT MAKER IS A DIFFERENT PRODUCT.
+     The model book is matched on the pattern, and plenty of patterns
+     collide across makers. Typing a maker the desk knows and then being
+     handed another maker's machine is not a near miss, it is the wrong
+     aisle:
+
+       "Stihl FS 56 / FS 91"      -> Yamaha FS, an ACOUSTIC GUITAR
+       "Barnett Hyper Raptor"     -> Yamaha Raptor, an ATV
+       "Neo Geo AES"              -> DJI Neo, a CAMERA DRONE
+       "Echelon EX-3"             -> Springfield Echelon, a PISTOL
+       "Brother CS7000X"          -> Echo CS, a CHAINSAW
+       "Apple Watch Series 8 / 9" -> its own ref names nothing at all
+
+     Six of the seven price-list rows the search could not reach at all,
+     and every one of them put a confident wrong item at the top of the
+     list. A string trimmer offering to be priced as a guitar is not a
+     ranking problem, it is the desk answering a question nobody asked.
+     The same rule already guards the price-list scoring a few lines down
+     ("a row carrying a maker the counter did not type is a different
+     product, so it is dropped rather than demoted"). It belongs here too,
+     one step earlier, where the wrong maker gets in. */
+  if(mh&&pre&&mh.m&&mh.m.brand&&!sameMaker(omniNorm(mh.m.brand),omniNorm(pre.b.name)))mh=null;
+  /* AND A PART IS NOT THE MACHINE IT PLUGS INTO. "ps5 controller" hit the
+     PlayStation 5 in the model book on the word ps5, and the word that said
+     which PART of a PlayStation was on the counter was never read - so the
+     desk offered to lend $100 against the $400-449 console row for a pad
+     the book prices at $35-80. Reported straight off the counter screen.
+     The rule is narrow on purpose: the query has to NAME the accessory, and
+     the model book has to have landed on something that is not it. Then the
+     hit is dropped and the price list answers for itself - it carries
+     seventeen controller rows, a DualSense among them. */
+  { const ACC=[[/\b(controllers?|gamepad|game\s*pad|joy\s*-?\s*cons?|joycons?)\b/,"Game controller"]];
+    for(const [re,ref] of ACC){
+      if(re.test(t)){
+        const item=mh?(typeof mh.m.item==="function"?mh.m.item(mh.mm):mh.m.item):null;
+        if(item!==ref){
+          /* DROPPING THE CONSOLE IS NOT ENOUGH ON ITS OWN. With the model
+             hit gone the keyword pass still scored "Game console - current
+             gen" above "Game controller" - ps5 is in the console's synonym
+             list and controller is one word against it - so the top row was
+             the console again and the measured PS5 row came with it. The
+             query named the part; the part leads. */
+          /* AND ONLY DROP IT. The first attempt also promoted the
+             generic "Game controller" entry to the top, which was worse
+             than the bug: it led with a $30 shelf row, resolved no
+             measured price at all, and quoted $1. Dropping the console is
+             the whole fix - the price list carries seventeen controller
+             rows with the spoken names on them now, and with the console
+             out of the way the right one leads on its own. */
+          mh=null;
+        }
+      }
+    } }
   if(mh){
     const m=mh.m, mm=mh.mm;
     P.modelItem=typeof m.item==="function"?m.item(mm):m.item;
@@ -8190,7 +8243,12 @@ function omniRows(q){
       const qb=omniNorm(P.brand||"");
       const rowBrand=r=>{ const e=findEntry(String(r[1]).split("|")[0]);
         const h=e?brandInText(e.catId,r[2]):null; return h?omniNorm(h.name):""; };
-      MODEL_PRICES.map(r=>{ const nw=omniWords(r[2]); let s=0; for(const w of keys){ const h=wordHit(w,nw); if(!h)return null; s+=h; } if(omniNorm(r[2]).indexOf(omniNorm(q))>=0)s+=5;
+      /* THE ALIAS COLUMN WAS INVISIBLE TO THE SEARCH. r[9] carries the
+         other names a row goes by, and mpAuto has always read it - but
+         this scoring pass looked at the row's NAME alone, so the words a
+         counter actually says could not reach the row. Nobody hands you a
+         "Sony DualSense"; they hand you a PS5 controller. */
+      MODEL_PRICES.map(r=>{ const nw=omniWords(r[2]).concat(omniWords(r[9]||"")); let s=0; for(const w of keys){ const h=wordHit(w,nw); if(!h)return null; s+=h; } if(omniNorm(r[2]).indexOf(omniNorm(q))>=0)s+=5;
           if(qb){ const rb=rowBrand(r);
             if(rb&&!sameMaker(rb,qb))return null;
             if(rb)s+=6; }
@@ -8198,6 +8256,55 @@ function omniRows(q){
         .filter(Boolean).sort((a,b)=>b.s-a.s||a.r[2].length-b.r[2].length).slice(0,5)
         .forEach(({r})=>{ if(rows.length>=OMNI_MAX||r[0]===strongId)return; const e=findEntry(String(r[1]).split("|")[0]); if(!e)return;
           rows.push(Object.assign({},e,{kind:"mp",base:e.kind,mp:r,brand:"",model:"",detail:"",spec:{},cond:P.cond,complete:P.complete}));   strong=true; });
+      /* THE EXACT ROW GOES ABOVE THE AISLE IT LIVES IN.
+         A MODELBOOK hit is added first and marked strong, which is right
+         when the words name a KIND of thing and wrong when they name a
+         particular one. "xbox wireless controller" hits the Xbox entry in
+         the model book, so "Game console - current gen" led the list and
+         the measured controller row - $17-49 - sat underneath it. Take the
+         top row and the desk offers to lend $45 on a $25 controller. Same
+         shape on "ps5 controller", which reaches the console at $190.
+         Swept all 507 rows through the search: 105 of them had the right
+         answer sitting at number two, under the band they belong to.
+         The test is the whole query, not a word of it: a price-list row
+         whose name CONTAINS everything that was typed is a more exact
+         answer than the aisle, every time, because the counter typed the
+         thing's name. A row that merely shares words with the query is
+         left where it was - "xbox" alone should still open the aisle. */
+      /* AND THE CLOSEST OF THEM, NOT THE FIRST ONE FOUND. The first pass
+         at this took whichever containing row came up first, so typing
+         "iPhone 15" was answered with the iPhone 15 Pro - a row that also
+         contains "iphone 15" and is a different phone at a different
+         price. Exact name first, then the shortest row that contains
+         everything typed, which is the least the counter can have meant. */
+      const qn=omniNorm(q);
+      if(qn.length>=4){
+        let best=-1,bestKey=null;
+        rows.forEach((r,i)=>{
+          if(r.kind!=="mp"||!r.mp)return;
+          const rn=omniNorm(r.mp[2]);
+          if(rn.indexOf(qn)<0)return;
+          const key=[rn===qn?0:1, rn.length];
+          if(!bestKey||key[0]<bestKey[0]||(key[0]===bestKey[0]&&key[1]<bestKey[1])){ best=i; bestKey=key; }
+        });
+        if(best>0&&!(rows[0].kind==="mp"&&rows[0].mp&&omniNorm(rows[0].mp[2])===qn))
+          rows.unshift(rows.splice(best,1)[0]);
+        /* AND THE ONE ROW THAT IS NEVER IN THIS LIST IS THE EXACT MATCH.
+           A row the strong item already resolves to is left out on purpose
+           (strongId) so the list does not show the same answer twice - but
+           that is the row that exactly names what was typed. So "iPhone 15"
+           had the 15 Pro on top, "Nintendo Switch" had the Switch 2, and
+           "PlayStation 4" had the PS4 Pro: a longer, dearer variant leading
+           for a query that named the plain one. The strong item IS that
+           answer, so it goes first. */
+        if(strongId){
+          const sr=MP_BY_ID&&MP_BY_ID[strongId];
+          if(sr&&omniNorm(sr[2])===qn){
+            const si=rows.findIndex(r=>r.strong);
+            if(si>0)rows.unshift(rows.splice(si,1)[0]);
+          }
+        }
+      }
     } }
   const inBrand=e=>P.brandCats.some(c=>c.cat===e.catId&&(!c.items||c.items.indexOf(e.kind==="item"?e.itemId:e.name)>=0));
   if(P.words.length){
@@ -8266,7 +8373,17 @@ function omniRows(q){
       const placed=omniWords(P.detail.join(" ")+" "+Object.values(P.spec||{}).join(" "));
       const need=omniWords(q).filter(w=>!STOP.has(w)&&bw.indexOf(w)<0&&placed.indexOf(w)<0);
       const top=sc.slice().sort((a,b)=>b.s-a.s)[0].e;
-      strong=!!P.modelLabel||!need.length||need.every(w=>wordHit(w,top.words));
+      /* OR, NOT ASSIGN. This line used to overwrite `strong`, and `strong`
+         had already been set true a few lines up by a measured price-list
+         row matching the query - which is the strongest thing that can
+         happen in this function. So typing "Beats Solo 3", a model the book
+         carries at $34-55, recomputed strong from the loose keyword pass,
+         got false, and put "not on the lists" at the top of the list with
+         the measured row underneath it. Taking the top row then priced a
+         pair of headphones as "Something else" at $15.
+         Whatever this pass decides about ITS matches cannot unmake a row
+         the book measured. */
+      strong=strong||!!P.modelLabel||!need.length||need.every(w=>wordHit(w,top.words));
     }
     else OMNI_IDX.forEach(e=>{ const s=score(e,false); if(s)sc.push({e,s:s+(inBrand(e)?3:0)}); });
     sc.sort((a,b)=>b.s-a.s||a.e.name.length-b.e.name.length).forEach(x=>add(x.e));
@@ -9356,7 +9473,7 @@ let MODEL_PRICES=[
  ["e27a","Camera drone","DJI Mini 3",330,420,"l","2026-09-19","https://swappa.com/drones/price/dji-mini-3","Fly More combo adds"],
  ["e27b","Camera drone","DJI Mini 4 Pro",690,850,"l","2026-09-19","https://swappa.com/drones/price/dji-mini-4-pro","Fly More combo adds"],
  ["e28","VR headset","Meta Quest 3",170,330,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Meta%20Quest%203&LH_Sold=1&LH_Complete=1","23 eBay sales in the last 90 days",""],
- ["e29","Smart watch","Apple Watch Series 8 / 9",120,190,"m","2026-09-19","https://swappa.com/prices/apple-watch-series-9-45mm","Battery health; 45mm adds"],
+ ["e29","j2","Apple Watch Series 8 / 9",120,190,"m","2026-09-19","https://swappa.com/prices/apple-watch-series-9-45mm","Battery health; 45mm adds"],
  ["f1","r2","Honda Rancher 420",3800,5400,"m","2026-09-19","https://www.jdpower.com/motorcycles/2020/honda/trx420fm1-ft-rnchr-4x4-420cc/values","Newer years and EPS/DCT trims on top"],
  ["f2","r2","Honda Foreman 520",4200,5900,"m","2026-09-19","https://www.jdpower.com/motorcycles/2020/honda/trx520fm1-ft-frmn-4x4-518cc/values","EPS and low hours add"],
  ["f3","r2","Polaris Sportsman 570",3600,5200,"m","2026-09-19","https://www.jdpower.com/motorcycles/2020/polaris/sportsman-570-567cc/values","EPS and Premium trims add"],
@@ -9385,12 +9502,12 @@ let MODEL_PRICES=[
  ["h26","Wireless earbuds","Apple AirPods 4",60,108,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Apple%20AirPods%204&LH_Sold=1&LH_Complete=1","12 eBay sales in the last 90 days",""],
  ["h28","Wireless earbuds","Apple AirPods Pro",50,97,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Apple%20AirPods%20Pro&LH_Sold=1&LH_Complete=1","10 eBay sales in the last 90 days",""],
  ["h30","Wireless earbuds","Apple AirPods Pro 2",60,80,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Apple%20AirPods%20Pro%202&LH_Sold=1&LH_Complete=1","7 eBay sales in the last 90 days",""],
- ["h32","Game controller","Xbox Wireless Controller Series X|S",17,49,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Xbox%20Wireless%20Controller%20Series%20X%7CS&LH_Sold=1&LH_Complete=1","17 eBay sales in the last 90 days",""],
- ["h34","Game controller","Xbox Elite Series 2",40,65,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Xbox%20Elite%20Series%202&LH_Sold=1&LH_Complete=1","11 eBay sales in the last 90 days",""],
- ["h36","Game controller","Xbox Elite Series 2 Core",45,68,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Xbox%20Elite%20Series%202%20Core&LH_Sold=1&LH_Complete=1","10 eBay sales in the last 90 days",""],
- ["h38","Game controller","Xbox One Wireless Controller",15,26,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Xbox%20One%20Wireless%20Controller&LH_Sold=1&LH_Complete=1","22 eBay sales in the last 90 days",""],
- ["h40","Game controller","Sony DualSense",35,80,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Sony%20DualSense&LH_Sold=1&LH_Complete=1","15 eBay sales in the last 90 days",""],
- ["h42","Game controller","Sony DualSense Edge",89,140,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Sony%20DualSense%20Edge&LH_Sold=1&LH_Complete=1","14 eBay sales in the last 90 days",""],
+ ["h32","Game controller","Xbox Wireless Controller Series X|S",17,49,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Xbox%20Wireless%20Controller%20Series%20X%7CS&LH_Sold=1&LH_Complete=1","17 eBay sales in the last 90 days","xbox series x s controller"],
+ ["h34","Game controller","Xbox Elite Series 2",40,65,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Xbox%20Elite%20Series%202&LH_Sold=1&LH_Complete=1","11 eBay sales in the last 90 days","xbox elite controller"],
+ ["h36","Game controller","Xbox Elite Series 2 Core",45,68,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Xbox%20Elite%20Series%202%20Core&LH_Sold=1&LH_Complete=1","10 eBay sales in the last 90 days","xbox elite core controller"],
+ ["h38","Game controller","Xbox One Wireless Controller",15,26,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Xbox%20One%20Wireless%20Controller&LH_Sold=1&LH_Complete=1","22 eBay sales in the last 90 days","xbox one controller"],
+ ["h40","Game controller","Sony DualSense",35,80,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Sony%20DualSense&LH_Sold=1&LH_Complete=1","15 eBay sales in the last 90 days","ps5 playstation 5 controller dual sense"],
+ ["h42","Game controller","Sony DualSense Edge",89,140,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Sony%20DualSense%20Edge&LH_Sold=1&LH_Complete=1","14 eBay sales in the last 90 days","ps5 playstation 5 controller dual sense edge pro"],
  ["h44","Headphones — over-ear","Bose 700",78,90,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Bose%20700&LH_Sold=1&LH_Complete=1","9 eBay sales in the last 90 days",""],
  ["h46","Headphones — over-ear","Beats Studio3",30,60,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Beats%20Studio3&LH_Sold=1&LH_Complete=1","19 eBay sales in the last 90 days",""],
  ["h48","Headphones — over-ear","Beats Studio Pro",60,79,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Beats%20Studio%20Pro&LH_Sold=1&LH_Complete=1","13 eBay sales in the last 90 days",""],
@@ -9428,10 +9545,10 @@ let MODEL_PRICES=[
  ["h112","Wireless earbuds","Anker Soundcore Life P3",29,40,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Anker%20Soundcore%20Life%20P3&LH_Sold=1&LH_Complete=1","7 eBay sales in the last 90 days",""],
  ["h114","Wireless earbuds","Skullcandy Indy Evo",15,20,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Skullcandy%20Indy%20Evo&LH_Sold=1&LH_Complete=1","11 eBay sales in the last 90 days",""],
  ["h116","Wireless earbuds","Raycon Everyday",33,40,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Raycon%20Everyday&LH_Sold=1&LH_Complete=1","16 eBay sales in the last 90 days",""],
- ["h118","Game controller","Sony DualShock 4",15,35,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Sony%20DualShock%204&LH_Sold=1&LH_Complete=1","22 eBay sales in the last 90 days",""],
- ["h120","Game controller","Nintendo Switch Pro Controller",16,48,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Nintendo%20Switch%20Pro%20Controller&LH_Sold=1&LH_Complete=1","13 eBay sales in the last 90 days",""],
- ["h122","Game controller","Nintendo Joy-Con pair",25,30,"m","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Nintendo%20Joy-Con%20pair&LH_Sold=1&LH_Complete=1","5 eBay sales in the last 90 days",""],
- ["h124","Game controller","Nintendo Switch 2 Pro Controller",25,60,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Nintendo%20Switch%202%20Pro%20Controller&LH_Sold=1&LH_Complete=1","6 eBay sales in the last 90 days",""],
+ ["h118","Game controller","Sony DualShock 4",15,35,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Sony%20DualShock%204&LH_Sold=1&LH_Complete=1","22 eBay sales in the last 90 days","ps4 playstation 4 controller dual shock"],
+ ["h120","Game controller","Nintendo Switch Pro Controller",16,48,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Nintendo%20Switch%20Pro%20Controller&LH_Sold=1&LH_Complete=1","13 eBay sales in the last 90 days","switch pro controller nintendo"],
+ ["h122","Game controller","Nintendo Joy-Con pair",25,30,"m","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Nintendo%20Joy-Con%20pair&LH_Sold=1&LH_Complete=1","5 eBay sales in the last 90 days","switch joycon joy con nintendo"],
+ ["h124","Game controller","Nintendo Switch 2 Pro Controller",25,60,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Nintendo%20Switch%202%20Pro%20Controller&LH_Sold=1&LH_Complete=1","6 eBay sales in the last 90 days","switch 2 pro controller nintendo"],
  ["h126","Game controller","8BitDo Pro 2",20,30,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=8BitDo%20Pro%202&LH_Sold=1&LH_Complete=1","12 eBay sales in the last 90 days",""],
  ["h128","Game controller","8BitDo Ultimate",18,34,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=8BitDo%20Ultimate&LH_Sold=1&LH_Complete=1","13 eBay sales in the last 90 days",""],
  ["h130","Game controller","Scuf Instinct Pro",46,80,"h","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Scuf%20Instinct%20Pro&LH_Sold=1&LH_Complete=1","17 eBay sales in the last 90 days",""],
@@ -10216,7 +10333,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0930.1812";
+const APP_BUILD="0930.2054";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

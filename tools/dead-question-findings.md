@@ -81,3 +81,77 @@ without proving that is how a dead question gets written down as intentional.
 - 130 book rows do not drive a price at all under a bare pick (no matching
   item ref, or the row is filed under a band the pick does not land on).
   Not investigated here.
+
+---
+
+# The reachability sweep — 30 Sep 2026
+
+"do the whole set."
+
+A measured price nobody can reach is worse than no price: the desk quotes
+something else with the same confidence. So: type each price-list row's own
+name into the search box, take the FIRST result — what the counter takes,
+and what Enter takes — and see where it lands.
+
+**112 of 507 did not land on themselves.**
+
+| you type | the desk offered | the book says |
+|---|---|---|
+| ps5 controller | the PS5 console, lend $100 | a DualSense is $35–80 |
+| hp omen 16 | "Something else", lend $15 | $450–1,450 |
+| Stihl FS 56 | an **acoustic guitar** | a string trimmer, $110–215 |
+| Barnett Hyper Raptor | an **ATV** | a crossbow, $375–500 |
+| Neo Geo AES | a **camera drone** | $600–850 |
+| Echelon EX-3 | a **semi-auto pistol** | an exercise bike, $250–500 |
+| Brother CS7000X | a **chainsaw** | a sewing machine, $150–200 |
+| TaylorMade M4 iron set | an **AR-15**, lend $220 | golf clubs, $349–360 |
+| Beats Solo 3 | "not on the lists", $15 | $34–55 |
+| Razer Wolverine V2 | "Something else", lend $1,680 | a controller, $20–60 |
+
+## Four causes
+
+1. **A keyword pass that overwrote a measured match.** `omniRows` set
+   `strong=true` when a price-list row matched the query, then a later line
+   *reassigned* `strong` from the loose keyword pass instead of OR-ing it. A
+   measured row matching is the strongest thing that can happen in that
+   function, and it was being thrown away — which is why "Beats Solo 3" put
+   "not on the lists" on top with the measured row underneath. **91 rows.**
+2. **The aisle band outranking the exact row inside it.** A MODELBOOK hit is
+   added first and marked strong, which is right when the words name a KIND
+   of thing and wrong when they name a particular one. **~14 rows**, plus
+   every variant: "iPhone 15" led with the 15 Pro, "Nintendo Switch" with
+   the Switch 2, "PlayStation 4" with the PS4 Pro — a longer, dearer machine
+   answering for the plain one.
+3. **A model pattern from a different maker.** Yamaha makes an FS (guitar)
+   and a Raptor (ATV); DJI makes a Neo; Springfield makes an Echelon; Echo
+   makes a CS chainsaw. Each collided with a different maker's model and won.
+   The same rule already guarded the price-list scoring — "a row carrying a
+   maker the counter did not type is a different product" — it just was not
+   applied one step earlier, where the wrong maker gets in. **6 rows**, and
+   every one of them put a confident wrong item at the top of the list.
+4. **A part priced as the machine it plugs into.** "ps5 controller" hit the
+   PlayStation 5 on the word ps5 and the word saying which PART was never
+   read. Fixed by dropping the machine when the query names the part — and
+   by wiring the alias column (`r[9]`) into the search scoring, which has
+   always existed and which the search had never read. Nobody hands you a
+   "Sony DualSense"; they hand you a PS5 controller.
+
+Plus one data bug: `e29` was filed under "Smart watch", which is not an
+aisle the app has. One broken filing in 518.
+
+**After: 507 of 507 land on their own row as the first result.**
+
+## What I got wrong on the way
+
+- My first accessory fix also promoted the generic "Game controller" shelf
+  row to the top. That was worse than the bug: it led with a $30 row,
+  resolved no measured price at all and quoted $1. Dropping the console is
+  the whole fix.
+- I broke the accessory regex myself writing it — `\b` in a Python patch
+  string became a literal backspace character, so the pattern could never
+  match and I spent four probes hunting a phantom. Scanned every file
+  afterwards: no other damage.
+- Two assertions in `check-reach.mjs` passed on the broken build, so they
+  did not hold their fix; replaced with a count taken across all 507 rows.
+  One of those counts has still never gone red, so it is reported as
+  evidence rather than as a green tick of its own.
