@@ -796,7 +796,7 @@ function pawnCharge(p){ return Math.max(5,Math.floor((Number(p)||0)*pawnPct()/10
 /* ---------------- state ---------------- */
 const KEY="pawndesk:web:v1";
 let st={mode:"item",catId:"guns",itemId:"g1",picked:false,needItem:false,askFrom:null,cond:"good",brand:"mid",complete:true,completeSet:false,struck:"",struckKind:"loan",liq:null,brandTyped:"",model:"",detail:"",specSel:{},
-        overrides:{},bookVals:{},modelVals:{},ltvs:{},buys:{},buyFloor:25,buyMult:2,pawnPct:25,pawnSet:false,spotHold:null,payPct:70,payTouched:false,loanPct:48,loanTouched:false,editing:false,
+        overrides:{},bookVals:{},modelVals:{},ltvs:{},buys:{},buyFloor:25,buyMult:2,pawnPct:25,pawnSet:false,spotHold:null,meltTgt:null,payPct:70,payTouched:false,loanPct:48,loanTouched:false,editing:false,
         manual:null, /* {date, spot:{gold,silver}, avg90:{gold,silver}} — a same-day hand edit beats the feed */
         deal:"buy",metal:"gold",karat:"14k",grams:"",whyOpen:false,photoRead:null,bookQ:"",bookName:""};
 try{
@@ -819,7 +819,10 @@ try{
             feed brings new numbers, so the rate goes back to following them. */
          if(s.payDate===FEED.date && typeof s.payPct==="number"){ st.payPct=s.payPct; st.payTouched=!!s.payTouched; }
          if(s.payDate===FEED.date && typeof s.loanPct==="number"){ st.loanPct=s.loanPct; st.loanTouched=!!s.loanTouched; }
-         if(s.manual && s.manual.date===FEED.date) st.manual=s.manual; }
+         if(s.manual && s.manual.date===FEED.date) st.manual=s.manual;
+         /* The target is shop policy, not a same-day edit, so unlike the
+            rate it survives tomorrow's feed. */
+         if(s.meltTgt && typeof s.meltTgt==="object") st.meltTgt=s.meltTgt; }
 }catch(e){}
 /* The catalog's first item is only a fallback so the math always has something
    to hold — it is not a choice the clerk made. Nothing counts as chosen until
@@ -834,7 +837,7 @@ function persist(){
     localStorage.setItem(KEY,JSON.stringify({overrides:st.overrides,ltvs:st.ltvs,buys:st.buys,
       bookVals:st.bookVals,modelVals:st.modelVals,
       buyFloor:st.buyFloor,buyMult:st.buyMult,pawnPct:st.pawnPct,pawnSet:st.pawnSet,payPct:st.payPct,flow:st.flow,
-      payTouched:st.payTouched,loanPct:st.loanPct,loanTouched:st.loanTouched,payDate:FEED.date,manual:st.manual}));
+      payTouched:st.payTouched,loanPct:st.loanPct,loanTouched:st.loanTouched,payDate:FEED.date,manual:st.manual,meltTgt:st.meltTgt}));
     flashSave("Saved");
   }catch(e){ flashSave("Couldn't save"); }
 }
@@ -972,7 +975,13 @@ function homeHeroHTML(opts){
     <div class="heroWhat">Nothing on the counter</div>
     <div class="heroLab">Gold, per troy ounce${feedClock()?" · "+esc(feedClock()):""}</div>
     <div class="heroBig">${gold?money(Math.round(gold)):"\u2014"}</div>
-    <div class="heroSub">${silver?"Silver "+money(Math.round(silver*100)/100)+" \u00b7 ":""}${t.rows.length
+    ${/* The phone's hero IS its header - there is no system line on a
+          field screen - so the share of melt rides here for the same
+          reason: the number that decides what leaves the till must not be
+          somewhere you have to go and look. */""}
+    <div class="heroSub">${silver?"Silver "+money(Math.round(silver*100)/100)+" \u00b7 ":""}${(()=>{
+      const g=(typeof meltPctNow==="function")?meltPctNow("gold","buy"):null;
+      return g?"buying "+g+"% of melt \u00b7 ":""; })()}${t.rows.length
       ? t.rows.length+" logged today \u00b7 "+money(t.out)+" out"
       : "nothing logged yet today"}</div>
     ${o.acts===false?"":`<div class="acts one">
@@ -4361,6 +4370,52 @@ function wireItem(){
    buried, so moving them later is one number instead of an archaeology
    expedition. */
 const MELT_TARGET={gold:{buy:80,loan:42}, silver:{buy:70,loan:37}};
+/* AND IT IS SETTABLE AT THE COUNTER. "Can I set it inside the tool or do I
+   have to come back here?" He should never have to come back here for a
+   number that is shop policy - the pawn rate, the buy floor and the
+   multiple are all set on the counter and this is the same kind of thing.
+   MELT_TARGET above is the shipped default; st.meltTgt is what this device
+   is actually using, and it persists like the other rates.
+   NOT put on the Setup tab, deliberately. "We don't need a mistake by not
+   realizing that our bid rate or percentage is set to the wrong thing on a
+   hidden window" - a number that decides what leaves the till does not
+   belong behind a tab nobody opens. It sits on the gold page beside the
+   slider it drives, and what it currently delivers is in the header on
+   every screen. */
+function meltTarget(metal,which){
+  const d=(MELT_TARGET[metal]||MELT_TARGET.gold)[which];
+  const v=st.meltTgt&&st.meltTgt[metal]&&st.meltTgt[metal][which];
+  return (v>0)?v:d;
+}
+function setMeltTarget(metal,which,v){
+  const n=Math.max(30,Math.min(100,Math.round(Number(v)||0)));
+  if(!st.meltTgt)st.meltTgt={};
+  if(!st.meltTgt[metal])st.meltTgt[metal]={};
+  st.meltTgt[metal][which]=n;
+  /* The rate follows the target unless the counter has dragged the slider
+     for today; moving the target IS setting the rate, so the hand-set flag
+     is cleared and the slider re-derives. */
+  if(which==="buy")st.payTouched=false; else st.loanTouched=false;
+  syncPay(); persist();
+  return n;
+}
+/* The share of melt that goes out the door RIGHT NOW, with no item on the
+   counter. buy/melt is (buyOz/spot) x rate - the grams and the karat
+   cancel - so the header can say it without anything being weighed. */
+function meltPctNow(metal,which){
+  const keepM=st.metal, keepD=st.deal;
+  try{
+    st.metal=metal; st.deal=(which==="loan")?"pawn":"buy";
+    const spot=spotOf(metal); if(!(spot>0))return null;
+    const G=(typeof metalGuard==="function")?metalGuard(metal):null;
+    const avg=avgOf(metal);
+    const oz=(which==="loan")
+      ? Math.min(G?G.lend:spot, Math.min(spot,avg||spot))
+      : Math.min(G?G.buy:spot, spot);
+    const rate=(which==="loan")?st.loanPct:st.payPct;
+    return Math.round((oz/spot)*(rate/100)*100);
+  } finally { st.metal=keepM; st.deal=keepD; }
+}
 /* The measured cut for a hold of the right length, by today's conditions.
    buy = 30 calendar days, because s. 539.001(9)(c) makes it 30 whatever the
    refiner could do; loan = 60, because a pawn is 30 to maturity and 30 more
@@ -4404,7 +4459,7 @@ function meltCut(metal,band,which){
 function suggestPay(){
   const metal=st.metal, S=metalState(metal);
   const T=(typeof metalTrend==="function")?metalTrend(metal):null;
-  const tgt=(MELT_TARGET[metal]||MELT_TARGET.gold).buy;
+  const tgt=meltTarget(metal,"buy");
   const nc=meltCut(metal,"normal","buy");
   const base=nc>0?tgt/(1-nc/100):tgt;
   const band=S?S.band:"normal";
@@ -4432,7 +4487,7 @@ function suggestRate(){
      lending is untouched by the buy-side change and moves only when
      somebody moves it on purpose. */
   const metal=st.metal, S=metalState(metal);
-  const tgt=(MELT_TARGET[metal]||MELT_TARGET.gold).loan;
+  const tgt=meltTarget(metal,"loan");
   const nc=meltCut(metal,"normal","loan");
   const base=nc>0?tgt/(1-nc/100):tgt;
   const todayCut=meltCut(metal,S?S.band:"normal","loan");
@@ -4496,6 +4551,8 @@ function suggestHTML(){
     <span style="color:var(--accent);font-family:var(--mono);font-weight:600">Suggested today: ${s.pay}%</span> — ${s.why}.
     ${match?`<span style="color:var(--ink-2)"> ${curTouched()?"You're on it.":"Filled in for you \u2014 drag the slider to set your own for today."}</span>`
       :`<button id="useSuggest" class="ghostBtn" style="padding:5px 12px;font-size:11.5px;margin-left:8px">Use ${s.pay}%</button>`}
+    <div class="rateRow" style="margin-top:12px"><span class="label">What you aim to pay, as a share of melt (%)</span><input id="meltTgtNum" class="numIn rateNum" type="number" inputmode="numeric" min="30" max="100" value="${meltTarget(st.metal,PAWN()?"loan":"buy")}"></div>
+    <div class="cardHint" style="font-size:12.5px">Shop policy, set here and kept \u2014 it does not reset tomorrow. The trade puts a walk-in counter at 75\u201385% of melt on a gold buy; a mail-in refiner pays 85\u201395% and holds nothing for 30 days.</div>
     ${meltLadderHTML()}
   </div>`;
 }
@@ -5146,6 +5203,8 @@ function wireMetal(){
   const aIn=document.getElementById("avgIn");
   aIn.oninput=()=>{makeManual();st.manual.avg90[st.metal]=parseFloat(aIn.value)||0;upd();};
   aIn.onblur=()=>persist();
+  const mt=document.getElementById("meltTgtNum");
+  if(mt)mt.onchange=()=>{ mt.value=setMeltTarget(st.metal,PAWN()?"loan":"buy",mt.value); upd(); };
   const rq=document.getElementById("reQuote");
   if(rq)rq.onclick=()=>{ releaseSpot(); holdSpot(); upd(); };
   const gIn=document.getElementById("gramsIn");
@@ -9899,7 +9958,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0930.0512";
+const APP_BUILD="0930.0618";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -11562,7 +11621,16 @@ function render(){
   /* Short enough to sit on the same row as the title and the tabs. It used
      to wrap onto a second row, which left a gap beside the title and another
      beside itself. The green dot already says SYS.OK, so the words went. */
-  if(sy)sy.textContent=fmtDay(FEED.date)+(feedClock()?" "+feedClock():"")+" · Gold $"+Math.round(FEED.gold).toLocaleString("en-US")+" · Silver $"+Number(FEED.silver).toFixed(2)
+  /* "We don't need a mistake by not realizing that our bid rate or
+     percentage is set to the wrong thing on a hidden window." So the share
+     of melt actually going out the door rides in the header, on every
+     screen, beside the price it comes off - not only on the gold tab where
+     you see it if you go looking, and certainly not on Setup where nobody
+     goes. The grams and the karat cancel out of buy/melt, so it can be
+     said with nothing on the scale. */
+  if(sy)sy.textContent=fmtDay(FEED.date)+(feedClock()?" "+feedClock():"")+" · Gold $"+Math.round(FEED.gold).toLocaleString("en-US")
+    +((typeof meltPctNow==="function"&&meltPctNow("gold","buy"))?" · buying "+meltPctNow("gold","buy")+"% of melt":"")
+    +" · Silver $"+Number(FEED.silver).toFixed(2)
     +(BUILD?" · build "+BUILD+(st.newBuild?" (old — "+st.newBuild+" is out)":""):"");
   if(st.mode==="item"){dealGuard();recordGuard();v.innerHTML=renderItem();wireItem();}
   else if(st.mode==="metal"){v.innerHTML=renderMetal();wireMetal();}

@@ -200,6 +200,56 @@ console.log("\n  and you can see every rung");
   ok(r.rows >= 4, `  ${r.rows} rungs, each one nameable if it looks wrong`);
 }
 
+console.log("\n  he can set it himself, and cannot miss what it is set to");
+{
+  /* "Can I set it inside the tool or do I have to come back here?" He
+     should never have to come back for a number that is shop policy. And:
+     "We don't need a mistake by not realizing that our bid rate or
+     percentage is set to the wrong thing on a hidden window." */
+  const r = await page.evaluate(() => {
+    st.mode="metal"; st.metal="gold"; st.deal="buy"; st.grams="10";
+    st.manual=null; st.spotHold=null; st.meltTgt=null; st.payTouched=false;
+    syncPay(); render();
+    const onPage = !!document.getElementById("meltTgtNum");
+    const dflt = meltTarget("gold","buy");
+    const at80 = meltPctNow("gold","buy");
+    setMeltTarget("gold","buy",85);
+    const at85 = meltPctNow("gold","buy");
+    setMeltTarget("gold","buy",70);
+    const at70 = meltPctNow("gold","buy");
+    /* Bounds, because a typo in a box that decides the till should not be
+       able to set the shop to 900%. */
+    setMeltTarget("gold","buy",900); const hi = meltTarget("gold","buy");
+    setMeltTarget("gold","buy",1);   const lo = meltTarget("gold","buy");
+    setMeltTarget("gold","buy",83);
+    const saved = JSON.parse(localStorage.getItem("pawndesk:web:v1") || "{}");
+    st.meltTgt = null; persist(); syncPay();
+    return {onPage, dflt, at80, at85, at70, hi, lo, saved: saved.meltTgt};
+  });
+  ok(r.onPage, "  the target is a box on the gold page, beside the slider it drives");
+  ok(r.dflt === 80, `  shipping default is 80 — ${r.dflt}`);
+  ok(r.at85 > r.at80 && r.at80 > r.at70,
+     `  and moving it moves the money — 70%→${r.at70}, 80%→${r.at80}, 85%→${r.at85} of melt`);
+  ok(r.hi === 100 && r.lo === 30, `  a fat-fingered entry is clamped — 900 gave ${r.hi}, 1 gave ${r.lo}`);
+  ok(r.saved && r.saved.gold && r.saved.gold.buy === 83,
+     `  and it is kept on the device, not re-typed every morning — ${JSON.stringify(r.saved)}`);
+
+  /* IN THE HEADER, ON EVERY SCREEN. Not the gold tab, not Setup. */
+  const h = await page.evaluate(() => {
+    const out = {};
+    for (const mode of ["item","metal","log","setup"]) {
+      st.mode = mode; render();
+      const el = document.getElementById("sysline");
+      out[mode] = el ? el.textContent.replace(/\s+/g," ").trim() : "";
+    }
+    st.mode = "item"; render();
+    return out;
+  });
+  for (const mode of ["item","metal","log","setup"])
+    ok(/buying \d+% of melt/.test(h[mode]),
+       `  the ${mode} screen's header says what you are paying — "${(h[mode].match(/buying[^·]*/)||["MISSING"])[0].trim()}"`);
+}
+
 console.log("\n  the phone");
 {
   const ph = await browser.newPage({viewport:{width:390, height:844}});
@@ -210,9 +260,16 @@ console.log("\n  the phone");
     st.mode="metal"; st.metal="gold"; st.karat="14k"; st.grams="10"; st.deal="buy";
     st.manual=null; st.spotHold=null; st.payTouched=false; syncPay();
     const m = calcMetal();
-    return {target: suggestPay().target, got: Math.round(m.buy / m.melt * 100)};
+    const d=document.createElement("div"); d.innerHTML=homeHeroHTML({acts:false});
+    return {target: suggestPay().target, got: Math.round(m.buy / m.melt * 100),
+            hero: d.textContent.replace(/\s+/g," ")};
   });
   ok(r.target === 80, `  the field screen aims at the same 80% — ${r.target}`);
+  /* The phone has no system line - its hero IS the header - so the share of
+     melt has to ride there or the field screen becomes the hidden window
+     the whole change was about. */
+  ok(/buying \d+% of melt/.test(r.hero),
+     `  and its hero says what is being paid — "${(r.hero.match(/buying[^·]*/)||["MISSING"])[0].trim()}"`);
   ok(r.got > 60, `  and lands in the same place — ${r.got}% of melt`);
   ok(perr.length === 0, "  no page errors on the phone" + (perr.length ? ": " + perr[0] : ""));
   await ph.close();
