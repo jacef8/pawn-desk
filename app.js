@@ -1029,9 +1029,6 @@ function homeHeroHTML(opts){
         +`<i class="metSep" aria-hidden="true"></i>`
         +cell("silver","Silver / troy oz",silver,true);
     })()}</div>
-    <div class="heroSub">${t.rows.length
-      ? t.rows.length+" logged today \u00b7 "+money(t.out)+" out"
-      : "nothing logged yet today"}</div>
     ${/* TWO BUTTONS, BECAUSE ONE CANNOT DO BOTH RELIABLY.
           First it was capture="environment", which told the phone "camera
           only" and hid the gallery: "Need to be able to submit previously
@@ -1050,10 +1047,31 @@ function homeHeroHTML(opts){
       ${camOn?act("pick","Gallery",HOME_ICON.pics,true):""}
     </div>`}</div>`;
 }
+/* THE DAY'S TALLY IS NOT A METAL FACT, so it stopped living in the hero.
+   "on that section what does 'nothing logged yet today' mean?" - a fair
+   question, because the line sat directly under two spot prices and their
+   buy rates and read as though it were about them. It never was: it counts
+   rows in the deal log stamped today and totals what went out on them.
+   Out of the blue box, onto its own row, where it is the header for the
+   feed of those same rows rather than a footnote to the price of gold.
+   It is ALWAYS rendered, in both states - the feed disappears when nothing
+   has been priced, and a tally that disappeared with it would leave the
+   question "has anything happened today" answered only by absence. */
+function homeDayHTML(){
+  const t=homeToday();
+  return `<div class="dayRow"><span>Priced today</span>`
+    +(t.rows.length
+      ? `<b>${t.rows.length} deal${t.rows.length===1?"":"s"} \u00b7 ${money(t.out)} out</b>`
+      : `<b class="dayNone">Nothing yet</b>`)
+    +`</div>`;
+}
 function homeFeedHTML(limit){
   const t=homeToday(), rows=t.rows.slice(0,limit||4);
   if(!rows.length)return "";
-  return `<div class="wSect">Priced today</div>`+rows.map(d=>
+  /* The "Priced today" wSect header went with it: homeDayHTML sits
+     immediately above this on both surfaces and says the same thing with
+     the money on it, so keeping both was one label printed twice. */
+  return rows.map(d=>
     `<div class="wRow"><i><svg viewBox="0 0 24 24" aria-hidden="true">${HOME_ICON.tag}</svg></i>
       <div class="t"><b>${esc([d.brand,d.model,d.itemName].filter(Boolean).join(" "))||"Item"}</b>
         <span>${esc(d.catLabel||"")}${d.ticket?" \u00b7 #"+esc(d.ticket):""}</span></div>
@@ -4018,6 +4036,7 @@ function renderItem(){
     </div>
     <div class="startRail">
       ${homeHeroHTML({snapLabel:"Photo",acts:false})}
+      ${homeDayHTML()}
       ${homeFeedHTML(5)}
       ${left.replace('<div class="colL">','<div class="startCol">')
             .replace(/<details class="browse"[\s\S]*?<\/details>/,"")}
@@ -10110,7 +10129,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0930.1502";
+const APP_BUILD="0930.1544";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

@@ -1098,6 +1098,16 @@
   .metBuy{font:600 12.5px var(--sans);color:var(--on-hero-2);margin-top:8px;line-height:1.3}
   .metBuy b{font-weight:800;color:var(--on-hero)}
   .metBuyOff{opacity:.76}
+  /* THE DAY'S TALLY, OUTSIDE THE BLUE BOX. Inside it, under two spot
+     prices, "nothing logged yet today" read as a statement about the
+     metals. Out here it is plainly the log's own line, and it doubles as
+     the header for the rows underneath. */
+  .dayRow{display:flex;align-items:baseline;justify-content:space-between;gap:12px;
+    margin-top:14px;padding-bottom:7px;border-bottom:1px solid var(--line)}
+  .dayRow span{font:500 11px var(--mono);letter-spacing:.16em;text-transform:uppercase;
+    color:var(--ink-3)}
+  .dayRow b{font:700 13.5px var(--sans);color:var(--ink);font-variant-numeric:tabular-nums}
+  .dayRow b.dayNone{font-weight:500;color:var(--ink-3)}
   .heroSub{font:500 13.5px var(--sans);color:var(--on-hero-2);margin-top:6px;line-height:1.45}
   .heroBar{height:6px;border-radius:99px;background:rgba(0,0,0,.28);overflow:hidden;margin-top:12px}
   .heroBar i{display:block;height:100%;border-radius:99px;background:#fff;min-width:4px;

@@ -467,6 +467,7 @@ function snapHTML(){
       ${homeHeroHTML({})}
       ${un?snapHelpHTML(un):""}
       ${omniHTML()}
+      ${(typeof homeDayHTML==="function")?homeDayHTML():""}
       ${t.rows.length?homeFeedHTML(4)
         :(camOn?`<div class="snapTip">Fill the frame \u2014 a model plate or a label beats the whole object in shot.</div>`:"")}
       ${camOn?`<div class="snapCam start">

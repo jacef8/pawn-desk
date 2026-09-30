@@ -248,6 +248,60 @@ console.log("\n  the number says when it was struck, off the feed's own clock");
      "  and carries no subject line at all \u2014 no \"Nothing on the counter\"");
 }
 
+/* "on that section what does 'nothing logged yet today' mean?" It meant
+   the deal log, and nothing at all about the two prices it was sitting
+   directly beneath - which is why it had to be asked. The tally is out of
+   the hero now and on its own row underneath, where it is also the feed's
+   header.
+   Asserted on the RENDERED PAGE rather than on the function's string,
+   because "outside the blue box" is a fact about where the element lands
+   in the document: .closest(".hero") is the whole question, and a version
+   that put the row back inside would still return the right words. */
+console.log("\n  the day's tally sits outside the hero, and says what it counts");
+{
+  /* A FRESH PAGE, BECAUSE THE BLOCKS ABOVE LEAVE THIS ONE MID-ITEM. The
+     first run of this found .dayRow missing and TWO OF THE FIVE
+     ASSERTIONS PASSED ANYWAY - "the hero says nothing about the day"
+     and "the feed does not label itself twice" are both true of a page
+     with no home card on it at all. That is the green tick that means
+     nothing, for the fifth time in this project. The guard is the first
+     assertion: the row has to be FOUND before the rest can speak. */
+  const home = await browser.newPage({viewport:{width:1440, height:900}});
+  await home.goto(BASE + "/index.html", {waitUntil:"networkidle"});
+  await home.waitForTimeout(600);
+  const day = await home.evaluate(() => {
+    const day = todayStr();
+    DEALS.length = 0; render();
+    const q = () => document.querySelector(".dayRow");
+    const empty = {txt: q() ? q().innerText.replace(/\s+/g," ").trim() : "",
+                   inHero: q() ? !!q().closest(".hero") : null,
+                   heroTxt: (document.querySelector(".homeHero")||{innerText:""}).innerText};
+    DEALS.push({day, itemName:"14k chain", catLabel:"Gold", loan:375, status:"sold"},
+               {day, brand:"Nintendo", model:"Game Boy Color", catLabel:"Electronics", loan:45, status:"lent"});
+    render();
+    const full = {txt: q() ? q().innerText.replace(/\s+/g," ").trim() : "",
+                  inHero: q() ? !!q().closest(".hero") : null,
+                  heads: document.querySelectorAll(".wSect").length};
+    DEALS.length = 0; render();
+    return {empty, full, found: !!q()};
+  });
+  ok(day.found, "  the home card renders a day row at all");
+  ok(day.empty.inHero === false && day.full.inHero === false,
+     `  the row is not inside the blue box — empty ${day.empty.inHero}, with deals ${day.full.inHero}`);
+  ok(/priced today/i.test(day.empty.txt) && /nothing yet/i.test(day.empty.txt),
+     `  with an empty log it names the log — "${day.empty.txt}"`);
+  /* The old line said "nothing logged yet today" under two spot prices.
+     If that wording ever comes back to the hero this goes red. */
+  ok(!/logged|today/i.test(day.empty.heroTxt),
+     `  and the hero says nothing about the day at all — "${day.empty.heroTxt.replace(/\s+/g," ").trim()}"`);
+  ok(/2 deals/.test(day.full.txt) && /\$420/.test(day.full.txt),
+     `  with two deals it counts them and totals what went out — "${day.full.txt}"`);
+  /* The feed's own "Priced today" header came off when this row took the
+     job; two labels an inch apart saying the same thing is how the card
+     got muddled in the first place. */
+  ok(day.full.heads === 0, `  and the feed does not label itself twice — ${day.full.heads} extra headers`);
+}
+
 console.log("\n  the phone");
 {
   const ph = await browser.newPage({viewport:{width:390, height:844}});
