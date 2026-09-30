@@ -7323,8 +7323,8 @@ const ITEM_SYN={
  e5:"game console gaming playstation 5 ps5 xbox series x xbox series s switch oled",
  e5a:"ps4 playstation 4 xbox one xbox one s xbox one x wii u wiiu last gen previous gen",
  e5b:"ps3 playstation 3 xbox 360 xbox360 nintendo wii",
- e5c:"n64 nintendo 64 super nintendo snes nes famicom sega genesis mega drive sega saturn dreamcast gamecube game cube ps2 playstation 2 ps1 psx playstation 1 psone original xbox retro console vintage console",
- e5d:"game boy gameboy game boy color game boy advance gba sp nintendo ds ds lite dsi psp playstation portable game gear handheld retro",
+ e5c:"n64 nintendo 64 super nintendo snes nes famicom sega genesis mega drive sega saturn dreamcast gamecube game cube ps2 playstation 2 ps1 psx playstation 1 psone original xbox retro console vintage console neo geo aes turbografx turbo grafx tg16 pc engine colecovision coleco intellivision intv atari 2600 7800 5200 woody vader sixer",
+ e5d:"game boy gameboy game boy color gbc game boy advance gba sp nintendo ds ds lite dsi psp playstation portable game gear handheld retro",
  /* "I typed Google home mini but then you asked for make." Chasing that
      found something worse than a wasted question: "google home mini" was
      landing on f6, HOME GYM / POWER RACK, at $200 - on the word "home". A
@@ -7812,6 +7812,13 @@ const MODELBOOK=[
  MB(/\b(nintendo\s*)?ds\s*lite\b|\bndsl\b|\bnintendo\s*ds\b/,"Nintendo","e5d",{label:"Nintendo DS"}),
  MB(/\bpsp\b|\bplaystation\s*portable\b/,"Sony","e5d",{label:"PSP"}),
  MB(/\bgame\s*gear\b/,"Sega","e5d",{label:"Game Gear"}),
+ MB(/\bneo\s*geo\b/,"SNK","e5c",{label:"Neo Geo AES"}),
+ MB(/turbo\s*graf?x|\btg\s*-?16\b|\bpc\s*engine\b/,"NEC","e5c",{label:"TurboGrafx-16"}),
+ MB(/\bcoleco\s*vision\b|\bcoleco\b/,"Coleco","e5c",{label:"ColecoVision"}),
+ MB(/\bintellivision\b|\bintv\b/,"Mattel","e5c",{label:"Intellivision"}),
+ MB(/\batari\s*(2600|7800|5200)?\b/,"Atari","e5c",{label:"Atari 2600"}),
+ MB(/\bgame\s*boy\s*colou?r\b|\bgbc\b/,"Nintendo","e5d",{label:"Game Boy Color"}),
+ MB(/\bnintendo\s*3ds\b|\b3ds\b/,"Nintendo","Handheld game console",{label:"Nintendo 3DS"}),
  MB(/\bsteam\s*deck\b/,"","Handheld game console",{label:"Steam Deck"}),
  MB(/\brog\s*ally\b/,"ASUS","Handheld game console",{label:"ROG Ally"}),
  MB(/\bgopro(\s*hero\s*\d+(\s*black)?|\s*max)?\b|\bhero\s*\d{1,2}\s*black\b/,"GoPro","GoPro / action camera",{label:m=>pretty(m[0].replace("gopro",""))}),
@@ -9548,7 +9555,16 @@ let MODEL_PRICES=[
  ["gc16","e5d","Game Boy Advance SP",50,85,"m","2026-09-29","https://www.pricecharting.com/search-products?q=gameboy+advance+sp+system&type=prices","Pokemon and Pikachu editions $1,000–4,500 CIB — look at the shell"],
  ["gc17","e5d","Nintendo DS / DS Lite",35,60,"m","2026-09-29","https://www.pricecharting.com/search-products?q=nintendo+ds+lite+system&type=prices","The cheapest thing in the aisle and still falling"],
  ["gc18","e5d","Nintendo DSi",55,95,"m","2026-09-29","https://www.pricecharting.com/search-products?q=nintendo+dsi+system&type=prices","Pokemon White DSi is $279 loose, $1,200 CIB"],
- ["gc19","e5d","Sony PSP",55,80,"m","2026-09-29","https://www.pricecharting.com/search-products?q=psp+system&type=prices","US figures thin — the page came back PAL. Look it up before you lend"]
+ ["gc19","e5d","Sony PSP",55,80,"m","2026-09-29","https://www.pricecharting.com/search-products?q=psp+system&type=prices","US figures thin — the page came back PAL. Look it up before you lend"],
+ ["gc20","e5c","Neo Geo AES",600,850,"l","2026-09-30","https://www.pricecharting.com/search-products?q=neo+geo+aes+system&type=prices","Loose measured $816 — the dearest machine in the aisle by far. Two listings on the whole page; look it up, do not price it off this row"],
+ ["gc21","e5c","TurboGrafx-16",150,200,"m","2026-09-30","https://www.pricecharting.com/search-products?q=turbografx-16+system&type=prices","Loose $183. The CD add-ons are worth more than the console"],
+ ["gc22","e5c","ColecoVision",95,130,"m","2026-09-30","https://www.pricecharting.com/search-products?q=colecovision+system&type=prices","Loose $119"],
+ ["gc23","e5c","Intellivision",55,95,"m","2026-09-30","https://www.pricecharting.com/search-products?q=intellivision+system&type=prices","Standard $63, Intellivision II $91 — check which one"],
+ ["gc24","e5c","Atari 2600",30,70,"m","2026-09-30","https://www.pricecharting.com/search-products?q=atari+2600+system&type=prices","THE VARIANT IS THE PRICE: Vader $31, Junior $47, Light Sixer $48, Woody $65, Heavy Sixer $174. Six switches on the front means look it up"],
+ ["gc25","e5d","Game Boy Color",60,85,"m","2026-09-30","https://www.pricecharting.com/search-products?q=gameboy+color+system&type=prices","Plain colours $66–80. Pokemon and Tommy Hilfiger editions $120–136 loose and over $1,000 boxed"],
+ ["gc26","e5d","Game Boy Advance",45,85,"m","2026-09-30","https://www.pricecharting.com/search-products?q=gameboy+advance+system&type=prices","Original, not the SP. Platinum $42, most colours $50–85"],
+ ["gc27","e5d","Sega Game Gear",55,90,"l","2026-09-30","https://www.pricecharting.com/search-products?q=sega+game+gear+system&type=prices","THIN: the only figure found was a $137 bundle with Super Columns, so this range is a read, not a measurement. Look it up"],
+ ["gc28","Handheld game console","Nintendo 3DS",120,170,"m","2026-09-30","https://www.pricecharting.com/search-products?q=nintendo+3ds+system&type=prices","Plain 3DS $135–170; the XL and New 3DS XL are dearer and have their own rows"]
 ];
 /* =================================================================================== */
 
@@ -9575,9 +9591,30 @@ const MP_MATCH=[
  ["gc9",/\bxbox\b/],
  ["h156",/wii\s*u\b|\bwiiu\b/],["h158",/\bwii\b(?!\s*u)/],
  ["h154",/\bps\s*-?\s*3\b|playstation\s*3/],["h152",/\b360\b/],
- ["gc18",/\bdsi\b/],["gc16",/game\s*boy\s*advance|\bgba\b/],
- ["gc15",/game\s*boy(?!\s*advance)|\bdmg\b/],["gc17",/\bds\s*lite\b|\bndsl?\b|nintendo\s*ds\b/],
+ ["gc18",/\bdsi\b/],
+ /* SP AND COLOUR ARE THEIR OWN MACHINES, and these two patterns used to
+    swallow them. "game boy advance" hit the SP row because gc16 matched a
+    bare "advance", and "game boy color" hit the original DMG because
+    gc15's only exclusion was "advance". A Game Boy Color is $70 and a
+    plain Game Boy is $66, so the money barely moved - but a GBA SP and a
+    GBA are different machines and the counter would have been reading the
+    wrong name back off the card. Caught by typing all ten names in, not by
+    reading the list. */
+ ["gc16",/game\s*boy\s*advance\s*sp\b|\bgba\s*sp\b/],
+ ["gc26",/game\s*boy\s*advance\b|\bgba\b/],
+ ["gc25",/game\s*boy\s*colou?r\b|\bgbc\b/],
+ ["gc15",/game\s*boy(?!\s*(advance|colou?r))|\bdmg\b/],
+ ["gc17",/\bds\s*lite\b|\bndsl?\b|nintendo\s*ds\b/],
  ["gc19",/\bpsp\b|playstation\s*portable/],
+ /* THE SECOND BATCH, and the same reason the first needed hand-written
+    patterns: mpAuto matches a bulk row on a token containing a DIGIT, and
+    Neo Geo, TurboGrafx, ColecoVision, Intellivision and Game Gear have
+    none. Atari 2600 and Game Boy Color do, but "2600" and "color" are not
+    how they get typed. */
+ ["gc20",/\bneo\s*geo\b|\baes\b/],["gc21",/turbo\s*graf?x|\btg\s*-?16\b|\bpc\s*engine\b/],
+ ["gc22",/\bcoleco\s*vision\b|\bcoleco\b/],["gc23",/\bintellivision\b|\bintv\b/],
+ ["gc24",/\batari\b/],
+ ["gc27",/game\s*gear\b/],["gc28",/\b3ds\b(?!\s*xl)|nintendo\s*3ds/],
  ["a2",/wingmaster/],["a1",/\b870\b/],["a5",/maverick\s*88/],["a4",/\b590(a1)?\b/],["a6",/\b835\b/],["a3",/mossberg.*\b500\b/],
  ["a7",/\b(super\s*)?nova\b/],["a8",/\bbps\b/],["a10",/\b11\s*-?\s*87\b|\b1187\b/],["a9",/\b1100\b/],["a11",/\ba300\b/],["a12",/\ba400\b/],
  ["a14",/\bsbe\b|super\s*black\s*eagle/],["a13",/\bm2\b/],["a15",/\ba5\b|auto\s*-?\s*5\b/],["a16b",/\b940\b/],["a16a",/\b930\b/],
@@ -10029,7 +10066,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0930.1042";
+const APP_BUILD="0930.1416";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

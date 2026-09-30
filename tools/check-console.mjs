@@ -86,6 +86,70 @@ console.log("\n  what the counter types reaches the right band");
   }
 }
 
+console.log("\n  the pre-NES machines and the oddballs, which had no row at all");
+{
+  /* The findings file listed these under "Still unmeasured" and they were
+     the last consoles with nowhere to land: a Neo Geo or an Intellivision
+     walked in and got the class figure. Measured off PriceCharting on
+     30 Sep, same caveat as the rest - completed eBay sales, read as
+     ceilings because it excludes shipping inconsistently on heavy items. */
+  const cases = [
+    ["neo geo",          "e5c", "Neo Geo AES"],
+    ["turbografx",       "e5c", "TurboGrafx-16"],
+    ["colecovision",     "e5c", "ColecoVision"],
+    ["intellivision",    "e5c", "Intellivision"],
+    ["atari 2600",       "e5c", "Atari 2600"],
+    ["game boy color",   "e5d", "Game Boy Color"],
+    ["game boy advance", "e5d", "Game Boy Advance"],
+    ["game gear",        "e5d", "Sega Game Gear"],
+  ];
+  for (const [typed, want, name] of cases) {
+    const got = await page.evaluate(([t, w]) => {
+      const rows = (omniRows(t) || {}).rows || [];
+      const hit = rows.find(r => r.itemId);
+      const r = mpFor(w, t);
+      return {item: hit ? hit.itemId : null, row: r ? r[2] : null,
+              lo: r ? r[3] : 0, conf: r ? r[5] : ""};
+    }, [typed, want]);
+    ok(got.item === want && got.row === name,
+       `  "${typed}" → ${want} / ${name} ${got.row === name ? "$" + got.lo + "+" : "GOT " + got.item + " / " + got.row}`);
+  }
+  /* SP AND COLOUR ARE THEIR OWN MACHINES. "game boy advance" matched the
+     SP row and "game boy color" matched the plain DMG, because the older
+     patterns excluded only "advance". The money barely moves - $70 against
+     $66 - but the card would have read the wrong machine's name back. */
+  const sp = await page.evaluate(() => ({
+    sp: (mpFor("e5d", "game boy advance sp") || [])[2],
+    gba: (mpFor("e5d", "game boy advance") || [])[2],
+    gbc: (mpFor("e5d", "game boy color") || [])[2],
+    gb: (mpFor("e5d", "game boy") || [])[2],
+  }));
+  ok(sp.sp === "Game Boy Advance SP" && sp.gba === "Game Boy Advance",
+     `  an SP and a plain Advance are told apart — "${sp.sp}" / "${sp.gba}"`);
+  ok(sp.gbc === "Game Boy Color" && sp.gb === "Game Boy (original)",
+     `  as are a Color and a plain Game Boy — "${sp.gbc}" / "${sp.gb}"`);
+
+  /* THE THIN ONES SAY THEY ARE THIN. A Neo Geo is the dearest thing in the
+     aisle and rests on two listings; the Game Gear figure is a read off a
+     bundle, not a measurement. Both are marked low confidence, and the
+     note says to look them up rather than lean on the row. */
+  const thin = await page.evaluate(() => {
+    const g = n => MODEL_PRICES.find(r => r[2] === n) || [];
+    const neo = g("Neo Geo AES"), gg = g("Sega Game Gear");
+    return {neoConf: neo[5], neoNote: neo[8] || "", ggConf: gg[5], ggNote: gg[8] || ""};
+  });
+  ok(thin.neoConf === "l" && /look it up/i.test(thin.neoNote),
+     `  the Neo Geo is marked thin and says to look it up — "${thin.neoConf}"`);
+  ok(thin.ggConf === "l" && /not a measurement/i.test(thin.ggNote),
+     `  and the Game Gear admits its range is a read, not a measurement`);
+
+  /* THE VARIANT TRAP AGAIN, on the worst offender in the aisle: an Atari
+     2600 runs $31 to $174 depending on which box it is. */
+  const atari = await page.evaluate(() => (MODEL_PRICES.find(r => r[2] === "Atari 2600") || [])[8] || "");
+  ok(/Heavy Sixer|174/.test(atari),
+     `  and the Atari row names the variant spread rather than hiding it`);
+}
+
 console.log("\n  the measured machines carry their own price, not the class figure");
 {
   const cases = [["dreamcast","e5c",140,180], ["nintendo 64","e5c",80,110],
