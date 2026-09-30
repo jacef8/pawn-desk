@@ -989,7 +989,13 @@ function homeHeroHTML(opts){
       const ds=d.getFullYear()+"-"+z(d.getMonth()+1)+"-"+z(d.getDate());
       return esc(fmtDay(ds))+" \u00b7 "+esc(feedClock());
     })()}</div>
-    <div class="heroWhat">Nothing on the counter</div>
+    ${/* THE HOME HERO HAS NO SUBJECT LINE. It used to say "Nothing on the
+          counter" where an item hero names the item - a whole line of
+          blue spent telling the counter the thing it can already see,
+          which is that nothing has been started yet. Jace: "we dont need
+          the blue box on home screen to say 'nothing on the counter'."
+          The class stays - phone.js uses .heroWhat for the real item
+          heroes, where the line names something. */""}
     <div class="heroLab">Gold, per troy ounce</div>
     <div class="heroBig">${gold?money(Math.round(gold)):"\u2014"}</div>
     ${/* The phone's hero IS its header - there is no system line on a

@@ -230,6 +230,22 @@ console.log("\n  the number says when it was struck, off the feed's own clock");
      would be the exact lie the timestamp exists to stop. */
   ok(c.without.clock === "" && !/\d:\d/.test(c.without.hero),
      `  with no feed answer there is NO time shown, not a made-up one \u2014 "${c.without.hero}"`);
+
+  /* "we dont need the blue box on home screen to say 'nothing on the
+     counter'". An item hero's .heroWhat names the item; the home hero's
+     named the absence of one, which is the one thing the counter can
+     already see. Asserted on BOTH machines and against the rest of the
+     hero still being there - a home card that failed to render would
+     otherwise pass this by containing nothing at all. */
+  const hw = await page.evaluate(() => {
+    FEED.gold=4123; FEED.silver=61; FEED.at=new Date().toISOString();
+    const h=homeHeroHTML({acts:false});
+    return {h, what:/heroWhat/.test(h), counter:/on the counter/i.test(h),
+            big:/heroBig/.test(h), lab:/troy ounce/i.test(h)};
+  });
+  ok(hw.big && hw.lab, "  the home hero still renders its price and label");
+  ok(!hw.what && !hw.counter,
+     "  and carries no subject line at all \u2014 no \"Nothing on the counter\"");
 }
 
 console.log("\n  the phone");
