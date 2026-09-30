@@ -895,6 +895,15 @@
   .askDots i{width:9px;height:9px;border-radius:999px;background:var(--line);cursor:pointer;
     display:block;transition:transform .16s,background .16s}
   .askDots i.done{background:var(--info)}
+  /* A FILLED DOT MEANS SOMEBODY SAID SO. "why are some of the dots that
+     correspond to a question, are already filled?" - because three of them
+     were: the model came off the thing he picked, the resale figure came
+     off the book, and "anything else" counts as answered when it is empty.
+     All three are true, none of them was his answer, and a solid dot
+     claiming otherwise is the screen taking credit for work the counter
+     has not done. Hollow ring: the desk filled this one in, and tapping it
+     still opens the question. */
+  .askDots i.auto{background:transparent;box-shadow:inset 0 0 0 2px var(--info)}
   .askDots i.on{background:var(--accent);transform:scale(1.4)}
   .askHits{margin-top:10px}
   .pageTabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}

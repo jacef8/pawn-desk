@@ -1569,6 +1569,101 @@ console.log("\n  the price question stays short enough to read at a counter");
      "  and what that means for the figure");
 }
 
+/* "This seems to be a recurring issue where your suggested item is
+   selected but then the next question still asks me for a brand/make.
+   Also why are some of the dots that correspond to a question, are
+   already filled?" - a Sega Saturn picked off the search box, opening on
+   "What make is it?" with three dots filled that he had not touched. */
+console.log("\n  a measured item does not ask for the make, and a filled dot means somebody said so");
+{
+  const pg = await browser.newPage({viewport:{width:390, height:844}});
+  const perr = []; pg.on("pageerror", e => perr.push(String(e)));
+  await pg.goto(BASE + "/phone.html", {waitUntil:"networkidle"});
+  await pg.waitForTimeout(1000);
+  const r = await pg.evaluate(() => {
+    omniPick(omniRows("sega saturn").rows[0]);
+    const x = calcItem();
+    /* THE JUSTIFICATION, ASSERTED. The make question comes out because the
+       tier cannot reach a measured price - if that ever stops being true
+       this goes red and the question has to come back. */
+    const byTier = {};
+    const keepB = st.brand, keepS = st.brandSet;
+    for (const b of ["hi","mid","lo"]) { st.brand = b; st.brandSet = true; byTier[b] = Math.round(calcItem().buy); }
+    st.brand = keepB; st.brandSet = keepS;
+    return {
+      checked: !!x.checked,
+      marketName: x.market && x.market.name,
+      brandRead: st.brandTyped,
+      tierOfSega: (typeof brandLookup === "function") ? brandLookup("elec", "Sega") : null,
+      ids: askQueue(x).map(z => z.id),
+      opensOn: (askQueue(x)[st.askAt]||{}).id,
+      /* Read what the COUNTER sees on that card, not the queue item's
+         hint field - when the make is known the card prints a different
+         line entirely and the hint is never rendered, which is how the
+         first version of this assertion came back empty. */
+      brandHint: (() => { const keep = st.askAt;
+        st.askAt = askQueue(x).findIndex(z => z.id === "brand"); render();
+        const t = (document.getElementById("askCard")||{innerText:""}).innerText;
+        st.askAt = keep; render(); return t.replace(/\s+/g," "); })(),
+      byTier,
+      dots: [...document.querySelectorAll(".askDots i")].map(i => ({c: i.className.trim(), t: i.title}))
+    };
+  });
+  await pg.close();
+  ok(r.checked && r.marketName === "Sega Saturn",
+     `  the Saturn arrives with its measured row — ${r.marketName}`);
+  ok(r.byTier.hi === r.byTier.mid && r.byTier.mid === r.byTier.lo,
+     `  and the make tier cannot move that price — hi $${r.byTier.hi}, mid $${r.byTier.mid}, lo $${r.byTier.lo}`);
+  /* NOT REMOVED - SETTLED. Taking it out of the queue would take it out of
+     the dots, and the make is part of what chooses the measured row in the
+     first place, so a misread one would be beyond reach. It stays, ticked,
+     and the run opens past it. */
+  ok(r.ids.includes("brand"),
+     "  the make question is still there to correct - " + r.ids.join(", "));
+  ok(r.opensOn === "spec:0",
+     "  but the run does not open on it - opens on " + r.opensOn);
+  ok(/What make is it/i.test(r.brandHint||""),
+     "  the make card is reachable and renders");
+  ok(/not part of that arithmetic/i.test(r.brandHint||""),
+     '  and says the tap will not move the number - "' +
+     (() => { const t = r.brandHint||"", i = t.search(/not part of that arithmetic/i);
+              return i < 0 ? "MISSING" : t.slice(Math.max(0, i - 55), i + 46).trim(); })() + '"');
+  /* Out of the run is not out of the record: the make was read and kept. */
+  ok(r.brandRead === "Sega" && r.tierOfSega && r.tierOfSega.name === "Sega",
+     `  the make is still read and now places — "${r.brandRead}" → ${r.tierOfSega && r.tierOfSega.tier}`);
+  /* The dots. A solid one has to mean the counter answered; the three the
+     desk filled in wear a ring instead. The guard is the count: an empty
+     dot list would satisfy every "none of them" test below it. */
+  ok(r.dots.length === r.ids.length && r.dots.length > 0,
+     `  a dot per question and no more — ${r.dots.length} dots, ${r.ids.length} questions`);
+  const auto = r.dots.filter(d => /\bauto\b/.test(d.c));
+  const done = r.dots.filter(d => /\bdone\b/.test(d.c));
+  ok(auto.length === 4 && done.length === 0,
+     `  nothing he answered, so nothing solid — ${auto.length} filled in for him, ${done.length} answered`);
+  /* .every() on an empty list is true, so this passed on the reverted
+     build where there were no auto dots at all. The length is the guard. */
+  ok(auto.length === 4 && auto.every(d => /filled in for you/.test(d.t)),
+     `  and each of those says so when you hold it \u2014 ${auto.length} of them`);
+  /* Answering one has to turn its ring solid, or the distinction is
+     decoration. */
+  const after = await (async () => {
+    const pg2 = await browser.newPage({viewport:{width:390, height:844}});
+    await pg2.goto(BASE + "/phone.html", {waitUntil:"networkidle"});
+    await pg2.waitForTimeout(900);
+    const out = await pg2.evaluate(() => {
+      omniPick(omniRows("sega saturn").rows[0]);
+      st.condSet = true; st.cond = "rough"; render();
+      const d = [...document.querySelectorAll(".askDots i")];
+      const i = d.findIndex(z => /shape/i.test(z.title));
+      return {i, cls: i >= 0 ? d[i].className.trim() : "NO COND DOT"};
+    });
+    await pg2.close(); return out;
+  })();
+  ok(/\bdone\b/.test(after.cls) && !/\bauto\b/.test(after.cls),
+     `  and an answer he gives goes solid — "${after.cls}"`);
+  ok(perr.length === 0, "  no page errors" + (perr.length ? ": " + perr[0] : ""));
+}
+
 ok(!errs.length, "no page errors" + (errs.length ? ": " + errs[0] : ""));
 await browser.close();
 console.log(`\n  ${pass} passed, ${fail} failed\n`);

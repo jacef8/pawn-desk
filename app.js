@@ -271,7 +271,16 @@ const BRANDBOOK={
   lo:["Tasco","Simmons","BSA","CVLIFE","Pinty","Truglo","CenterPoint","Wildgame Innovations","Stealth Cam","Zebco","Shakespeare","South Bend","Wicked Ridge"]},
  elec:{
   hi:["Apple","Samsung","Sony","Nintendo","Bose","Sonos","JL Audio","Alienware","ASUS ROG"],
-  mid:["Microsoft","Xbox","Dell","HP","Lenovo","LG","Google","Pixel","Motorola","OnePlus","JBL","Beats","Klipsch","Kicker","Rockford Fosgate","Alpine","Pioneer","Acer","Asus","MSI","Vizio","TCL"],
+  /* THE CONSOLE MAKERS WERE NEVER ON THIS LIST. Twenty-eight console rows
+     went on the book and not one of their makers did, so "sega saturn"
+     read the word Sega off the search box, failed to place it, and the run
+     asked "What make is it?" with three phone tiers underneath. Mid, not
+     hi: mid is the 1.0 multiplier, so adding them cannot inflate anything
+     that has no measured row of its own - and where there IS a measured
+     row the tier is out of the arithmetic entirely (see below). Nintendo
+     and Sony are already in hi and stay there; moving them would reprice
+     every PlayStation and Switch in the book for the sake of tidiness. */
+ mid:["Microsoft","Xbox","Dell","HP","Lenovo","LG","Google","Pixel","Motorola","OnePlus","JBL","Beats","Klipsch","Kicker","Rockford Fosgate","Alpine","Pioneer","Acer","Asus","MSI","Vizio","TCL","Sega","Atari","SNK","Neo Geo","NEC","TurboGrafx","Coleco","ColecoVision","Mattel","Intellivision","Panasonic","Sharp","Toshiba","Philips","JVC"],
   lo:["Onn","RCA","Element","Westinghouse","Sceptre","Hisense","Boss Audio","Pyle","Dual","Insignia","Blackweb","Coby","Sylvania"]},
  jewel:{
   hi:["Rolex","Cartier","Omega","Tiffany","Tiffany & Co","Patek Philippe","Audemars Piguet","Van Cleef","Bulgari","David Yurman","Tudor","Breitling","Grand Seiko","IWC","Jaeger-LeCoultre","Panerai","Hublot","Vacheron"],
@@ -2970,6 +2979,33 @@ function askQueue(x){
        and are built the moment there is one. */
     return q;
   }
+  /* A MAKE TIER CANNOT MOVE A MEASURED PRICE, so the run stops WAITING on
+     one. calcItem has exactly two branches:
+
+       resale = checked ? market.mid*cond*completeMult
+                        : baseValue*CATALOG_AT_GOOD*cond*brandMult*completeMult*spec.mult
+
+     brandMult is in the second and not the first, and it is right that it
+     is not: a measured figure for a Sega Saturn already has Sega in it, and
+     multiplying it again by a tier would price the maker twice. But the
+     question went on being asked anyway. Measured on a Saturn with the
+     book row driving: Apple/Samsung flagship $55, Mainstream $55, Off
+     brand $55 - three taps, three identical numbers, on the first card of
+     the run. "This seems to be a recurring issue where your suggested item
+     is selected but then the next question still asks me for a brand/make."
+     This is the same rule the hand-set figure already follows two screens
+     down ("A QUESTION THAT CANNOT MOVE THE NUMBER IS NOT A QUESTION") -
+     it was simply never applied to the checked branch.
+     FIRST ATTEMPT TOOK THE QUESTION OUT OF THE QUEUE AND THAT WAS WRONG,
+     for the reason the note further up this file already gave: "a question
+     that is gone from the queue is gone from the dots, so a misread make
+     could never be corrected". Worse here than anywhere else, because the
+     make is part of what CHOOSES the measured row - mpFor reads
+     st.brandTyped - so removing the question would have made the row's own
+     input unreachable the moment the row was found. A circular trap.
+     So it stays in the run, marked answered and filled-in rather than
+     outstanding: the run opens past it, the dots still reach it, and a tap
+     still overrules it. */
   if(cat.brand.on){
     const tiers=(ov&&ov.tiers)||cat.brand;
     /* If the make is known, that IS the answer - show it answered rather
@@ -3015,11 +3051,20 @@ function askQueue(x){
       /* Saying WHICH make went unrecognised beats a blank "nothing picked":
          the counter typed it, and being told the list does not carry it is
          the difference between a bug and a question. */
-      hint:known?""
+      hint:(x.checked&&!known)
+        ?(st.brandTyped?"Read as <b>"+esc(st.brandTyped)+"</b>. ":"")
+          +"The price here is a measured figure for this exact model, and a make tier is not part of that arithmetic \u2014 nothing below changes the number. Tap one only to put it on the ticket."
+        :known?""
         :unknownTyped?"<b>"+esc(st.brandTyped)+"</b> is not on the list for "
           +esc(String(cat.label||"this").toLowerCase())+" \u2014 say where it sits and the price follows."
         :"Nothing picked yet \u2014 the price is using the standard tier until you say.",
-      answered:known});
+      /* Answered because it is settled, either way: somebody said so, or
+         the arithmetic cannot hear the answer. */
+      answered:known||!!x.checked,
+      auto:!st.brandSet,
+      /* And the card says which of those it is, rather than leaving the
+         counter to wonder why a question he never answered is ticked. */
+      tierMoot:!!x.checked});
   }
   /* WHICH ONE IS IT. The run never asked, and the model is the single
      thing on the page that moves money most: it is what the sold-price
@@ -3052,7 +3097,9 @@ function askQueue(x){
        always be answered, so neither may be waved past. */
     /* st.detail used to count here, back when its box was on this card.
        It is its own question now, so a model is answered by a model. */
-    answered:!!(st.model||st.mpNone)});
+    answered:!!(st.model||st.mpNone),
+    /* Read off what was picked, not typed by anybody. */
+    auto:!!st.model&&!st.mpNone&&!st.modelTyped});
   /* THE RESEARCH STEP COMES WHILE THE ITEM IS STILL IN MIND.
      This used to sit at 7 of 8, between "is it all there" and the
      condition. On anything the desk cannot price itself - a television,
@@ -3065,7 +3112,9 @@ function askQueue(x){
      add a word to the search, and the automatic lookup fires when the
      item is picked, well before either position. */
   q.push({id:"worth", title:"What does one sell for used?",
-    hint:"", kind:"worth", answered:!!x.checked});
+    hint:"", kind:"worth", answered:!!x.checked,
+    /* The book had a figure for this model. Nobody looked anything up. */
+    auto:!!(x.checked&&x.market&&x.market.kind==="list")});
   /* A QUESTION THAT CANNOT MOVE THE NUMBER IS NOT A QUESTION.
      When the resale figure is typed by hand, calcItem takes it as it
      stands: cond is forced to 1 and brandMult and spec.mult are not in
@@ -3154,7 +3203,7 @@ function askQueue(x){
      automatic one is the better half of the trade. */
   q.push({id:"extra", title:"Anything else?", kind:"extra", optional:true,
     hint:"Only what changes the price and was not already asked. Usually nothing.",
-    answered:true});
+    answered:true, auto:!String(st.detail||"").trim()});
   /* THE RUN DOES NOT ASK WHAT THE RECORD ALREADY SAYS.
      These stay answered in state and keep feeding the arithmetic - they are
      simply not presented as questions. "Shouldn't the tool already know the
@@ -3681,14 +3730,18 @@ function askHTML(x){
     ${askDoneHTML(x)}
     <div class="askNav">
       <button class="ghostBtn" data-askgo="${lastReal}">&larr; Change an answer</button>
-      <div class="askDots">${q.map((z,i)=>`<i class="${i===at?"on":""}${z.answered?" done":""}" title="${esc(z.title)}" data-askgo="${i}"></i>`).join("")}</div>
+      <div class="askDots">${q.map((z,i)=>`<i class="${i===at?"on":""}${z.answered?(z.auto?" auto":" done"):""}" title="${esc(z.title)}${z.auto?" \u2014 filled in for you":""}" data-askgo="${i}"></i>`).join("")}</div>
       <button class="brassBtn" data-askdone="log">Write the ticket &darr;</button>
     </div>
   </div>`;
   return `<div class="card askCard" id="askCard">
     <div class="askWhere">${at+1} of ${q.length}${allDone?" \u00b7 all answered":""}</div>
     <div class="askQ">${esc(cur.title)}</div>
-    ${cur.named?`<div class="cardHint" style="margin-top:0"><b style="color:var(--accent)">${esc(cur.named)}</b> &mdash; read off the name. Tap another if it is wrong.</div>`
+    ${/* When a measured row is driving the price the tier is not in that
+          arithmetic, so the card has to say the tap will not move the
+          number - otherwise a make read off the name looks like the thing
+          the price is built on. */""}
+    ${cur.named?`<div class="cardHint" style="margin-top:0"><b style="color:var(--accent)">${esc(cur.named)}</b> &mdash; read off the name. Tap another if it is wrong.${cur.tierMoot?" The price here is a measured figure for this exact model, and a make tier is not part of that arithmetic \u2014 the tap goes on the ticket, not into the number.":""}</div>`
       :cur.hint?`<div class="cardHint" style="margin-top:0">${esc(cur.hint)}</div>`:""}
     ${body}
     <div class="askNav">
@@ -3709,7 +3762,7 @@ function askHTML(x){
            these card is a different action entirely. */
         ? `<button class="ghostBtn" data-askout="1" title="Clear this item and go back to the search box">&larr; Start over</button>`
         : `<button class="ghostBtn" data-askmove="-1">&larr; Back</button>`}
-      <div class="askDots">${q.map((z,i)=>`<i class="${i===at?"on":""}${z.answered?" done":""}" title="${esc(z.title)}" data-askgo="${i}"></i>`).join("")}</div>
+      <div class="askDots">${q.map((z,i)=>`<i class="${i===at?"on":""}${z.answered?(z.auto?" auto":" done"):""}" title="${esc(z.title)}${z.auto?" \u2014 filled in for you":""}" data-askgo="${i}"></i>`).join("")}</div>
       ${at>=q.length-1
         /* A DEAD BUTTON IS NOT AN ENDING.
            The last card used to carry a DISABLED button still labelled
@@ -10129,7 +10182,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0930.1544";
+const APP_BUILD="0930.1703";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
