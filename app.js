@@ -8891,7 +8891,16 @@ function camLiveOK(){
    padding is set here rather than in a stylesheet rule because the inline
    style on this label would win over one anyway. */
 function camButtonHTML(lead){
-  if(isTouch())return `<label class="brassBtn camBtn${lead?" camBtnLead":""}" style="cursor:pointer;margin:0;padding:${lead?"18px 24px":"10px 18px"};display:inline-flex;align-items:center;justify-content:center;${lead?"flex:1;min-width:190px;font-size:17px;":""}">${lead?"\uD83D\uDCF7 Take a picture":"Take picture"}<input id="photoCam" type="file" accept="image/*" capture="environment" style="display:none"></label>`;
+/* NO capture ATTRIBUTE, ON PURPOSE. It used to say
+   capture="environment", which is not a hint - it tells the phone "camera
+   only" and the OS then hides the gallery entirely. Reported from the
+   counter: "Need to be able to submit previously taken pictures. On my
+   phone if I click the camera button it needs access to my gallerry."
+   Without it the phone shows its own sheet - Camera, Gallery, Files - so
+   the one button does both jobs and a picture taken an hour ago in
+   somebody's yard can still be priced. The camera is one tap further than
+   it was; being unable to reach a photo you already have is worse. */
+  if(isTouch())return `<label class="brassBtn camBtn${lead?" camBtnLead":""}" style="cursor:pointer;margin:0;padding:${lead?"18px 24px":"10px 18px"};display:inline-flex;align-items:center;justify-content:center;${lead?"flex:1;min-width:190px;font-size:17px;":""}">${lead?"\uD83D\uDCF7 Take or choose a picture":"Take or choose"}<input id="photoCam" type="file" accept="image/*" style="display:none"></label>`;
   if(camLiveOK())return `<button id="camLive" class="brassBtn" style="padding:10px 18px">Use camera</button>`;
   return "";
 }
@@ -9974,7 +9983,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0930.0704";
+const APP_BUILD="0930.0806";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -11217,7 +11226,7 @@ function seenCardHTML(){
       : "Photograph another shop&rsquo;s price tag and it goes in here. These are asking prices, not sales.")+'</div>'+
     '<div class="row2" style="margin-top:8px;flex-wrap:wrap;gap:8px">'+
       (CAP.sample?'<label class="ghostBtn" style="margin:0;cursor:pointer">'+(seenBusy?"Reading&hellip;":"Photograph a tag")+
-        '<input id="seenIn" type="file" accept="image/*" capture="environment" style="display:none"></label>':'')+
+        '<input id="seenIn" type="file" accept="image/*" style="display:none"></label>':'')+
       '<button class="ghostBtn" id="seenHand">Type one in</button>'+
       (pdServer()?'<button class="ghostBtn" id="seenSync">'+(syncBusy?"Syncing&hellip;":"Sync")+'</button>':'')+
       /* Export and Import moved to Phones & devices. Moving the record

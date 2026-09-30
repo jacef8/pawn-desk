@@ -1005,12 +1005,29 @@ console.log("\n  the phone's front screen can take a picture");
     if (inp) inp.click = () => { clicked = true; };
     if (snap) snap.click();
     out.opensPicker = clicked;
+    /* AND IT MUST NOT SAY "CAMERA ONLY". capture="environment" is not a
+       hint - the phone reads it as an instruction and hides the gallery,
+       so a picture taken an hour ago at a yard sale cannot be submitted at
+       all. "Need to be able to submit previously taken pictures. On my
+       phone if I click the camera button it needs access to my gallerry."
+       Checked on the attribute rather than on behaviour because there is
+       no way to open a real OS picker from a test, and the attribute IS
+       the whole bug. */
+    out.camCapture = inp ? inp.getAttribute("capture") : "no input";
+    out.camAccept  = inp ? (inp.getAttribute("accept") || "") : "";
+    out.anyCapture = [...document.querySelectorAll('input[type=file]')]
+      .filter(x => x.hasAttribute("capture")).map(x => x.id || "(unnamed)");
     /* with no camera the tip must not be there either */
     CAP.sample = null; CAP.images = false; render();
     out.tipWhenOff = /fill the frame/i.test(document.getElementById("view").innerText);
     return out;
   });
   const want = [
+    ["the camera input does NOT say camera-only, so the gallery is reachable \u2014 capture=" +
+       (r.camCapture === null ? "(none)" : r.camCapture), r.camCapture === null],
+    ["it still accepts images \u2014 " + r.camAccept, /image/.test(r.camAccept)],
+    ["and no file input anywhere on the screen hides the gallery \u2014 " +
+       (r.anyCapture.length ? r.anyCapture.join(", ") : "none"), r.anyCapture.length === 0],
     ["a Snap it control exists", r.snapThere],
     ["and is visible on the front screen", r.snapShown],
     ["and is not disabled on a connected phone", r.snapLive],
@@ -1361,6 +1378,26 @@ console.log("\n  what it looks like with the tool shut");
                 .map(t => t.dataset.tab),
         camHidden: !vis(document.getElementById("photoCam")),
         camExists: !!document.getElementById("photoCam"),
+        /* THE SURFACE HE WAS ACTUALLY ON. The phone carries its own copy of
+           this input - phone.js, its own file - so the desk being fixed
+           says nothing about the field screen, which is the whole reason
+           this repo keeps checking both.
+           THE CAMERA HAS TO BE TURNED ON FIRST. The card only renders when
+           CAP.sample and CAP.images are both live, and this container has
+           no service - so the first version of these two lines read a
+           screen with NO file inputs at all and reported "no capture
+           anywhere" about nothing. A green tick that cannot go red, for
+           the fourth time in this project. */
+        cam: (() => {
+          CAP.sample = CAP.sample || {json: () => {}, limits: () => {}};
+          CAP.images = true;
+          try { render(); } catch (e) {}
+          const all = [...document.querySelectorAll('input[type=file]')];
+          return {n: all.length,
+                  capture: all.filter(x => x.hasAttribute("capture")).map(x => x.id || "(unnamed)"),
+                  alt: !!document.getElementById("photoIn"),
+                  main: !!document.getElementById("photoCam")};
+        })(),
       };
     });
     await pg.close();
@@ -1371,6 +1408,17 @@ console.log("\n  what it looks like with the tool shut");
   else console.log("ok   the desk front card carries no button the rail already has");
 
   const ph = await seen("/phone.html", {width: 390, height: 844});
+  /* Assert there is something to look at before asserting anything about
+     it, or the next three lines are about an empty page. */
+  if (!ph.cam.main || ph.cam.n === 0) { bad++;
+    console.log("FAIL the phone's camera card did not render \u2014 the next checks would be about nothing"); }
+  else console.log("ok   the phone's camera card renders \u2014 " + ph.cam.n + " file input(s)");
+  if (ph.cam.capture.length) { bad++;
+    console.log("FAIL the phone still hides the gallery on: " + ph.cam.capture.join(", ")); }
+  else console.log("ok   and its camera button reaches the gallery too \u2014 no capture on any input");
+  if (!ph.cam.alt) { bad++;
+    console.log("FAIL the phone lost its straight-to-the-gallery route"); }
+  else console.log("ok   with a one-tap gallery route still beside it");
   const dupes = ph.acts.filter(a => ph.rail.includes(a === "log" ? "log" : a === "gold" ? "metal" : a));
   if (dupes.length) { bad++; console.log("FAIL the phone repeats the rail: " + dupes.join(", ")); }
   else console.log("ok   the phone repeats nothing the rail already has");

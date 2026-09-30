@@ -409,10 +409,14 @@ function snapHTML(){
      card stays at the top: that IS the phone's first move. */
   const cam=camOn
     ? `<div class="snapCam">
-        <label class="brassBtn camBtn snapShoot">\uD83D\uDCF7 Take a picture<input id="photoCam" type="file" accept="image/*" capture="environment" style="display:none"></label>
+        ${/* capture="environment" came off - see the note on the desk's
+             camBtnHTML. It meant "camera only" and the phone hid the
+             gallery, so a picture taken earlier could not be priced at
+             all. */""}
+        <label class="brassBtn camBtn snapShoot">\uD83D\uDCF7 Take or choose a picture<input id="photoCam" type="file" accept="image/*" style="display:none"></label>
         ${photoBusy
           ? `<div class="snapBusy">Reading the picture\u2026 <button class="ghostBtn" id="photoStop">Stop</button></div>`
-          : `<label class="snapAlt">or choose one already on the phone<input id="photoIn" type="file" accept="image/jpeg,image/png,image/webp" style="display:none"></label>`}
+          : `<label class="snapAlt">or go straight to the gallery<input id="photoIn" type="file" accept="image/jpeg,image/png,image/webp" style="display:none"></label>`}
         ${photoErrHTML()}
        </div>`
     : (has ? "" : pdConnectHTML());
@@ -445,7 +449,7 @@ function snapHTML(){
       ${t.rows.length?homeFeedHTML(4)
         :(camOn?`<div class="snapTip">Fill the frame \u2014 a model plate or a label beats the whole object in shot.</div>`:"")}
       ${camOn?`<div class="snapCam start">
-        <label style="display:none"><input id="photoCam" type="file" accept="image/*" capture="environment"></label>
+        <label style="display:none"><input id="photoCam" type="file" accept="image/*"></label>
         <label style="display:none"><input id="photoIn" type="file" accept="image/jpeg,image/png,image/webp"></label>
         ${photoBusy?`<div class="snapBusy">Reading the picture\u2026 <button class="ghostBtn" id="photoStop">Stop</button></div>`:""}
         ${photoErrHTML()}
