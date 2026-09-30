@@ -1005,29 +1005,30 @@ console.log("\n  the phone's front screen can take a picture");
     if (inp) inp.click = () => { clicked = true; };
     if (snap) snap.click();
     out.opensPicker = clicked;
-    /* AND IT MUST NOT SAY "CAMERA ONLY". capture="environment" is not a
-       hint - the phone reads it as an instruction and hides the gallery,
-       so a picture taken an hour ago at a yard sale cannot be submitted at
-       all. "Need to be able to submit previously taken pictures. On my
-       phone if I click the camera button it needs access to my gallerry."
-       Checked on the attribute rather than on behaviour because there is
-       no way to open a real OS picker from a test, and the attribute IS
-       the whole bug. */
-    out.camCapture = inp ? inp.getAttribute("capture") : "no input";
+    /* BOTH ROUTES, EACH WITH ITS OWN ATTRIBUTES. This asserted "no capture
+       anywhere", which encoded my own wrong fix: capture="environment" had
+       been hiding the gallery, so I took it off everywhere and expected the
+       OS sheet. The counter got the opposite fault - "now when I hit the
+       sap it button, I only get the gallery and no option for the camera" -
+       because Android's newer photo picker answers accept="image/*" with no
+       capture by going straight to the gallery.
+       One control cannot be both, so the rule is not "no capture" and never
+       was "always capture": it is that a camera input HAS it, a gallery
+       input has NOT, and neither is a guess about the device. */
     out.camAccept  = inp ? (inp.getAttribute("accept") || "") : "";
-    out.anyCapture = [...document.querySelectorAll('input[type=file]')]
-      .filter(x => x.hasAttribute("capture")).map(x => x.id || "(unnamed)");
+    out.files = [...document.querySelectorAll('input[type=file]')]
+      .filter(x => /^photo/.test(x.id))
+      .map(x => ({id: x.id, cap: x.hasAttribute("capture")}));
     /* with no camera the tip must not be there either */
     CAP.sample = null; CAP.images = false; render();
     out.tipWhenOff = /fill the frame/i.test(document.getElementById("view").innerText);
     return out;
   });
   const want = [
-    ["the camera input does NOT say camera-only, so the gallery is reachable \u2014 capture=" +
-       (r.camCapture === null ? "(none)" : r.camCapture), r.camCapture === null],
-    ["it still accepts images \u2014 " + r.camAccept, /image/.test(r.camAccept)],
-    ["and no file input anywhere on the screen hides the gallery \u2014 " +
-       (r.anyCapture.length ? r.anyCapture.join(", ") : "none"), r.anyCapture.length === 0],
+    ["a gallery route exists that does NOT force the camera \u2014 " +
+       (r.files.map(f => f.id + (f.cap ? "[cam]" : "[gallery]")).join(", ") || "no photo inputs"),
+     r.files.some(f => !f.cap)],
+    ["it accepts images \u2014 " + r.camAccept, /image/.test(r.camAccept)],
     ["a Snap it control exists", r.snapThere],
     ["and is visible on the front screen", r.snapShown],
     ["and is not disabled on a connected phone", r.snapLive],
@@ -1392,11 +1393,29 @@ console.log("\n  what it looks like with the tool shut");
           CAP.sample = CAP.sample || {json: () => {}, limits: () => {}};
           CAP.images = true;
           try { render(); } catch (e) {}
-          const all = [...document.querySelectorAll('input[type=file]')];
-          return {n: all.length,
-                  capture: all.filter(x => x.hasAttribute("capture")).map(x => x.id || "(unnamed)"),
-                  alt: !!document.getElementById("photoIn"),
-                  main: !!document.getElementById("photoCam")};
+          const cam = document.getElementById("photoCam");
+          const pic = document.getElementById("photoIn");
+          /* WHICH INPUT EACH BUTTON ACTUALLY REACHES, not which inputs
+             exist. phone.js carries TWO #photoCam - a hidden one on the
+             home screen and the visible one on the snap card - and when
+             capture went back on only the visible one was fixed. The
+             hero's Camera button reaches the hidden one, so it went on
+             opening the gallery and the fix looked like it had not worked.
+             Clicking the buttons is the only version of this that could
+             have caught that. */
+          const hit = {};
+          if (cam) cam.click = () => { hit.cam = true; };
+          if (pic) pic.click = () => { hit.pic = true; };
+          document.querySelectorAll('[data-whome="snap"]').forEach(b => b.click());
+          const snapHit = hit.cam ? "photoCam" : hit.pic ? "photoIn" : "nothing";
+          delete hit.cam; delete hit.pic;
+          document.querySelectorAll('[data-whome="pick"]').forEach(b => b.click());
+          const pickHit = hit.pic ? "photoIn" : hit.cam ? "photoCam" : "nothing";
+          return {main: !!cam, alt: !!pic,
+                  camHasCapture: !!(cam && cam.hasAttribute("capture")),
+                  picHasCapture: !!(pic && pic.hasAttribute("capture")),
+                  snapHit, pickHit,
+                  buttons: [...document.querySelectorAll("[data-whome]")].map(b => b.dataset.whome)};
         })(),
       };
     });
@@ -1410,15 +1429,18 @@ console.log("\n  what it looks like with the tool shut");
   const ph = await seen("/phone.html", {width: 390, height: 844});
   /* Assert there is something to look at before asserting anything about
      it, or the next three lines are about an empty page. */
-  if (!ph.cam.main || ph.cam.n === 0) { bad++;
-    console.log("FAIL the phone's camera card did not render \u2014 the next checks would be about nothing"); }
-  else console.log("ok   the phone's camera card renders \u2014 " + ph.cam.n + " file input(s)");
-  if (ph.cam.capture.length) { bad++;
-    console.log("FAIL the phone still hides the gallery on: " + ph.cam.capture.join(", ")); }
-  else console.log("ok   and its camera button reaches the gallery too \u2014 no capture on any input");
-  if (!ph.cam.alt) { bad++;
-    console.log("FAIL the phone lost its straight-to-the-gallery route"); }
-  else console.log("ok   with a one-tap gallery route still beside it");
+  const camT = [
+    ["the phone offers BOTH a Camera and a Gallery button \u2014 " + ph.cam.buttons.join(", "),
+     ph.cam.buttons.includes("snap") && ph.cam.buttons.includes("pick")],
+    ["the camera input really opens the camera (capture) \u2014 " + ph.cam.camHasCapture,
+     ph.cam.main && ph.cam.camHasCapture],
+    ["the gallery input really opens the gallery (no capture) \u2014 " + !ph.cam.picHasCapture,
+     ph.cam.alt && !ph.cam.picHasCapture],
+    ["Camera reaches the camera input \u2014 " + ph.cam.snapHit, ph.cam.snapHit === "photoCam"],
+    ["Gallery reaches the gallery input \u2014 " + ph.cam.pickHit, ph.cam.pickHit === "photoIn"],
+  ];
+  for (const [what, good] of camT) { if (good) console.log("ok   " + what);
+                                     else { bad++; console.log("FAIL " + what); } }
   const dupes = ph.acts.filter(a => ph.rail.includes(a === "log" ? "log" : a === "gold" ? "metal" : a));
   if (dupes.length) { bad++; console.log("FAIL the phone repeats the rail: " + dupes.join(", ")); }
   else console.log("ok   the phone repeats nothing the rail already has");

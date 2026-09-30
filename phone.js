@@ -278,6 +278,8 @@ function phoneBoot(){
       document.querySelectorAll("[data-whome]").forEach(btn=>btn.onclick=()=>{
         const a=btn.dataset.whome;
         if(a==="snap"){ const c=document.getElementById("photoCam"); if(c)c.click(); return; }
+        if(a==="pick"){ const g=document.getElementById("photoIn")||document.getElementById("photoCam");
+                        if(g)g.click(); return; }
         if(a==="gold"){ st.mode="metal"; render(); return; }
         if(a==="log"){ st.mode="log"; render(); return; }
         if(a==="type"){ const i2=document.getElementById("omniIn");
@@ -409,11 +411,12 @@ function snapHTML(){
      card stays at the top: that IS the phone's first move. */
   const cam=camOn
     ? `<div class="snapCam">
-        ${/* capture="environment" came off - see the note on the desk's
-             camBtnHTML. It meant "camera only" and the phone hid the
-             gallery, so a picture taken earlier could not be priced at
-             all. */""}
-        <label class="brassBtn camBtn snapShoot">\uD83D\uDCF7 Take or choose a picture<input id="photoCam" type="file" accept="image/*" style="display:none"></label>
+        ${/* capture is BACK on this one - see the note on the desk's
+             camBtnHTML. Taking it off did not produce the OS sheet, it
+             produced the opposite fault: the gallery every time and no
+             camera at all. This button is the camera; the line under it is
+             the gallery; neither is a guess. */""}
+        <label class="brassBtn camBtn snapShoot">\uD83D\uDCF7 Take a picture<input id="photoCam" type="file" accept="image/*" capture="environment" style="display:none"></label>
         ${photoBusy
           ? `<div class="snapBusy">Reading the picture\u2026 <button class="ghostBtn" id="photoStop">Stop</button></div>`
           : `<label class="snapAlt">or go straight to the gallery<input id="photoIn" type="file" accept="image/jpeg,image/png,image/webp" style="display:none"></label>`}
@@ -449,7 +452,15 @@ function snapHTML(){
       ${t.rows.length?homeFeedHTML(4)
         :(camOn?`<div class="snapTip">Fill the frame \u2014 a model plate or a label beats the whole object in shot.</div>`:"")}
       ${camOn?`<div class="snapCam start">
-        <label style="display:none"><input id="photoCam" type="file" accept="image/*"></label>
+        ${/* THE HOME SCREEN'S PAIR, and the one that was actually firing.
+             There are two #photoCam in this file - this hidden one on the
+             home screen and the visible button on the snap card - and when
+             capture went back on I only fixed the visible one. The hero's
+             Camera button reaches THIS input, so it went on opening the
+             gallery and the fix looked like it had not worked at all.
+             The same fault this repo keeps having, inside a single file
+             rather than across two. */""}
+        <label style="display:none"><input id="photoCam" type="file" accept="image/*" capture="environment"></label>
         <label style="display:none"><input id="photoIn" type="file" accept="image/jpeg,image/png,image/webp"></label>
         ${photoBusy?`<div class="snapBusy">Reading the picture\u2026 <button class="ghostBtn" id="photoStop">Stop</button></div>`:""}
         ${photoErrHTML()}

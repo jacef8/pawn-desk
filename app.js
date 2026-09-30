@@ -945,7 +945,8 @@ const HOME_ICON={
   look:'<circle cx="11" cy="11" r="7"/><path d="M16 16l5 5"/>',
   gold:'<circle cx="12" cy="12" r="8"/><path d="M12 7.6v8.8M9.8 10h4a1.9 1.9 0 010 3.8h-3.6a1.9 1.9 0 000 3.8h4"/>',
   log :'<path d="M5 4h11l3 3v13H5z"/><path d="M9 9h6M9 13h6"/>',
-  tag :'<path d="M3 11.5V4.5A1.5 1.5 0 014.5 3h7L21 12.5 12.5 21 3 11.5Z"/><circle cx="7.6" cy="7.6" r="1.2"/>'
+  tag :'<path d="M3 11.5V4.5A1.5 1.5 0 014.5 3h7L21 12.5 12.5 21 3 11.5Z"/><circle cx="7.6" cy="7.6" r="1.2"/>',
+  pics:'<rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 16l4.5-4.5 3.5 3.5 3-3L21 16"/><circle cx="8.4" cy="9.2" r="1.4"/>'
 };
 function homeToday(){
   const day=(typeof todayStr==="function")?todayStr():"";
@@ -1000,8 +1001,22 @@ function homeHeroHTML(opts){
       return g?"buying "+g+"% of melt \u00b7 ":""; })()}${t.rows.length
       ? t.rows.length+" logged today \u00b7 "+money(t.out)+" out"
       : "nothing logged yet today"}</div>
-    ${o.acts===false?"":`<div class="acts one">
-      ${act("snap",o.snapLabel||"Snap it",HOME_ICON.cam,camOn)}
+    ${/* TWO BUTTONS, BECAUSE ONE CANNOT DO BOTH RELIABLY.
+          First it was capture="environment", which told the phone "camera
+          only" and hid the gallery: "Need to be able to submit previously
+          taken pictures." Taking it off was supposed to produce the OS
+          sheet - Camera, Gallery, Files - and on his phone it did not:
+          "now when I hit the sap it button, I only get the gallery and no
+          option for the camera." Android's newer photo picker takes
+          accept="image/*" with no capture straight to the gallery and
+          never offers the lens.
+          So the choice stops depending on which picker the phone feels
+          like showing. Camera is a button, Gallery is a button, each wired
+          to its own input with its own attributes, and what happens is
+          what the label says on both. */""}
+    ${o.acts===false?"":`<div class="acts${camOn?"":" one"}">
+      ${act("snap",o.snapLabel||"Camera",HOME_ICON.cam,camOn)}
+      ${camOn?act("pick","Gallery",HOME_ICON.pics,true):""}
     </div>`}</div>`;
 }
 function homeFeedHTML(limit){
@@ -4054,6 +4069,8 @@ function wireItem(){
     const a=b.dataset.whome;
     if(a==="snap"){ const c=document.getElementById("photoCam")||document.getElementById("photoIn");
                     if(c)c.click(); return; }
+    if(a==="pick"){ const g=document.getElementById("photoIn")||document.getElementById("photoCam");
+                    if(g)g.click(); return; }
     if(a==="gold"){ st.mode="metal"; render(); return; }
     if(a==="log"){ st.mode="log"; render(); return; }
     if(a==="type"){ const i2=document.getElementById("omniIn");
@@ -8891,16 +8908,22 @@ function camLiveOK(){
    padding is set here rather than in a stylesheet rule because the inline
    style on this label would win over one anyway. */
 function camButtonHTML(lead){
-/* NO capture ATTRIBUTE, ON PURPOSE. It used to say
-   capture="environment", which is not a hint - it tells the phone "camera
-   only" and the OS then hides the gallery entirely. Reported from the
-   counter: "Need to be able to submit previously taken pictures. On my
-   phone if I click the camera button it needs access to my gallerry."
-   Without it the phone shows its own sheet - Camera, Gallery, Files - so
-   the one button does both jobs and a picture taken an hour ago in
-   somebody's yard can still be priced. The camera is one tap further than
-   it was; being unable to reach a photo you already have is worse. */
-  if(isTouch())return `<label class="brassBtn camBtn${lead?" camBtnLead":""}" style="cursor:pointer;margin:0;padding:${lead?"18px 24px":"10px 18px"};display:inline-flex;align-items:center;justify-content:center;${lead?"flex:1;min-width:190px;font-size:17px;":""}">${lead?"\uD83D\uDCF7 Take or choose a picture":"Take or choose"}<input id="photoCam" type="file" accept="image/*" style="display:none"></label>`;
+/* TWO INPUTS, TWO BUTTONS, AND capture IS BACK WHERE IT BELONGS.
+   The first version of this carried capture="environment" on the only
+   input, which tells the phone "camera only" and hides the gallery:
+   "Need to be able to submit previously taken pictures." I took it off,
+   expecting the OS sheet - Camera, Gallery, Files - and the counter
+   reported the opposite fault: "now when I hit the sap it button, I only
+   get the gallery and no option for the camera." Android's newer photo
+   picker answers accept="image/*" with no capture by going straight to the
+   gallery and never offering the lens.
+   Both attempts were the same mistake: one control, and a guess about
+   which picker the phone would decide to show. It is two controls now -
+   #photoCam keeps capture and really opens the camera, #photoIn has none
+   and really opens the gallery - so the label on each is what happens,
+   whatever the device thinks. */
+  if(isTouch())return `<label class="brassBtn camBtn${lead?" camBtnLead":""}" style="cursor:pointer;margin:0;padding:${lead?"18px 24px":"10px 18px"};display:inline-flex;align-items:center;justify-content:center;${lead?"flex:1;min-width:190px;font-size:17px;":""}">${lead?"\uD83D\uDCF7 Take a picture":"Take picture"}<input id="photoCam" type="file" accept="image/*" capture="environment" style="display:none"></label>`
+    +`<label class="ghostBtn camBtn" style="cursor:pointer;margin:0 0 0 8px;padding:${lead?"18px 20px":"10px 16px"};display:inline-flex;align-items:center">Choose a picture<input id="photoIn" type="file" accept="image/jpeg,image/png,image/webp" style="display:none"></label>`;
   if(camLiveOK())return `<button id="camLive" class="brassBtn" style="padding:10px 18px">Use camera</button>`;
   return "";
 }
@@ -9983,7 +10006,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0930.0806";
+const APP_BUILD="0930.0918";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
