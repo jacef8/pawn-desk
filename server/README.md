@@ -288,7 +288,11 @@ never echoed and never returned; the probe reports only whether one is set.
 
 - *IP addresses to whitelist* — for both Sandbox and Production, and nobody
   can answer it from a laptop: the address that matters is the one THIS
-  service goes out from. `GET /gun/ip` (token-gated) reports it, sampled
+  service goes out from. `GET /gun/ip` reports it — **open it in a browser,
+  no token needed**, because the man who needs it is standing in front of
+  the form with no way to set a header, and the answer is the service's own
+  public address. Cached for an hour inside the service, so an open endpoint
+  cannot be used to make it hammer anybody. Sampled
   eight times across four echoes, because a host may answer from a pool.
   The build container this was written on returned three different
   addresses in three /24s. **If `rotating` comes back true, a single IP in
