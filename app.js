@@ -9599,14 +9599,14 @@ function closeCam(){
    h/m/l, date checked, source page, what moves the price]. The weekly task rewrites
    only the low, high, confidence, date and source values. It never adds or removes rows. */
 let MODEL_PRICES=[
- ["a1","g1","Remington 870 Express",300,400,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=remington+870+express","Super Mag or extra barrels add; rust lowers"],
+ ["a1","g1","Remington 870 Express",300,400,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=remington+870+express","Super Mag or extra barrels add; rust lowers. CHECK BEFORE LENDING NEAR $400: a NEW one runs about $381 (median of 24 dealer listings, Aug 2026), so the top of this range is above new. Our high needs sold data it has not had yet."],
  ["a2","g1","Remington 870 Wingmaster",450,625,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=remington+870+wingmaster","Bluing and wood; 16, 28 and .410 bring far more"],
  ["a3","g1","Mossberg 500",225,325,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=mossberg+500","Combo barrels and chokes add"],
- ["a4","g1","Mossberg 590 / 590A1",380,550,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=mossberg+590a1","590A1 heavy barrel on top; plain 590 less"],
+ ["a4","g1","Mossberg 590 / 590A1",380,550,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=mossberg+590a1","590A1 heavy barrel on top; plain 590 less. CHECK BEFORE LENDING NEAR $550: a NEW one runs about $525 (median of 41 dealer listings, Aug 2026), so the top of this range is above new. Our high needs sold data it has not had yet."],
  ["a5","g1","Maverick 88",150,210,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=maverick+88","Extra barrel adds a little"],
  ["a6","g1","Mossberg 835 Ulti-Mag",250,350,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=mossberg+835+ulti-mag","Camo turkey or waterfowl combos on top"],
  ["a7","g1","Benelli Nova / SuperNova",290,410,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=benelli+nova","SuperNova and camo bring more"],
- ["a8","g1","Browning BPS",525,725,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=browning+bps","Walnut over synthetic; small gauges far more"],
+ ["a8","g1","Browning BPS",525,725,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=browning+bps","Walnut over synthetic; small gauges far more. CHECK BEFORE LENDING NEAR $725: a NEW one runs about $667 (median of 25 dealer listings, Aug 2026), so the top of this range is above new. Our high needs sold data it has not had yet."],
  ["a9","g2","Remington 1100",450,675,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=remington+1100","Plain 12 ga lowest; LT-20 and small gauges higher"],
  ["a10","g2","Remington 11-87",550,750,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=remington+11-87","Premier walnut over synthetic; slug barrels add"],
  ["a11","g2","Beretta A300 Outlander",525,675,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=beretta+a300+outlander","Camo and wood over black synthetic"],
@@ -10860,7 +10860,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="1001.1412";
+const APP_BUILD="1001.1733";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

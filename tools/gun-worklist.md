@@ -56,3 +56,47 @@ or above what a new one costs, so they are wrong today.
 | 48 | Ruger LCR | $370-450 | 76% of new | <https://www.gunbroker.com/All/search?Keywords=Ruger%20LCR> |
 | 49 | Glock 17 | $370-440 | 74% of new | <https://www.gunbroker.com/All/search?Keywords=Glock%2017> |
 | 50 | Glock 26 | $370-440 | 78% of new | <https://www.gunbroker.com/All/search?Keywords=Glock%2026> |
+
+---
+
+## State of the GunBroker API request — 1 Oct 2026
+
+DevKey request **submitted** via api.gunbroker.com/User/DevKey/Create.
+GunBroker reviews roughly once a week, up to two weeks to hear back.
+
+Registered, and the service must keep matching it:
+
+    Software          PawnDesk
+    Version Number    1.0
+    Application Name  LamarsPawnDesk      (no spaces — the form forbids them)
+    IP whitelisted    52.9.210.215        (prod and sandbox)
+    User-Agent sent   PawnDesk/1.0        (GUNBROKER_UA overrides it)
+
+When the key arrives: put it in Railway as `GUNBROKER_DEVKEY` — never in
+the repo, never in a chat — then hit `/gun/probe`. It answers the only
+question that matters in one line: whether COMPLETED sales are reachable
+or only active listings. Active listings are asking prices, and this book
+does not lend off asks.
+
+If gun lookups ever start failing for no reason, check `/gun/ip` first.
+52.9.210.215 was stable across eight samples but Railway can move it on a
+rebuild, and a changed address looks exactly like a broken key.
+
+## Three rows that cannot wait for the key
+
+Measured against the dealer listings already in
+`tools/gunbroker/kygunco-cache.json`, median of listings carrying every
+word of the model name:
+
+| row | our used | new median | n |
+|---|---|---|---|
+| a8 Browning BPS | $525–725 | $667 | 25 |
+| a1 Remington 870 Express | $300–400 | $381 | 24 |
+| a4 Mossberg 590 / 590A1 | $380–550 | $525 | 41 |
+
+The numbers are **not** corrected — that needs sold data. The silence is:
+each row now says on the card that its top is above new, with the figure
+and the listing count, so nobody lends the top of one unwarned.
+
+Benelli Super Black Eagle is listed above as "OVER new" but had fewer than
+three matching dealer listings, so it is unproven either way and untouched.

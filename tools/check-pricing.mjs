@@ -2616,6 +2616,58 @@ console.log("\n  the instruments aisle covers what walks in");
   }
 }
 
+/* THREE GUN ROWS PRICE A USED GUN AT OR ABOVE A NEW ONE. Measured against
+   the dealer listings already in tools/gunbroker/kygunco-cache.json, taking
+   the median of only those listings that carry every word of the model name
+   - the first pass took the cheapest and "found" a new Sig P229 at $151,
+   which was a magazine. 24 to 41 real listings a row:
+
+     Browning BPS           $525-725 used   $667 new   1.09x
+     Remington 870 Express  $300-400 used   $381 new   1.05x
+     Mossberg 590 / 590A1   $380-550 used   $525 new   1.05x
+
+   The numbers are not fixed here, because fixing them needs sold data and
+   inventing one would be the third time this project dressed a guess as a
+   measurement. What IS fixed is the silence: the row now says so on the
+   card, with the figure and where it came from, so nobody lends the top of
+   a range that is above new without being told. */
+console.log("\n  a used gun is not worth more than a new one, and says so");
+{
+  const r = await page.evaluate(() => {
+    const out = {};
+    for (const [id, q] of [["a1","remington 870 express"],["a4","mossberg 590"],["a8","browning bps"]]) {
+      const rows = omniRows(q).rows;
+      if (!rows.length) { out[id] = {missing:true}; continue; }
+      omniPick(rows[0]);
+      const x = calcItem();
+      const note = (x.checked && x.market && x.market.note) || "";
+      out[id] = {
+        onRow: x.checked && x.market ? x.market.name : "",
+        warns: /CHECK BEFORE LENDING/.test(note),
+        /* the warning is useless without the figure that justifies it */
+        hasFigure: /\$\d+/.test(note) && /median of \d+ dealer listings/.test(note),
+        onScreen: document.body.innerText.includes("CHECK BEFORE LENDING"),
+      };
+    }
+    /* and a row with no such problem must NOT carry the warning, or it is
+       noise the counter learns to scroll past */
+    const rows = omniRows("glock 19").rows; omniPick(rows[0]);
+    const g = calcItem();
+    out.clean = { note: (g.checked && g.market && g.market.note) || "",
+                  warns: /CHECK BEFORE LENDING/.test((g.checked && g.market && g.market.note) || "") };
+    return out;
+  });
+  for (const id of ["a1","a4","a8"]) {
+    ok(!r[id].missing && r[id].warns,
+       `  ${id} ${r[id].onRow || "NOT REACHED"} warns before the top of its range`);
+    ok(!r[id].missing && r[id].hasFigure,
+       `  ${id} names the new price and how many listings it came from`);
+  }
+  ok(r.a1.onScreen, "  and the warning reaches the counter screen, not just the data");
+  ok(!r.clean.warns, "  while a row with no such problem stays quiet");
+}
+
+
 await browser.close();
 console.log(fails ? "\n  " + fails + " FAILED\n" : "\n  all passed\n");
 process.exit(fails ? 1 : 0);
