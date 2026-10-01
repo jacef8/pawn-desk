@@ -83,7 +83,22 @@ const ECHOES = [
   "https://icanhazip.com",
   "https://ifconfig.me/ip",
 ];
+/* MEMOISED, AND THAT IS A SAFETY FEATURE RATHER THAN A SPEED ONE. This
+   endpoint is NOT behind PAWN_TOKEN, because the thing that needs it is a
+   man with a form open in a browser and no way to set a header - and what
+   it returns is the service's own public address, which GunBroker, eBay
+   and Anthropic already see on every call. It is not a secret.
+
+   But an open endpoint that makes eight outbound requests per hit is a
+   small amplifier for anyone who finds it. So the answer is computed at
+   most once an hour and served from memory after that: whoever calls it,
+   and however often, the service makes eight calls an hour and no more.
+   An address does not change often enough for that to cost anything. */
+let ipCache = null;
+const IP_TTL = 60 * 60 * 1000;
 export async function egressIPs(rounds = 2) {
+  if (ipCache && Date.now() - ipCache.at < IP_TTL)
+    return { ...ipCache.val, cached: true, ageMinutes: Math.round((Date.now() - ipCache.at) / 60000) };
   const seen = new Map();
   const tried = [];
   for (let r = 0; r < rounds; r++) {
@@ -109,13 +124,15 @@ export async function egressIPs(rounds = 2) {
      under a form field. */
   const blocks = [...new Set(ips.map(x => x.ip).filter(x => x.includes("."))
     .map(x => x.split(".").slice(0, 3).join(".") + ".0/24"))];
-  return {
+  const val = {
     ips, blocks, rotating: ips.length > 1, failures: tried,
     note: !ips.length ? "Could not read the outbound address at all."
       : ips.length === 1
         ? "One address every time. That is the one to whitelist - but confirm Railway gives you a STATIC egress IP, or it will change on a redeploy and the key will stop working."
         : `${ips.length} different addresses across ${rounds} rounds. This host rotates: a single IP in that form field WILL break. Ask for the block, or turn on static egress first.`,
   };
+  if (ips.length) ipCache = { at: Date.now(), val };
+  return { ...val, cached: false };
 }
 export function gunReady(env) {
   return { key: !!env.GUNBROKER_DEVKEY, userAgent: ua(env) };

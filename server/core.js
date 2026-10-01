@@ -174,7 +174,12 @@ export async function handle({ path, method, token, body, env, signal, query }) 
      can see it, and it is the service's own public address - nothing
      secret, no key required. */
   if (path === "/gun/ip") {
-    if (env.PAWN_TOKEN && token !== env.PAWN_TOKEN) return fail("bad_token", 403);
+    /* Deliberately NOT token-gated: the one person who needs this is
+       standing in front of GunBroker's key form in a browser, with no way
+       to set a header, and what comes back is the service's own public
+       address - which every host it contacts already sees. The answer is
+       cached for an hour inside egressIPs so an open endpoint cannot be
+       used to make this service hammer anybody. */
     return reply(200, { ok: true, egress: await egressIPs(2) });
   }
 
