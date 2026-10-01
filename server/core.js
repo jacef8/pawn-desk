@@ -68,6 +68,7 @@ function spendToday(add) {
 }
 import { syncMerge } from "./store.js";
 import { ebayComps, ebayReady } from "./ebay.js";
+import { gunProbe, gunReady } from "./gunbroker.js";
 const DEFAULT_ORIGIN = "https://jacef8.github.io";
 const MAX_IMAGES = 4;
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -164,11 +165,22 @@ export async function handle({ path, method, token, body, env, signal, query }) 
     return fail("not_found", 404);
   }
 
+  /* CAN WE PRICE A GUN OFF GUNBROKER, OR NOT. Token-gated, because it
+     reports what the API says back and that is nobody's business but the
+     shop's. It spends no money - GunBroker's developer API is free with a
+     key - so it is safe to run as often as it takes to get an answer.
+     It never returns the key, only whether one is set. */
+  if (path === "/gun/probe") {
+    if (env.PAWN_TOKEN && token !== env.PAWN_TOKEN) return fail("bad_token", 403);
+    return reply(200, { ok: true, probe: await gunProbe(env, (query && query.q) || "") });
+  }
+
   if (path === "/limits" || path === "/") {
     /* Which model is live, said out loud. Comparing two of them is useless
        if you cannot tell from outside which one answered. */
     return reply(200, { ok: true, images: { mediaTypes: OK_TYPES, maxCount: MAX_IMAGES, maxBytes: MAX_IMAGE_BYTES },
                         ebay: ebayReady(env),
+                        gunbroker: gunReady(env),
                         photo: { model: MODEL, asked: MODEL_ASKED || null,
                                  ignored: !!(MODEL_ASKED && MODEL_ASKED !== MODEL),
                                  usdPerMTok: { in: USD_IN * 1e6, out: USD_OUT * 1e6 },

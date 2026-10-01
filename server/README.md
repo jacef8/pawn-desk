@@ -273,3 +273,33 @@ The full detail lands in `tools/price-check.json`, which is not committed.
   a device goes missing.
 - It uses `claude-opus-5`. To spend less per lookup, add
   `output_config: {effort: "low"}` to the request in `core.js`.
+
+### GunBroker — what is true as of 1 Oct 2026
+
+`/gun/probe` (token-gated) exists and answers one question: can this service
+price a gun off GunBroker, or not. It spends no money — GunBroker's developer
+API is free with a key.
+
+Set `GUNBROKER_DEVKEY` in Railway, from
+<https://api.gunbroker.com/User/DevKey/Create>. The key is never logged,
+never echoed and never returned; the probe reports only whether one is set.
+
+Measured, not assumed:
+
+- `api.gunbroker.com` answers this build container and Jace's phone with the
+  **same** 403 body: "Unapproved User Parameter — Please register at:
+  api.gunbroker.com/User/DevKey/Create". It is **not** a network block. It is
+  the API asking for a key. An earlier note in this session called it
+  Cloudflare refusing a datacentre address; that was read off a status code
+  without the body, and it was wrong.
+- `genius.gunbroker.com` (Gun Genius) serves a per-model page carrying
+  GunBroker's own market price — a floor and a ceiling over 24 months, with a
+  `reliable_sample` flag — from
+  `/wp-json/gb-ml-api/v1/firearm-price-points`. That endpoint **is** behind
+  Cloudflare for this address, and after a couple of page loads the pages are
+  too. A browser on a home connection gets both. This service cannot harvest it.
+- `outdooranalytics.com` and `www.gunbroker.com`: 403 from here.
+
+So the order of usefulness is: a registered DevKey (automatic, nothing to
+click), then Gun Genius read by hand in a browser (two numbers a model), then
+the screenshot reader already in the app.
