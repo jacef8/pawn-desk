@@ -1079,7 +1079,13 @@ console.log("\n  the advice names the thing in front of you");
       [/\bchainsaws?\b/i,   ["p1"]],
       [/\bcompressors?\b/i, ["t4", "t5"]],
       [/\bwelders?\b/i,     ["t6"]],
-      [/\bbows?\b/i,        ["h5"]],
+      /* A violin bow is a bow. When the instruments aisle grew from three
+         kinds to eleven, m9 arrived saying "whether the bow is with it",
+         which is the right thing for a fiddle to say and tripped a list
+         that had only ever had one kind of bow in it. The rule is sound -
+         an item must not be told about a different kind of thing - and
+         the owner list was stale, so the owner list moved. */
+      [/\bbows?\b/i,        ["h5", "m9"]],
       [/\bscopes?\b/i,      ["h1"]],
     ];
     const out = [];

@@ -161,7 +161,35 @@ const CATALOG = [
    {id:"m1",name:"Acoustic guitar",value:124,liq:"slow"},
    {id:"m2",name:"Electric guitar",value:150,liq:"slow"},
    /* Measured 24 Sep: "guitar amplifier", 18 real sales, median $135, quartiles $75-$275. 135/0.8 is 169. The old $100 priced every amp at $80 resale */
-   {id:"m3",name:"Amplifier",value:169,liq:"slow"}]},
+   {id:"m3",name:"Amplifier",value:169,liq:"slow"},
+   /* "dont have alot of instrument options" — three kinds covered the
+      whole aisle: two guitars and an amp. Everything else a customer
+      carries through the door fell to "Not on any list — I set the
+      price", which means the desk had nothing to say about a school
+      trumpet or a drum kit.
+
+      THESE EIGHT VALUES ARE ESTIMATES AND THE CARD WILL SAY SO. m1, m2
+      and m3 above carry measured medians off 17, 18 and 18 real sales;
+      these do not, because no harvest has run on them. Each is a typical
+      used midpoint divided by 0.8 (CATALOG_AT_GOOD), which is the same
+      arithmetic the measured three use — so when a harvest does run,
+      the shape is already right and only the number moves. Until then
+      every one of them prices with "Estimate — nothing looked up yet"
+      on the card, which is the truth.
+
+      Band instruments are the ones to get right in a small town: the
+      school rents them, families buy them, and they come back through a
+      pawn counter in September and again in June. A saxophone is its own
+      row because it is worth three times what a clarinet is, and lumping
+      them would have priced both wrong. */
+   {id:"m4",name:"Bass guitar",value:175,liq:"slow"},
+   {id:"m5",name:"Keyboard / digital piano",value:138,liq:"slow"},
+   {id:"m6",name:"Drum kit",value:250,liq:"slow"},
+   {id:"m7",name:"Saxophone",value:375,liq:"slow"},
+   {id:"m8",name:"Band instrument — school",value:112,liq:"slow"},
+   {id:"m9",name:"Violin / fiddle",value:100,liq:"slow"},
+   {id:"m10",name:"PA / powered speaker",value:162,liq:"normal"},
+   {id:"m11",name:"Banjo / mandolin",value:188,liq:"slow"}]},
  /* Jewellery and watches where the NAME carries the value. Plain gold with
     no name on it belongs on the Gold & silver tab, priced by weight - this is
     for the pieces the scale badly under-values. Four of these five sheets
@@ -2810,6 +2838,27 @@ const SPEC_CHOICES={
      {label:"Level",options:[{t:"Player grade",m:1},{t:"Beginner pack",m:.7,note:"starter pack: −30%"}]}],
  m3:[{label:"Type",options:[{t:"Solid-state",m:1},{t:"Tube amp",m:1.3,note:"tube amp: +30%"}]},
      {label:"Size",options:[{t:"Practice (under 30W)",m:1},{t:"30–50W",m:1.1,note:"mid-size: +10%"},{t:"Gigging (50W +)",m:1.2,note:"gig-size: +20%"}]}],
+ /* WHAT MOVES A HORN IS WHETHER IT PLAYS. A trumpet with a stuck valve or
+    a clarinet with rotted pads is a repair bill with a case around it, and
+    the repair costs more than the horn is worth at this end of the market.
+    That is the one question worth asking on every band instrument, and it
+    is the biggest multiplier in this aisle. */
+ m4:[{label:"Orientation",options:[{t:"Right-handed",m:1},{t:"Left-handed",m:.8,note:"lefty — tiny buyer pool: −20%"}]},
+     {label:"Strings",options:[{t:"4-string",m:1},{t:"5-string",m:.9,note:"5-string — narrower buyer pool here: −10%"}]}],
+ m5:[{label:"Keys",options:[{t:"61 keys",m:1},{t:"76 keys",m:1.2,note:"76 keys: +20%"},{t:"88 weighted / digital piano",m:1.6,note:"weighted 88 is a different instrument: +60%"}]},
+     {label:"What came with it",covers:"complete",options:[{t:"Stand, pedal and power supply",m:1},{t:"Power supply only",m:.85,note:"no stand or pedal: −15%"},{t:"No power supply",m:.6,note:"no supply — often a proprietary brick: −40%"}]}],
+ m6:[{label:"What came with it",covers:"complete",options:[{t:"Shells, hardware and cymbals",m:1},{t:"Shells and hardware, no cymbals",m:.7,note:"cymbals are half a kit's value: −30%"},{t:"Shells only",m:.5,note:"shells alone — no stands, no pedal: −50%"}]},
+     {label:"Kind",options:[{t:"Acoustic kit",m:1},{t:"Electronic kit",m:1.3,note:"electronic kits sell faster and dearer: +30%"}]}],
+ m7:[{label:"Which one",options:[{t:"Alto",m:1},{t:"Tenor",m:1.3,note:"tenor over alto: +30%"},{t:"Soprano",m:.9,note:"soprano — thinner market: −10%"},{t:"Baritone",m:2,note:"bari is a different animal: 2x, and look it up"}]},
+     {label:"Does it play?",options:[{t:"Plays — pads seal, keys move",m:1},{t:"Sticky keys or torn pads",m:.45,note:"a pad job is $150–300 — more than most of these are worth: −55%"},{t:"Not tried",m:.75,note:"untried horn: price it as a maybe, −25%"}]}],
+ m8:[{label:"Which one",options:[{t:"Clarinet or flute",m:1},{t:"Trumpet or cornet",m:1.1,note:"trumpet: +10%"},{t:"Trombone",m:1.2,note:"trombone: +20%"},{t:"Violin for school band",m:.9,note:"school fiddle: −10%"}]},
+     {label:"Does it play?",options:[{t:"Plays — pads seal, valves move",m:1},{t:"Stuck valves, torn pads, bent keys",m:.45,note:"the repair costs more than the horn: −55%"},{t:"Not tried",m:.75,note:"untried: price it as a maybe, −25%"}]}],
+ m9:[{label:"Size",options:[{t:"Full size (4/4)",m:1},{t:"Fractional (3/4, 1/2, 1/4)",m:.75,note:"a child outgrows it — narrow resale: −25%"}]},
+     {label:"What came with it",covers:"complete",options:[{t:"Case and bow",m:1},{t:"No bow",m:.7,note:"a bow is a third of a student fiddle: −30%"},{t:"No case",m:.85,note:"no case: −15%"}]}],
+ m10:[{label:"Powered?",options:[{t:"Powered (amp built in)",m:1},{t:"Passive — needs an amp",m:.55,note:"a passive cab needs gear nobody brings: −45%"}]},
+      {label:"Pair or one",options:[{t:"One speaker",m:1},{t:"Matched pair",m:2.1,note:"a pair sells for more than two singles: 2.1x"}]}],
+ m11:[{label:"Which one",options:[{t:"Banjo",m:1},{t:"Mandolin",m:.8,note:"mandolin — smaller market here: −20%"}]},
+      {label:"Build",options:[{t:"Resonator (closed back)",m:1},{t:"Open back",m:.8,note:"open back — clawhammer players only: −20%"}]}],
  r1:[CH_TITLE,{label:"Condition to tow",options:[{t:"Ready to tow",m:1},{t:"Needs lights / wiring",m:.85,note:"wiring work: −15%"}]}],
  r2:[CH_TITLE,{label:"Class",options:[{t:"Full-size (400cc +)",m:1},{t:"Youth quad",m:.7,note:"youth quad — smaller market: −30%"}]}]};
 /* generator wattage from the details text — kept even with choices, since watts
@@ -2825,6 +2874,47 @@ function genWatts(itemName,txt){
   return {abs,note:`${kw}kW → about $${abs} used, open-frame ($85 per 1,000W; the inverter pick stacks on top)`};
 }
 const ITEM_OVERRIDES={
+ /* THE AISLE'S OWN LINES ARE GUITAR LINES. "Cracked neck, warped top" is
+    the right killer for the three rows that were here before and says
+    nothing to a man holding a trumpet; "Fender / Gibson / Martin" is not
+    the tier list for a drum kit. Each new row says its own. */
+ m4:{driver:"Brand, then whether it plays. A bass is a slower sell than a guitar \u2014 fewer players, and they already own one.",
+     killer:"Dead electronics or a twisted neck. A setup is cheap; a neck is not.",
+     tiers:{hi:"Fender / Music Man / Rickenbacker",mid:"Squier / Ibanez / Yamaha / Sterling",lo:"Glarry / no name"},
+     brands:{hi:["Fender","Music Man","Rickenbacker","Warwick","Spector"],mid:["Squier","Ibanez","Yamaha","Sterling","Schecter","ESP","LTD","Peavey"],lo:["Glarry","Donner","Best Choice","Rogue","First Act"]}},
+ m5:{driver:"Key count and whether the keys are weighted. An 88-key weighted board is a different instrument from a 61-key toy.",
+     killer:"Dead keys, or no power supply and a proprietary plug \u2014 the brick can cost more than the board.",
+     tiers:{hi:"Roland / Nord / Kawai / Korg",mid:"Yamaha / Casio / Alesis / Akai",lo:"RockJam / no name"},
+     brands:{hi:["Roland","Nord","Kawai","Korg","Kurzweil"],mid:["Yamaha","Casio","Alesis","Akai","M-Audio","Novation","Arturia"],lo:["RockJam","Donner","Best Choice","Costzon"]},
+     detail:{ph:"key count and make \u2014 88 weighted, Yamaha P-45",hint:"Count the keys and press a few at each end. Dead keys at the ends are the common fault."}},
+ m6:{driver:"Whether the cymbals and hardware came with it. Shells alone are half a kit.",
+     killer:"Cracked cymbals or missing a kick pedal and stands \u2014 the parts cost more than the kit.",
+     tiers:{hi:"DW / Ludwig / Gretsch / Tama Star",mid:"Pearl / Tama / Mapex / PDP / Yamaha",lo:"Mendini / no name"},
+     brands:{hi:["DW","Ludwig","Gretsch","Sonor"],mid:["Pearl","Tama","Mapex","PDP","Yamaha","Alesis","Roland"],lo:["Mendini","Best Choice","Ashthorpe","no name"]},
+     detail:{ph:"make and what is in it \u2014 Pearl Export, 5 piece, cymbals",hint:"Count the drums, then look for stands, a kick pedal and a throne. Cymbals are half the money."}},
+ m7:{driver:"Alto or tenor, and whether it plays. A pad job is $150\u2013300 and the horn is often not worth it.",
+     killer:"Torn pads, stuck keys, a dented neck. Repair outruns the value on anything but a Selmer.",
+     tiers:{hi:"Selmer Paris / Yanagisawa / Yamaha pro",mid:"Yamaha student / Jupiter / Conn-Selmer / Bundy",lo:"Mendini / Glory / Cecilio"},
+     brands:{hi:["Selmer Paris","Yanagisawa","Keilwerth"],mid:["Yamaha","Jupiter","Conn-Selmer","Bundy","Selmer","Conn","King","Buescher"],lo:["Mendini","Glory","Cecilio","Eastar","no name"]},
+     detail:{ph:"make and which horn \u2014 Yamaha YAS-23 alto",hint:"Press the keys and watch the pads seal. Blow it if he will let you \u2014 a horn that will not play is a repair bill in a case."}},
+ m8:{driver:"Which instrument, and whether it plays. School horns come back every June and most of them need pads.",
+     killer:"Stuck valves, rotted pads, a bent key rod. The repair is more than the horn.",
+     tiers:{hi:"Bach / Conn / King / Yamaha",mid:"Jupiter / Bundy / Selmer student / Gemeinhardt",lo:"Mendini / Glory / Eastar"},
+     brands:{hi:["Bach","Conn","King","Yamaha","Buffet","Gemeinhardt"],mid:["Jupiter","Bundy","Selmer","Armstrong","Blessing","Olds"],lo:["Mendini","Glory","Eastar","Cecilio","Hawk","no name"]},
+     detail:{ph:"make and which instrument \u2014 Yamaha YCL-255 clarinet",hint:"Work the valves or the keys and look at the pads. A rental-return that will not play is worth the case it came in."}},
+ m9:{driver:"Full size or fractional, and whether the bow is with it.",
+     killer:"An open seam, a cracked top, or a bridge that has gone over. A luthier costs more than a student fiddle.",
+     tiers:{hi:"Stentor Conservatoire / Eastman / Yamaha",mid:"Stentor Student / Cremona / Scherl & Roth",lo:"Cecilio / Mendini / Glarry"},
+     brands:{hi:["Eastman","Yamaha","Stentor Conservatoire","Knilling"],mid:["Stentor","Cremona","Scherl & Roth","Bellafina","Franz Hoffmann"],lo:["Cecilio","Mendini","Glarry","Kennedy","no name"]}},
+ m10:{driver:"Powered or passive, and whether it is a matched pair. A pair sells for more than two singles.",
+     killer:"A blown driver or a dead amp module. You will hear it the second you plug it in.",
+     tiers:{hi:"QSC / Electro-Voice / JBL Pro",mid:"Mackie / Behringer / Alto / Peavey",lo:"Pyle / Rockville / no name"},
+     brands:{hi:["QSC","Electro-Voice","JBL","RCF","Yamaha DBR"],mid:["Mackie","Behringer","Alto","Peavey","Yamaha","Harbinger"],lo:["Pyle","Rockville","Gemini","Technical Pro","no name"]},
+     detail:{ph:"make, size and powered or not \u2014 Mackie Thump 15, powered",hint:"Plug it in before you talk money. A blown driver is obvious in two seconds and invisible in a photograph."}},
+ m11:{driver:"Banjo or mandolin, and resonator or open back. Bluegrass country, but a thin counter market.",
+     killer:"A warped neck or a cracked rim. Both are terminal at this end.",
+     tiers:{hi:"Deering / Gibson / Collings",mid:"Recording King / Gold Tone / Eastman / Kentucky",lo:"Rogue / Glarry / no name"},
+     brands:{hi:["Deering","Gibson","Collings","Huber"],mid:["Recording King","Gold Tone","Eastman","Kentucky","Ibanez","Washburn","Epiphone"],lo:["Rogue","Glarry","Jameson","no name"]}},
  h4:{driver:"Brand, then megapixels. A cellular cam is priced with NO plan on it — the plan is the customer's account and it leaves with them.",killer:"Corroded battery tray. A cellular cam nobody can activate.",tiers:{hi:"Reconyx / Tactacam / Browning",mid:"Spypoint / Moultrie / Bushnell",lo:"Wildgame / Stealth Cam / no name"},
      brands:{hi:["Reconyx","Tactacam","Browning"],mid:["Spypoint","Moultrie","Bushnell","Muddy Pro"],lo:["Wildgame Innovations","Stealth Cam","Muddy","Vikeri","Campark"]},
      detail:{ph:"cellular or SD / megapixels — cellular, 32MP",hint:"Price a cellular cam as if it has no plan. The one on it belongs to the customer's account and stops when they do."}},
@@ -7703,6 +7793,14 @@ const ITEM_SYN={
  c4:"coin collection numismatic morgan peace wheat penny proof set mint set silver dollar bullion",
  c5:"zippo lighter collectible lighter ronson dupont",
  m1:"acoustic guitar",m2:"electric guitar",m3:"amplifier guitar amp",
+ m4:"bass guitar bass four string precision jazz p-bass",
+ m5:"keyboard digital piano synth synthesizer electric piano stage piano casio keyboard",
+ m6:"drum kit drums drum set snare kick cymbal cymbals electronic drums edrums",
+ m7:"saxophone sax alto sax tenor sax soprano sax baritone sax",
+ m8:"band instrument clarinet flute trumpet cornet trombone school band marching band",
+ m9:"violin fiddle viola",
+ m10:"pa speaker powered speaker monitor speaker dj speaker sound system subwoofer",
+ m11:"banjo mandolin resonator open back bluegrass",
  r1:"utility trailer",r2:"atv four wheeler 4 wheeler fourwheeler quad"};
 const BOOK_SYN={"Reciprocating saw":"sawzall saws all recip saw",
  "Scooter / moped":"scooter moped vespa 50cc ruckus",
@@ -10762,7 +10860,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="1001.0317";
+const APP_BUILD="1001.1412";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

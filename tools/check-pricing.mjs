@@ -2536,6 +2536,86 @@ console.log("\n  the loan follows the evidence, not the aisle");
   }
 }
 
+
+/* "dont have alot of instrument options" - three kinds covered the whole
+   aisle, two guitars and an amp, so a school trumpet or a drum kit fell
+   to "Not on any list - I set the price". Eight more, each with the two
+   questions that actually move its price. */
+console.log("\n  the instruments aisle covers what walks in");
+{
+  const r = await page.evaluate(() => {
+    /* GO RED, DO NOT THROW - third time this session. Without this the
+       probe died on SPEC_CHOICES.m7 being undefined when the rows were not
+       there, and the loop these run in counts FAIL lines, so a crashed
+       suite reads as green. */
+    if (!SPEC_CHOICES.m7 || !CATALOG.find(x => x.id === "music").items.some(i => i.id === "m7"))
+      return {missing:true};
+    const c = CATALOG.find(x => x.id === "music");
+    const look = q => { const rows = omniRows(q).rows; if (!rows.length) return "NO RESULT";
+                        omniPick(rows[0]); const x = calcItem(); return x.item ? x.item.name : "?"; };
+    const priced = id => { st.mode="item"; st.flow="ask"; st.catId="music"; st.itemId=id; st.picked=true;
+      st.brand="mid"; st.brandTyped=""; st.brandSet=false; st.model=""; st.mpNone=true; st.mpPin=null;
+      st.detail=""; st.bookName=""; st.specSel={}; st.market=null; st.cond="good"; st.condSet=true;
+      st.complete=true; st.completeSet=true; st.liq=null; return Math.round(calcItem().resale); };
+    const spec = id => (SPEC_CHOICES[id] || []).map(g => ({label:g.label, m:g.options.map(o => o.m)}));
+    /* The horn question, at both ends: a sax that will not play against one
+       that does. It is the largest single multiplier in the aisle and the
+       reason these rows exist at all. */
+    const sax = (() => { priced("m7");
+      const gi = SPEC_CHOICES.m7.findIndex(g => g.label === "Does it play?");
+      const at = oi => { priced("m7"); st.specSel["m7:"+gi] = oi; return Math.round(calcItem().resale); };
+      return {plays: at(0), broken: at(1)}; })();
+    return {
+      kinds: c.items.length,
+      names: c.items.map(i => i.name),
+      routes: {bass:look("bass guitar"), keys:look("keyboard"), drums:look("drum set"),
+               sax:look("saxophone"), clar:look("clarinet"), trum:look("trumpet"),
+               fiddle:look("violin"), pa:look("pa speaker"), banjo:look("banjo"), mando:look("mandolin")},
+      specs: Object.fromEntries(["m4","m5","m6","m7","m8","m9","m10","m11"].map(id => [id, spec(id)])),
+      ov: Object.fromEntries(["m4","m5","m6","m7","m8","m9","m10","m11"]
+            .map(id => [id, !!(ITEM_OVERRIDES[id] && ITEM_OVERRIDES[id].killer && ITEM_OVERRIDES[id].tiers)])),
+      sax,
+      values: Object.fromEntries(["m4","m5","m6","m7","m8","m9","m10","m11"].map(id => [id, priced(id)])),
+    };
+  });
+  ok(!r.missing, "  the new instrument rows are there at all");
+  if (r.missing) console.log("  (skipping the rest)");
+  else {
+  ok(r.kinds === 11, `  eleven kinds, not three — ${r.kinds}`);
+  const want = {bass:"Bass guitar", keys:"Keyboard / digital piano", drums:"Drum kit",
+                sax:"Saxophone", clar:"Band instrument — school", trum:"Band instrument — school",
+                fiddle:"Violin / fiddle", pa:"PA / powered speaker", banjo:"Banjo / mandolin",
+                mando:"Banjo / mandolin"};
+  const wrong = Object.keys(want).filter(k => r.routes[k] !== want[k]);
+  ok(wrong.length === 0,
+     wrong.length ? `  typing these lands wrong: ` + wrong.map(k => `${k} -> ${r.routes[k]}`).join("; ")
+                  : "  and typing any of them lands on its own row");
+  /* Each new row has to say its own killer and its own tier list. The
+     aisle's are guitar lines - "cracked neck, warped top" says nothing to
+     a man holding a trumpet. */
+  const noOv = Object.keys(r.ov).filter(k => !r.ov[k]);
+  ok(noOv.length === 0,
+     noOv.length ? `  no killer or tiers of their own: ${noOv.join(", ")}`
+                 : "  each says its own killer and its own makers");
+  /* Two live questions apiece, and live means the options differ - the
+     dead-question sweep would catch a flat group, but not before it
+     shipped. */
+  const flat = Object.entries(r.specs).filter(([id, gs]) =>
+    gs.length < 2 || gs.some(g => new Set(g.m).size === 1));
+  ok(flat.length === 0,
+     flat.length ? `  these ask something that cannot move the price: ${flat.map(([id]) => id).join(", ")}`
+                 : "  two questions each, and every one of them moves the number");
+  ok(r.sax.broken < r.sax.plays * 0.6,
+     `  a horn that will not play is priced like one — $${r.sax.plays} against $${r.sax.broken}`);
+  /* Nothing silly: every new row has to land somewhere a counter would
+     recognise rather than at $3 or $3,000. */
+  const silly = Object.entries(r.values).filter(([id, v]) => v < 40 || v > 600);
+  ok(silly.length === 0,
+     silly.length ? `  values out of range: ${silly.map(([i,v]) => i+" $"+v).join(", ")}`
+                  : `  and every one prices somewhere a counter would recognise — $${Math.min(...Object.values(r.values))} to $${Math.max(...Object.values(r.values))}`);
+  }
+}
+
 await browser.close();
 console.log(fails ? "\n  " + fails + " FAILED\n" : "\n  all passed\n");
 process.exit(fails ? 1 : 0);
