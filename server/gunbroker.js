@@ -49,7 +49,14 @@ const API = "https://api.gunbroker.com/v1";
    has to be the string on the form, and nothing here may fall back to a
    browser-shaped default.
 
-   Registered as:  Software "PawnDesk"  Version "1.0"  App "Lamars Pawn Desk"
+   Registered as:  Software "PawnDesk"  Version "1.0"  App "LamarsPawnDesk"
+
+   NO SPACES IN THE APPLICATION NAME. The form says so in red and I missed
+   it: "Application Name may only contain letters, numbers and / - _ . ( )
+   with no spaces." I had handed Jace "Lamars Pawn Desk" to paste. The same
+   red block also caps the production IP whitelist field at 200 characters,
+   and I had written him a three-sentence paragraph for it. Read the rules
+   printed above a form before writing the answers under it.
 
    GUNBROKER_UA overrides it, because if their checker wants a different
    shape than Software/Version the fix must not need a deploy of this file -

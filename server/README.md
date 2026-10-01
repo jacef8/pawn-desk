@@ -300,8 +300,11 @@ never echoed and never returned; the probe reports only whether one is set.
   static egress first, or give GunBroker the blocks the endpoint prints.
 - *Custom user agent* — "Any attempt to add generic naming such as Mozilla,
   WordPress, Python, etc. will result in request failures." Registered as
-  Software `PawnDesk`, Version `1.0`, Application Name `Lamars Pawn Desk`,
-  so this service sends `PawnDesk/1.0`. `GUNBROKER_UA` overrides it without
+  Software `PawnDesk`, Version `1.0`, Application Name `LamarsPawnDesk`,
+  so this service sends `PawnDesk/1.0`. **The form forbids spaces in the
+  Application Name** (letters, numbers and `/ - _ . ( )` only) and caps the
+  production IP field at **200 characters** — both stated in red above the
+  form, and both of which the first draft of our answers broke. `GUNBROKER_UA` overrides it without
   a deploy if their checker wants a different shape. `/gun/probe` and
   `/limits` both report the string actually being sent, so what we send can
   be compared against what was registered without guessing.
