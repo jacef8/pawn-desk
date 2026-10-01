@@ -1086,6 +1086,11 @@
     border-radius:50%;background:rgba(255,255,255,.09);pointer-events:none}
   .hero>*{position:relative;z-index:1}
   .heroWho{font:600 12.5px var(--sans);color:var(--on-hero-2)}
+  /* "the date and time are not separated any more" - a single space each
+     side of the middot is not a separation at 12.5px. The gap carries it
+     now, and the time sits a weight back so the day reads first. */
+  .whoDot{margin:0 10px;opacity:.5}
+  .whoAt{font-weight:500;opacity:.9}
   .heroWhat{font:800 20px var(--disp);color:var(--on-hero);letter-spacing:-.03em;
     margin-top:2px;line-height:1.15}
   .heroLab{font:500 11px var(--mono);letter-spacing:.16em;text-transform:uppercase;

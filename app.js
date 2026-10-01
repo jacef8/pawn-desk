@@ -1003,7 +1003,15 @@ function homeHeroHTML(opts){
       if(!t0)return esc(fmtDay(t.day)||"Today");
       const d=new Date(t0), z=n=>String(n).padStart(2,"0");
       const ds=d.getFullYear()+"-"+z(d.getMonth()+1)+"-"+z(d.getDate());
-      return esc(fmtDay(ds))+" \u00b7 "+esc(feedClock());
+      /* THE DAY AND THE TIME ARE TWO FACTS, NOT ONE STRING. Joined by a
+         bare middot with a single space either side they ran together
+         into "Oct 1 · 12:30am" and read as one lump - and the first
+         thing anybody asks of this line is which day, then how old. So
+         the separator gets real air and dims, and the time steps back a
+         weight: same line, two things on it. */
+      return `<span class="whoDay">${esc(fmtDay(ds))}</span>`
+        +`<span class="whoDot">\u00b7</span>`
+        +`<span class="whoAt">${esc(feedClock())}</span>`;
     })()}</div>
     ${/* THE HOME HERO HAS NO SUBJECT LINE. It used to say "Nothing on the
           counter" where an item hero names the item - a whole line of
@@ -10607,7 +10615,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="1001.0033";
+const APP_BUILD="1001.0046";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

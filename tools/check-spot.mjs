@@ -314,6 +314,24 @@ console.log("\n  the day's tally sits outside the hero, and says what it counts"
   ok(gap != null, "  the date line and the metal label are both on the card");
   ok(gap != null && gap >= 20,
      "  and the date is not sitting on top of the metals \u2014 " + gap + "px between them");
+  /* "the date and time are not separated any more" - the other half of
+     the same report. A single space each side of the middot is not a
+     separation at 12.5px, so the day and the time ran together into one
+     lump. Measured between the two boxes, same as the gap above. */
+  const split = await home.evaluate(() => {
+    /* The split only exists when the feed has answered - with no stamp
+       there is no time to separate the day from, and the line falls back
+       to the plain day on purpose. Give it a stamp first, or this
+       measures the fallback and reports null. */
+    FEED.at = new Date().toISOString(); render();
+    const d = document.querySelector(".homeHero .whoDay");
+    const t = document.querySelector(".homeHero .whoAt");
+    if (!d || !t) return null;
+    return Math.round(t.getBoundingClientRect().left - d.getBoundingClientRect().right);
+  });
+  ok(split != null, "  the day and the time are their own pieces, not one string");
+  ok(split != null && split >= 14,
+     "  with air between them - " + split + "px from the day to the time");
 }
 
 console.log("\n  the phone");
