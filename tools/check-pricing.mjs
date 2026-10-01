@@ -581,8 +581,13 @@ console.log("\n  the loan card does not repeat the rail");
      the answer card names day 30 and stops, so a two-month total in the
      rail is proof the rail is carrying what the card does not, rather
      than repeating it. */
+     /* WAS /2 months/ AND THE TEST WAS RIGHT, THE WORDING MOVED. Jace
+        asked "why are we showing 2 months arbitrarily?" - it was never
+        arbitrary, it is the statutory forfeit day, and the row now says
+        so by naming the day. What this assertion wants is that the panel
+        still carries the second month, and it still does. */
   ok(/what kills it/i.test(wide.railTxt) && /cushion/i.test(wide.pin)
-     && /2 months/i.test(wide.pin),
+     && /day 60/i.test(wide.pin),
      "  it carries what that card does not \u2014 the killer, the cushion and the second month");
   ok(!/LOW LOAN/.test(wide.txt) && !/SUGGESTED LOAN/.test(wide.txt) && !/TOP LOAN/.test(wide.txt),
      "  so the card drops the three range tiles");
@@ -624,8 +629,10 @@ console.log("\n  the loan card does not repeat the rail");
           .map(r => r.innerText.replace(/\s+/g, " ").trim()); };
       return {loan: grab("loan"), buy: grab("buy")};
     });
+    /* Same repoint as above: the one row this panel keeps is the second
+       month, now named by its day rather than left as "2 months". */
     await pg.close();
-    ok(d.loan.length === 1 && /2 months/i.test(d.loan[0]),
+    ok(d.loan.length === 1 && /day 60/i.test(d.loan[0]),
        "the pawn panel carries only what the answer card does not — " + JSON.stringify(d.loan));
     ok(!d.loan.some(r => /hand over|per month|1 month/i.test(r)),
        "  not the loan, the monthly interest or the first month, which are all on the card");
@@ -2665,6 +2672,59 @@ console.log("\n  a used gun is not worth more than a new one, and says so");
   }
   ok(r.a1.onScreen, "  and the warning reaches the counter screen, not just the data");
   ok(!r.clean.warns, "  while a row with no such problem stays quiet");
+}
+
+
+/* "why are we showing 2 months arbitrarily?" and "we need to show our buy
+   at percent for items, so i can see how we got to certain numbers."
+
+   Neither was arbitrary and neither said so, which at a counter is the
+   same thing. Two months is s. 539.001's own clock - day 30 the ticket
+   matures, day 60 it is forfeit - so it is the end of the clock rather
+   than a guess at how long he will take. And the gold card has said
+   "buying 75% of melt" since he asked for it there; the item card printed
+   two numbers and the resale they came from and left the arithmetic
+   between them unstated. */
+console.log("\n  the card shows its own arithmetic, and says which day is which");
+{
+  const r = await page.evaluate(() => {
+    const rows = omniRows("sega saturn").rows;
+    if (!rows.length) return {missing:true};
+    omniPick(rows[0]);
+    st.cond = "good"; st.condSet = true; st.completeSet = true; st.flow = "ask";
+    (SPEC_CHOICES[st.itemId] || []).forEach((g, i) => { st.specSel[st.itemId + ":" + i] = specBase(g); });
+    st.mpNone = true;
+    const q = askQueue(calcItem());
+    st.askAt = q.length - 1;
+    render();
+    const x = calcItem();
+    const t = document.body.innerText.replace(/\s+/g, " ");
+    const said = t.match(/Buying at (\d+)% of that, lending (\d+)%/);
+    return {
+      open: askQueue(x).filter(z => !z.answered).map(z => z.id),
+      buyPct: Math.round(x.buy / x.resale * 100),
+      lendPct: Math.round(x.target / x.resale * 100),
+      saidBuy: said ? Number(said[1]) : null,
+      saidLend: said ? Number(said[2]) : null,
+      /* The day-30 figure belongs to the ANSWER CARD, not this panel -
+         putting it in both is the duplication the rail was cut for, and
+         the suite above catches it. This only checks the panel names the
+         day it is actually about. */
+      day60: /If he runs to the last day \u2014 day 60/.test(t),
+      why: /Day 30 the ticket matures, day 60 it is forfeit/.test(t),
+      /* the word that was there before and explained nothing */
+      bare: /Total to clear it \u2014 2 months/.test(t),
+    };
+  });
+  ok(!r.missing && r.open.length === 0, "  the run finishes, so the answer card is on screen");
+  /* THE ONE THAT MATTERS. A percentage worked out a second time in the
+     view is how the melt card once claimed 48% while handing over 42%.
+     These have to be the figures calcItem actually produced. */
+  ok(r.saidBuy === r.buyPct && r.saidLend === r.lendPct,
+     `  the printed share IS the share \u2014 says ${r.saidBuy}/${r.saidLend}, pays ${r.buyPct}/${r.lendPct}`);
+  ok(r.day60, "  the second month is named by its day, not left as \"2 months\"");
+  ok(r.why, "  and the card says why sixty days, rather than leaving it a guess");
+  ok(!r.bare, "  the unexplained \"2 months\" line is gone");
 }
 
 

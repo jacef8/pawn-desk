@@ -802,8 +802,13 @@ console.log("\n  the rail says what it costs him to get it back, not just what h
          second month. So the requirement moves to where it is met rather
          than being dropped - it is checked across the screen, and the rail
          is checked for carrying only what the card does not. */
+      /* WAS /2 months/ AND THE TEST WAS RIGHT, THE WORDING MOVED. "why are
+         we showing 2 months arbitrarily?" - it is the statutory forfeit
+         day, not an arbitrary window, and the row says so now by naming
+         the day. The job this assertion guards - the rail must carry the
+         second month - is unchanged. */
       if (pay.rows !== 1) pay_bad.push(`the pawn panel has ${pay.rows} rows, expected 1 - the card carries the rest`);
-      if (!pay.labels.some(l => /2 months/i.test(l)))
+      if (!pay.labels.some(l => /day 60/i.test(l)))
         pay_bad.push("the rail does not carry the two-month total, which is its whole job here: " + pay.labels.join(" / "));
       if (pay.labels.some(l => /hand over|per month|1 month/i.test(l)))
         pay_bad.push("the rail still repeats the card: " + pay.labels.join(" / "));

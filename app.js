@@ -1658,9 +1658,26 @@ function dealPanelHTML(x){
           must NOT restate what the answer card says, and it must carry what
           that card does not. Only the two-month total does, so that is all
           that is left of these rows. */""}
+    ${/* "why are we showing 2 months arbitrarily?" It is not arbitrary and
+          it never said so, which amounts to the same thing at a counter.
+          s. 539.001: the ticket MATURES at day 30 and the item is FORFEIT at
+          day 60. Sixty days is the longest he can take and the longest the
+          shop's money is out - it is the end of the clock, not a guess at
+          how long he will be. The answer card already says what day 30
+          costs; this is the other end, and it now says which end it is. */""}
+    ${/* AND ONLY THE ONE ROW, because the rule above is still the rule. I
+          added a day-30 row next to it and check-pricing went red for the
+          right reason: the answer card already says "to get it back $62 by
+          day 30", and this panel exists to carry what that card does NOT.
+          The complaint was never that the second month was missing company
+          - it was that nobody said why sixty days. So the row keeps its
+          place and gets its name. */""}
     <div class="dealRows">
-      <div class="dRow tot"><span>Total to clear it \u2014 2 months</span><b>${money(m2)}</b></div>
+      <div class="dRow tot"><span>If he runs to the last day \u2014 day 60</span><b>${money(m2)}</b></div>
     </div>
+    <div class="rbDay60">Day 30 the ticket matures, day 60 it is forfeit. Sixty
+      days is as long as he can take and as long as your money is out \u2014 that
+      is the whole clock, not a guess.</div>
     ${/* THE CONSERVATIVE-VS-AGGRESSIVE LIST, PUT BACK.
           Reported from the counter: "we used to have a conservative vs
           aggressive offer list." It was not deleted - it is the Low /
@@ -3834,7 +3851,15 @@ function askDoneHTML(x){
           came from, and every one is still reachable through the dots to
           be overruled on the one in his hands. */""}
     ${Object.keys(specFromRecord).length?`<button type="button" class="adRec" id="recUndo"><b>From the record</b>${st.mpPin&&st.mpPin.model?` for ${esc(st.mpPin.model)}`:""} &mdash; ${Object.values(specFromRecord).map(esc).join(" \u00b7 ")}. <span class="adRecHow">Press to answer these yourself if this one differs.</span></button>`:""}
-    <div class="adWhy">${x.checked?"":`<b style="color:var(--warn-ink)">Estimate &mdash; nothing looked up.</b> `}<b>Resells for ${money(Math.round(x.resale))}</b> in this shape &mdash; that is where both numbers come from.${deskRail()?"":` Lend anywhere in ${money(x.low)}&ndash;${money(x.high)}, never above the top.`}</div>
+    ${/* "we need to show our buy at percent for items, so i can see how we
+          got to certain numbers." The gold card has said "buying 75% of
+          melt" since the day he asked for it there, and the item card never
+          said the same thing - it printed two numbers and the resale they
+          came from and left the arithmetic between them unstated. Same
+          figure, same words, read off the same calcItem that produced the
+          numbers rather than worked out again here, which is the mistake
+          that once had the melt card claiming 48% while handing over 42%. */""}
+    <div class="adWhy">${x.checked?"":`<b style="color:var(--warn-ink)">Estimate &mdash; nothing looked up.</b> `}<b>Resells for ${money(Math.round(x.resale))}</b> in this shape &mdash; that is where both numbers come from.${(x.resale>0)?` Buying at <b>${Math.round(x.buy/x.resale*100)}%</b> of that, lending <b>${Math.round(x.target/x.resale*100)}%</b>.`:""}${deskRail()?"":` Lend anywhere in ${money(x.low)}&ndash;${money(x.high)}, never above the top.`}</div>
     ${struckHTML(x)}
     <!-- ANYTHING ELSE IS A NOTEPAD, NOT A QUESTION, AND IT IS STEP 8 NOW.
          Moving it after the condition made it the last card - and the
@@ -10860,7 +10885,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="1001.1733";
+const APP_BUILD="1001.1848";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
