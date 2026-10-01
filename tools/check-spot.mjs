@@ -300,6 +300,20 @@ console.log("\n  the day's tally sits outside the hero, and says what it counts"
      job; two labels an inch apart saying the same thing is how the card
      got muddled in the first place. */
   ok(day.full.heads === 0, `  and the feed does not label itself twice — ${day.full.heads} extra headers`);
+  /* "Seperate this a little bit. A little more space between them." - the
+     date and time ran straight into GOLD / TROY OZ, so the stamp read as
+     part of the gold label instead of the line the whole card is stamped
+     with. Measured off the rendered boxes, not off the stylesheet: a rule
+     can be present and overridden, and what he is looking at is the gap. */
+  const gap = await home.evaluate(() => {
+    const who = document.querySelector(".homeHero .heroWho");
+    const lab = document.querySelector(".homeHero .heroLab");
+    if (!who || !lab) return null;
+    return Math.round(lab.getBoundingClientRect().top - who.getBoundingClientRect().bottom);
+  });
+  ok(gap != null, "  the date line and the metal label are both on the card");
+  ok(gap != null && gap >= 20,
+     "  and the date is not sitting on top of the metals \u2014 " + gap + "px between them");
 }
 
 console.log("\n  the phone");

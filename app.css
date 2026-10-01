@@ -1098,7 +1098,12 @@
      smaller than heroBig was because there are two of them now and they
      have to sit inside 390px with a gutter - "$4,123" and "$61.00" both
      fit at 38px with the tabular figures on. */
-  .heroMet{display:flex;align-items:stretch;margin-top:15px}
+  /* THE DATE WAS SITTING ON TOP OF THE METALS. Circled on the counter
+     screen with "seperate this a little bit. A little more space between
+     them" - the day and time ran straight into GOLD / TROY OZ, so the
+     stamp read as part of the gold label rather than as the line the
+     whole card is stamped with. 15px to 24px. */
+  .heroMet{display:flex;align-items:stretch;margin-top:24px}
   .metCell{flex:1 1 0;min-width:0}
   .metCell .heroLab{margin-top:0}
   .metSep{flex:0 0 1px;align-self:stretch;background:rgba(255,255,255,.3);margin:0 14px}
