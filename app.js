@@ -1370,7 +1370,7 @@ function calcItem(){
      by 1 and lands exactly where it landed yesterday. */
   const resale=checked ? market.mid*cond*completeMult*spec.mult
                        : baseValue*CATALOG_AT_GOOD*cond*brandMult*completeMult*spec.mult;
-  const ltv=Math.max(10,baseLtv+liquidity.adj);
+  const ltv=lendPct(baseLtv,liquidity,checked?market:null);
   /* set by hand for the category > this item's own rate > the category's */
   const buySuggest=(typeof BUY_ITEM!=="undefined"&&BUY_ITEM[item.id]!=null)?BUY_ITEM[item.id]
                   :((typeof BUY_DEFAULT!=="undefined"&&BUY_DEFAULT[st.catId]!=null)?BUY_DEFAULT[st.catId]:Math.min(90,baseLtv+5));
@@ -1851,6 +1851,69 @@ function killerHTML(x){
    of firearms. If the haircut on a read-off range should differ from the
    haircut on nothing at all, that is its own change with its own argument. */
 const SOLD_SRC=/gunwatcher|gunbroker|pricecharting|worthpoint|swappa|lh_sold|lh_complete|tabname=sold|sh\/research/i;
+/* ---- WHAT THE LOAN IS WORTH IS WHAT THE PRICE IS WORTH ----------------
+   "Wouldn't we just need to keep most all items around 50% if we can get
+   verified prices from a source such as eBay?"
+
+   He is right, and the shape of it was worse than he thought. The lend
+   rate was
+
+     ltv = the aisle's rate + a liquidity adjustment
+
+   and nothing else. Evidence strength did not enter it anywhere, so a
+   Rolex figure built from twelve verified eBay sales and a built-in guess
+   nobody had ever looked up lent the same share of resale. Uncertainty
+   about what a thing is worth is the whole reason to lend low, so the one
+   thing that should move the rate was the one thing that did not.
+
+   On a Saturn that resells for $175, at the shop's 25% per 30 days:
+
+     lend $21 (12%)   he redeems: +$5/mo    he forfeits: yours at $21
+     lend $53 (30%)   he redeems: +$13/mo   he forfeits: yours at $53
+     lend $88 (50%)   he redeems: +$22/mo   he forfeits: yours at $88
+
+   Most pawns redeem, and 50% earns four and a half times what 12% does on
+   the same ticket. On a forfeit you still clear $64 after eBay fees.
+
+   BUT NOT A FLAT 50% ON EVERYTHING VERIFIED, because the book's evidence
+   is not uniform: of 519 rows, 305 are graded high, 172 medium, 42 low,
+   and 28 are asking prices rather than sales. Asks run high, and high is
+   the wrong way to be wrong when money is going out. The Saturn that
+   started this is one of the low ones - "four listings on the whole page,
+   treat the figure as thin". Lending half of a thin number is the one
+   place to stay careful. So the rate follows the evidence.
+
+   AND IT ONLY EVER RAISES. Where the aisle already lends more than the
+   evidence band would, the aisle wins and nothing changes. Cutting rates
+   the counter has been working to for months is a different decision and
+   nobody asked for it - the rows where the evidence says LESS than today
+   are listed in the findings for him to rule on separately. */
+const LEND_EV={sold:50, thin:32, asking:25};
+/* Liquidity still bites, because how sure you are of the price and how
+   long your money is out are two different risks. It bites less than the
+   aisle's own adjustment, because part of that big number was standing in
+   for price uncertainty, and a verified price has just removed it. */
+const LEND_LIQ={fast:0, normal:-2, slow:-6};
+function lendEvidence(market){
+  if(!market||market.stale)return null;
+  /* A figure the counter typed is his own judgement with the thing in his
+     hands. It is not the book's evidence to grade, so it leaves the rate
+     where the aisle put it. */
+  if(market.kind==="hand")return null;
+  const ev=rowEvidence(market.note,market.src);
+  if(ev.kind==="asking")return "asking";
+  if(ev.kind==="sold"||ev.kind==="read")
+    return ((ev.kind==="sold"&&ev.n>=3)||market.conf==="h")?"sold":"thin";
+  /* A shelf tag or a maker's own page is not a sale. */
+  return "asking";
+}
+function lendPct(baseLtv,liquidity,market){
+  const base=Math.max(10,baseLtv+(liquidity?liquidity.adj:0));
+  const band=lendEvidence(market);
+  if(!band)return base;
+  const want=Math.max(10,LEND_EV[band]+(LEND_LIQ[liquidity&&liquidity.id]||0));
+  return Math.min(50,Math.max(base,want));
+}
 function rowEvidence(note,src){
   const t=String(note||"");
   const sold=t.match(/(\d+)\s+[^.]*\bsales?\b[^.]*\blast\b/i);
@@ -10653,7 +10716,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="1001.0121";
+const APP_BUILD="1001.0208";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

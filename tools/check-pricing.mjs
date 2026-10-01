@@ -2483,6 +2483,59 @@ console.log("\n  one box, charged once");
   }
 }
 
+
+/* "Wouldn't we just need to keep most all items around 50% if we can get
+   verified prices from a source such as eBay?" He was right, and the
+   shape was worse: the lend rate was the aisle's number plus a liquidity
+   adjustment and nothing else, so a Rolex figure built from twelve
+   verified sales lent the same share as a guess nobody had looked up. */
+console.log("\n  the loan follows the evidence, not the aisle");
+{
+  const r = await page.evaluate(() => {
+    if (typeof lendPct !== "function" || typeof lendEvidence !== "function") return {missing:true};
+    const LIQ = id => LIQUIDITY.find(l => l.id === id);
+    const mk = (conf, note, src) => ({kind:"list", conf, note, src:src||"https://www.pricecharting.com/x", stale:false});
+    const sold = mk("h", "9 eBay sales in the last 90 days", "https://www.ebay.com/sch/i.html?_nkw=x&LH_Sold=1");
+    const thin = mk("l", "Four listings on the whole page — treat the figure as thin");
+    const asks = mk("m", "29 listings, asking prices - no sold data", "https://www.ebay.com/sch/i.html?_nkw=x");
+    const hand = {kind:"hand", conf:"h", note:"", src:"", stale:false};
+    return {
+      bands: {sold:lendEvidence(sold), thin:lendEvidence(thin), asks:lendEvidence(asks), hand:lendEvidence(hand)},
+      /* electronics, 25% base, slow band: the Saturn's own shape */
+      saturnBefore: Math.max(10, 25 + LIQ("slow").adj),
+      saturnAfter:  lendPct(25, LIQ("slow"), thin),
+      verifiedSlow: lendPct(25, LIQ("slow"), sold),
+      verifiedFast: lendPct(25, LIQ("fast"), sold),
+      /* a gun: the aisle already lends 50, the evidence band is lower */
+      gunToday: Math.max(10, 50 + LIQ("normal").adj),
+      gunAfter: lendPct(50, LIQ("normal"), thin),
+      /* nothing looked up at all */
+      unchecked: lendPct(25, LIQ("slow"), null),
+      capped: lendPct(90, LIQ("fast"), sold),
+    };
+  });
+  ok(!r.missing, "  the evidence-led lend rate is wired at all");
+  if (r.missing) console.log("  (skipping the rest)");
+  else {
+  ok(r.bands.sold === "sold" && r.bands.thin === "thin" && r.bands.asks === "asking",
+     `  sales, thin sales and asking prices are told apart — ${r.bands.sold}/${r.bands.thin}/${r.bands.asks}`);
+  /* A figure the counter typed is his own judgement with the thing in his
+     hands. It is not the book's evidence to grade. */
+  ok(r.bands.hand === null, "  and his own typed figure is not graded at all");
+  ok(r.saturnAfter > r.saturnBefore,
+     `  a thin but real figure lifts the Saturn — ${r.saturnBefore}% to ${r.saturnAfter}%`);
+  ok(r.verifiedSlow > r.saturnAfter && r.verifiedFast > r.verifiedSlow,
+     `  and real sales lift it further, less the time it sits — thin ${r.saturnAfter}%, sold-slow ${r.verifiedSlow}%, sold-fast ${r.verifiedFast}%`);
+  /* THE ONE THAT PROTECTS HIM. The rule may raise a rate and may never cut
+     one he has been working to for months. */
+  ok(r.gunAfter === r.gunToday,
+     `  where the aisle already lends more, the aisle wins — gun stays ${r.gunAfter}%`);
+  ok(r.unchecked === Math.max(10, 25 + (-13)),
+     `  nothing looked up lends exactly what it lent before — ${r.unchecked}%`);
+  ok(r.capped <= 50, `  and nothing lends over half of resale — ${r.capped}%`);
+  }
+}
+
 await browser.close();
 console.log(fails ? "\n  " + fails + " FAILED\n" : "\n  all passed\n");
 process.exit(fails ? 1 : 0);

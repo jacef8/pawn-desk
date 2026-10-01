@@ -155,3 +155,84 @@ aisle the app has. One broken filing in 518.
   did not hold their fix; replaced with a count taken across all 507 rows.
   One of those counts has still never gone red, so it is reported as
   evidence rather than as a green tick of its own.
+
+---
+
+# The lend rate follows the evidence — 1 Oct 2026, NOT YET PUBLISHED
+
+"Wouldn't we just need to keep most all items around 50% if we can get
+verified prices from a source such as eBay?"
+
+He was right, and the shape was worse than the question assumed. The lend
+rate was:
+
+    ltv = the aisle's rate + a liquidity adjustment
+
+and nothing else. **Evidence strength did not enter it anywhere.** A Rolex
+figure built from twelve verified eBay sales and a built-in guess nobody
+had ever looked up lent the same share of resale.
+
+## Why raising it pays
+
+A Saturn that resells for $175, at 25% per 30 days:
+
+| lend | he redeems (30d) | he redeems (60d) | he forfeits |
+|---|---|---|---|
+| $21 (12%) | +$5 | +$10 | yours at $21 |
+| $53 (30%) | +$13 | +$26 | yours at $53 |
+| $88 (50%) | +$22 | +$44 | yours at $88 |
+
+Most pawns redeem, and 50% earns 4.4x what 12% does on the same ticket.
+On a forfeit you still clear $64 after eBay fees.
+
+## Why not a flat 50%
+
+Of 519 rows: 305 graded high, 172 medium, 42 low; 304 name a count of real
+sales, 28 name asking prices. Asks run high, and high is the wrong way to
+be wrong when money is going out. The Saturn that started this is one of
+the thin ones — "four listings on the whole page".
+
+    real sales, several, recent      50%
+    sold data but thin               32%
+    asking prices only               25%
+    nothing looked up                the aisle rate, unchanged
+
+less a softened liquidity adjustment (fast 0, normal −2, slow −6) — because
+how sure you are of the price and how long your money is out are two
+different risks, and part of the aisle's big −13 was standing in for the
+first one.
+
+## Measured across the whole book
+
+378 rows drive a price. **240 go up, 138 unchanged, 0 down.**
+
+    total lent if you wrote every ticket:  $55,705 -> $69,550
+
+| | conf | evidence | rate | lend |
+|---|---|---|---|---|
+| Sega Saturn | l | thin | 12% → 26% | $21 → $46 |
+| Nintendo 64 | h | sold | 12% → 44% | $11 → $42 |
+| iPhone 13 | h | sold | 25% → 50% | $48 → $95 |
+| Xbox Series X | h | sold | 25% → 50% | $129 → $258 |
+| Samsung TU7000 55in | h | sold | 20% → 48% | $20 → $48 |
+| Rolex Datejust 36 | h | sold | 27% → 44% | $1,546 → $2,519 |
+| DeWalt 20V drill kit | m | asking | 35% → 35% | unchanged |
+| Remington 870 Express | m | thin | 50% → 50% | unchanged |
+
+By aisle: Electronics 19%→41%, Fitness 16%→45%, Appliances 25%→47%,
+Jewelry 32%→46%, Tools 33%→44%, Hunting 36%→46%, Firearms 49%→49%.
+
+## It only ever raises
+
+Where the aisle already lends more than the evidence band, the aisle wins.
+**135 rows have evidence that says LESS than today** — the shotguns are the
+clearest: Firearms lends 50% and their rows are conf=m with no sale count,
+so the evidence band would say 32%. Cutting rates the counter has worked
+to for months is a different decision and nobody asked for it. Those rows
+are untouched and listed here for Jace to rule on separately.
+
+## The question that is his, not mine
+
+At these rates the same till carries fewer tickets — $55,705 of book value
+becomes $69,550, a quarter more money out for the same number of loans.
+That is a business call about how much he wants tied up, not a pricing one.
