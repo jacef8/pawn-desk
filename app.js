@@ -1044,7 +1044,7 @@ function homeHeroHTML(opts){
       const cell=(metal,lab,v,dp)=>{
         const g=(typeof meltPctNow==="function")?meltPctNow(metal,"buy"):null;
         return `<div class="metCell"><div class="heroLab">${lab}</div>`
-          +`<div class="metBig">${v?(dp?"$"+v.toFixed(2):money(Math.round(v))):"\u2014"}</div>`
+          +`<div class="metBig">${v?(dp?"$"+v.toFixed(2):money(Math.round(v))):"\u2014"}${v?trendIconHTML(metal):""}</div>`
           +(v&&g?`<div class="metBuy">Buying <b>${g}%</b> of melt</div>`
                 :`<div class="metBuy metBuyOff">Buy rate needs a price</div>`)
           +`</div>`;
@@ -4989,6 +4989,52 @@ function metalState(metal){
   return {spot, a90, a200, peak, days:n, last:S[n-1][0],
           prem:(spot-a90)/a90, dd:(spot/peak-1), vol, band,
           aboveLong:spot>=a200, cuts};
+}
+/* ---- THE LITTLE ARROW BY THE PRICE -------------------------------------
+   "next to the metal prices, can we put a little icon for trends.
+   somehting like an up trend arrow or down trend arrow."
+
+   Read off this repo's own LBMA series, not invented: the spot against
+   where it was 22 trading days back, which is about a calendar month. The
+   same figure metalTrend already computes for its own purposes - it was
+   just never on the screen.
+
+   THE DEAD BAND IS THE WHOLE DESIGN. Gold's median day-over-day move is
+   0.71%, so a month can drift a point and a half on noise alone. An arrow
+   that flips on noise is worse than no arrow: it is a claim about
+   direction that the data does not support, and at a counter it would be
+   read as a reason to pay differently. Under 2% in either direction it
+   shows a flat bar, which says what is true - nothing is happening.
+
+   It does not touch a price. Nothing in calcMetal reads it. It is a thing
+   to glance at, and the number it stands for is in the title so the
+   counter can see what the arrow is actually claiming. */
+const TREND_DEAD=2;
+function metalArrow(metal){
+  const S=(typeof metalSeries==="function")?metalSeries(metal):null;
+  if(!S||S.length<23)return null;
+  const v=S.map(r=>r[1]);
+  /* The live feed, or the counter's own typed number, against a month ago.
+     A struck quote freezes the PRICE on purpose; the trend behind it has
+     not frozen, so this reads the live one. */
+  const now=(typeof spotLive==="function")?spotLive(metal):v[v.length-1];
+  const then=v[v.length-23];
+  if(!(now>0)||!(then>0))return null;
+  const pct=(now/then-1)*100;
+  return {pct, dir: pct>=TREND_DEAD?"up" : pct<=-TREND_DEAD?"down" : "flat",
+          days:30};
+}
+function trendIconHTML(metal){
+  const t=metalArrow(metal); if(!t)return "";
+  const n=(t.pct>=0?"+":"")+t.pct.toFixed(1)+"%";
+  const title=t.dir==="flat"
+    ? `${n} over about a month \u2014 inside the 2% either way that is just noise`
+    : `${n} over about a month`;
+  const path=t.dir==="up"   ? '<path d="M3 15.5L8.5 9.5l3.5 3.5L19 5.5"/><path d="M14.5 5.5H19V10"/>'
+            :t.dir==="down" ? '<path d="M3 5.5L8.5 11.5l3.5-3.5L19 15.5"/><path d="M14.5 15.5H19V11"/>'
+            :                 '<path d="M4 10.5h15"/>';
+  return `<span class="trendIc ${t.dir}" title="${esc(title)}" aria-label="${esc(title)}">`
+    +`<svg viewBox="0 0 22 21" aria-hidden="true">${path}</svg></span>`;
 }
 /* WHICH WAY IT HAS BEEN GOING, AND WHETHER TO SAY SOMETHING.
    Asked for at the counter, and fairly: "can't you at least warn me a trend
@@ -10716,7 +10762,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="1001.0208";
+const APP_BUILD="1001.0317";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

@@ -334,6 +334,79 @@ console.log("\n  the day's tally sits outside the hero, and says what it counts"
      "  with air between them - " + split + "px from the day to the time");
 }
 
+/* "next to the metal prices, can we put a little icon for trends.
+   somehting like an up trend arrow or down trend arrow." Read off this
+   repo's own LBMA series - the spot against 22 trading days back, about a
+   calendar month - with a dead band, because gold's median day-over-day
+   move is 0.71% and a month drifts a point and a half on noise alone. An
+   arrow that flips on noise is a claim the data does not support. */
+console.log("\n  the trend arrow says which way, and nothing else");
+{
+  const tr = await browser.newPage({viewport:{width:1440, height:900}});
+  const terr = []; tr.on("pageerror", e => terr.push(String(e)));
+  await tr.goto(BASE + "/index.html", {waitUntil:"networkidle"});
+  await tr.waitForTimeout(900);
+  const src = await (await fetch(BASE + "/app.js")).text();
+  const r = await tr.evaluate((src) => {
+    if (typeof metalArrow !== "function") return {missing:true};
+    const S = metalSeries("gold");
+    if (!S || S.length < 23) return {noSeries:true};
+    const monthAgo = S[S.length - 23][1];
+    /* Drive it off the live spot, which is what the function reads, so the
+       move is a number this test chose rather than whatever the feed
+       happens to be doing today. */
+    const at = move => { FEED.gold = monthAgo * (1 + move/100); st.manual = null; st.spotHold = null;
+                         return metalArrow("gold"); };
+    const out = {
+      up: at(6), down: at(-6), flatUp: at(1.9), flatDown: at(-1.9),
+      edgeUp: at(2.1), edgeDown: at(-2.1),
+    };
+    /* AND IT MUST NOT TOUCH THE MONEY. Nothing in calcMetal reads it, and
+       this is the assertion that keeps it that way: the same spot, the
+       same quote, whichever way the arrow points. */
+    /* The first version of this fed the same spot twice and asserted the
+       same answer came back, which is a tautology. The real question is
+       structural: is the arrow wired into anything that makes money? So
+       count the call sites. One definition, one call from the icon that
+       draws it, nothing else. Wire it into calcMetal or suggestPay and
+       this goes red. */
+    const calls = (src.match(/metalArrow\s*\(/g) || []).length - 1;
+    const fnBody = name => { const k = src.indexOf("function " + name + "("); return k < 0 ? "" : src.slice(k, k + 4000); };
+    out.refs = {calls,
+      inMoney: ["calcMetal","suggestPay","suggestRate","metalGuard","lendPct","calcItem"]
+        .find(n => /metalArrow|trendIcon/.test(fnBody(n))) || ""};
+    /* on the card, next to each price */
+    st.mode="item"; FEED.silver = 60; FEED.at = new Date().toISOString(); render();
+    const d = document.createElement("div"); d.innerHTML = homeHeroHTML({acts:false});
+    out.icons = [...d.querySelectorAll(".metCell")].map(c => {
+      const i = c.querySelector(".trendIc"), b = c.querySelector(".metBig");
+      return {has: !!i, inBig: !!(b && b.querySelector(".trendIc")), title: i ? i.getAttribute("title") : ""};
+    });
+    return out;
+  }, src);
+  await tr.close();
+  ok(!r.missing && !r.noSeries, "  there is a price series to read a trend off");
+  if (r.missing || r.noSeries) console.log("  (skipping the rest)");
+  else {
+  ok(r.up.dir === "up" && r.down.dir === "down",
+     `  a 6% month points the right way — ${r.up.dir} / ${r.down.dir}`);
+  ok(r.flatUp.dir === "flat" && r.flatDown.dir === "flat",
+     `  under 2% either way is flat, not a direction — ${r.flatUp.pct.toFixed(1)}% and ${r.flatDown.pct.toFixed(1)}%`);
+  ok(r.edgeUp.dir === "up" && r.edgeDown.dir === "down",
+     "  and just past 2% it commits");
+  /* The one that matters. An arrow beside a price at a pawn counter would
+     be read as a reason to pay differently if it ever moved one. */
+  ok(r.refs.calls === 1 && !r.refs.inMoney,
+     "  the arrow is read by the icon and by nothing that makes money - " + r.refs.calls
+     + " call site" + (r.refs.calls===1?"":"s") + (r.refs.inMoney ? ", AND IT IS IN " + r.refs.inMoney : ""));
+  ok(r.icons.length === 2 && r.icons.every(i => i.has && i.inBig),
+     `  both metals carry one, beside the number — ${r.icons.map(i => i.has).join(", ")}`);
+  ok(r.icons.every(i => /%/.test(i.title) && /month/.test(i.title)),
+     `  and each says what it is claiming — "${r.icons[0].title}"`);
+  }
+  ok(terr.length === 0, "  no page errors" + (terr.length ? ": " + terr[0] : ""));
+}
+
 console.log("\n  the phone");
 {
   const ph = await browser.newPage({viewport:{width:390, height:844}});
