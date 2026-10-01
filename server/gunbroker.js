@@ -42,10 +42,83 @@
  * below reports whether it is SET, never what it is.
  */
 const API = "https://api.gunbroker.com/v1";
-const UA  = "pawn-desk/1.0 (Lamar's Pawn, Bristol FL)";
+/* THE USER AGENT IS REGISTERED, NOT CHOSEN. GunBroker's key form takes a
+   Software name, a Version and an Application Name, and warns in red:
+   "Any attempt to add generic naming such as Mozilla, WordPress, Python,
+   etc. will result in request failures." So the string this service sends
+   has to be the string on the form, and nothing here may fall back to a
+   browser-shaped default.
 
+   Registered as:  Software "PawnDesk"  Version "1.0"  App "Lamars Pawn Desk"
+
+   GUNBROKER_UA overrides it, because if their checker wants a different
+   shape than Software/Version the fix must not need a deploy of this file -
+   it is an environment variable like every other setting here. */
+const DEFAULT_UA = "PawnDesk/1.0";
+const ua = (env) => String((env && env.GUNBROKER_UA) || DEFAULT_UA);
+
+/* WHICH ADDRESS GUNBROKER WOULD HAVE TO LET IN.
+ *
+ * Their developer-key form has a required field: "specify all IP Addresses
+ * or IP Address ranges that we need to whitelist before we can give you
+ * access to our Production environment." Nobody can answer that from a
+ * laptop - the address that matters is the one THIS SERVICE goes out from,
+ * and only this service can see it.
+ *
+ * It samples several times from more than one echo, because a host may
+ * answer from a pool rather than a single address: the build container
+ * this was written on returned 160.79.106.129, .131 and .25 on three
+ * consecutive calls. One sample would have been a confident wrong answer
+ * on the one form field that cannot be got wrong. If the set comes back
+ * with more than one address, Railway is rotating and a single IP in that
+ * box will stop working without warning - which is worth knowing BEFORE
+ * the form is submitted, not after the key is issued.
+ *
+ * No key needed and nothing secret involved: this is the service's own
+ * public address, which every host it contacts already sees.
+ */
+const ECHOES = [
+  "https://api.ipify.org?format=json",
+  "https://checkip.amazonaws.com",
+  "https://icanhazip.com",
+  "https://ifconfig.me/ip",
+];
+export async function egressIPs(rounds = 2) {
+  const seen = new Map();
+  const tried = [];
+  for (let r = 0; r < rounds; r++) {
+    for (const url of ECHOES) {
+      const ctl = new AbortController();
+      const t = setTimeout(() => ctl.abort(), 8000);
+      try {
+        const res = await fetch(url, { signal: ctl.signal });
+        const text = (await res.text()).trim();
+        let ip = text;
+        try { const j = JSON.parse(text); if (j && j.ip) ip = String(j.ip); } catch (e) {}
+        ip = ip.split(/\s+/)[0];
+        if (/^[0-9.]{7,15}$|^[0-9a-f:]{3,}$/i.test(ip)) seen.set(ip, (seen.get(ip) || 0) + 1);
+        else tried.push({ url, unreadable: text.slice(0, 40) });
+      } catch (e) {
+        tried.push({ url, failed: String((e && e.name) || e).slice(0, 40) });
+      } finally { clearTimeout(t); }
+    }
+  }
+  const ips = [...seen.entries()].sort((a, b) => b[1] - a[1]).map(([ip, n]) => ({ ip, seen: n }));
+  /* A /24 is the usual thing to ask a provider to whitelist when the host
+     rotates inside one block. Said out loud so nobody has to work it out
+     under a form field. */
+  const blocks = [...new Set(ips.map(x => x.ip).filter(x => x.includes("."))
+    .map(x => x.split(".").slice(0, 3).join(".") + ".0/24"))];
+  return {
+    ips, blocks, rotating: ips.length > 1, failures: tried,
+    note: !ips.length ? "Could not read the outbound address at all."
+      : ips.length === 1
+        ? "One address every time. That is the one to whitelist - but confirm Railway gives you a STATIC egress IP, or it will change on a redeploy and the key will stop working."
+        : `${ips.length} different addresses across ${rounds} rounds. This host rotates: a single IP in that form field WILL break. Ask for the block, or turn on static egress first.`,
+  };
+}
 export function gunReady(env) {
-  return { key: !!env.GUNBROKER_DEVKEY };
+  return { key: !!env.GUNBROKER_DEVKEY, userAgent: ua(env) };
 }
 
 /* One call, with the key in the header and nothing of it in the answer. */
@@ -57,7 +130,7 @@ async function ask(env, path, ms = 12000) {
   const started = Date.now();
   try {
     const r = await fetch(API + path, {
-      headers: { "X-DevKey": key, "User-Agent": UA, accept: "application/json" },
+      headers: { "X-DevKey": key, "User-Agent": ua(env), accept: "application/json" },
       signal: ctl.signal,
     });
     const text = await r.text();
@@ -82,7 +155,7 @@ async function ask(env, path, ms = 12000) {
    anything on top of this. */
 export async function gunProbe(env, keywords) {
   const kw = encodeURIComponent(String(keywords || "Remington 870 Express").slice(0, 60));
-  const out = { key: !!env.GUNBROKER_DEVKEY, tried: [] };
+  const out = { key: !!env.GUNBROKER_DEVKEY, userAgent: ua(env), tried: [] };
   if (!out.key) { out.verdict = "no_key"; return out; }
 
   /* 1. Does Railway get through at all, and is the key accepted? Categories

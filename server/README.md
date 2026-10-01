@@ -284,6 +284,26 @@ Set `GUNBROKER_DEVKEY` in Railway, from
 <https://api.gunbroker.com/User/DevKey/Create>. The key is never logged,
 never echoed and never returned; the probe reports only whether one is set.
 
+**The key form asks three things this service has to match.**
+
+- *IP addresses to whitelist* — for both Sandbox and Production, and nobody
+  can answer it from a laptop: the address that matters is the one THIS
+  service goes out from. `GET /gun/ip` (token-gated) reports it, sampled
+  eight times across four echoes, because a host may answer from a pool.
+  The build container this was written on returned three different
+  addresses in three /24s. **If `rotating` comes back true, a single IP in
+  that form field will stop working without warning** — turn on Railway's
+  static egress first, or give GunBroker the blocks the endpoint prints.
+- *Custom user agent* — "Any attempt to add generic naming such as Mozilla,
+  WordPress, Python, etc. will result in request failures." Registered as
+  Software `PawnDesk`, Version `1.0`, Application Name `Lamars Pawn Desk`,
+  so this service sends `PawnDesk/1.0`. `GUNBROKER_UA` overrides it without
+  a deploy if their checker wants a different shape. `/gun/probe` and
+  `/limits` both report the string actually being sent, so what we send can
+  be compared against what was registered without guessing.
+- *What it is for* — determining gun values from current and historical sold
+  prices and current asking prices, when buying and selling at the counter.
+
 Measured, not assumed:
 
 - `api.gunbroker.com` answers this build container and Jace's phone with the

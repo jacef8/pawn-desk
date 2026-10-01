@@ -68,7 +68,7 @@ function spendToday(add) {
 }
 import { syncMerge } from "./store.js";
 import { ebayComps, ebayReady } from "./ebay.js";
-import { gunProbe, gunReady } from "./gunbroker.js";
+import { gunProbe, gunReady, egressIPs } from "./gunbroker.js";
 const DEFAULT_ORIGIN = "https://jacef8.github.io";
 const MAX_IMAGES = 4;
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -170,6 +170,14 @@ export async function handle({ path, method, token, body, env, signal, query }) 
      shop's. It spends no money - GunBroker's developer API is free with a
      key - so it is safe to run as often as it takes to get an answer.
      It never returns the key, only whether one is set. */
+  /* The address GunBroker's key form asks to whitelist. Only this service
+     can see it, and it is the service's own public address - nothing
+     secret, no key required. */
+  if (path === "/gun/ip") {
+    if (env.PAWN_TOKEN && token !== env.PAWN_TOKEN) return fail("bad_token", 403);
+    return reply(200, { ok: true, egress: await egressIPs(2) });
+  }
+
   if (path === "/gun/probe") {
     if (env.PAWN_TOKEN && token !== env.PAWN_TOKEN) return fail("bad_token", 403);
     return reply(200, { ok: true, probe: await gunProbe(env, (query && query.q) || "") });
