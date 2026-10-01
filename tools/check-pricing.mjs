@@ -2423,6 +2423,66 @@ console.log("\n  rounding never pushes the charge over the statutory ceiling");
   ok(r.fiveStays, "and the $5 minimum the statute allows outright still stands");
 }
 
+
+/* THE SAME BOX, PRICED TWICE. "These two questions seem to have overlap"
+   - reported off the counter screen with a Sega Saturn on it. "What shape
+   is it in?" offered New in box at +30%, and "Box and papers?" offered
+   Complete in box at +60%; both are true of one sealed console and the
+   counter answers both honestly.
+
+   It was latent until spec.mult started reaching measured prices - before
+   that the box question was discarded on anything with a book row, so the
+   overlap could not fire. Fixing one thing armed another, which is why
+   this is a suite and not a note. */
+console.log("\n  one box, charged once");
+{
+  const r = await page.evaluate(() => {
+    /* GO RED, DO NOT THROW. Without this the probe died on a
+       ReferenceError when the fix was not there, and a stack trace is not
+       a red - the loop these run in counts FAIL lines and would have
+       called a crashed suite green. Second time this session. */
+    if (typeof condList !== "function" || typeof specCoversBox !== "function")
+      return {missing:true};
+    const row = MODEL_PRICES.find(x => x[2] === "Sega Saturn");
+    const put = () => { st.mode="item"; st.flow="ask"; st.catId="elec"; st.itemId="e5c"; st.picked=true;
+      st.brand="mid"; st.brandTyped=""; st.brandSet=false; st.model="Sega Saturn"; st.mpNone=false;
+      st.mpPin={id:row[0],model:"Sega Saturn"}; st.detail=""; st.bookName=""; st.specSel={};
+      st.market=null; st.cond="good"; st.condSet=true; st.complete=true; st.completeSet=true; st.liq=null; };
+    const gb = SPEC_CHOICES.e5c.findIndex(g => g.label === "Box and papers");
+    const at = (cond, box) => { put(); st.cond=cond; if (box!=null) st.specSel["e5c:"+gb]=box;
+                                return Math.round(calcItem().resale); };
+    put();
+    return {
+      offered: condList("e5c").map(c => c.id),
+      drill: condList("t1").map(c => c.id),
+      loose: at("good", 0), cib: at("good", 2),
+      /* st.cond survives an item change, so this is the state a counter
+         lands in after pricing a boxed drill and then a console. The
+         BUTTON is gone either way; this is about the sum. */
+      staleNew: at("new", 2), excCib: at("exc", 2),
+      covers: specCoversBox("e5c"), notDrill: specCoversBox("t1"),
+    };
+  });
+  ok(!r.missing, "  the box/condition split is wired at all");
+  if (r.missing) { console.log("  (skipping the rest \u2014 nothing to check)"); }
+  else {
+  ok(r.covers && !r.notDrill,
+     `  the console's specs price the box, the drill's do not — ${r.covers} / ${r.notDrill}`);
+  ok(r.offered.indexOf("new") < 0,
+     `  so New in box is not offered on a console — ${r.offered.join(", ")}`);
+  ok(r.drill.indexOf("new") >= 0,
+     `  and still is on a drill, where nothing else prices the box — ${r.drill.join(", ")}`);
+  /* THE ONE THAT MATTERS. A condition left over from the last item must
+     not carry the +30% into a sum whose button no longer exists. */
+  ok(r.staleNew === r.excCib,
+     `  a leftover "new" cannot charge the box twice — $${r.staleNew} against $${r.excCib}`);
+  ok(r.cib > r.loose,
+     `  the box is still worth something, once — $${r.loose} loose, $${r.cib} complete in box`);
+  ok(r.staleNew < 330,
+     `  and a boxed console is $${r.staleNew}, not the $364 two multipliers made of it`);
+  }
+}
+
 await browser.close();
 console.log(fails ? "\n  " + fails + " FAILED\n" : "\n  all passed\n");
 process.exit(fails ? 1 : 0);

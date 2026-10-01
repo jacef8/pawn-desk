@@ -1341,7 +1341,13 @@ function calcItem(){
      tag, a price worked back from new) describes a typical good one, and
      those still get adjusted. */
   const handSet=checked&&market.kind==="hand";
-  const cond=handSet?1:(COND_MULT[st.cond]||1);
+  /* AND THE ARITHMETIC CLAMPS IT TOO, not just the list of buttons. A
+     condition is remembered across items: pick a boxed drill, answer New
+     in box, then pick a console, and st.cond is still "new" on a screen
+     that no longer offers it. The button would be gone and the +30% would
+     still be in the price. The list and the sum have to agree. */
+  const condId=(!handSet&&specCoversBox(item.id)&&st.cond==="new")?"exc":st.cond;
+  const cond=handSet?1:(COND_MULT[condId]||1);
   /* THE SPECIFICATION REACHES A MEASURED PRICE TOO, and for six months it
      did not. brandMult staying out is right - a measured figure for a Sega
      Saturn already has Sega in it. spec.mult staying out was not: what the
@@ -2395,7 +2401,7 @@ const CH_CONSOLE_KIT={label:"What came with it",covers:"complete",options:[
    the same item. The multiplier is a floor and the note says to look it up.
    Printing 2.8 while the arithmetic did 1.8 is the bug this file has been
    burned by before: the number shown has to be the number used. */
-const CH_CONSOLE_BOX={label:"Box and papers",options:[
+const CH_CONSOLE_BOX={label:"Box and papers",covers:"box",options:[
   {t:"No box — the machine on its own",m:1},
   {t:"Box, but rough or missing the inserts",m:1.25,note:"box only: +25%"},
   {t:"Complete in box — manuals, inserts, clean",m:1.6,
@@ -2410,7 +2416,7 @@ const CH_CONSOLE_BOX={label:"Box and papers",options:[
    row on the same page reads 4.1x, which is not credible for a machine
    that sold a hundred million units and is the kind of figure that means
    somebody listed a bundle. */
-const CH_CONSOLE_BOX_LATE={label:"Box and papers",options:[
+const CH_CONSOLE_BOX_LATE={label:"Box and papers",covers:"box",options:[
   {t:"No box",m:1},
   {t:"Boxed, with the papers",m:1.25,note:"boxed: +25%"}]};
 
@@ -2478,6 +2484,38 @@ const CH_CONSOLE_VARIANT={label:"Plain one, or special?",options:[
    label, so a renamed group cannot quietly turn the double-count back on. */
 function specCoversComplete(id){
   return (SPEC_CHOICES[id||st.itemId]||[]).some(g=>g&&g.covers==="complete");
+}
+/* THE SAME BOX, PRICED TWICE. Reported off the counter screen with a Sega
+   Saturn on it: "These two questions seem to have overlap." They do, and
+   it is the same shape as the missing battery above - "What shape is it
+   in?" offers New in box at +30%, and then "Box and papers?" offers
+   Complete in box at +60% and Sealed at +60%. Both are true of one sealed
+   console, the counter answers both honestly, and the box is charged
+   twice: 1.3 x 1.6 = 2.08.
+
+   MEASURED on the Saturn's own book row, $175 loose:
+
+     Good, no box                              $175
+     Good, complete in box                     $280
+     New in box, box question left alone       $228
+     New in box AND complete in box            $364   <- one box, twice
+
+   It was latent until yesterday, when spec.mult started reaching measured
+   prices. Before that the box question was discarded on any item with a
+   book row, so the overlap could not fire - which is a reminder that
+   fixing one thing can arm another.
+
+   So where the specs price the box, the condition question stops doing
+   it: New in box comes out of the list and Excellent is the top of it.
+   Condition is wear; the box is the box. */
+function specCoversBox(id){
+  return (SPEC_CHOICES[id||st.itemId]||[]).some(g=>g&&g.covers==="box");
+}
+/* The list the counter is actually offered. Everywhere CONDITIONS is shown
+   it goes through this, so the desk, the phone and the one-question run
+   cannot drift apart on it. */
+function condList(id){
+  return specCoversBox(id)?CONDITIONS.filter(c=>c.id!=="new"):CONDITIONS;
 }
 /* Which option stands when nobody has answered yet: the neutral one, the one
    that does not move the price. Never "whichever is listed first" - the bands
@@ -3207,7 +3245,7 @@ function askQueue(x){
   }
   if(!handSet)q.push({id:"cond", title:"What shape is it in?",
     hint:"Next to a typical used one.",
-    opts:CONDITIONS.map(c=>{const w=COND_WORDS[c.id]||[c.label,""];
+    opts:condList(x&&x.item?x.item.id:st.itemId).map(c=>{const w=COND_WORDS[c.id]||[c.label,""];
       /* NOTHING LIT UNTIL SOMEBODY SAYS SO - the same rule the make above
          already follows, and for the same reason. st.cond defaults to
          "good" because the arithmetic needs something, so Good came up
@@ -4067,7 +4105,7 @@ function renderItem(){
      thing is broken. */
   mid+=`<span class="label">Condition${x.handSet?" &mdash; already in your figure":(x.checked?" &mdash; next to a typical used one":"")}</span>`
     +(x.handSet?`<div class="tagNote">You typed the resale value yourself, so condition does not move the price &mdash; the wear is already in your number. Clear it in <b>Resale value</b> to price off the list again and have condition adjust it.</div>`:"")
-    +`<div class="pills mb14" style="border-radius:var(--r-s)">${CONDITIONS.map(c=>`<button class="${c.id===st.cond?"on":""}" style="flex:1;padding:7px 5px;font-size:11px${x.handSet?";opacity:.55":""}" data-cond="${c.id}" title="${x.handSet?"Does not change the price while the resale value is your own figure":c.hint}">${c.label.replace("New in box","New")}</button>`).join("")}</div>`;
+    +`<div class="pills mb14" style="border-radius:var(--r-s)">${condList(x.item.id).map(c=>`<button class="${c.id===st.cond?"on":""}" style="flex:1;padding:7px 5px;font-size:11px${x.handSet?";opacity:.55":""}" data-cond="${c.id}" title="${x.handSet?"Does not change the price while the resale value is your own figure":c.hint}">${c.label.replace("New in box","New")}</button>`).join("")}</div>`;
   if(cat.complete.on){
     mid+=`<span class="label">${cat.complete.label}</span><div class="pills mb14" style="border-radius:var(--r-s)">
       <button class="${st.completeSet&&st.complete?"on":""}" style="flex:1" data-comp="1">All there</button>
@@ -10615,7 +10653,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="1001.0046";
+const APP_BUILD="1001.0121";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -12042,7 +12080,7 @@ function nextStepHTML(x){
   } else if(cur===3){
     h=`What shape is it in?`;
     sub=`Next to a typical used one. The resale value assumes <b>Good</b>, normal wear.`;
-    act=CONDITIONS.map(c=>{ const w=COND_WORDS[c.id]||[c.label,""]; return `<button class="nsBtn" data-ncond="${c.id}"><span>${w[0]}</span><b>${w[1]}</b></button>`; }).join("");
+    act=condList().map(c=>{ const w=COND_WORDS[c.id]||[c.label,""]; return `<button class="nsBtn" data-ncond="${c.id}"><span>${w[0]}</span><b>${w[1]}</b></button>`; }).join("");
   } else if(!window.PHONE){
     /* The pinned panel holds the loan and the buy price and does not scroll
        away, so saying them again here made one figure appear five times on a

@@ -123,7 +123,7 @@ function phoneStepHTML(x){
   } else if(cur===3){
     h=`What shape is it in?`;
     sub=`Next to a typical used one. The resale value assumes <b>Good</b>, normal wear.`;
-    act=CONDITIONS.map(c=>{ const w=COND_WORDS[c.id]||[c.label,""]; return `<button class="nsBtn" data-ncond="${c.id}"><span>${w[0]}</span><b>${w[1]}</b></button>`; }).join("");
+    act=condList().map(c=>{ const w=COND_WORDS[c.id]||[c.label,""]; return `<button class="nsBtn" data-ncond="${c.id}"><span>${w[0]}</span><b>${w[1]}</b></button>`; }).join("");
   } else {
     h=ask?"":`What are they asking?`;
     act=`<div class="phIn big"><span>$</span><input id="phAsk" type="number" inputmode="decimal" placeholder="Their price" value="${ask||""}"></div>
@@ -679,7 +679,7 @@ function snapHTML(){
           already loads app.js, so this is the desk's own component, not a
           second copy to drift. */""}
     ${ready?`${(typeof phKillHTML==="function")?phKillHTML(x):`<div class="wSect">Shape it is in</div>`}
-      <div class="snapCond">${CONDITIONS.map(c=>`<button class="${st.condSet&&c.id===st.cond?"on":""}" data-cond="${c.id}">${c.label.replace("New in box","New")}</button>`).join("")}</div>`:""}
+      <div class="snapCond">${condList().map(c=>`<button class="${st.condSet&&c.id===st.cond?"on":""}" data-cond="${c.id}">${c.label.replace("New in box","New")}</button>`).join("")}</div>`:""}
     ${evRow}${rows}
     ${camOff}
   </div>`;
