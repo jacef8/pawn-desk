@@ -41,6 +41,17 @@ fast-forwarding `main`:
 GitHub Pages serves `main`. Pushing the branch alone changes nothing the
 counter can see.
 
+**Do not ask whether to publish.** "quit asking me for permission to
+push/publish. just do it once the work is done." Finish it, run the
+suites, bump both numbers, push the branch and fast-forward `main` — in
+one go, without stopping to check. A change sitting on a branch waiting
+for an answer is a change nobody at the counter has.
+
+That is not a licence to ship something unmeasured. If a change moves
+money the figures are not yours to decide, the thing to do is SAY SO IN
+THE SAME BREATH AS SHIPPING IT: publish, then put the numbers and the
+three bands on the screen so he can move them. Not hold the work.
+
 **Do not publish research.** Tooling, findings, source notes and data files
 do not go to `main` — nothing user-facing changed, so there is nothing for
 the desk or the phone to pick up. Say so when you push the branch only.
