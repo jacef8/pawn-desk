@@ -807,7 +807,9 @@ const KEY="pawndesk:web:v1";
 let st={mode:"item",catId:"guns",itemId:"g1",picked:false,needItem:false,askFrom:null,cond:"good",brand:"mid",complete:true,completeSet:false,struck:"",struckKind:"loan",liq:null,brandTyped:"",model:"",detail:"",specSel:{},
         overrides:{},bookVals:{},modelVals:{},ltvs:{},buys:{},buyFloor:25,buyMult:2,pawnPct:25,pawnSet:false,spotHold:null,meltTgt:null,payPct:70,payTouched:false,loanPct:48,loanTouched:false,editing:false,
         manual:null, /* {date, spot:{gold,silver}, avg90:{gold,silver}} — a same-day hand edit beats the feed */
-        deal:"buy",metal:"gold",karat:"14k",grams:"",whyOpen:false,photoRead:null,bookQ:"",bookName:""};
+        deal:"buy",metal:"gold",karat:"14k",grams:"",whyOpen:false,photoRead:null,bookQ:"",bookName:"",
+        /* The shop's own reference weights, by sheet. See REF_SHEETS. */
+        refs:{}};
 try{
   const s=JSON.parse(localStorage.getItem(KEY)||"null");
   if(s){ st.overrides=s.overrides||{}; st.ltvs=s.ltvs||{}; st.buys=s.buys||{};
@@ -831,7 +833,8 @@ try{
          if(s.manual && s.manual.date===FEED.date) st.manual=s.manual;
          /* The target is shop policy, not a same-day edit, so unlike the
             rate it survives tomorrow's feed. */
-         if(s.meltTgt && typeof s.meltTgt==="object") st.meltTgt=s.meltTgt; }
+         if(s.meltTgt && typeof s.meltTgt==="object") st.meltTgt=s.meltTgt;
+         if(s.refs && typeof s.refs==="object") st.refs=s.refs; }
 }catch(e){}
 /* The catalog's first item is only a fallback so the math always has something
    to hold — it is not a choice the clerk made. Nothing counts as chosen until
@@ -846,7 +849,11 @@ function persist(){
     localStorage.setItem(KEY,JSON.stringify({overrides:st.overrides,ltvs:st.ltvs,buys:st.buys,
       bookVals:st.bookVals,modelVals:st.modelVals,
       buyFloor:st.buyFloor,buyMult:st.buyMult,pawnPct:st.pawnPct,pawnSet:st.pawnSet,payPct:st.payPct,flow:st.flow,
-      payTouched:st.payTouched,loanPct:st.loanPct,loanTouched:st.loanTouched,payDate:FEED.date,manual:st.manual,meltTgt:st.meltTgt}));
+      payTouched:st.payTouched,loanPct:st.loanPct,loanTouched:st.loanTouched,payDate:FEED.date,manual:st.manual,meltTgt:st.meltTgt,
+      /* The counter's own reference weights - see REF_SHEETS. These are
+         measurements off the shop's own known-good stock, so they are the
+         shop's data and they have to survive a reload like the rates do. */
+      refs:st.refs}));
     flashSave("Saved");
   }catch(e){ flashSave("Couldn't save"); }
 }
@@ -6207,6 +6214,32 @@ document.addEventListener("click",e=>{
   }
   const sf=e.target&&e.target.closest?e.target.closest("#specFold>summary"):null;
   if(sf){ st.specOpen=!st.specOpen; return; }   /* the browser toggles it; just remember */
+  /* The shop's own reference weights. Kept out of the [data-fake] handler
+     below because these do not answer a check - they set up what the next
+     measurement is compared against. */
+  const rf=e.target&&e.target.closest?e.target.closest("[data-refpick],[data-refdel],[data-refsave]"):null;
+  if(rf){
+    if(rf.dataset.refpick){ const [sid,...n]=String(rf.dataset.refpick).split(":");
+      st.refPick=Object.assign({},st.refPick,{[sid]:n.join(":")}); st.refOpen=true; render(); return; }
+    if(rf.dataset.refdel){ const [sid,...n]=String(rf.dataset.refdel).split(":");
+      refDel(sid,n.join(":")); st.refOpen=true; render(); return; }
+    if(rf.dataset.refsave){ const sid=rf.dataset.refsave;
+      const nm=(st.refName&&st.refName[sid])||"", g=(st.refG&&st.refG[sid])||"";
+      if(refAdd(sid,nm,g)){
+        st.refName=Object.assign({},st.refName,{[sid]:""});
+        st.refG=Object.assign({},st.refG,{[sid]:""});
+        st.refPick=Object.assign({},st.refPick,{[sid]:String(nm).trim().slice(0,48)});
+      }
+      st.refOpen=true; render(); return; }
+  }
+  const fl=e.target&&e.target.closest?e.target.closest("#fakeLookGo,#fakeLookStop"):null;
+  if(fl){
+    const sh=fakeSheet(calcItem()); if(!sh)return;
+    if(fl.id==="fakeLookStop"){ try{ fakeLookCtl&&fakeLookCtl.abort(); }catch(e){} return; }
+    runFakeLook(sh); return;
+  }
+  const rs=e.target&&e.target.closest?e.target.closest("#refFold>summary"):null;
+  if(rs){ st.refOpen=!st.refOpen; return; }
   const f=e.target&&e.target.closest?e.target.closest("[data-fake],[data-mkind],[data-flow],#fakeClear"):null;
   if(f){
     if(f.id==="fakeClear"){ st.fakeAns={}; st.fakeKey=mkKey(); st.specIn={}; st.specPick=""; render(); return; }
@@ -10122,7 +10155,7 @@ function fakeState(sh){
 
    Every figure below is the official specification, not an observed average.
    Sources are named on the card. */
-const SPEC_GROUPS=[["silver","Silver bullion"],["gold","Gold bullion"],["us","US silver coins"],["watch","Watch cases"]];
+const SPEC_GROUPS=[["silver","Silver bullion"],["gold","Gold bullion"],["us","US silver coins"],["watch","Watch cases"],["karat","Jewelry \u2014 by density"]];
 const SPECS=[
  /* g = grams, d = diameter mm, t = thickness mm, sg = specific gravity.
     wear:true means a circulated coin legitimately loses metal, so light is
@@ -10157,7 +10190,46 @@ const SPECS=[
  {id:"dj41",  grp:"watch", name:"Rolex Datejust 41",                d:41.0, lug:21, g:null, metal:"904L steel"},
  {id:"gmt",   grp:"watch", name:"Rolex GMT-Master II 116710",       d:40.0, lug:20, g:null, metal:"904L steel"},
  {id:"day",   grp:"watch", name:"Rolex Daytona 116500",             d:40.0, lug:20, g:null, metal:"904L steel"},
- {id:"exp",   grp:"watch", name:"Rolex Explorer 214270",            d:39.0, lug:20, g:null, metal:"904L steel"}
+ {id:"exp",   grp:"watch", name:"Rolex Explorer 214270",            d:39.0, lug:20, g:null, metal:"904L steel"},
+
+ /* ---- KARAT JEWELRY, BY DENSITY ONLY ---------------------------------
+    A ring has no spec weight and no spec diameter - there is nothing to
+    compare a chain against. But density is not a product specification,
+    it is arithmetic on the alloy, and it is the same for every piece ever
+    made to that karat. Weigh it dry, weigh it hanging in water, divide.
+
+    This is the one that matters most by volume: jewelry is the counter's
+    daily business, and plated brass is the fake that walks in. Brass
+    reads 8.5 where 14k reads 13.2 - not a close call, not a judgement,
+    a third of the way out.
+
+    The figures are the standard density ranges for the common trade
+    alloys, quoted as the middle of the range; the 3% tolerance this file
+    already uses covers the rest of it, and each row prints its own range
+    so the counter can see what the number is being asked to sit inside.
+    White golds run a little higher than yellow when they carry palladium,
+    which is why the white rows are separate and say so. */
+ {id:"k10",  grp:"karat", name:"10k gold (417)",        g:null,d:null,t:null, sg:11.50, metal:"10k, 41.7% gold",
+              note:"Range 11.4-11.6. Solid, plain metal only - see the warning on the card."},
+ {id:"k14",  grp:"karat", name:"14k gold (585)",        g:null,d:null,t:null, sg:13.25, metal:"14k, 58.5% gold",
+              note:"Range 12.9-13.6 yellow. Plated brass reads about 8.5 - nowhere near."},
+ {id:"k14w", grp:"karat", name:"14k white gold (585)",  g:null,d:null,t:null, sg:13.70, metal:"14k white",
+              note:"Range 13.1-14.2 - white alloys vary most, nickel low and palladium high."},
+ {id:"k18",  grp:"karat", name:"18k gold (750)",        g:null,d:null,t:null, sg:15.55, metal:"18k, 75% gold",
+              note:"Range 15.2-15.9 yellow."},
+ {id:"k18w", grp:"karat", name:"18k white gold (750)",  g:null,d:null,t:null, sg:15.90, metal:"18k white",
+              note:"Range 14.7-16.9 - the widest of them. A pass here proves less than a pass on yellow."},
+ {id:"k22",  grp:"karat", name:"22k gold (916)",        g:null,d:null,t:null, sg:17.75, metal:"22k, 91.6% gold",
+              note:"Range 17.7-17.8."},
+ {id:"k24",  grp:"karat", name:"24k / pure gold (999)", g:null,d:null,t:null, sg:19.32, metal:"pure gold",
+              note:"19.32 exactly. Tungsten reads 19.25 - see the warning below."},
+ {id:"ster", grp:"karat", name:"Sterling silver (925)", g:null,d:null,t:null, sg:10.36, metal:".925 silver",
+              note:"Silver-plated nickel reads about 8.9, steel 7.9."},
+ {id:"fines",grp:"karat", name:"Fine silver (999)",     g:null,d:null,t:null, sg:10.49, metal:".999 silver"},
+ {id:"plat", grp:"karat", name:"Platinum (950)",        g:null,d:null,t:null, sg:20.10, metal:"950 platinum",
+              note:"Range 20.0-20.3. Nothing else in the case is this heavy for its size."},
+ {id:"pall", grp:"karat", name:"Palladium (950)",       g:null,d:null,t:null, sg:12.00, metal:"950 palladium",
+              note:"Range 11.9-12.1 - close to 14k gold, so this one does NOT tell those two apart."}
 ];
 const SPEC_BY=Object.fromEntries(SPECS.map(s=>[s.id,s]));
 /* How far out is too far. Bullion is struck to a tight tolerance; a coin that
@@ -10195,7 +10267,22 @@ function specCardHTML(sh){
   const pick=st.specPick||"", sp=SPEC_BY[pick];
   const inp=st.specIn||{};
   const num=k=>Number(inp[k])||0;
-  const grp=sh&&sh.id==="watch"?"watch":sh&&sh.id==="bullion"?null:null;
+  /* WHICH TABLE THIS SHEET GETS. It used to be the metal screen's own
+     metal that chose, which works on bullion and nowhere else: on the
+     jewelry sheet it offered coin rows, and on any item sheet it would
+     have offered gold bullion to somebody holding a drill battery. The
+     sheet knows what is on the counter; it chooses. */
+  const SHEET_GRP={jewelry:["karat"], watch:["watch","karat"], bullion:null};
+  /* AND NO NUMBERS CARD AT ALL ON A SHEET WITH NOTHING TO CHECK. This
+     used to fall through to the metal screen's own metal, which is
+     whatever was last priced and defaults to gold - so the Pokemon card
+     sheet and the autograph sheet both offered "Gold bullion / Gold Eagle
+     1 oz" and a box for its diameter. A table of coin specs on a trading
+     card is not a harmless extra: it is the desk offering to check
+     something it cannot check. */
+  if(!sh||!Object.prototype.hasOwnProperty.call(SHEET_GRP,sh.id))return "";
+  const byS=SHEET_GRP[sh.id];
+  const densityOnly=!!(byS&&byS.length===1&&byS[0]==="karat");
   /* ONE METAL AT A TIME.
      This listed every group on every job, so buying a gold Eagle you
      scrolled a table of Silver bullion and US silver coins to reach the
@@ -10203,8 +10290,8 @@ function specCardHTML(sh){
      the silver price in the middle of the workflow". The bullion card is
      1379px on a phone and nine of its mentions were the other metal.
      Watch cases stay on both: a watch case is a watch case. */
-  const MET_GRP={gold:["gold","watch"],silver:["silver","us","watch"]};
-  const keep=MET_GRP[st.metal]||null;
+  const MET_GRP={gold:["gold","watch","karat"],silver:["silver","us","watch","karat"]};
+  const keep=byS||MET_GRP[st.metal]||null;
   const opts=SPEC_GROUPS.filter(([g])=>!keep||keep.indexOf(g)>=0).map(([g,label])=>{
     const rows=SPECS.filter(z=>z.grp===g);
     return `<optgroup label="${esc(label)}">`+rows.map(z=>
@@ -10227,7 +10314,10 @@ function specCardHTML(sh){
     if(jt)rows.push(specRow("Thickness",jt, jt.ok?"":"Thickness moves a little with strike, but not this much."));
     const jl=specJudge(sp,"lug",num("lug"));
     if(jl)rows.push(specRow("Lug width",jl, jl.ok?"":"Lug width is fixed per model and fakes are often out."));
-    const isGold=sp.grp==="gold", isWatch=sp.grp==="watch";
+    /* The tungsten note follows GOLD, not the table it was picked from -
+       a 24k bangle has the same problem a 1 oz bar does. */
+    const isGold=sp.grp==="gold"||(sp.grp==="karat"&&/gold/i.test(sp.name)),
+          isWatch=sp.grp==="watch", isKarat=sp.grp==="karat";
     const sg=specGravity(num("g"),num("w"));
     if(sg!=null&&sp.sg!=null){
       const j=specJudge(sp,"sg",sg); j.v=sg.toFixed(2);
@@ -10243,6 +10333,7 @@ function specCardHTML(sh){
       ${any?`<div class="cardHint" style="font-size:13px;margin-top:8px">
         <b style="color:${bad?"var(--bad)":"var(--accent)"}">${bad?bad+" of "+any+" measurements are out.":"Every measurement you gave matches."}</b>
         ${bad?(isWatch?" A real one is made to its own factory spec. Treat this as a fail until something explains it."
+                      :isKarat?" Density is the alloy, not a maker's choice \u2014 but read the note above before calling it: a hollow piece or a stone in it reads light for honest reasons."
                       :" A real one does not miss its own mint spec. Treat this as a fail until something explains it.")
              :" That rules out the cheap fakes. It does not rule out a good one \u2014 keep working the checks above."}</div>`:""}
       ${isGold?`<div class="tagWarn" style="margin-top:9px;font-size:12.5px"><b>Tungsten reads 19.25, gold reads 19.32.</b> Specific gravity cannot tell them apart on a shop scale, and a tungsten core in a gold shell is the fake that matters. On a big gold loan, weight and gravity are not enough \u2014 ping it, or send it out.</div>`:""}
@@ -10258,6 +10349,18 @@ function specCardHTML(sh){
       <option value=""${pick?"":" selected"}>&mdash; pick one &mdash;</option>${opts}
     </select>
     ${sp?`<div class="cardHint" style="margin-top:6px;font-size:12.5px">${esc(sp.metal||"")}${sp.note?" &mdash; "+esc(sp.note):""}${sp.grp==="watch"?` <b style="color:var(--ink)">Weight is not scored here</b> &mdash; it moves with how many bracelet links are in it. It is still worth knowing: a steel sports Rolex on a full bracelet is heavy in the hand, and a fake usually feels obviously light.`:""}</div>`:""}
+    ${/* A CHAIN HAS NO SPEC DIAMETER. On the jewelry table the only two
+          boxes that mean anything are the two weights, and showing a
+          caliper field next to them invites a measurement that gets
+          compared to nothing. */""}
+    ${densityOnly||(sp&&sp.grp==="karat")?`
+    <div class="tagWarn" style="margin-top:10px;font-size:12.5px"><b>Solid, plain metal only.</b> A stone, a hollow chain, a spring clasp or solder all make a real piece read light \u2014 that is the piece, not a fake. Weigh a plain band, a solid link, or nothing at all. Light on a hollow rope proves nothing; light on a solid band is worth acid.</div>
+    <div class="row2" style="margin-top:10px;flex-wrap:wrap;gap:8px">
+      <label style="flex:1;min-width:120px"><span class="label">Weight, dry (g)</span>
+        <input id="spec_g" class="numIn" type="number" inputmode="decimal" step="0.001" value="${esc(String(inp.g||""))}" placeholder="8.40"></label>
+      <label style="flex:1;min-width:120px"><span class="label">Weight in water (g)</span>
+        <input id="spec_w" class="numIn" type="number" inputmode="decimal" step="0.001" value="${esc(String(inp.w||""))}" placeholder="7.76"></label>
+    </div>`:`
     <div class="row2" style="margin-top:10px;flex-wrap:wrap;gap:8px">
       <label style="flex:1;min-width:120px"><span class="label">Weight (g)</span>
         <input id="spec_g" class="numIn" type="number" inputmode="decimal" step="0.001" value="${esc(String(inp.g||""))}" placeholder="31.103"></label>
@@ -10269,9 +10372,178 @@ function specCardHTML(sh){
         <input id="${sp&&sp.grp==="watch"?"spec_lug":"spec_t"}" class="numIn" type="number" inputmode="decimal" step="0.01" value="${esc(String((sp&&sp.grp==="watch"?inp.lug:inp.t)||""))}" placeholder="2.98"></label>
       <label style="flex:1;min-width:120px"><span class="label">Weight in water (g)</span>
         <input id="spec_w" class="numIn" type="number" inputmode="decimal" step="0.001" value="${esc(String(inp.w||""))}" placeholder="optional"></label>
-    </div>
+    </div>`}
     <div class="cardHint" style="font-size:12.5px;margin-top:5px">For <b style="color:var(--ink)">weight in water</b>: hang it on thread in a cup of water so it touches nothing, and read the scale. That gives the density, which is what most fakes cannot copy.</div>
     ${out}
+  </details>`;
+}
+/* ---- WEIGH ONE YOU KNOW IS REAL ---------------------------------------
+   The numbers card above works because a mint publishes what a coin
+   weighs. Nobody publishes a trustworthy figure for a Milwaukee M18 pack,
+   a sealed PSA slab or an AirPods case - the numbers that circulate are
+   forum hearsay, and a hearsay figure in a pricing tool is worse than no
+   figure, because it will be believed. I am not putting invented specs in
+   a book that decides what leaves the till.
+
+   So the shop supplies the spec. Lamar's has real M18 batteries, real
+   AirPods and real graded cards on the shelf. Weigh one you KNOW is good,
+   once, and the desk has a reference better than any published figure -
+   because it is the same product line the counter actually sees, measured
+   on the same scale that will weigh the next one.
+
+   The tolerance here is deliberately looser than the mint tables: one
+   sample is not a specification, and a genuine battery pack varies a
+   little cell to cell. 5% on weight, and the card says out loud that a
+   single reference is one sample. */
+/* ---- WHAT THE PHOTO CAN SEE, AND WHAT IT CANNOT ------------------------
+   "what about inspection pictures or card scans, all that other data
+   input." The camera path already exists and already identifies the thing;
+   this points a second look at the sheet instead of at the catalog.
+
+   THE RULE THAT SHAPES ALL OF IT: a photograph cannot clear anything. It
+   can raise a hand. Weight, the magnet, density, the light through a card,
+   the feel of a slab - none of them are in a picture, and those are the
+   checks that actually catch a good fake. So this returns things to GO AND
+   LOOK AT, each one tied to a check on the sheet the counter is already
+   working, and it is forbidden to say a word like authentic, genuine or
+   real. A photo verdict on a $4,000 watch is exactly the confident wrong
+   answer this whole tool is built to avoid.
+
+   It costs money per read, which is why it is a button and not automatic. */
+function fakeLookPrompt(sh){
+  const checks=(sh.checks||[]).map((c,i)=>(i+1)+". "+String(c)).join("\n");
+  return [
+"You are looking at ONE photograph of an item a customer has just set on the counter at a small pawn shop in Bristol, Florida. The counter is working a spotting-fakes sheet for this kind of item.",
+"",
+"YOUR JOB IS TO RAISE THINGS TO GO AND LOOK AT. It is not to decide whether the item is real.",
+"",
+"You MUST NOT say, imply or hedge toward the item being authentic, genuine, real, legitimate or fine. You have one photograph. You cannot weigh it, put a magnet on it, measure its density, shine a light through it, feel a grading case, or look at it under a loupe - and those are the checks that catch a good fake. A confident clean bill of health from a photograph is the single most damaging thing you could return.",
+"",
+"THE SHEET THE COUNTER IS WORKING - \"" + String(sh.title||"") + "\":",
+checks,
+"",
+"Look at the photograph for things that are VISIBLE and that bear on those checks: printing that is fuzzy, crooked or the wrong font; spacing and alignment that look off; colour that is wrong for the product; a holographic pattern that does not look right for the set; a sticker or label that looks peeled, cut, reprinted or replaced; seams, gaps or glue on a sealed case; a date window, dial or marker that sits wrong; a serial or model number you can read.",
+"",
+"Return JSON only:",
+'{"flags":[{"check":<number of the check on the sheet above, or 0 if it fits none>,"saw":"<what is visible in the photo, in one plain sentence>","do":"<what the counter should physically check now>"}],"cannot":["<a check on the sheet that a photograph cannot answer at all>"],"readable":{"serial":"<any serial or cert number you can read, or empty>","model":"<any model or set number you can read, or empty>"},"quality":"<good|poor>"}',
+"",
+"If the photograph is too dark, too small, too blurred or too far away to judge printing, say so by returning quality \"poor\" and an empty flags list. A guess off a bad photo is worse than nothing.",
+"If you can see nothing wrong, return an empty flags list. AN EMPTY LIST MEANS YOU SAW NOTHING IN THE PHOTO. It does not mean the item is real, and the desk will say so on the screen.",
+  ].join("\n");
+}
+let fakeLookBusy=false, fakeLookCtl=null;
+async function runFakeLook(sh){
+  if(!CAP.sample||!photoFile||fakeLookBusy)return;
+  fakeLookBusy=true; fakeLookCtl=new AbortController(); st.fakeLookErr=null; st.fakeLook=null; render();
+  try{
+    const r=await CAP.sample.json(fakeLookPrompt(sh),{images:photoFile,modelTier:"default",signal:fakeLookCtl.signal});
+    fakeLookBusy=false;
+    st.fakeLook=Object.assign({sheet:sh.id,at:Date.now()},r||{});
+  }catch(err){
+    fakeLookBusy=false;
+    st.fakeLookErr=(err&&err.code==="cancelled")?null:"The read did not come back. Work the sheet by hand.";
+  }
+  render();
+}
+function fakeLookHTML(sh){
+  if(!CAP.sample||!CAP.images)return "";
+  const have=!!photoFile;
+  const r=(st.fakeLook&&st.fakeLook.sheet===sh.id)?st.fakeLook:null;
+  const flags=(r&&Array.isArray(r.flags))?r.flags:[];
+  const poor=r&&r.quality==="poor";
+  return `<div style="margin-top:12px">
+    <span class="label">Look at the photo for tells</span>
+    <div class="cardHint" style="margin-top:0;font-size:12.5px">${have
+      ? "Reads the picture you just took against this sheet. It costs a service call, so it is a button. <b style=\"color:var(--ink)\">It cannot clear anything</b> — no photograph can weigh it, magnet it or shine a light through it."
+      : "Take a picture of it first and this will read that picture against this sheet."}</div>
+    <div class="row2" style="margin-top:7px">
+      <button class="ghostBtn" id="fakeLookGo" style="padding:9px 15px"${have&&!fakeLookBusy?"":" disabled"}>${fakeLookBusy?"Looking…":"Look at the photo"}</button>
+      ${fakeLookBusy?`<button class="ghostBtn" id="fakeLookStop" style="padding:9px 15px">Stop</button>`:""}
+    </div>
+    ${st.fakeLookErr?`<div class="cardHint" style="margin-top:7px;font-size:13px;color:var(--bad-ink)">${esc(st.fakeLookErr)}</div>`:""}
+    ${r?`<div style="margin-top:9px">
+      ${/* THE LIMIT HAS TO RIDE THE RESULT. It was written into the line
+            above the button, which is replaced by the result the moment
+            there is one - so the sentence saying a photograph cannot
+            clear anything disappeared at exactly the moment somebody was
+            reading a photograph's answer. Caught by the suite. */""}
+      <div class="cardHint" style="font-size:12.5px;margin-bottom:2px"><b style="color:var(--ink)">A photograph cannot clear anything.</b> It has not weighed it, magneted it, or shone a light through it.</div>
+      ${poor?`<div class="tagWarn" style="font-size:12.5px"><b>That picture is not good enough to judge printing.</b> Closer, flatter, more light — or skip it and work the sheet by hand.</div>`:""}
+      ${flags.length?flags.map(f=>{
+        const n=Number(f.check)||0;
+        return `<div class="cardHint" style="margin-top:6px;font-size:13px">
+          <b style="color:var(--warn-ink)">⚠</b> ${esc(String(f.saw||""))}
+          ${f.do?`<br><b style="color:var(--ink)">Now check:</b> ${esc(String(f.do))}`:""}
+          ${n>0&&sh.checks[n-1]?`<br><span style="opacity:.8">That is check ${n} on this sheet.</span>`:""}</div>`;
+        }).join("")
+        :poor?"":`<div class="cardHint" style="margin-top:6px;font-size:13px"><b style="color:var(--ink)">Nothing visible in the photo.</b> That is not a pass. It means the picture showed nothing wrong — the checks above are still the ones that decide.</div>`}
+      ${(r.readable&&(r.readable.serial||r.readable.model))?`<div class="cardHint" style="margin-top:7px;font-size:13px"><b style="color:var(--ink)">Read off it:</b> ${esc([r.readable.serial,r.readable.model].filter(Boolean).join(" · "))} — type that into the free lookup yourself.</div>`:""}
+      ${(r.cannot&&r.cannot.length)?`<div class="cardHint" style="margin-top:7px;font-size:12.5px"><b style="color:var(--ink)">A photo cannot answer:</b> ${esc(r.cannot.slice(0,3).join("; "))}</div>`:""}
+    </div>`:""}
+  </div>`;
+}
+const REF_SHEETS={
+  cards:  {label:"graded slabs and raw cards", unit:"g", hint:"A sealed PSA/BGS slab, or a raw card you are sure of. Weigh the slab as it comes."},
+  battery:{label:"tool battery packs",         unit:"g", hint:"A pack you bought new or know the history of. Note the voltage and amp-hours in the name."},
+  apple:  {label:"AirPods, watches, phones",   unit:"g", hint:"Case with the buds in it, or the bare unit - whichever you will weigh next time. Say which in the name."},
+  optics: {label:"red dots and scopes",        unit:"g", hint:"Without the mount unless you always weigh it with the mount. Say which in the name."}
+};
+const REF_TOL=0.05;
+function refList(sheetId){ const r=st.refs&&st.refs[sheetId]; return Array.isArray(r)?r:[]; }
+function refAdd(sheetId,name,g){
+  const w=Number(g)||0, n=String(name||"").trim().slice(0,48);
+  if(!n||!(w>0))return false;
+  if(!st.refs)st.refs={};
+  const list=refList(sheetId).slice();
+  const at=(typeof todayStr==="function")?todayStr():"";
+  const i=list.findIndex(z=>z.name.toLowerCase()===n.toLowerCase());
+  if(i>=0)list[i]={name:n,g:w,at}; else list.push({name:n,g:w,at});
+  st.refs[sheetId]=list.slice(0,40); persist(); return true;
+}
+function refDel(sheetId,name){
+  if(!st.refs)return;
+  st.refs[sheetId]=refList(sheetId).filter(z=>z.name!==name);
+  persist();
+}
+function refJudge(ref,v){
+  if(!ref||!(v>0)||!(ref.g>0))return null;
+  const off=v-ref.g, pct=off/ref.g*100, tol=ref.g*REF_TOL;
+  return {v,want:ref.g,off,pct,ok:Math.abs(off)<=tol,tol};
+}
+function refCardHTML(sh){
+  const cfg=sh?REF_SHEETS[sh.id]:null; if(!cfg)return "";
+  const list=refList(sh.id);
+  const pick=(st.refPick&&st.refPick[sh.id])||"";
+  const ref=list.find(z=>z.name===pick)||null;
+  const v=Number((st.refIn&&st.refIn[sh.id])||0);
+  const j=refJudge(ref,v);
+  const rows=list.length
+    ? list.map(z=>`<div class="cardHint" style="display:flex;align-items:baseline;gap:8px;margin-top:5px;font-size:13px">
+        <button class="${z.name===pick?"on":""}" style="flex:1;text-align:left;border:none;background:none;padding:0;cursor:pointer;color:${z.name===pick?"var(--accent)":"var(--ink-2)"};font:inherit" data-refpick="${esc(sh.id)}:${esc(z.name)}">
+          <b style="color:var(--ink)">${esc(z.name)}</b> &mdash; ${z.g} g${z.at?" &middot; "+esc(fmtDay(z.at)):""}</button>
+        <button class="ghostBtn" style="padding:2px 8px;font-size:11px" data-refdel="${esc(sh.id)}:${esc(z.name)}">Remove</button></div>`).join("")
+    : `<div class="cardHint" style="margin-top:5px;font-size:13px">Nothing recorded yet. There is nothing to compare against until you weigh one.</div>`;
+  return `<details class="fold" style="margin-top:12px"${st.refOpen?" open":""} id="refFold">
+    <summary class="foldLine">Weigh one you know is real &mdash; ${esc(cfg.label)}</summary>
+    <div class="cardHint" style="margin-top:8px;font-size:13px">Nobody publishes a figure for these that is worth trusting, so the shop supplies it. Weigh one you are sure of, once. After that the desk can tell you when the next one is out. <b style="color:var(--ink)">One sample is not a specification</b> &mdash; it is a good reference, and it is allowed to be 5% out before this says anything.</div>
+    <div class="cardHint" style="margin-top:6px;font-size:12.5px">${esc(cfg.hint)}</div>
+    <span class="label" style="margin-top:10px">Your references</span>
+    ${rows}
+    <div class="row2" style="margin-top:9px;flex-wrap:wrap;gap:8px">
+      <label style="flex:2;min-width:150px"><span class="label">What is it</span>
+        <input id="refName" class="numIn" type="text" maxlength="48" value="${esc(String((st.refName&&st.refName[sh.id])||""))}" placeholder="M18 5.0Ah XC"></label>
+      <label style="flex:1;min-width:110px"><span class="label">Weighs (g)</span>
+        <input id="refG" class="numIn" type="number" inputmode="decimal" step="0.1" value="${esc(String((st.refG&&st.refG[sh.id])||""))}" placeholder="1032"></label>
+      <button class="ghostBtn" id="refSave" style="align-self:flex-end;padding:9px 15px" data-refsave="${esc(sh.id)}">Record it</button>
+    </div>
+    ${list.length?`<span class="label" style="margin-top:12px">Check the one on the counter</span>
+    <div class="cardHint" style="margin-top:0;font-size:12.5px">${ref?`Comparing against <b style="color:var(--ink)">${esc(ref.name)}</b>. Tap another above to switch.`:"Tap one of your references above first."}</div>
+    <label style="display:block;margin-top:7px"><span class="label">This one weighs (g)</span>
+      <input id="refIn" class="numIn" type="number" inputmode="decimal" step="0.1" style="width:100%" value="${esc(String((st.refIn&&st.refIn[sh.id])||""))}" placeholder="0"></label>
+    ${j?`<div class="cardHint" style="margin-top:7px;font-size:13px">
+      <b style="color:${j.ok?"var(--accent)":"var(--bad)"}">${j.ok?"✓":"✗"}</b> You measured <b style="color:var(--ink)">${j.v}</b> g against your own <b style="color:var(--ink)">${j.want}</b> g (${j.pct>=0?"+":""}${j.pct.toFixed(1)}%).
+      ${j.ok?"Within 5% of the one you know. That rules out a pack built on cheaper cells or a card on the wrong stock - it does not rule out a careful copy."
+            :"Out by more than 5%. On batteries that is usually fewer or cheaper cells inside; on a slab it is the wrong plastic. Work the checks above before you pay."}</div>`:""}`:""}
   </details>`;
 }
 const FAKE_BTN=[["pass","Pass"],["unsure","Not sure"],["fail","Fail"]];
@@ -10303,6 +10575,8 @@ function fakeCardHTML(x){
       <div class="cardHint" style="margin-top:0;font-size:13px">Type the address in yourself. Never scan a QR code on a holder or tag &mdash; fake cases point at copycat sites.</div>
       ${sh.lookup.map(l=>`<div class="cardHint" style="font-size:13px;margin-top:4px">${l.what?`<b style="color:var(--ink)">${esc(l.what)}</b> &mdash; `:""}${esc(l.where)}</div>`).join("")}`:""}
     ${specCardHTML(sh)}
+    ${refCardHTML(sh)}
+    ${fakeLookHTML(sh)}
     ${sh.rule?`<div class="cardHint" style="font-size:13px;margin-top:9px"><b style="color:var(--ink)">Shop rule:</b> ${esc(sh.rule)}</div>`:""}
     ${F.verdict==="fail"?`<div class="tagWarn" style="border-left-color:var(--bad);background:var(--bad-wash);color:var(--bad-ink);margin-top:9px"><b>Set it aside.</b> ${esc(FAKES.law)}</div>`:""}
     <div class="row2" style="margin-top:8px"><button class="ghostBtn" id="fakeClear" style="padding:9px 15px">Start the check over</button></div>
@@ -10333,7 +10607,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="0930.2054";
+const APP_BUILD="0930.2247";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -11822,6 +12096,34 @@ function wireSpec(){
     const el=document.getElementById(id); if(!el)return;
     el.oninput=()=>{ st.specIn=Object.assign({},st.specIn,{[k]:el.value}); repaintSpec(); };
   });
+  /* The reference boxes. The name and weight boxes only feed the Record
+     button, so they just hold what is typed; the compare box re-judges on
+     every keystroke the way the spec boxes do. */
+  const sh=fakeSheet(calcItem());
+  if(sh&&REF_SHEETS[sh.id]){
+    const sid=sh.id;
+    const rb=document.getElementById("refFold");
+    if(rb&&!rb.dataset.wired){ rb.dataset.wired="1";
+      rb.addEventListener("toggle",()=>{ st.refOpen=rb.open; }); }
+    const nm=document.getElementById("refName");
+    if(nm)nm.oninput=()=>{ st.refName=Object.assign({},st.refName,{[sid]:nm.value}); };
+    const rg=document.getElementById("refG");
+    if(rg)rg.oninput=()=>{ st.refG=Object.assign({},st.refG,{[sid]:rg.value}); };
+    const ri=document.getElementById("refIn");
+    if(ri)ri.oninput=()=>{ st.refIn=Object.assign({},st.refIn,{[sid]:ri.value}); repaintRef(sid); };
+  }
+}
+/* Same rule as repaintSpec: swap the verdict, never the box the finger is
+   in, or the number would jump away mid-digit. */
+function repaintRef(sid){
+  const sh=fakeSheet(calcItem()); if(!sh||sh.id!==sid)return;
+  const card=document.getElementById("fakeCard"); if(!card)return;
+  const old=card.querySelector("#refFold"); if(!old)return;
+  const tmp=document.createElement("div");
+  tmp.innerHTML=refCardHTML(sh);
+  const fresh=tmp.querySelector("#refFold");
+  const a=old.lastElementChild, b=fresh&&fresh.lastElementChild;
+  if(a&&b&&a.tagName===b.tagName&&!/^(SELECT|INPUT|LABEL)$/.test(a.tagName))a.replaceWith(b);
 }
 function repaintSpec(){
   const sh=fakeSheet(calcItem()); if(!sh)return;
