@@ -1651,7 +1651,8 @@ function pinHTML(x){
    Day 90 came out. The ticket is dead at day 60; a figure past it was
    arithmetic nobody can collect. */
 function dealPanelHTML(x){
-  const m1=x.target+x.charge, m2=x.target+x.charge*2;
+  const P=payAmt(x);
+  const m1=P.amt+P.charge, m2=P.amt+P.charge*2;
   if(st.struckKind==="buy") return `<div class="railBack">
     <div class="railBackHd"><b>If you buy it</b><span>no ticket, no clock</span></div>
     ${/* Same cut on the buy side: the card carries BUY IT OUTRIGHT and the
@@ -1688,7 +1689,7 @@ function dealPanelHTML(x){
           - it was that nobody said why sixty days. So the row keeps its
           place and gets its name. */""}
     <div class="dealRows">
-      <div class="dRow tot"><span>If he runs to the last day \u2014 day 60</span><b>${money(m2)}</b></div>
+      <div class="dRow tot"><span>If he runs to the last day \u2014 day 60${P.typed?" on "+money(P.amt):""}</span><b>${money(m2)}</b></div>
     </div>
     <div class="rbDay60">Day 30 the ticket matures, day 60 it is forfeit. Sixty
       days is as long as he can take and as long as your money is out \u2014 that
@@ -2287,10 +2288,20 @@ function paybackHTML(x){
   return `<details class="card foldCard"${st.openPayback?" open":""} id="paybackFold">
     <summary><span class="label" style="margin:0">8 &middot; After the money moves</span><span class="foldSub">what it costs him to get it back, and the day it becomes ours</span></summary>
     ${pawnRateHTML()}
-    <span class="label" style="margin-bottom:0;margin-top:14px;color:var(--ink-2)">To get it back</span>
-    <div class="ladder" id="payLadder">${ladder(x.target,x.charge).map(r=>`<div class="widget rung"><div class="k">${r.k}</div><div class="d">${money(r.due)}</div></div>`).join("")}</div>
+    ${/* THE SCHEDULE WAS FOR A LOAN HE MIGHT NOT BE MAKING.
+          "i think there should be some way to see the interest schedule
+          based on the pawn amount." There already was one - this ladder -
+          and it was built off x.target, the SUGGESTED figure, no matter
+          what he had typed into Lent. So a counter writing a $45 ticket
+          read a schedule for $30: $37 by day 30 against the $56 he would
+          actually be collecting. The rail's day-60 row had the same fault.
+          Both now read the amount that is going on the ticket, and the
+          heading says which amount that is, because a schedule with no
+          principal named is the thing that caused this. */""}
+    <span class="label" style="margin-bottom:0;margin-top:14px;color:var(--ink-2)">To get it back &mdash; on ${money(payAmt(x).amt)}${payAmt(x).typed?" (what you typed)":" (the suggested loan)"}</span>
+    <div class="ladder" id="payLadder">${ladder(payAmt(x).amt,payAmt(x).charge).map(r=>`<div class="widget rung"><div class="k">${r.k}</div><div class="d">${money(r.due)}</div></div>`).join("")}</div>
     <div style="font-size:12px;line-height:1.5;color:var(--ink-2);margin-top:9px">
-      It is <b style="color:var(--ink)">not</b> ${pawnPct()}% again every month. The charge is capped at <b style="color:var(--ink)">twice</b> the 30-day amount from day 31 through day 60, then accrues <b style="color:var(--ink)">$${(x.charge/30).toFixed(2)}/day</b> after that — and remember, past day 60 the item is already yours; late redemption is a courtesy you price with this rate.
+      It is <b style="color:var(--ink)">not</b> ${pawnPct()}% again every month. The charge is capped at <b style="color:var(--ink)">twice</b> the 30-day amount from day 31 through day 60, then accrues <b style="color:var(--ink)">$${(payAmt(x).charge/30).toFixed(2)}/day</b> after that — and remember, past day 60 the item is already yours; late redemption is a courtesy you price with this rate.
     </div>
     <div class="tagWarn"><b>Day 60 it's ours.</b> Maturity is day 30, then we must hold it 30 more. Not redeemed by day 60 and title passes to us automatically — no notice, no letter, no auction. Within the first 30 days only he or his attorney-in-fact may redeem it.</div>
     <div class="fine">&sect; 539.001(11) caps the charge at 25% of the amount financed per 30 days, minimum $5. Overcharging voids the transaction and forfeits twice the charge — but an honest mistake corrected when you catch it carries no penalty. Fix it, don't hide it.</div>
@@ -3744,6 +3755,18 @@ function dealGuard(){
   const k=itemKey()+"|"+(st.model||"");
   if(dealFor===null){ dealFor=k; return; }
   if(k!==dealFor){ dealFor=k; clearDeal(); }
+}
+/* WHAT THE REDEMPTION ARITHMETIC IS FOR. One function, because the ladder
+   and the rail's day-60 row were computing it separately off the suggested
+   figure and there was nothing keeping them with the ticket. A pawn ticket
+   is written for an AMOUNT; every figure the customer is quoted has to come
+   off that same amount or one of them is a number nobody can collect.
+   Only a loan has a redemption. On a buy there is no ticket, so it falls
+   back to the suggested loan figure for the panels that still draw one. */
+function payAmt(x){
+  const k=struckAmt(x);
+  const amt=(k.kind==="loan"&&k.typed)?k.amt:x.target;
+  return {amt, typed:(k.kind==="loan"&&k.typed), charge:pawnCharge(amt)};
 }
 function struckAmt(x){
   const kind=st.struckKind==="buy"?"buy":"loan";
@@ -6217,8 +6240,22 @@ async function pdEbayComps(q,signal){
   finally{ clearTimeout(timer); if(signal)signal.removeEventListener("abort",stop); }
   let j=null; try{ j=await r.json(); }catch(e){}
   if(!r.ok||!j||!j.ok)throw pdErr((j&&j.code)||"upstream_error");
+  /* THE SIEVE, CARRIED. "so on all of ebay there are almost no DeWalt 20V
+     impact driver kit Cordless drill / driver? I find that hard to
+     believe" - and he is right not to. There are thousands. The card said
+     "18 asking prices on eBay" and left him to conclude eBay had eighteen
+     of them.
+     What actually happened is that eBay returned a page of listings and
+     this tool threw most of it away: parts, multi-packs, and the wrong
+     model. The service has counted that from the beginning and sent it
+     back in `found` and `dropped`, and the desk dropped both on the floor
+     the moment they arrived. Eighteen is what SURVIVED, and the sieve is
+     the interesting half. */
   LAST_EBAY={basis:j.basis==="sold"?"sold":"asking",
-             source:String(j.source||""), warning:String(j.warning||""), ts:Date.now()};
+             source:String(j.source||""), warning:String(j.warning||""),
+             found:Math.round(Number(j.found)||0),
+             dropped:(j.dropped&&typeof j.dropped==="object")?j.dropped:null,
+             ts:Date.now()};
   return j;
 }
 async function pdJSON(prompt,opts){
@@ -11021,7 +11058,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="1002.1617";
+const APP_BUILD="1002.1727";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -12137,11 +12174,34 @@ function findSaid(fresh,added,t,runs){
   let lead;
   if(!added)           lead="Nothing new came back"+(t?" \u2014 pricing off the "+t.n+" already on file.":".");
   else if(sold&&!asks) lead=sold+" sold price"+(sold===1?"":"s")+on+" \u2014 what people actually paid.";
-  else if(asks&&!sold) lead=asks+" asking price"+(asks===1?"":"s")+on+" \u2014 nobody paid these. "+
-                            "It is what sellers want, not what one sold for.";
+  /* THE SECOND SENTENCE CAME OUT TO PAY FOR THE SIEVE. check-screens holds
+     this line to 30 words and it was already at 30; the sieve clause is 10
+     more. What went is "It is what sellers want, not what one sold for" -
+     which the Behind-this-number panel says in its own words, three inches
+     to the right, on screen at the same moment: "What sellers are hoping
+     for. They run high." The rail's own rule is that it must not restate
+     what is already said, and this was the line restating it. */
+  else if(asks&&!sold) lead=asks+" asking price"+(asks===1?"":"s")+on+" \u2014 nobody paid these.";
   else                 lead=sold+" sold and "+asks+" asking"+on+". The price leans on the sold ones.";
   const onFile=(added&&t)?" "+t.n+" on file now.":"";
-  return lead+onFile+failNote(runs);
+  return lead+onFile+sieveNote()+failNote(runs);
+}
+/* HOW MANY EBAY SENT, AND WHAT WAS THROWN OUT OF IT.
+   Without this the counter reads the surviving count as the whole market.
+   It is one clause, it names the three reasons by the words they mean at a
+   counter, and it only appears when something actually was thrown out -
+   "eBay sent 22, none dropped" is noise. */
+function sieveNote(){
+  const L=LAST_EBAY;
+  if(!L||!L.found||!L.dropped)return "";
+  const d=L.dropped, part=Math.round(Number(d.part)||0),
+        lot=Math.round(Number(d.lot)||0), wrong=Math.round(Number(d.wrong)||0);
+  const n=part+lot+wrong;
+  if(!(n>0))return "";
+  /* Ten words, because the line they join is held to thirty. The three-way
+     split is the detail; the number eBay SENT is the thing he was missing. */
+  const why=[]; if(part)why.push("parts"); if(lot)why.push("lots"); if(wrong)why.push("another model");
+  return " eBay sent "+L.found+"; "+n+" were "+why.join(", ")+".";
 }
 /* A source that did not answer is worth one short clause: it is why the
    answer is thinner than it should be. It is not worth naming three of

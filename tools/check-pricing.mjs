@@ -770,6 +770,68 @@ console.log("\n  cheap book rows are not asked for a make or a model");
    the loader took the stored number over the code's. Every tablet and
    phone in the shop was sitting on a stored 25. The pawn rate hit this
    exact trap before and solved it with pawnSet; this is floorSet. */
+/* THE SCHEDULE WAS FOR A LOAN HE MIGHT NOT BE MAKING.
+   "i think there should be some way to see the interest schedule based on
+   the pawn amount." There already was one — the ladder in card 8 — and it
+   was computed off x.target, the SUGGESTED loan, whatever he had typed
+   into Lent. A counter writing a $45 ticket was reading a schedule for
+   $30. The rail's day-60 row had the same fault, from its own copy of the
+   arithmetic.
+
+   The failure this pins is not cosmetic: both figures are quoted to the
+   man across the counter, and one of them was for a ticket nobody wrote. */
+console.log("\n  the redemption schedule follows the amount on the ticket");
+{
+  const r = await page.evaluate(() => {
+    if (typeof payAmt !== "function") return null;
+    const c = CATALOG.find(y => y.items.some(i => i.id === "t1"));
+    st.flow = "ask"; st.mode = "item"; st.catId = c.id; st.itemId = "t1"; st.picked = true;
+    st.condSet = true; st.completeSet = true; st.struckKind = "loan";
+    st.market = {kind: "hand", key: mkKey(), mid: 300};
+    st.pawnPct = 25; st.pawnSet = true;
+    const read = () => {
+      const x = calcItem(), P = payAmt(x);
+      return {amt: P.amt, typed: P.typed, charge: P.charge,
+              rungs: ladder(P.amt, P.charge).map(z => Math.round(z.due)),
+              rail: String(dealPanelHTML(x)).replace(/<[^>]+>/g, " ").replace(/\s+/g, " "),
+              card: String(paybackHTML(x)).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ")};
+    };
+    st.struck = "";  const sug = read();
+    st.struck = "45"; const typed = read();
+    st.struck = "";   /* leave it as found */
+    return {sug, typed, target: Math.round(calcItem().target)};
+  });
+  ok(!!r, "the redemption amount is worked out in one place");
+  if (!r) { console.log("  (payAmt is not wired — nothing below can be checked)"); fails += 6; }
+  else {
+    ok(r.sug.typed === false && r.sug.amt === r.target,
+       "with nothing typed it is the suggested loan — $" + r.sug.amt);
+    ok(r.typed.typed === true && r.typed.amt === 45,
+       "type $45 in Lent and the schedule is for $45, not $" + r.target);
+    /* 25% of 45 is $11 (floored to whole dollars, as the cap rule requires) */
+    ok(r.typed.charge === 11, "  the 30-day charge follows it — $" + r.typed.charge);
+    ok(r.typed.rungs[0] === 56 && r.typed.rungs[1] === 67,
+       "  so day 30 is $" + r.typed.rungs[0] + " and day 31-60 is $" + r.typed.rungs[1]);
+    /* THE ONE THE COUNTER WOULD HAVE READ ALOUD. The rail quotes day 60
+       separately, from its own copy of the arithmetic, and it was the
+       figure most likely to be said out loud while the ticket was being
+       written. */
+    ok(/\$67/.test(r.typed.rail),
+       "the rail's day-60 figure is for the same ticket — it says $67");
+    /* VACUOUS THE FIRST TIME. This checked for the absence of "$44", a
+       figure that belongs to a different worked example and was never on
+       this rail either way - so it stayed green with the fix deleted. The
+       number that must NOT be there is the SUGGESTED loan's own day-60
+       total, which is what the rail printed before. */
+    const sugDay60 = r.sug.amt + r.sug.charge * 2;
+    ok(sugDay60 !== (r.typed.amt + r.typed.charge * 2)
+       && !(new RegExp("\\$" + sugDay60 + "\\b")).test(r.typed.rail),
+       "  and not the suggested loan's day-60 total of $" + sugDay60 + ", which is what it used to print");
+    ok(/on \$45/.test(r.typed.card) && /what you typed/i.test(r.typed.card),
+       "and the heading names the amount it is for, which is what was missing");
+  }
+}
+
 console.log("\n  the buy floor is $10, and it reaches a device that already saved $25");
 {
   const r = await page.evaluate(() => {

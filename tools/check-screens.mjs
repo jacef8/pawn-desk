@@ -1297,6 +1297,14 @@ console.log("\n  the lookup reports in English");
   await p.goto(BASE + "/index.html", {waitUntil:"networkidle"});
   const lines = await p.evaluate(() => {
     const mk = (n, basis, where) => Array.from({length:n}, (_, i) => ({price:100+i, basis, where}));
+    /* "so on all of ebay there are almost no DeWalt 20V impact driver kit
+       Cordless drill / driver? I find that hard to believe." He was right
+       not to believe it. The line said "18 asking prices on eBay" and left
+       him to read eighteen as the whole of eBay; what it meant was eighteen
+       SURVIVED. The service has always returned how many it fetched and how
+       many it threw out, and the desk discarded both on arrival. */
+    LAST_EBAY = {basis:"asking", source:"browse", warning:"",
+                 found:40, dropped:{part:8, lot:9, wrong:5}, ts:Date.now()};
     return {
       asks:  findSaid(mk(35, "asking", "eBay"), 21, {n:44},
                       [{name:"Searched, used", ok:false}, {name:"Shopping, used", ok:false}]),
@@ -1317,6 +1325,30 @@ console.log("\n  the lookup reports in English");
     ["no 'new none'", !/new none/i.test(all)],
     ["no dot-separated pass list", !/·.*·/.test(all)],
     /* and it has to stay short enough to read while somebody waits */
+    /* THE SIEVE, WHICH IS THE HALF HE WAS MISSING. */
+    ["it says how many eBay actually sent", /eBay sent 40/.test(lines.asks)],
+    ["and how many were thrown out", /22 were/.test(lines.asks)],
+    ["naming the three reasons", /parts, lots, another model/.test(lines.asks)],
+    /* and it must stay quiet when there is nothing to report, rather than
+       printing "0 were" on every clean lookup */
+    ["nothing is said when nothing was dropped",
+     !/eBay sent/.test(await p.evaluate(() => {
+       LAST_EBAY = {basis:"sold", found:12, dropped:{part:0, lot:0, wrong:0}, ts:Date.now()};
+       const mk2 = (n) => Array.from({length:n}, (_, i) => ({price:100+i, basis:"sold", where:"eBay"}));
+       const out = findSaid(mk2(12), 12, {n:12}, []);
+       LAST_EBAY = null;
+       return out;
+     }))],
+    /* and when the desk never reached eBay at all */
+    ["nor when eBay was never asked",
+     !/eBay sent/.test(await p.evaluate(() => {
+       LAST_EBAY = null;
+       const mk2 = (n) => Array.from({length:n}, (_, i) => ({price:100+i, basis:"sold", where:"eBay"}));
+       return findSaid(mk2(3), 3, {n:3}, []);
+     }))],
+    /* and it has to stay short enough to read while somebody waits. This
+       is why the lead lost "It is what sellers want, not what one sold
+       for" - the Behind-this-number panel says it three inches away. */
     ["every line is 30 words or fewer",
      Object.values(lines).every(l => l.trim().split(/\s+/).length <= 30)],
   ];
