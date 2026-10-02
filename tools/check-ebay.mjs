@@ -114,6 +114,40 @@ console.log("\n  the guards");
   ok((await handle({ path: "/limits", method: "GET", env: {} })).body.ebay.configured === false, "/limits reports no keyset");
 }
 
+/* WHETHER THE PICTURE READER CAN WORK AT ALL, ANSWERABLE WITHOUT SPENDING
+   ANYTHING. Asked from the counter - "What do I need to do to get picture
+   analysis ability turned back on" - and there was no way to tell from
+   outside whether the service had an Anthropic key, because /limits
+   reported the model, the price and the day cap but not that. A shop with
+   no key looked identical to a healthy one until somebody tried a
+   photograph and got no_key back after the POST.
+
+   The two keys are SEPARATE and that is the point of the second pair
+   below: eBay sold comps need no Anthropic key and keep working without
+   one. Reporting them together as "the service" is what sent somebody
+   looking for a connection fault when the comps were fine. */
+console.log("\n  /limits says whether a photograph can be read at all");
+{
+  const withKey = (await handle({ path: "/limits", method: "GET",
+    env: Object.assign(env(), { ANTHROPIC_API_KEY: "sk-test", PAWN_TOKEN: "t" }) })).body;
+  const without = (await handle({ path: "/limits", method: "GET", env: env() })).body;
+  ok(withKey.photo.key === true, "a service with a key says so");
+  ok(without.photo.key === false, "and one without says so, instead of looking healthy");
+  /* env() always carries PAWN_TOKEN, so the ungated case has to be built
+     by hand - the first version of this asserted false against a helper
+     that sets it and went red for the right reason. */
+  const ungated = (await handle({ path: "/limits", method: "GET", env: { ANTHROPIC_API_KEY: "sk-test" } })).body;
+  ok(withKey.photo.tokenGated === true && ungated.photo.tokenGated === false,
+     "it says whether a token is required, which is the other half of a refused call");
+  /* THE KEY ITSELF MUST NEVER COME BACK. /limits is open - no token - so
+     anything it prints is public. A boolean is the whole point. */
+  const txt = JSON.stringify(withKey);
+  ok(txt.indexOf("sk-test") < 0, "and the key itself is never in the answer — /limits needs no token");
+  /* The separation, stated. Without an Anthropic key the comps still run. */
+  ok(without.ebay.sold === true && without.photo.key === false,
+     "sold-price lookups keep working with no Anthropic key — the two are not one switch");
+}
+
 /* TELLING A MACHINE FROM ITS SPARE PARTS.
    A search for "Husqvarna 240" comes back as springs, fuel caps, sprockets
    and crankcases. Priced together they made a $180 chainsaw read $8-21 and

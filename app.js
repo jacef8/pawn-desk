@@ -6380,6 +6380,23 @@ async function pdTestConn(){
   if(limits.status!==200||!limits.body||!limits.body.ok){
     say("var(--bad)","Something answered at that address, but it is not the pawn service (HTTP "+limits.status+"). Check the address.");
     return; }
+  /* A MISSING KEY IS NOT A CONNECTION FAULT, AND IT LOOKED LIKE ONE.
+     /limits now says whether the service has an Anthropic key at all, and
+     that read is free. Without one, every picture read comes back "no_key"
+     after a POST that could not have worked - so it is said here, before
+     the POST, and it names the variable and the place to put it. The eBay
+     line is said in the same breath because sold-price lookups do NOT need
+     this key: a shop with eBay configured and no Anthropic key still gets
+     its comps, and should be told so rather than left thinking nothing
+     works. */
+  {
+    const ph=(limits.body&&limits.body.photo)||null, eb=(limits.body&&limits.body.ebay)||null;
+    if(ph&&ph.key===false){
+      say("var(--bad)","The service is up, but it has <b>no Anthropic key</b>, so it cannot read photographs or screenshots. "
+        +"Add <b>ANTHROPIC_API_KEY</b> in Railway (Variables) and redeploy."
+        +(eb&&eb.sold?" Sold-price lookups do not need that key and are working \u2014 those come straight from eBay.":""));
+      return; }
+  }
   /* 2. it is there - does it accept the token? */
   if(!tok){ say("var(--warn)","The service is up and reachable. Now put the token in."); return; }
   const post=async(body,ms)=>{
@@ -10967,7 +10984,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="1002.0137";
+const APP_BUILD="1002.1057";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

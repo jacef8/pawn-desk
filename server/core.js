@@ -194,7 +194,22 @@ export async function handle({ path, method, token, body, env, signal, query }) 
     return reply(200, { ok: true, images: { mediaTypes: OK_TYPES, maxCount: MAX_IMAGES, maxBytes: MAX_IMAGE_BYTES },
                         ebay: ebayReady(env),
                         gunbroker: gunReady(env),
-                        photo: { model: MODEL, asked: MODEL_ASKED || null,
+                        /* IS THE PICTURE READER GOING TO WORK AT ALL?
+                            Asked from the counter - "What do I need to do to
+                            get picture analysis ability turned back on" - and
+                            there was no way to answer it from outside without
+                            spending money on a real call. /limits reported
+                            the model, the price and the day cap but not
+                            whether there is a key to use any of them with, so
+                            a shop with no ANTHROPIC_API_KEY set looked
+                            identical to a healthy one until somebody tried a
+                            photograph and got no_key back.
+                            A boolean, the same shape gunReady already uses.
+                            It says a key EXISTS, not that it has credit - the
+                            /json error ladder below tells those apart. */
+                        photo: { key: !!env.ANTHROPIC_API_KEY,
+                                 tokenGated: !!env.PAWN_TOKEN,
+                                 model: MODEL, asked: MODEL_ASKED || null,
                                  ignored: !!(MODEL_ASKED && MODEL_ASKED !== MODEL),
                                  usdPerMTok: { in: USD_IN * 1e6, out: USD_OUT * 1e6 },
                                  dayCap: DAY_CAP, spentToday: Math.round(spendToday(0) * 100) / 100 } });
