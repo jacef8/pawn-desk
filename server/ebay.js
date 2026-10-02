@@ -178,7 +178,58 @@ export function modelCodes(t) {
 /* DCD791D2 is a DCD791 in a kit box, not a different drill. */
 const sameModel = (a, b) => a === b || a.startsWith(b) || b.startsWith(a);
 
-export function fitOf(title, wanted, kinds) {
+/* A VARIANT IS A DIFFERENT CAMERA AND THERE WAS NO GATE ON IT.
+   The counter, on a Spypoint Flex: "there are also several versions of the
+   camera but what i selected is the base, original version." Spypoint sells
+   Flex, Flex-M, Flex-M2, Flex-S, Flex Plus and Flex Dark, and the sold page
+   for "Spypoint Flex" returns all of them.
+
+   Nothing stopped them. The model gate is `wanted`, built by modelCodes(),
+   which needs three to five digits in a token - and "Spypoint Flex" has no
+   digits at all, so `wanted` came back EMPTY and the "wrong model" branch
+   below is written `if (wanted.size && ...)`. It never ran. Measured across
+   this book: 454 of its 519 rows carry no model code, so for seven rows in
+   eight there was no model check of any kind. The Flex-M at $49.99 went
+   into the band as if it were the base camera.
+
+   WHAT THIS CATCHES is a variant CODE hard against the model name: Flex-M,
+   Flex M, FLEX-M2, Flex S. One or two letters with up to two digits, and
+   nothing else - a token that short, sitting immediately after the name, is
+   a model suffix and not a description.
+
+   WHAT IT DELIBERATELY DOES NOT CATCH is a variant spelled as a word, like
+   Flex DARK or Flex PLUS. "Dark" is the same shape as "Trail" in "FLEX
+   Trail Camera", and a rule wide enough to drop one drops the other - which
+   leaves the counter with no comps at all, and the comments above say why
+   that is its own kind of wrong. Those need the row to name them, and that
+   is a book change, not a regex.
+
+   THE DIGIT GUARD MATTERS. A bare number after the name is a spec, not a
+   variant: "Mossberg 500 12 Gauge" and "Remington 870 Express 20ga" must
+   survive, so a token has to carry a LETTER to count. */
+const VAR_CODE = /^[a-z]{1,2}\d{0,2}$/;
+export function variantOf(title, name) {
+  const words = String(name || "").toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+  if (!words.length) return "";
+  const t = String(title || "").toLowerCase();
+  /* Find the row's name in the title as a run of its words, then look at
+     what comes straight after it. */
+  const toks = t.split(/[^a-z0-9]+/).filter(Boolean);
+  /* The hyphenated form first: "flex-m" arrives as two tokens either way,
+     so the same walk covers both "Flex-M" and "Flex M". */
+  for (let i = 0; i + words.length <= toks.length; i++) {
+    let hit = true;
+    for (let k = 0; k < words.length; k++) if (toks[i + k] !== words[k]) { hit = false; break; }
+    if (!hit) continue;
+    const next = toks[i + words.length];
+    if (!next) return "";
+    if (words.indexOf(next) >= 0) return "";      /* the name repeats itself */
+    if (VAR_CODE.test(next) && /[a-z]/.test(next)) return next;
+    return "";
+  }
+  return "";
+}
+export function fitOf(title, wanted, kinds, name) {
   const t = String(title || "");
   if (PARTS.test(t) || COMPONENT.test(t) || ELEC_PART.test(t) || PARTNO.test(t)) return "part";
   /* Does this listing even say it is the thing being priced? A sprocket
@@ -195,6 +246,8 @@ export function fitOf(title, wanted, kinds) {
   const others = [...cs].filter((c) => ![...wanted].some((q) => sameModel(c, q)));
   if (others.length >= 3 || LOTS.test(t)) return "lot";
   if (wanted.size && ![...wanted].some((q) => [...cs].some((c) => sameModel(c, q)))) return "wrong";
+  /* The name-based gate, for the seven rows in eight that have no code. */
+  if (name && variantOf(t, name)) return "wrong";
   if (BARE.test(t)) return "bare";
   if (KITED.test(t)) return "kit";
   return "unknown";
@@ -296,7 +349,7 @@ async function soldComps(q, limit, env, signal, kinds) {
     what: it.title || "",
     where: "eBay",
     basis: "sold",
-    fit: fitOf(it.title, wanted, kinds),
+    fit: fitOf(it.title, wanted, kinds, q),
     cond: it.condition || "",
     when: (it.lastSoldDate || "").slice(0, 10),
     url: it.itemWebUrl || "",
@@ -327,7 +380,7 @@ async function askingComps(q, limit, env, signal, kinds) {
       what: it.title || "",
       where: "eBay",
       basis: "asking",
-      fit: fitOf(it.title, wanted, kinds),
+      fit: fitOf(it.title, wanted, kinds, q),
       bids: bids || 0,
       cond: it.condition || "",
       url: it.itemWebUrl || "",

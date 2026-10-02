@@ -10147,7 +10147,7 @@ let MODEL_PRICES=[
  ["h494","h4","Browning Strike Force",55,72,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Browning%20Strike%20Force&LH_Sold=1&LH_Complete=1","8 eBay sales in the last 90 days",""],
  ["h496","h4","Browning Dark Ops",39,60,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Browning%20Dark%20Ops&LH_Sold=1&LH_Complete=1","10 eBay sales in the last 90 days",""],
  ["h498","h4","Stealth Cam Fusion X",29,36,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Stealth%20Cam%20Fusion%20X&LH_Sold=1&LH_Complete=1","12 eBay sales in the last 90 days",""],
- ["h500","h4","Spypoint Flex",30,50,"m","2026-10-02","https://www.ebay.com/sch/i.html?_nkw=Spypoint%20Flex&LH_Sold=1&LH_Complete=1","2 single-camera eBay sales; the rest of that page is twin packs","CORRECTED BY HAND 2 Oct 2026. The harvested band $39-$70 counted TWIN PACKS as single cameras - fitOf could not see \"Twin Pack\" or \"2 Pack\" until the rule was fixed, so a $145 pair of Flex Darks went in as one $145 camera. Off the counter’s own sold page: one USED single at $50.00 (best offer accepted) and one NEW single at $49.99. The twin packs work out at $27.50 used and $42.50 new per camera. NEW RUNS ABOUT $50, so a used one cannot be worth more than that. Two clean sales, not six - thin. MOVE IT IF YOU KNOW BETTER."],
+ ["h500","h4","Spypoint Flex (base)",28,45,"l","2026-10-02","https://www.ebay.com/sch/i.html?_nkw=Spypoint%20Flex&LH_Sold=1&LH_Complete=1","1 clean sale of the base camera — BASE FLEX ONLY. The counter: \"there are also several versions of the camera but what I selected is the base, original version.\" Spypoint sells Flex, Flex-M, Flex-M2, Flex-S, Flex Plus and Flex Dark under the one word Flex, and this book has ONE row for all of them. Band set 2 Oct 2026 off a single clean sale of the BASE camera: $50.00 used, best offer accepted. Everything else on that sold page was a different thing - twin packs ($55 and $85, so $27.50 and $42.50 a camera), a $145 pair of Flex Darks, a $16 rain cover, a $19.43 parts-only body, and a NEW Flex-M at $49.99 which is a different model, not this one. ONE SALE IS NOT A PRICE. The band is a judgement with the new Flex-M at $50 as a ceiling, because a used base camera cannot be worth more than a new better one. MOVE IT IF YOU KNOW BETTER.","spypoint flex base original"],
  ["h502","h4","Spypoint Link Micro",26,45,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Spypoint%20Link%20Micro&LH_Sold=1&LH_Complete=1","11 eBay sales in the last 90 days",""],
  ["h27","Wireless earbuds","Apple AirPods 3rd generation",14,60,"m","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Apple%20AirPods%203rd%20generation&LH_Sold=1&LH_Complete=1","17 listings, asking prices - no sold data",""],
  ["h119","Wireless earbuds","JBL Vibe Beam",20,30,"m","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=JBL%20Vibe%20Beam&LH_Sold=1&LH_Complete=1","27 listings, asking prices - no sold data",""],
@@ -10984,7 +10984,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="1002.1447";
+const APP_BUILD="1002.1514";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

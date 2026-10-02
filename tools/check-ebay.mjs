@@ -19,7 +19,7 @@
  */
 import { createServer } from "node:http";
 import { handle } from "../server/core.js";
-import { ebayReset, fitOf } from "../server/ebay.js";
+import { ebayReset, fitOf, variantOf } from "../server/ebay.js";
 
 const PORT = 3097;
 let fails = 0, mode = "sold";
@@ -207,6 +207,69 @@ console.log("\n  parts against whole machines");
    lot, because an M18 battery pack is one item and this repo prices a
    great many of them. If the two battery assertions below ever go red, the
    rule has started eating single tools. */
+/* A VARIANT IS A DIFFERENT CAMERA, AND SEVEN ROWS IN EIGHT HAD NO GATE.
+   The counter, on the Spypoint Flex: "there are also several versions of
+   the camera but what i selected is the base, original version."
+
+   The model gate is `wanted`, built by modelCodes(), which needs three to
+   five digits in a token. "Spypoint Flex" has no digits, so `wanted` came
+   back empty and the wrong-model branch — written `if (wanted.size && …)` —
+   never ran at all. Counted across prices.json: 454 of 519 rows carry no
+   model code. The Flex-M at $49.99 went into the band as the base camera.
+
+   The two halves below are equally load-bearing. A rule that drops variants
+   is useless if it also drops "FLEX Trail Camera", and worse than useless
+   if it drops "Mossberg 500 12 Gauge" — that leaves the counter with no
+   comps, which this file's own comments call its own kind of wrong. */
+console.log("\n  a Flex-M is not a Flex");
+{
+  const row = "Spypoint Flex";
+  /* off the sold page he had open */
+  ok(variantOf("SpyPoint Flex-M 28 MP 720P Video Cellular Camera", row) === "m",
+     "Flex-M is read as the M variant");
+  ok(variantOf("SPYPOINT FLEX-M2 Cellular Trail Camera 32MP 1080p 80 ft", row) === "m2",
+     "and FLEX-M2 as M2");
+  ok(fitOf("SpyPoint Flex-M 28 MP 720P Video Cellular Camera", new Set(), [], row) === "wrong",
+     "so the $49.99 new Flex-M is dropped, not priced as the base camera");
+
+  /* THE HALF THAT KEEPS A PRICE ON THE SCREEN. */
+  const keepers = [
+    "SPYPOINT FLEX Trail Camera Wi-Fi Night Vision Waterproof microSD 1080p 100ft",
+    "SPYPOINT FLEX Cellular Trail Camera w/ Antenna - Green",
+  ];
+  for (const t of keepers) {
+    ok(variantOf(t, row) === "", "no variant read in: " + t.slice(0, 44));
+    ok(fitOf(t, new Set(), [], row) !== "wrong", "  and it survives as a comp");
+  }
+
+  /* A BARE NUMBER AFTER THE NAME IS A SPEC, NOT A VARIANT. If any of these
+     go red the gate has started eating gauges, calibres and capacities, and
+     it would do it silently across the whole book. */
+  const specs = [
+    ["Mossberg 500",          "Mossberg 500 12 Gauge Pump Action Shotgun 28in"],
+    ["Remington 870 Express", "Remington 870 Express 20ga Youth"],
+    ["Glock 19",              "Glock 19 Gen 5 9mm"],
+    ["Apple iPad",            "Apple iPad Air 64GB"],
+    ["Milwaukee M18",         "Milwaukee M18 FUEL Hammer Drill 2904-20"],
+    ["Ruger 10/22",           "Ruger 10/22 Takedown Stainless"],
+  ];
+  for (const [n, t] of specs)
+    ok(variantOf(t, n) === "", "not a variant: " + t.slice(0, 44));
+
+  /* STATED HONESTLY RATHER THAN CLAIMED. A variant spelled as a WORD is the
+     same shape as a description — "Flex Dark" against "Flex Trail" — and a
+     rule wide enough for one takes the other. This asserts the limit so
+     nobody reads the section above as covering more than it does. */
+  ok(variantOf("SPYPOINT Flex Dark GPS Cellular Gray Trail Camera", row) === "",
+     "a word variant (Flex DARK) is NOT caught — that needs the book, not a regex");
+  ok(variantOf("SPYPOINT FLEX Trail Camera 1080p", row) === "",
+     "  because it cannot be told from a description (FLEX Trail) by shape");
+  /* And the name has to actually appear: "Spy-point" is not "Spypoint", so
+     the walk finds nothing. That one is caught as a lot instead. */
+  ok(variantOf("Spy-point Flex M Twin Pack 28 Megapixel", row) === "",
+     "a hyphenated maker name is not matched either — that title is caught as a lot");
+}
+
 console.log("\n  a twin pack is two cameras, not one");
 {
   const none = new Set();
