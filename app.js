@@ -9349,16 +9349,55 @@ function shotPrompt(x){
 "- price: what it SOLD for in US dollars, as a plain number. Leave out shipping. If a Best Offer was accepted and the accepted price is shown, use the accepted price. If a Best Offer sale shows only a crossed-out or list price, give that number and set offerHidden to true.",
 "- offerHidden: true or false",
 "- condition: \"new\", \"used\", \"parts\" (parts, not working, for repair), or \"\" when not shown",
-"- match: \"same\" when it is the same kind of item as the one being priced (and the same maker and model, when those are given); \"close\" when it is the same kind of item in a different model, size or version that is still fair to compare; \"different\" when it is something else: parts only, broken, a lot of several, an accessory, a box or manual, a toy, or another product",
+"- ranFor: the listing's run length EXACTLY as the page prints it, e.g. \"3.2 minutes\", \"1.3 days\", \"7 hours\", \"30 days\". WatchCount prints this as \"Ran for ...\" beside the listing. Empty string when the page does not show it. Do not work it out from the start and end dates; copy what is written.",
+"- match: \"same\" when it is the same kind of item as the one being priced (and the same maker and model, when those are given); \"close\" when it is the same kind of item in a different version that is still fair to compare; \"different\" when it is something else: parts only, broken, a lot of several, an accessory, a box or manual, a toy, or another product",
+"  SIZE IS NOT A SMALL DIFFERENCE. When the title states a size, capacity, length or count \u2014 screen inches, storage GB or TB, horsepower, barrel length, carat, tonnage, battery amp-hours \u2014 and it is not the size being priced, that is \"different\", not \"close\". A 98-inch television cannot price a 55-inch one.",
 "- why: for close or different, 2 to 5 words saying why (\"lot of 3\", \"different model\", \"bare tool, no battery\"). Empty for same.",
 "",
 "Only listings that actually SOLD. eBay marks them \"Sold\" with a date; GunBroker completed auctions show a winning bid. If the pictures show items still FOR SALE, set soldOnly to false and return no listings. Never invent a listing or a price you cannot read. Do not estimate a value; the page does the math.",
 "",
 "Reply with ONLY this JSON:",
-'{"site":"WatchCount","soldOnly":true,"listings":[{"title":"","price":0,"offerHidden":false,"condition":"used","match":"same","why":""}],"note":"one short sentence on anything that limits the read"}'
+'{"site":"WatchCount","soldOnly":true,"listings":[{"title":"","price":0,"offerHidden":false,"condition":"used","ranFor":"","match":"same","why":""}],"note":"one short sentence on anything that limits the read"}'
   ].join("\n");
 }
 function pct(a,q){ if(a.length===1)return a[0]; const i=(a.length-1)*q, lo=Math.floor(i), hi=Math.ceil(i); return a[lo]+(a[hi]-a[lo])*(i-lo); }
+/* A LISTING THAT OPENED AND CLOSED INSIDE THE QUARTER HOUR DID NOT FIND A
+   BUYER AT THAT PRICE. Reported twice from the counter, the second time
+   with the page still on his screen: "still seeing this 10000 dollar
+   listing" - a 55-inch TCL Roku at $10,000, New, Fixed Price, 0 available,
+   Sold: 1, and on the same row, in WatchCount's own words, "Ran for 3.2
+   minutes". Start 26-Jul-26, end 26-Jul-26.
+
+   That is a mis-keyed price taken down, a cancelled order, or a relist
+   artifact. It is not a sale anybody made, and WatchCount reports it as
+   Sold like every other row because it has no way to tell the difference.
+
+   The first attempt at this was a sentence on the card telling him to skip
+   such rows by eye. He came back with the listing still on his screen, and
+   he was right to: a tool that asks the counter to do the filtering is a
+   checklist, not a tool. So the run length is now read off the page and
+   the arithmetic is done here.
+
+   IT IS A SMELL, NOT A VERDICT, so the row is not deleted quietly. It goes
+   in the "Left out" list by name and price with its reason, where he can
+   see what was thrown away and argue with it.
+
+   FIFTEEN MINUTES is the line. A real fixed-price sale inside a quarter
+   hour of listing happens, but rarely, and the cost of dropping one is one
+   comp out of a list; the cost of keeping a $10,000 TCL is the median on a
+   screen that decides what leaves the till. Anything without a run length
+   on the page is kept - no figure is not a short figure. */
+const SHORT_RUN_MIN=15;
+function runMinutes(v){
+  const t=String(v==null?"":v).toLowerCase().trim();
+  if(!t)return null;
+  const m=t.match(/(\d+(?:\.\d+)?)\s*(second|sec|minute|min|hour|hr|day|week|month)/);
+  if(!m)return null;
+  const n=Number(m[1]); if(!(n>=0))return null;
+  const u=m[2];
+  const per={second:1/60,sec:1/60,minute:1,min:1,hour:60,hr:60,day:1440,week:10080,month:43200}[u];
+  return per?n*per:null;
+}
 function crunchComps(res){
   const L=Array.isArray(res&&res.listings)?res.listings:[], seen=new Set(), kept=[], out=[];
   L.forEach(l=>{
@@ -9367,8 +9406,10 @@ function crunchComps(res){
     const price=Math.round(Number(String(l.price==null?"":l.price).replace(/[^0-9.]/g,""))||0);
     const k=title.toLowerCase()+"|"+price; if(seen.has(k))return; seen.add(k);
     const match=String(l.match||"").toLowerCase(), cond=String(l.condition||"").toLowerCase();
+    const ran=runMinutes(l.ranFor);
     let why="";
     if(!(price>0))why="no price shown";
+    else if(ran!=null&&ran<SHORT_RUN_MIN)why="listed for minutes, not a real sale";
     else if(match==="different")why=String(l.why||"not the same item").slice(0,40);
     else if(l.offerHidden===true)why="Best Offer, real price hidden";
     else if(cond==="parts")why="parts / not working";
@@ -10926,7 +10967,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="1002.0006";
+const APP_BUILD="1002.0137";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
