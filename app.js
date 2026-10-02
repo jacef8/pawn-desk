@@ -3355,7 +3355,7 @@ function askQueue(x){
      add a word to the search, and the automatic lookup fires when the
      item is picked, well before either position. */
   q.push({id:"worth", title:"What does one sell for used?",
-    hint:"", kind:"worth", answered:!!x.checked,
+    hint:"", kind:"worth", answered:!!x.checked||!!st.worthNone,
     /* The book had a figure for this model. Nobody looked anything up. */
     auto:!!(x.checked&&x.market&&x.market.kind==="list")});
   /* A QUESTION THAT CANNOT MOVE THE NUMBER IS NOT A QUESTION.
@@ -6510,8 +6510,19 @@ document.addEventListener("click",e=>{
   }
   const rs=e.target&&e.target.closest?e.target.closest("#refFold>summary"):null;
   if(rs){ st.refOpen=!st.refOpen; return; }
-  const f=e.target&&e.target.closest?e.target.closest("[data-fake],[data-mkind],[data-flow],#fakeClear"):null;
+  const f=e.target&&e.target.closest?e.target.closest("[data-fake],[data-mkind],[data-flow],#fakeClear,#worthNone"):null;
   if(f){
+    /* LAND ON THE LAST CARD, NOT THE FIRST. firstOpenAsk returns 0 when
+       nothing is open, and runFinished needs the counter ON the last card
+       - so answering the last question sent him back to question one and
+       the run still did not read as finished. The test caught it: "the run
+       finishes instead of recycling" went red with nothing left open. */
+    if(f.id==="worthNone"){
+      st.worthNone=true;
+      const q=askQueue(calcItem());
+      const nx=q.findIndex(z=>!z.answered&&!z.optional);
+      st.askAt=nx<0?q.length-1:nx;
+      render(); return; }
     if(f.id==="fakeClear"){ st.fakeAns={}; st.fakeKey=mkKey(); st.specIn={}; st.specPick=""; render(); return; }
     if(f.dataset.mkind){ st.metalKind=f.dataset.mkind; st.fakeAns={}; st.fakeKey=mkKey(); render(); return; }
     if(f.dataset.flow){ st.flow=f.dataset.flow; try{ persist(); }catch(e){} render(); return; }
@@ -6858,6 +6869,19 @@ function compTargets(x){
      rather than a list to eyeball. It needs a seller sign-in, which the
      desk has; WatchCount above is the no-sign-in lane and is unchanged.
      It does NOT reach back further: see the dayRange note below. */
+  /* THE LANE THAT NEEDS NO SIGN-IN AND HAS NEVER FAILED. Seller Hub is
+     below and it has now failed at the counter three times on three
+     different URLs - "the ebay button gave me this oops try again here so
+     I'm not sure if the ebay link is working or not". It needs a seller
+     sign-in nothing here can test with, so every version of it has been
+     written blind and checked by him.
+     A plain sold search needs no sign-in, no Terapeak entitlement and no
+     guessing at parameters. It reaches back 90 days and no further, which
+     is why it was replaced in the first place - but ninety days of real
+     sales beats a page that says Oops. So it goes back, FIRST, and Seller
+     Hub keeps its place underneath for when it works. */
+  t.push({id:"ebaysold",name:"eBay sold",sub:"no sign-in, 90 days",
+    url:"https://www.ebay.com/sch/i.html?_nkw="+e+"&LH_Sold=1&LH_Complete=1&_sop=13"});
   t.push({id:"ebay",name:"eBay Seller Hub",
     sub:"",   /* "the ebay button doesn't need to say a full year" */
     /* "OUR SERVER FAILED TO RESPOND TO YOUR QUERY" - every single time, on
@@ -9070,7 +9094,7 @@ function omniPick(r){
     const kindFromMake=g?itemFromBrand(g,r.q):null;
     st.itemId=kindFromMake||custId(st.catId);
     st.bookName=kindFromMake?"":r.q;
-    st.mpNone=!kindFromMake;
+    st.mpNone=!kindFromMake; st.worthNone=false;
     const bh=g?brandFromName(g,r.q):null;
     st.brandTyped=bh?bh.name:""; st.brandQ=st.brandTyped; st.brand=bh?bh.tier:"mid"; st.brandSet=!!bh;
     st.model=""; st.detail=""; st.liq=null; st.market=null;
@@ -9122,7 +9146,7 @@ function omniPick(r){
   if(r.cond)st.cond=r.cond;
   st.specSel={}; applySpecPicks(r.spec,st.detail+" "+st.model);
   st.editing=(r.kind==="custom");
-  st.photoRead=null; st.compRead=null; st.market=null; st.mpPin=null; st.mpNone=false; st.condSet=!!r.cond; if(!r.cond)st.cond="good";
+  st.photoRead=null; st.compRead=null; st.market=null; st.mpPin=null; st.mpNone=false; st.worthNone=false; st.condSet=!!r.cond; if(!r.cond)st.cond="good";
   findMsg="";   /* the last lookup's word belonged to the last item */
   /* Leave the chosen thing in the box. Emptying it and saying underneath what
      was filled in meant reading a sentence to learn what the box could have
@@ -9151,9 +9175,26 @@ function wireOmni(){
     if(st.omniDone){ st.omniDone=""; const h=document.getElementById("omniHint"); if(h)h.innerHTML=omniHintHTML(); }
     omniShow();
   };
-  inp.onfocus=()=>{ if(st.omniDone||!st.omniQ)inp.select(); omniShow(); };
+  /* THE KEYBOARD TAKES HALF THE PHONE AND THE HERO TAKES THE OTHER HALF.
+     "when I start to type in something, especially on my phone, the big
+     blue middle price icon stays at the top and then the keyboard comes in
+     from the bottom, making it extremely difficult to see any of the
+     populated lists in the middle." Measured on his screen: the hero is
+     about 700px of a 2000px phone, the keyboard takes the bottom 850, and
+     what is left for the thing he is actually reading - the list of
+     matches - is one row and a sliver of the next.
+
+     A CLASS, NOT A RE-RENDER. The obvious fix is to drop the hero from the
+     markup while the box has focus, and it is the wrong one: render()
+     rebuilds the input, the input loses focus, the keyboard closes, and
+     the counter is typing into a box that keeps shutting. So nothing is
+     rebuilt. A class goes on <body>, CSS folds the hero away, and the
+     element the finger is in is never touched. */
+  const searching=on=>{ try{ document.body.classList.toggle("searching",!!on); }catch(e){} };
+  inp.onfocus=()=>{ if(st.omniDone||!st.omniQ)inp.select(); searching(true); omniShow(); };
   inp.onblur=()=>setTimeout(()=>{ const l=document.getElementById("omniList"), i2=document.getElementById("omniIn");
-    if(l&&document.activeElement!==i2){ l.hidden=true; if(i2)i2.setAttribute("aria-expanded","false"); } },150);
+    if(l&&document.activeElement!==i2){ l.hidden=true; if(i2)i2.setAttribute("aria-expanded","false"); }
+    if(document.activeElement!==i2)searching(false); },150);
   inp.onkeydown=e=>{
     const n=omniRowsCache.length, list=document.getElementById("omniList"), open=list&&!list.hidden;
     const hl=st.omniHl==null?-1:st.omniHl;
@@ -10885,7 +10926,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="1001.1848";
+const APP_BUILD="1002.0006";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -11217,8 +11258,51 @@ function step4Inner(x,bare){
             `<a class="compBtn" data-compsite="${esc(z.id)}" data-url="${esc(z.url)}" data-label="${esc(z.name)}" href="${esc(z.url)}" target="_blank" rel="opener" referrerpolicy="no-referrer"><span>${z.name}</span><span class="cs">${z.sub}</span></a>`
           ).join("")}</div>`;
       })()}
-      <ol class="mkSteps"><li>${pdBridge?"Click a link. The page reads itself.":isTouch()?"Open one, screenshot the sold results, read it here.":"Open one, type the middle sold price in."}</li><li><b>Sold, not asking.</b>${who?"":` Naming the make and model helps — ${mpCount()} have built-in prices.`}</li></ol>
-      <button class="brassBtn" id="valEdit" style="padding:11px 18px">Enter what one sold for</button>
+      ${/* "watch count always brings up these wildly outrageous prices
+            which I think are for like large lots or all-time sales or
+            something because I'm looking up at TCL cheap TV and it's
+            showing $10,000 which is obviously incorrect."
+
+            He is right and the cause is on the listing itself: that TCL
+            says "Ran for 3.2 minutes". A fixed-price listing that opened
+            and closed inside the same hour is a mis-key, a cancelled
+            order or a scrape, not a sale anybody made - and WatchCount
+            reports it as Sold like any other. The other one on his
+            screen, $5,899, is a REAL sale of a 98-inch flagship, which
+            is a different television from the one on the counter.
+
+            So the two things to throw out are named. The middle of what
+            is left is the number, and the middle is already how this
+            card reads a list - one absurd row cannot move a median, but
+            it can certainly move an eye.
+
+            TEN WORDS, NOT SIXTY. The first version of this was its own
+            bullet and a paragraph, and check-ask went red for the right
+            reason: 144 words and 756px on a phone against budgets of 80
+            and 560. "Also very wordy" is the standing complaint about this
+            tool. It is now a half-sentence on the bullet that was already
+            there, and the two buttons share one row. 78 words, 553px. */""}
+      <ol class="mkSteps"><li>${pdBridge?"Click a link. The page reads itself.":isTouch()?"Open one, screenshot the sold results, read it here.":"Open one, type the middle sold price in."}</li><li><b>Sold, not asking.</b> Skip odd rows — ran for minutes, or a different model. Middle of the rest.${who?"":` ${mpCount()} models have built-in prices.`}</li></ol>
+      <div class="worthBtns">
+      <button class="brassBtn" id="valEdit">Enter what one sold for</button>
+      ${/* THE RUN HAD NO WAY OUT OF THIS QUESTION. Reported from the
+            counter: "there's no screen at the end of the workflow that
+            indicates there isn't any more steps to take until you look it
+            up it just keeps recycling them back through question number
+            7". Exactly right, and it is the only question in the run that
+            cannot be answered from inside the app - everything else has a
+            Skip or a default, and this one waits on a website.
+
+            So it gets the answer the counter actually has: he looked and
+            found nothing. The model question has had one of these since
+            the day it was written ("plenty of things carry no model at
+            all"), and plenty of things have no sold page either - a
+            no-name TV, an off-brand trimmer, anything local-only. The run
+            finishes, the price comes from the built-in figure, and the
+            card keeps saying ESTIMATE in warning ink, which is the true
+            thing and is already everywhere else on the screen. */""}
+      <button class="ghostBtn" id="worthNone">Nothing to find</button>
+      </div>
 `;
   }
   return h+ownCompsHTML(x);

@@ -1122,6 +1122,18 @@
   .metBuy{font:600 12.5px var(--sans);color:var(--on-hero-2);margin-top:8px;line-height:1.3}
   .metBuy b{font-weight:800;color:var(--on-hero)}
   .metBuyOff{opacity:.76}
+  /* While the search box has the keyboard up, the hero folds away so the
+     matches get the screen. Phone only: on the desk there is room for
+     both and nothing is competing for it. A transition rather than a
+     jump, because the card vanishing under your thumb reads as a fault. */
+  @media (max-width:1079px){
+    body.searching .homeHero{
+      max-height:0;margin:0;padding-top:0;padding-bottom:0;
+      opacity:0;overflow:hidden;pointer-events:none;
+      transition:max-height .18s ease,opacity .12s ease,padding .18s ease}
+    body.searching .homeHero *{visibility:hidden}
+  }
+  @media (prefers-reduced-motion:reduce){ body.searching .homeHero{transition:none} }
   /* The trend arrow rides the price, so it is sized off it rather than
      given a fixed px - at 36px the number it sits beside is a different
      size on the desk and the phone. Colours are pale on purpose: this is
@@ -1462,3 +1474,13 @@
     background:none;border:none;border-left:2px solid var(--accent)}
   .adRec:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   .adRec:hover .adRecHow{color:var(--accent-ink)}
+  /* THE TWO WAYS OUT OF THE SOLD-PRICE QUESTION, ON ONE LINE.
+     Stacked they cost 44px, and this card is on a 560px budget that
+     check-ask holds - it went red at 598 and the words were already as
+     short as they go. Side by side, and they wrap on a narrow phone
+     rather than overflowing. */
+  .worthBtns{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  /* the secondary one gives up the padding, not the primary: 215+145+8
+     was ten pixels wider than the 358px card and wrapped to a second row */
+  .worthBtns .brassBtn{padding:11px 14px}
+  .worthBtns .ghostBtn{padding:10px 12px;font-size:12.5px}
