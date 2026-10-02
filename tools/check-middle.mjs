@@ -149,6 +149,99 @@ if (!tcl.wired) {
    run-length rule can touch, and it would have dragged a 55-inch median
    from $280 to over $3,000. Nothing but the match can catch that one, and
    the read used to be told a different SIZE was a "close" comp. */
+/* "ARE THESE ACTUALLY SOLD, OR JUST THE AUCTION RECENTLY ENDED?"
+   Asked with an eBay sold page open on a Kobalt impact wrench. They are
+   sold - LH_Sold=1 and eBay's own green "Sold <date>" mean somebody paid.
+   But two of the rows on his screen were not a PRICE, for two different
+   reasons, and only one of them was handled:
+
+     $120.00  "or Best Offer"  kit, 3 batteries and charger
+     $39.99   "1 bid"          tool only
+
+   The offer case was already dropped as offerHidden. The bid count was not
+   read at all. A one-bid auction is a real sale and a weak one: nobody
+   argued over it, so it closed at whatever the seller opened at. That is
+   the floor of the market, not the middle.
+
+   IT IS KEPT, NOT DROPPED, and that is the assertion that matters below.
+   Somebody paid that money. Throwing out real sales to flatter the figure
+   is the opposite of what this card is for, and one row cannot move a
+   median anyway. It is labelled so the counter can see which rows are
+   like that in the list underneath. */
+/* AND THE PARAGRAPH THE COUNTER READS, WHICH WAS POINTING AT THE WRONG
+   SITE. It said "On WatchCount, a Best Offer sale shows what the seller
+   actually took" — true of WatchCount and the exact OPPOSITE of eBay, where
+   the figure stays at the ask and the accepted offer is hidden. eBay's own
+   sold search is the lane this card now lists FIRST, so the one warning
+   there was pointed at the wrong site.
+
+   READ OFF compsCardHTML ITSELF. The first version of this walked the
+   rendered body on a step that does not carry the card, found nothing, and
+   four assertions went red while the fifth — "the old line is gone" — went
+   GREEN, because a line is certainly absent from a page that has none of
+   this on it. That is an assertion that cannot fail, and the guard below
+   is what stops it: if the card is not there, say so and stop. */
+console.log("\n  the card names both ways a Sold row can lie");
+{
+  const card = await page.evaluate(() => {
+    if (typeof compsCardHTML !== "function" || typeof calcItem !== "function") return null;
+    const c = CATALOG.find(x => x.items.some(i => i.id === "t1"));
+    st.flow = "ask"; st.mode = "item"; st.catId = c.id; st.itemId = "t1"; st.picked = true;
+    st.openComp = true; st.market = null;
+    return String(compsCardHTML(calcItem()) || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+  });
+  ok(!!card && card.length > 200, "the sold-comps card is there to read — " + ((card||"").length) + " characters");
+  if (!card || card.length <= 200) {
+    console.log("  (no card — the rest of this section would pass on an empty string)");
+    fails += 4;
+  } else {
+    ok(/Best offer accepted/i.test(card) && /what was ASKED/i.test(card),
+       "on eBay a Best offer accepted row shows the ask, and the card says so");
+    ok(/treat it as a ceiling/i.test(card), "  and says to treat it as a ceiling");
+    ok(/1 bid/i.test(card) && /floor and not the middle/i.test(card),
+       "a 1-bid row is named as the floor, not the middle");
+    ok(/WatchCount is the other way round/i.test(card),
+       "and WatchCount is named as the opposite, rather than left to be assumed");
+    ok(!/On WatchCount, a Best Offer sale shows what the seller actually took/.test(card),
+       "the old line that gave eBay's behaviour as WatchCount's is gone");
+  }
+}
+
+console.log("\n  a one-bid auction is a real sale, labelled, not thrown out");
+{
+  const bid = await page.evaluate(() => {
+    const listings = [
+      {title:"KOBALT 24V MAX BRUSHLESS 1/2 COMPACT IMPACT WRENCH TOOL ONLY", price:39.99,
+       condition:"used", bids:1, ranFor:"7 days", match:"same", why:""},
+      {title:"Kobalt 24V Impact Wrench tool only", price:60, condition:"used",
+       bids:14, ranFor:"7 days", match:"same", why:""},
+      {title:"Kobalt 24V Impact Wrench bare", price:70, condition:"used",
+       bids:0, ranFor:"3 days", match:"same", why:""},
+      /* and the offer case, which must still go */
+      {title:"Kobalt Impact Wrench Brushless 1/2 W 3 Batts & Charger", price:120,
+       condition:"used", offerHidden:true, bids:0, ranFor:"9 days", match:"same", why:""},
+    ];
+    const c = crunchComps({listings});
+    const row = p => c.kept.find(k => Math.round(k.price) === p) || null;
+    return {kept: c.kept.map(k => Math.round(k.price)).sort((a,b)=>a-b),
+            one: row(40), many: row(60), fixed: row(70),
+            out: c.out.map(o => ({price:Math.round(o.price), why:o.why})),
+            mid: c.stats && c.stats.mid};
+  });
+  ok(!!bid.one, "the one-bid $39.99 sale is KEPT — somebody paid that money");
+  ok(!!bid.one && /1 bid/.test(bid.one.why),
+     `  and labelled with why it is weak — "${bid.one && bid.one.why}"`);
+  ok(!!bid.many && bid.many.why === "",
+     "an auction that drew 14 bids carries no such label — the market argued over it");
+  ok(!!bid.fixed && bid.fixed.why === "",
+     "nor does a fixed-price sale with no bid count at all");
+  ok(bid.out.some(o => o.price === 120 && /Best Offer/i.test(o.why)),
+     "and the $120 Best Offer row still goes — on eBay that figure is the ask, not the take");
+  /* THE ASSERTION THAT WOULD CATCH ME DROPPING IT. If a future change ever
+     treats a one-bid sale as junk, the median moves and this goes red. */
+  ok(bid.mid === 60, `  the one-bid sale still counts toward the middle — $${bid.mid} from three sales`);
+}
+
 console.log("\n  a 98-inch television does not price a 55-inch one");
 const size = await page.evaluate(() => {
   const listings = [

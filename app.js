@@ -7018,7 +7018,18 @@ function compsCardHTML(x){
     <details class="fold" id="compFold"${st.openComp?" open":""}>
       <summary class="foldLine">Paste a sold screenshot, and what to read off it</summary>
       ${shotZoneHTML(x)}
-      <div class="cardHint">Sold prices, not asking prices. An item listed at $400 that nobody bought is worth nothing to you. On WatchCount, a Best Offer sale shows what the seller actually took &mdash; use that number, never the crossed-out one.${guns?" eBay doesn't sell guns &mdash; GunBroker completed auctions is the only real firearm comp.":""}</div>
+      ${/* "are these actually sold, or just the auction recently ended?"
+            Asked with an eBay sold page open. They ARE sold - LH_Sold=1
+            plus the green "Sold <date>" is eBay saying somebody paid -
+            but TWO of the rows on his screen were not clean prices, and
+            this paragraph only warned about one of them, on the wrong
+            site. It said "On WatchCount, a Best Offer sale shows what
+            the seller actually took". On eBay’s OWN sold page it does
+            the opposite: the number stays at the list price and the
+            accepted offer is hidden. That is the lane this card now
+            lists FIRST, so the guidance was pointing at the wrong one.
+            The bid count is the other, and nothing mentioned it. */""}
+      <div class="cardHint">Sold prices, not asking prices. An item listed at $400 that nobody bought is worth nothing to you. <b style="color:var(--ink)">Two rows that say Sold but are not a price:</b> a row reading <b style="color:var(--ink)">Best offer accepted</b> — on eBay the figure shown is what was ASKED and the real take is hidden, so treat it as a ceiling; and <b style="color:var(--ink)">1 bid</b>, which closed at whatever the seller opened at, so it is the floor and not the middle. WatchCount is the other way round on offers: there the figure IS what the seller took, so use it.${guns?" eBay doesn't sell guns &mdash; GunBroker completed auctions is the only real firearm comp.":""}</div>
     </details>
   </div>`;
 }
@@ -9380,6 +9391,7 @@ function shotPrompt(x){
 "- title: the listing title, cut to 80 characters",
 "- price: what it SOLD for in US dollars, as a plain number. Leave out shipping. If a Best Offer was accepted and the accepted price is shown, use the accepted price. If a Best Offer sale shows only a crossed-out or list price, give that number and set offerHidden to true.",
 "- offerHidden: true or false",
+"- bids: the number of bids, as a plain number, when the row shows one (\"1 bid\", \"12 bids\"). Use 0 for a fixed-price listing that shows no bid count. A one-bid auction sold at whatever the seller opened at, which is worth knowing and is not the same as a price the market argued over.",
 "- condition: \"new\", \"used\", \"parts\" (parts, not working, for repair), or \"\" when not shown",
 "- ranFor: the listing's run length EXACTLY as the page prints it, e.g. \"3.2 minutes\", \"1.3 days\", \"7 hours\", \"30 days\". WatchCount prints this as \"Ran for ...\" beside the listing. Empty string when the page does not show it. Do not work it out from the start and end dates; copy what is written.",
 "- match: \"same\" when it is the same kind of item as the one being priced (and the same maker and model, when those are given); \"close\" when it is the same kind of item in a different version that is still fair to compare; \"different\" when it is something else: parts only, broken, a lot of several, an accessory, a box or manual, a toy, or another product",
@@ -9389,7 +9401,7 @@ function shotPrompt(x){
 "Only listings that actually SOLD. eBay marks them \"Sold\" with a date; GunBroker completed auctions show a winning bid. If the pictures show items still FOR SALE, set soldOnly to false and return no listings. Never invent a listing or a price you cannot read. Do not estimate a value; the page does the math.",
 "",
 "Reply with ONLY this JSON:",
-'{"site":"WatchCount","soldOnly":true,"listings":[{"title":"","price":0,"offerHidden":false,"condition":"used","ranFor":"","match":"same","why":""}],"note":"one short sentence on anything that limits the read"}'
+'{"site":"WatchCount","soldOnly":true,"listings":[{"title":"","price":0,"offerHidden":false,"condition":"used","ranFor":"","bids":0,"match":"same","why":""}],"note":"one short sentence on anything that limits the read"}'
   ].join("\n");
 }
 function pct(a,q){ if(a.length===1)return a[0]; const i=(a.length-1)*q, lo=Math.floor(i), hi=Math.ceil(i); return a[lo]+(a[hi]-a[lo])*(i-lo); }
@@ -9446,7 +9458,17 @@ function crunchComps(res){
     else if(l.offerHidden===true)why="Best Offer, real price hidden";
     else if(cond==="parts")why="parts / not working";
     if(why){ out.push({title,price,why}); return; }
-    kept.push({title,price,cond,why:match==="close"?String(l.why||"close match").slice(0,40):""});
+    /* A ONE-BID AUCTION IS A REAL SALE AND A WEAK ONE. Somebody paid, so
+       it does not get thrown out - but nobody argued over it, so it closed
+       at whatever the seller opened at. That is the floor of the market,
+       not the middle, and the counter should see which rows are like that
+       in the list underneath. It changes no arithmetic: one row cannot
+       move a median, and silently dropping real sales to flatter the
+       figure is the opposite of what this card is for. */
+    const bids=Math.round(Number(l.bids)||0);
+    const weak=bids===1?"1 bid \u2014 opened there and nobody argued":"";
+    kept.push({title,price,cond,
+      why:match==="close"?String(l.why||"close match").slice(0,40):weak});
   });
   let pool=kept;
   const used=kept.filter(k=>k.cond!=="new");
@@ -10162,7 +10184,7 @@ let MODEL_PRICES=[
  ["h494","h4","Browning Strike Force",55,72,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Browning%20Strike%20Force&LH_Sold=1&LH_Complete=1","8 eBay sales in the last 90 days",""],
  ["h496","h4","Browning Dark Ops",39,60,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Browning%20Dark%20Ops&LH_Sold=1&LH_Complete=1","10 eBay sales in the last 90 days",""],
  ["h498","h4","Stealth Cam Fusion X",29,36,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Stealth%20Cam%20Fusion%20X&LH_Sold=1&LH_Complete=1","12 eBay sales in the last 90 days",""],
- ["h500","h4","Spypoint Flex (base)",28,45,"l","2026-10-02","https://www.ebay.com/sch/i.html?_nkw=Spypoint%20Flex&LH_Sold=1&LH_Complete=1","1 clean sale of the base camera — BASE FLEX ONLY. The counter: \"there are also several versions of the camera but what I selected is the base, original version.\" Spypoint sells Flex, Flex-M, Flex-M2, Flex-S, Flex Plus and Flex Dark under the one word Flex, and this book has ONE row for all of them. Band set 2 Oct 2026 off a single clean sale of the BASE camera: $50.00 used, best offer accepted. Everything else on that sold page was a different thing - twin packs ($55 and $85, so $27.50 and $42.50 a camera), a $145 pair of Flex Darks, a $16 rain cover, a $19.43 parts-only body, and a NEW Flex-M at $49.99 which is a different model, not this one. ONE SALE IS NOT A PRICE. The band is a judgement with the new Flex-M at $50 as a ceiling, because a used base camera cannot be worth more than a new better one. MOVE IT IF YOU KNOW BETTER.","spypoint flex base original"],
+ ["h500","h4","Spypoint Flex (base)",28,45,"l","2026-10-02","https://www.ebay.com/sch/i.html?_nkw=Spypoint%20Flex&LH_Sold=1&LH_Complete=1","no clean sale price on the page — BASE FLEX ONLY, AND THE ONE SALE IS A CEILING NOT A PRICE. The counter: \"there are also several versions of the camera but what I selected is the base, original version.\" Spypoint sells Flex, Flex-M, Flex-M2, Flex-S, Flex Plus and Flex Dark under the one word Flex and this book has ONE row for all of them. Off the counter’s sold page 2 Oct 2026, exactly one row was a single BASE camera: $50.00 used — and that row reads BEST OFFER ACCEPTED, so on eBay $50.00 is what was ASKED and what was actually paid is hidden and lower. There is no clean sale price for this camera on that page at all. Everything else was a different thing: twin packs ($55 and $85, so $27.50 and $42.50 a camera), a $145 pair of Flex Darks, a $16 rain cover, a $19.43 parts-only body, and a NEW Flex-M at $49.99 — a different model, and the only clean figure on the page. That $49.99 new Flex-M is the CEILING: a used base camera cannot be worth more than a new better one. The band is a judgement between a hidden-offer $50 ask and that ceiling. MOVE IT IF YOU KNOW BETTER.","spypoint flex base original"],
  ["h502","h4","Spypoint Link Micro",26,45,"h","2026-09-24","https://www.ebay.com/sch/i.html?_nkw=Spypoint%20Link%20Micro&LH_Sold=1&LH_Complete=1","11 eBay sales in the last 90 days",""],
  ["h27","Wireless earbuds","Apple AirPods 3rd generation",14,60,"m","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=Apple%20AirPods%203rd%20generation&LH_Sold=1&LH_Complete=1","17 listings, asking prices - no sold data",""],
  ["h119","Wireless earbuds","JBL Vibe Beam",20,30,"m","2026-09-23","https://www.ebay.com/sch/i.html?_nkw=JBL%20Vibe%20Beam&LH_Sold=1&LH_Complete=1","27 listings, asking prices - no sold data",""],
@@ -10999,7 +11021,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="1002.1546";
+const APP_BUILD="1002.1617";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
