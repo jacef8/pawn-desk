@@ -189,6 +189,62 @@ console.log("\n  parts against whole machines");
      "a model number four-digits-then-two is not read as a part number");
 }
 
+/* TWO CAMERAS IN ONE BOX, PRICED AS ONE CAMERA.
+   Reported from the counter against a Spypoint Flex: "i think this number
+   is way off based on what im seeing on ebay. looks like brand new is only
+   going for around 50". The book said $55, usually $39 to $70, off "6 eBay
+   sales in the last 90 days".
+
+   Every title below is copied off the sold page he had open. Run through
+   the old rule, all three multi-packs came back "unknown", and unknown is
+   KEPT - so a $145 pair of Flex Darks counted as one $145 camera and
+   pushed the top of the band above what a NEW single sells for.
+
+   The old rule had "lot", "bundle", a leading digit and "N piece combo".
+   It did not have the words a seller actually uses: "twin pack", "2 pack".
+
+   THE SECOND HALF IS WHAT KEEPS THIS SAFE. A bare "pack" must NOT be a
+   lot, because an M18 battery pack is one item and this repo prices a
+   great many of them. If the two battery assertions below ever go red, the
+   rule has started eating single tools. */
+console.log("\n  a twin pack is two cameras, not one");
+{
+  const none = new Set();
+  const packs = [
+    "Spy-point Flex M Twin Pack 28 Megapixel Cellular Trail Cameras",
+    "SPYPOINT FLEX-M2 Cellular Trail Camera Twin Pack 32MP 1080p 80 ft",
+    "SPYPOINT Flex Dark 2 Pack GPS Cellular Gray Trail Cameras",
+    "Spypoint Flex 3-Pack Cellular Cameras",
+    "Spypoint Flex Pack of 4 Trail Cameras",
+    "Spypoint Flex Set of 2 Cameras",
+    "Milwaukee M18 Battery 2 Pack 5.0Ah",
+    "Ryobi 18V ONE+ Dual Pack Batteries",
+    "Energizer AA Batteries 4 pk",
+  ];
+  for (const t of packs)
+    ok(fitOf(t, none, []) === "lot", "lot: " + t.slice(0, 54));
+
+  /* The singles off the same page must survive, or the fix has traded one
+     wrong number for no number at all. */
+  const singles = [
+    "SPYPOINT FLEX Trail Camera Wi-Fi Night Vision Waterproof microSD 1080p 100ft",
+    "SpyPoint Flex-M 28 MP 720P Video Cellular Camera",
+  ];
+  for (const t of singles)
+    ok(fitOf(t, none, []) !== "lot", "KEPT, one camera: " + t.slice(0, 48));
+
+  /* THE ASSERTIONS THAT GUARD THE REST OF THE BOOK. One battery in a
+     plastic shell is called a battery pack and is a single item. */
+  ok(fitOf("Milwaukee M18 5.0Ah XC Battery Pack", none, []) !== "lot",
+     "a battery pack is one battery, not a lot");
+  ok(fitOf("DeWalt 20V MAX 4Ah Battery Pack Genuine", none, []) !== "lot",
+     "and so is DeWalt's");
+  /* the leading-digit branch already excluded these units; prove it still does */
+  ok(fitOf("20V MAX Cordless Drill", none, []) !== "lot"
+     && fitOf("5 Ah Battery", none, []) !== "lot",
+     "a voltage or an amp-hour figure at the front is not a count");
+}
+
 /* A WRONG KEY MUST NOT LOOK LIKE AN UNGRANTED SCOPE. Both used to be called
    ebay_scope, and a scope refusal falls back to asking prices quietly - so a
    mistyped Cert ID produced a lookup that worked and returned asks, with

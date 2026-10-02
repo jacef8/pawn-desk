@@ -126,7 +126,31 @@ export function kindWords(kind) {
   const head = String(kind || "").toLowerCase().split(/[\u2014\u2013(,]/)[0];
   return head.split(/[^a-z]+/).filter((w) => w.length >= 2 && !KIND_STOP.has(w));
 }
-const LOTS  = /\blot\b|\bbundle\b|\b\d\s*-?\s*(tool|pc|piece)s?\s*(combo|kit|set)\b|^\s*([2-9]|\d{2})\s+(?!v\b|volt|ah\b|in\b|inch)/i;
+/* A TWIN PACK IS TWO CAMERAS AND IT WAS BEING PRICED AS ONE.
+   Reported from the counter against a Spypoint Flex trail camera: "i think
+   this number is way off based on what im seeing on ebay. looks like brand
+   new is only going for around 50", with the sold page beside it. The book
+   said $55, usually $39 to $70, off "6 eBay sales".
+
+   Run fitOf over the titles actually on that page and every multi-pack came
+   back "unknown", which is KEPT:
+
+     Spy-point Flex M Twin Pack 28 Megapixel Cellular Trail Cameras  $55
+     SPYPOINT FLEX-M2 Cellular Trail Camera Twin Pack 32MP 1080p     $85
+     SPYPOINT Flex Dark 2 Pack GPS Cellular Gray Trail Cameras      $145
+
+   Nothing in the old rule could see them. "lot" and "bundle" were there,
+   and a leading digit ("2 Trail Cameras"), and "N piece combo" - but the
+   words a seller actually uses for two of something in one box are "twin
+   pack" and "2 pack", and neither was listed. So a $145 pair of cameras
+   went into the band as one camera at $145, and the top of the range ended
+   up ABOVE what a new single sells for. Used above new, again.
+
+   WHAT THIS MUST NOT CATCH is the word "pack" on its own, because an M18
+   battery pack is one item and this repo prices a lot of them. Every branch
+   below needs a COUNT - twin, dual, or a number - immediately against the
+   word. "battery pack" has neither and stays. */
+const LOTS  = /\blot\b|\bbundle\b|\b\d\s*-?\s*(tool|pc|piece)s?\s*(combo|kit|set)\b|^\s*([2-9]|\d{2})\s+(?!v\b|volt|ah\b|in\b|inch)|\b(twin|dual|double|triple)[-\s]?pack\b|\b([2-9]|\d{2})\s*-?\s*(pack|pk)\b|\bpack\s+of\s+([2-9]|\d{2})\b|\bset\s+of\s+([2-9]|\d{2})\b/i;
 const BARE  = /\b(tool|body)\s*[-\u2013]?\s*only\b|\bno\s+batter|\bwithout\s+batter|\bbare\s*(tool)?\b|\bno\s+charger\b/i;
 const KITED = /\bkit\b|\bcombo\b|\bw\/?\s*\d*\s*(ah\s*)?batter|\bwith\s+batter|\bbatteries\b|\+\s*charger|\band\s+charger\b|\bw\/\s*charger|\bw\/?\s*batt\b|\bincludes?\s+batter/i;
 
