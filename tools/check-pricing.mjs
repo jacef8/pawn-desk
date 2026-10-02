@@ -780,6 +780,153 @@ console.log("\n  cheap book rows are not asked for a make or a model");
 
    The failure this pins is not cosmetic: both figures are quoted to the
    man across the counter, and one of them was for a ticket nobody wrote. */
+/* THE GATE WAS ON THE QUIET CARD AND MISSING FROM THE LOUD ONE.
+   Two screenshots of the same iPhone and the question "what is the
+   difference in these 2". The difference: card 7 refused to quote a loan —
+   "0 of 3 checks answered ... a fake is not worth a share of the real one,
+   it is worth nothing" — while the answer card, headed "That is everything
+   — here is the answer", printed BUY $130 and PAWN LOAN $130 in the
+   largest type on the screen.
+
+   ticketHTML has carried the gate since the fakes sheets went in.
+   askDoneHTML never got it. The one card a counter reads off was answering
+   a question the tool had already decided it could not answer, with the
+   honest refusal four hundred pixels below the fold. A counterfeit iPhone
+   is the exact case these sheets exist for. */
+/* "I DONT SEE THE PAWN SCHEDULE." Said the day after I told him it follows
+   the amount he types in. It does — and it lives in a closed fold on card
+   8, four cards and a scroll below the answer, which at a counter is the
+   same as not existing. A route from the card that quotes its first rung. */
+console.log("\n  there is a way from the answer to the schedule");
+{
+  const r = await page.evaluate(async () => {
+    const c = CATALOG.find(y => y.items.some(i => i.id === "t1"));
+    st.flow = "ask"; st.mode = "item"; st.catId = c.id; st.itemId = "t1"; st.picked = true;
+    /* The answer card only exists once the run is FINISHED. The first
+       version of this left the make and model open, askDoneHTML never
+       rendered, and the link read as missing when it was the setup that
+       was short. Suspect the reproduction before the code. */
+    st.brandSet = true; st.brandTyped = "Samsung"; st.model = "TU7000";
+    st.specSel = {}; (SPEC_CHOICES.t1 || []).forEach((g, gi) => { st.specSel["t1:" + gi] = specBase(g); });
+    st.condSet = true; st.completeSet = true; st.struckKind = "loan"; st.struck = "";
+    st.market = {kind: "hand", key: mkKey(), mid: 300};
+    st.openPayback = false; st.askAt = askQueue(calcItem()).length - 1;
+    render();
+    await new Promise(z => setTimeout(z, 150));
+    const btn = document.getElementById("toSchedule");
+    if (!btn) return {there: false};
+    const foldBefore = (document.getElementById("paybackFold") || {}).open === true;
+    btn.click();
+    await new Promise(z => setTimeout(z, 300));
+    const d = document.getElementById("paybackFold");
+    const lad = document.getElementById("payLadder");
+    return {there: true, foldBefore, openAfter: !!(d && d.open), state: !!st.openPayback,
+            rungs: lad ? [...lad.querySelectorAll(".rung .d")].map(e => e.textContent.trim()) : []};
+  });
+  ok(r.there, "the answer card carries a way to the schedule");
+  if (!r.there) { console.log("  (no link — nothing below can be checked)"); fails += 3; }
+  else {
+    ok(r.foldBefore === false, "  the schedule starts shut, which is why he could not find it");
+    ok(r.openAfter === true && r.state === true,
+       "  pressing it opens the fold, and the state remembers so a re-render does not shut it");
+    ok(r.rungs.length >= 2 && /\$/.test(r.rungs[0] || ""),
+       `  and the rungs are there to read — ${r.rungs.join(", ")}`);
+  }
+}
+
+console.log("\n  the answer card is gated by the same check card 7 is");
+{
+  const r = await page.evaluate(() => {
+    if (typeof askDoneHTML !== "function" || typeof fakeSheet !== "function") return null;
+    const pick = (id) => {
+      const c = CATALOG.find(y => y.items.some(i => i.id === id));
+      st.flow = "ask"; st.mode = "item"; st.catId = c.id; st.itemId = id; st.picked = true;
+      st.condSet = true; st.completeSet = true; st.brandSet = true; st.brandTyped = "Apple";
+      st.model = "iPhone 15 Pro"; st.specSel = {};
+      (SPEC_CHOICES[id] || []).forEach((g, gi) => { st.specSel[id + ":" + gi] = specBase(g); });
+      st.market = {kind: "hand", key: mkKey(), mid: 435};
+      st.fakeAns = {}; st.fakeKey = mkKey();
+      return calcItem();
+    };
+    /* a phone — it has a fakes sheet with gating checks */
+    const ids = CATALOG.flatMap(c => c.items.map(i => i.id));
+    const withSheet = ids.find(id => { const x = pick(id); const sh = fakeSheet(x);
+      const F = sh ? fakeState(sh) : null; return !!(F && F.blocks); });
+    if (!withSheet) return {none: true};
+    const x = pick(withSheet);
+    const F = fakeState(fakeSheet(x));
+    const txt = h => String(h || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+    return {id: withSheet, blocks: !!(F && F.blocks), done: F.done, n: F.n,
+            answer: txt(askDoneHTML(x)), ticket: txt(ticketHTML(x)),
+            buy: x.buy, target: x.target};
+  });
+  ok(!!r && !r.none, "there is an item whose fakes sheet gates the loan");
+  if (!r || r.none) { console.log("  (no gating sheet reachable — nothing below can be checked)"); fails += 4; }
+  else {
+    ok(r.blocks, `  and it is gated — ${r.done} of ${r.n} checks answered on ${r.id}`);
+    /* THE ASSERTION THAT IS THE WHOLE POINT. The two figures must not be
+       on the card that says "here is the answer". */
+    /* ESCAPED ONE LEVEL TOO MANY THE FIRST TIME. "\\\\$" in JS source is a
+       literal backslash then a dollar, so the pattern could never match
+       and THE assertion of this whole section passed with the gate
+       deleted. Checked against the real rendering, which prints "Buy it
+       outright $220 ... Pawn loan $220". A plain indexOf cannot be got
+       wrong this way. */
+    ok(r.answer.indexOf("$" + r.buy) < 0
+       && r.answer.indexOf("$" + r.target) < 0,
+       `  the answer card does not print the $${r.buy} buy or the $${r.target} loan`);
+    ok(/authenticity|fake/i.test(r.answer),
+       "  it says what is missing instead");
+    /* and the two cards must not disagree: if one refuses, both refuse */
+    ok(/fake is not worth|don.t lend on the name|authenticity/i.test(r.ticket),
+       "  card 7 still refuses too — the two cards agree now");
+  }
+}
+
+/* AND "CHECKED" STOPS MEANING TWO THINGS AT ONCE.
+   "why is there nothing looked up on a iphone?" — there was: $440–$530 off
+   Swappa, read on 19 Sep, showing in Behind this number three inches away.
+   What was unchecked was AUTHENTICITY. The strip said "Not checked yet",
+   the loan gauge said "not checked yet", and the price panel says "Not
+   checked / nothing looked up" for something else entirely. Two words, two
+   meanings, one screen, and he read the wrong one. */
+console.log("\n  authenticity and price do not both call themselves 'not checked'");
+{
+  const w = await page.evaluate(() => {
+    const ids = CATALOG.flatMap(c => c.items.map(i => i.id));
+    const pick = (id) => {
+      const c = CATALOG.find(y => y.items.some(i => i.id === id));
+      st.flow = "ask"; st.mode = "item"; st.catId = c.id; st.itemId = id; st.picked = true;
+      st.condSet = true; st.completeSet = true; st.market = {kind:"hand", key:mkKey(), mid:435};
+      st.fakeAns = {}; st.fakeKey = mkKey();
+      return calcItem();
+    };
+    const id = ids.find(i => { const x = pick(i); const sh = fakeSheet(x);
+      const F = sh ? fakeState(sh) : null; return !!(F && F.blocks); });
+    if (!id) return null;
+    const x = pick(id);
+    const txt = h => String(h || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+    return {pin: txt(pinHTML(x)), hold: txt(ticketHTML(x)),
+            /* the PRICE side, which keeps the word */
+            price: txt(weightHTML(Object.assign({}, x, {checked:false, market:null})))};
+  });
+  ok(!!w, "a gated item is reachable to read both wordings off");
+  if (!w) { console.log("  (nothing to read)"); fails += 3; }
+  else {
+    ok(/authenticity not proven/i.test(w.pin),
+       "the numbers strip says authenticity, not 'not checked'");
+    ok(!/not checked yet/i.test(w.pin) && !/not checked yet/i.test(w.hold),
+       "  and neither the strip nor the loan gauge says 'not checked yet' any more");
+    /* THE OTHER HALF, OR THIS IS JUST A FIND-AND-REPLACE. The price side
+       must KEEP the word, because that is what the rest of the tool means
+       by checked. If this goes red the rename went too far. */
+    ok(/not checked/i.test(w.price) && /nothing looked up/i.test(w.price),
+       "  while the price panel still says 'Not checked — nothing looked up', which is its own meaning");
+    ok(/price is looked up/i.test(w.pin) || /looked up/i.test(w.hold),
+       "and the gated screens say out loud that the price IS looked up");
+  }
+}
+
 console.log("\n  the redemption schedule follows the amount on the ticket");
 {
   const r = await page.evaluate(() => {

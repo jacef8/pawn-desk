@@ -1556,8 +1556,17 @@ function pinHTML(x){
      flag went with it - nothing else in here read it, and a live-looking
      variable that decides nothing is how the next person reads this wrong. */
   const bare=t=>`<div class="pinStrip"><span class="pinLab">${window.PHONE?"What it's worth to you":"The numbers"}</span><span class="pinNote">${t}</span></div>`;
+  /* "CHECKED" WAS DOING TWO JOBS AND BOTH WERE ON SCREEN AT ONCE.
+     "why is there nothing looked up on a iphone?" - and there was: $440 to
+     $530 off Swappa, read on 19 Sep, showing in Behind this number three
+     inches away. What was unchecked was AUTHENTICITY. This strip said "Not
+     checked yet", the loan gauge said "not checked yet", and the price
+     panel says "Not checked / nothing looked up" for something completely
+     different. Same two words, two meanings, one screen.
+     The price side keeps "checked" because that is what the whole tool
+     means by it everywhere else. The fakes side says what it actually is. */
   if(F&&F.blocks)return bare(F.verdict==="fail"?"A check failed \u2014 don't lend on the name."
-    :"Not checked yet \u2014 "+F.done+" of "+F.n+" on the "+esc(F.sh.title.toLowerCase())+" sheet.");
+    :"Authenticity not proven \u2014 "+F.done+" of "+F.n+" on the "+esc(F.sh.title.toLowerCase())+" sheet. The price is looked up; this is not.");
   if(!priceReady(x))return bare("<b>No price yet \u2014 still needs "+esc(needList(x))
     +".</b> Finish the run and the number comes with everything behind it.");
   /* It used to stop here and say "no resale value yet". The desk HAD a
@@ -3826,6 +3835,30 @@ function struckHTML(x){
   </div>`;
 }
 function askDoneHTML(x){
+  /* THE GATE WAS ON THE QUIET CARD AND MISSING FROM THE LOUD ONE.
+     Reported from the counter with two screenshots of the same iPhone and
+     the question "what is the difference in these 2". The difference was
+     that card 7 refused to quote a loan - "0 of 3 checks answered ... a
+     fake is not worth a share of the real one, it is worth nothing" - while
+     THIS card, headed "That is everything - here is the answer", printed
+     BUY $130 and PAWN LOAN $130 in the largest type on the screen.
+     ticketHTML has carried `if(F&&F.blocks)` since the fakes sheets went
+     in. askDoneHTML never got it. So the one card a counter actually reads
+     off answered a question the tool had decided it could not answer, and
+     the honest refusal was four hundred pixels below the fold.
+     A stolen or counterfeit iPhone is the exact case these sheets exist
+     for, and $130 of the shop's money was riding on which card he read. */
+  {
+    const F=fakeState(fakeSheet(x));
+    if(F&&F.blocks)return `<div class="askDone bad">
+      <div class="adHd">That is everything &mdash; <b>except the one that decides it</b></div>
+      <div class="adWhat">${esc(displayName(x))}${st.condSet?` \u00b7 ${esc((COND_WORDS[st.cond]||[st.cond])[0])}`:""}</div>
+      <div class="adBig">${F.verdict==="fail"?"Don\u2019t lend on the name":"No figure yet"}</div>
+      <div class="adWhy">${F.verdict==="fail"
+        ? `A check on the ${esc(F.sh.title.toLowerCase())} sheet failed. Lend on what you can prove &mdash; the metal, a no-name value &mdash; or pass.`
+        : `${F.done} of ${F.n} authenticity checks done on the ${esc(F.sh.title.toLowerCase())} sheet. Work that card first: a fake is not worth a share of the real one, it is worth nothing. The price research is finished &mdash; this is the other question.`}</div>
+    </div>`;
+  }
   if(x.buyTooThin)return `<div class="askDone bad">
     <div class="adHd">That is everything &mdash; <b>and the answer is no</b></div>
     <div class="adWhat">${esc(displayName(x))}${st.condSet?` \u00b7 ${esc((COND_WORDS[st.cond]||[st.cond])[0])}`:""}</div>
@@ -3897,7 +3930,16 @@ function askDoneHTML(x){
           figure, same words, read off the same calcItem that produced the
           numbers rather than worked out again here, which is the mistake
           that once had the melt card claiming 48% while handing over 42%. */""}
-    <div class="adWhy">${x.checked?"":`<b style="color:var(--warn-ink)">Estimate &mdash; nothing looked up.</b> `}<b>Resells for ${money(Math.round(x.resale))}</b> in this shape &mdash; that is where both numbers come from.${(x.resale>0)?` Buying at <b>${Math.round(x.buy/x.resale*100)}%</b> of that, lending <b>${Math.round(x.target/x.resale*100)}%</b>.`:""}${deskRail()?"":` Lend anywhere in ${money(x.low)}&ndash;${money(x.high)}, never above the top.`}</div>
+    <div class="adWhy">${x.checked?"":`<b style="color:var(--warn-ink)">Estimate &mdash; nothing looked up.</b> `}<b>Resells for ${money(Math.round(x.resale))}</b> in this shape &mdash; that is where both numbers come from.${(x.resale>0)?` Buying at <b>${Math.round(x.buy/x.resale*100)}%</b> of that, lending <b>${Math.round(x.target/x.resale*100)}%</b>.`:""}${deskRail()?"":` Lend anywhere in ${money(x.low)}&ndash;${money(x.high)}, never above the top.`}${/*
+      "I DONT SEE THE PAWN SCHEDULE." Said the day after I told him it
+      follows the amount he types in. It does - and it lives in a closed
+      fold on card 8, four cards and a scroll below the answer, which at a
+      counter is the same as not existing.
+      IT RIDES THIS LINE RATHER THAN GETTING ITS OWN. A row of its own cost
+      20px and check-stage went red for the right reason: the finished page
+      is held to one screen and was at 960 of 960. The budget is not
+      negotiable just because my link is nice to have, and this sentence
+      already ends where a link can follow it. */""}${st.struckKind!=="buy"?` <button type="button" class="adSched" id="toSchedule">Full schedule &rsaquo;</button>`:""}</div>
     ${struckHTML(x)}
     <!-- ANYTHING ELSE IS A NOTEPAD, NOT A QUESTION, AND IT IS STEP 8 NOW.
          Moving it after the condition made it the last card - and the
@@ -4459,6 +4501,16 @@ function wireItem(){
   /* Opened once, it stays open for the session - thumbing the lists is a
      habit, not a one-off, and it must survive the re-render that picking a
      category causes. */
+  /* Opens the fold the schedule lives in and takes him to it. The fold's
+     own ontoggle below keeps it open through the re-render, so it does not
+     shut under the hand that opened it. */
+  const ts=document.getElementById("toSchedule");
+  if(ts)ts.onclick=()=>{
+    st.openPayback=true;
+    const go=()=>{ const d=document.getElementById("paybackFold");
+      if(d){ d.open=true; if(d.scrollIntoView)d.scrollIntoView({block:"start",behavior:"smooth"}); } };
+    go(); try{ render(); }catch(e){} setTimeout(go,0);
+  };
   const br=document.getElementById("browseBox");
   if(br)br.ontoggle=()=>{ st.browse=br.open; };
   /* Opened by hand, it stays open through the re-render a click inside it
@@ -11039,9 +11091,9 @@ function fakeHoldHTML(F){
     ? `<b>A check on the ${esc(F.sh.title.toLowerCase())} sheet failed.</b> Don't lend on the brand name. Lend on what you can prove &mdash; the metal, a no-name value &mdash; or pass.`
     : F.verdict==="unsure"
     ? `<b>Not proven.</b> ${F.unsure} check${F.unsure===1?" is":"s are"} unresolved. Price only what you can verify today, not the name.`
-    : `<b>Not checked yet.</b> ${F.done} of ${F.n} checks answered. Work the spotting-fakes card first &mdash; a fake is not worth a share of the real one, it is worth nothing.`;
+    : `<b>Authenticity not proven.</b> ${F.done} of ${F.n} checks answered on the ${esc(F.sh.title.toLowerCase())} sheet. Work the spotting-fakes card first &mdash; a fake is not worth a share of the real one, it is worth nothing. This is not about the price: that is looked up and sitting on the right.`;
   return `<div class="card unchecked"><span class="label">7 &middot; Pawn loan &mdash; the cash you lend him</span>
-    ${gauge(0,"Lend him","&mdash;",F.verdict==="fail"?"failed the check":"not checked yet","gi")}
+    ${gauge(0,"Lend him","&mdash;",F.verdict==="fail"?"failed the check":"authenticity not proven","gi")}
     <div class="mkNo" style="margin-top:6px">${t}</div></div>`;
 }
 /* Which copy of the tool is running.
@@ -11058,7 +11110,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="1002.1727";
+const APP_BUILD="1002.1930";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

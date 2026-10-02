@@ -1484,3 +1484,14 @@
      was ten pixels wider than the 358px card and wrapped to a second row */
   .worthBtns .brassBtn{padding:11px 14px}
   .worthBtns .ghostBtn{padding:10px 12px;font-size:12.5px}
+  /* The way to the pawn schedule, from the card that quotes its first rung.
+     Quiet on purpose: it is a way through, not a third decision beside the
+     two deal tiles above it. */
+  /* It rides the end of the evidence sentence rather than taking a row:
+     the finished page is held to one screen by check-stage and a row of
+     its own cost 20px of a budget that had none. */
+  .adSched{background:none;border:none;cursor:pointer;padding:0;
+    font:700 inherit/1 var(--sans);font-size:inherit;color:var(--accent);
+    white-space:nowrap}
+  .adSched:hover{text-decoration:underline}
+  .adSched:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:6px}
