@@ -2310,7 +2310,44 @@ function paybackHTML(x){
     <span class="label" style="margin-bottom:0;margin-top:14px;color:var(--ink-2)">To get it back &mdash; on ${money(payAmt(x).amt)}${payAmt(x).typed?" (what you typed)":" (the suggested loan)"}</span>
     <div class="ladder" id="payLadder">${ladder(payAmt(x).amt,payAmt(x).charge).map(r=>`<div class="widget rung"><div class="k">${r.k}</div><div class="d">${money(r.due)}</div></div>`).join("")}</div>
     <div style="font-size:12px;line-height:1.5;color:var(--ink-2);margin-top:9px">
-      It is <b style="color:var(--ink)">not</b> ${pawnPct()}% again every month. The charge is capped at <b style="color:var(--ink)">twice</b> the 30-day amount from day 31 through day 60, then accrues <b style="color:var(--ink)">$${(payAmt(x).charge/30).toFixed(2)}/day</b> after that — and remember, past day 60 the item is already yours; late redemption is a courtesy you price with this rate.
+      ${/* "this by statute?" Asked of the sentence that used to sit here,
+            and worth asking: three of its four clauses were statute and the
+            fourth was wrong in the direction that costs money.
+
+            Read against the text of s. 539.001(11), which the counter can
+            check for himself:
+
+            (11)(c) "The total amount of pawn service charges that a
+            pawnbroker may collect in the case of redemptions occurring at
+            any time more than 30 days after the date of the pawn is TWICE
+            the amount provided in paragraph (a), except that, for
+            redemptions occurring more than 60 days after the date of the
+            pawn, pawn service charges CONTINUE TO ACCRUE from and after the
+            60th day at the daily rate determined as provided in paragraph
+            (b)."
+
+            (11)(b) "...the daily pawn service charge ... shall be equal to
+            the pawn service charge for the original 30-day period divided
+            by 30 days."
+
+            So the twice-the-amount cap is statute. The daily rate after day
+            60 is statute, and it is this card's own charge/30, which is
+            what (b) prescribes. The day-90 rung - principal plus twice plus
+            thirty days of daily - is (c) carried out, not an invention.
+
+            WHAT WAS WRONG was the last clause: "late redemption is a
+            courtesy you price with this rate." It read as though the shop
+            sets that price. It does not. (11)(c) FIXES the rate for a
+            redemption after day 60, and (11)(e) makes anything above the
+            authorised amount "prohibited, may not be collected, and render
+            the pawn transaction voidable", forfeiting twice the service
+            charge. Calling a statutory ceiling a courtesy is the sentence
+            most likely to walk a counter straight into that penalty, and it
+            was in the one place that explains the arithmetic.
+
+            AND "NOT 25% AGAIN EVERY MONTH" was only true to day 60. After
+            it, one-thirtieth a day IS 25% a month, carrying on. */""}
+      Through day 60 the charge stops at <b style="color:var(--ink)">twice</b> the 30-day amount &mdash; it does not take another ${pawnPct()}% at day 31. After day 60 it keeps running at <b style="color:var(--ink)">$${(payAmt(x).charge/30).toFixed(2)}/day</b>, which is the 30-day charge split over 30 days. <b style="color:var(--ink)">All three of those are &sect; 539.001(11)(b) and (c), not shop policy</b> &mdash; the rate for a late redemption is set by statute, not priced by you, and charging above it voids the transaction.
     </div>
     <div class="tagWarn"><b>Day 60 it's ours.</b> Maturity is day 30, then we must hold it 30 more. Not redeemed by day 60 and title passes to us automatically — no notice, no letter, no auction. Within the first 30 days only he or his attorney-in-fact may redeem it.</div>
     <div class="fine">&sect; 539.001(11) caps the charge at 25% of the amount financed per 30 days, minimum $5. Overcharging voids the transaction and forfeits twice the charge — but an honest mistake corrected when you catch it carries no penalty. Fix it, don't hide it.</div>
@@ -11110,7 +11147,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="1002.1930";
+const APP_BUILD="1002.2224";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

@@ -797,6 +797,74 @@ console.log("\n  cheap book rows are not asked for a make or a model");
    the amount he types in. It does — and it lives in a closed fold on card
    8, four cards and a scroll below the answer, which at a counter is the
    same as not existing. A route from the card that quotes its first rung. */
+/* "THIS BY STATUTE?" Asked of the paragraph under the redemption ladder,
+   and the answer was three-quarters yes. Checked against the text of
+   s. 539.001(11) rather than from memory:
+
+     (11)(c) "...redemptions occurring at any time more than 30 days after
+     the date of the pawn is TWICE the amount provided in paragraph (a),
+     except that, for redemptions occurring more than 60 days after the
+     date of the pawn, pawn service charges CONTINUE TO ACCRUE from and
+     after the 60th day at the daily rate determined as provided in
+     paragraph (b)."
+
+     (11)(b) "...the daily pawn service charge ... shall be equal to the
+     pawn service charge for the original 30-day period divided by 30 days."
+
+     (11)(e) charges above what the section authorises are "prohibited, may
+     not be collected, and render the pawn transaction voidable", forfeiting
+     twice the service charge.
+
+   The cap, the daily rate and the day-90 rung were all statute. The clause
+   that was wrong said late redemption is "a courtesy you price with this
+   rate" — as though the shop sets it. (11)(c) sets it, and (11)(e) is what
+   happens to a shop that prices its own courtesy above it.
+
+   THE ARITHMETIC IS ASSERTED AGAINST THE STATUTE, not against itself. If a
+   later change makes the ladder compound, or drops the daily accrual, or
+   starts it on the wrong day, these go red. */
+console.log("\n  the redemption ladder is what s. 539.001(11) says it is");
+{
+  const r = await page.evaluate(() => {
+    const p = 100, pct = 25;
+    st.pawnPct = pct; st.pawnSet = true;
+    const c = pawnCharge(p);                    /* (11)(a): 25% of 100, min $5 */
+    const rungs = ladder(p, c).map(z => Math.round(z.due));
+    return {charge: c, rungs, daily: Number((c / 30).toFixed(4)),
+            min: pawnCharge(4), floor: pawnCharge(101)};
+  });
+  /* (11)(a): up to 25% of the amount financed per 30-day period */
+  ok(r.charge === 25, `(a) a $100 pawn at 25% carries a $${r.charge} charge for the first 30 days`);
+  ok(r.min === 5, `  and the $${r.min} minimum per 30-day period is honoured on a tiny loan`);
+  /* and never a cent over the ceiling, which (e) punishes */
+  ok(r.floor === 25, `  while $101 floors to $${r.floor}, because rounding a charge UP breaches the cap`);
+  /* (11)(c): within 30 days, the (a) amount */
+  ok(r.rungs[0] === 125, `(c) redeemed inside 30 days: $${r.rungs[0]} — principal plus the one charge`);
+  /* (11)(c): more than 30 days, TWICE the (a) amount — not three times, not compounded */
+  ok(r.rungs[1] === 150, `(c) redeemed after day 30: $${r.rungs[1]} — twice the charge, exactly`);
+  /* (11)(b)+(c): after day 60, the daily rate is the 30-day charge over 30 */
+  ok(r.daily === Number((25 / 30).toFixed(4)),
+     `(b) the daily rate after day 60 is the 30-day charge split over 30 — $${r.daily.toFixed(2)}/day`);
+  /* day 90 is day 60 plus thirty of those days: 100 + 25 + 25 + 25 */
+  ok(r.rungs[2] === 175,
+     `(c) day 90: $${r.rungs[2]} — twice, plus thirty days of daily accrual, which is one more charge`);
+  /* THE CLAUSE THAT WAS WRONG. It must not read as the shop's own price. */
+  const txt = await page.evaluate(() => {
+    const c = CATALOG.find(y => y.items.some(i => i.id === "t1"));
+    st.flow = "ask"; st.mode = "item"; st.catId = c.id; st.itemId = "t1"; st.picked = true;
+    st.condSet = true; st.completeSet = true; st.market = {kind:"hand", key:mkKey(), mid:300};
+    return String(paybackHTML(calcItem())).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+  });
+  ok(!/courtesy you price/i.test(txt),
+     "the card no longer calls the post-60 rate a courtesy the shop prices");
+  ok(/539\.001\(11\)\(b\) and \(c\)/.test(txt) && /not shop policy/i.test(txt),
+     "  it cites the subsections and says plainly which parts are not shop policy");
+  ok(/set by statute, not priced by you/i.test(txt),
+     "  and says the late-redemption rate is set by statute");
+  ok(/voids the transaction/i.test(txt),
+     "  with what happens if you charge above it, which is (e)");
+}
+
 console.log("\n  there is a way from the answer to the schedule");
 {
   const r = await page.evaluate(async () => {
@@ -1730,7 +1798,22 @@ console.log("\n  the pawn charge is the shop's rate, not the statute's ceiling")
   ok(r.over === 25 && r.under === 0,
      "  the rate cannot be pushed past the ceiling or below nothing \u2014 " + r.over + " / " + r.under);
   ok(r.hasControl, "  the rate is set where the repayment is read, not in a menu");
-  ok(/not 10% again every month/i.test(r.prose) && !/not 25% again/i.test(r.prose),
+  /* REPOINTED, NOT WEAKENED. The RULE is the one that matters and is
+     unchanged: the paragraph under the ladder must quote the shop's live
+     rate, so a shop on 10% never reads a sentence about 25%. What moved is
+     the sentence. It used to open "It is not 25% again every month", which
+     was only true to day 60 - after it, one-thirtieth a day IS the rate
+     again, carrying on, which is what s. 539.001(11)(c) says. The rewrite
+     that fixed that also changed the words this matched. Still
+     interpolated, still proves no 25 is frozen in. */
+  /* AND NOT /\b25%/, WHICH I TRIED FIRST AND WHICH WENT RED FOR A GOOD
+     reason: the fine print on this same card names the statutory ceiling,
+     "s. 539.001(11) caps the charge at 25% of the amount financed per 30
+     days", and that 25 is correct and must stay whatever the shop charges.
+     The thing that must not appear is the shop's own rate written as 25
+     when it is 10. */
+  ok(/does not take another 10% at day 31/i.test(r.prose)
+     && !/another 25%/i.test(r.prose),
      "  and the explanation quotes whatever the rate is, not a frozen 25");
   ok(/caps the charge at 25%/i.test(r.prose),
      "  while the fine print still names the statutory cap");
