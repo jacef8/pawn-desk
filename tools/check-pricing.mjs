@@ -379,25 +379,32 @@ console.log("\n  the loan never goes above the buy price");
 console.log("\n  a row too thin to buy is too thin to lend on");
 {
   const r = await page.evaluate(() => {
-    const e = PRICEBOOK.find(x => x[0] === "Wheelbarrow");
+    /* THE WHEELBARROW STOPPED BEING THE EXAMPLE WHEN THE FLOOR MOVED.
+       At a $25 floor a $28 wheelbarrow offered $3 and was rightly a walk
+       away. At the $10 floor the counter asked for, it offers $10 and is a
+       real deal - so it is no longer thin, and using it here would have
+       been asserting the old policy. A $8 wireless mouse cannot clear a $10
+       floor at any rate, so the RULE is still pinned; only the example
+       moved. The rule itself is untouched. */
+    const e = PRICEBOOK.find(x => x[0] === "Wireless mouse \u2014 computer");
     pickBookEntry(e); st.picked = true;
     /* The price waits for the whole run now, so the run has to be made
-       before there is anything to assert. A wheelbarrow has no model, which
-       is itself an answer; the sold price is entered by hand at the figure
-       the book already carries, so the row stays exactly as thin as it was. */
-    /* No make and no model on a wheelbarrow - the desk does not ask for
+       before there is anything to assert. A mouse has no model, which is
+       itself an answer; the sold price is entered by hand at the figure the
+       book already carries, so the row stays exactly as thin as it was. */
+    /* No make and no model on a wireless mouse - the desk does not ask for
        either on a cheap book row, so neither is set here. */
     st.condSet = true; st.completeSet = true;
     (SPEC_CHOICES[st.itemId] || []).forEach((g, gi) => {
       st.specSel[st.itemId + ":" + gi] = specBase(g); });
-    st.market = {kind: "hand", key: mkKey(), mid: 28};
+    st.market = {kind: "hand", key: mkKey(), mid: 8};
     render();
     const x = calcItem();
     return {thin: x.buyTooThin, buy: x.buy, lend: x.target,
             pin: (document.getElementById("pin")||{}).innerText || "",
             ticket: (document.getElementById("ticket")||{}).innerText || ""};
   });
-  ok(r.thin, "a wheelbarrow at $28 resale against a $25 floor is too thin");
+  ok(r.thin, "a wireless mouse at $8 resale against a $10 floor is too thin");
   ok(r.lend <= r.buy, "  its loan does not exceed its buy price — buy $" + r.buy + ", lend $" + r.lend);
   /* Case-insensitive since the wallet design went in: the hero's label
      is uppercased by CSS and the row labels are sentence case, so the
@@ -701,6 +708,25 @@ console.log("\n  a make the list does not carry lights nothing");
    drawn where the answer could change the decision: the make tiers swing
    about 40%, so when 40% of the thing's own value falls under the floor,
    no answer can move what you do. This pins both sides of that line. */
+/* REPOINTED WHEN THE FLOOR MOVED 25 -> 10, AND THE TEST WAS THE STALE ONE.
+   The RULE here is right and unchanged: ask for the make only where the
+   answer could change what you do, and the make tiers swing about 40%, so
+   when 40% of a thing's own value falls under the floor no answer can move
+   the decision. That is derived from the floor, not a constant.
+
+   What was stale is this assertion, which had the wheelbarrow and the
+   circular saw written in as "cheap". Measured at both floors:
+
+     Wheelbarrow $28 resale   floor $25 -> offer $3,  capped by the FLOOR
+                              floor $10 -> offer $10, capped by the RATE
+
+   At a $25 floor a wheelbarrow was not a deal at all - three dollars - so
+   the make could not matter. At $10 it is a ten dollar deal, and the make
+   moves the resale and therefore the offer. Asking for it is now correct,
+   and the two extra questions are the price of the floor he asked for.
+
+   So the assertion moves to rows still under the new line, and the rule
+   stays pinned on both sides. */
 console.log("\n  cheap book rows are not asked for a make or a model");
 {
   const r = await page.evaluate(() => {
@@ -713,21 +739,77 @@ console.log("\n  cheap book rows are not asked for a make or a model");
       return {resale: Math.round(x.resale), floor: x.buyFloor,
               easy: bookSimple(x), need: priceMissing(x)};
     };
-    return {barrow: look("Wheelbarrow"), saw: look("Circular saw"),
+    return {mouse: look("Wireless mouse — computer"), keys: look("Computer keyboard"),
+            barrow: look("Wheelbarrow"),
             safe: look("Gun safe"), turn: look("Zero-turn mower")};
   });
   const asks = (o) => o.need.indexOf("the make") >= 0 || o.need.indexOf("the model") >= 0;
-  ok(r.barrow.easy === true && !asks(r.barrow),
-     "a $" + r.barrow.resale + " wheelbarrow is asked for neither — needs " + r.barrow.need.join(", "));
-  ok(r.saw.easy === true && !asks(r.saw),
-     "  nor a $" + r.saw.resale + " circular saw");
-  ok(r.barrow.need.indexOf("what it sells for") >= 0,
+  ok(r.mouse.easy === true && !asks(r.mouse),
+     "a $" + r.mouse.resale + " wireless mouse is asked for neither — needs " + r.mouse.need.join(", "));
+  ok(r.keys.easy === true && !asks(r.keys),
+     "  nor a $" + r.keys.resale + " keyboard");
+  ok(r.mouse.need.indexOf("what it sells for") >= 0,
      "  but the sold price is still required — the book figure is not a sale");
   ok(r.safe.easy === false && asks(r.safe),
      "a $" + r.safe.resale + " gun safe is asked for both");
   ok(r.turn.easy === false && asks(r.turn),
      "  as is a $" + r.turn.resale + " zero-turn, where 40% is $"
      + Math.round(r.turn.resale * 0.4) + " against a $" + r.turn.floor + " floor");
+  /* THE ONE THAT MOVED, STATED RATHER THAN QUIETLY DROPPED. A wheelbarrow
+     used to be exempt and is not any more, and this says so out loud so the
+     change is visible to whoever reads this next. */
+  ok(r.barrow.easy === false && asks(r.barrow),
+     "  and a $" + r.barrow.resale + " wheelbarrow NOW is too — at a $" + r.barrow.floor
+     + " floor it is a real deal, so the make moves it");
+}
+
+/* THE FLOOR HE ASKED FOR, AND THE PART THAT WOULD HAVE SILENTLY NOT WORKED.
+   "lets adjust the minimum required for me to do that deal down from $25
+   to 10." Changing the shipped default does NOT reach a device that has
+   already saved one, because persist() writes buyFloor on every save and
+   the loader took the stored number over the code's. Every tablet and
+   phone in the shop was sitting on a stored 25. The pawn rate hit this
+   exact trap before and solved it with pawnSet; this is floorSet. */
+console.log("\n  the buy floor is $10, and it reaches a device that already saved $25");
+{
+  const r = await page.evaluate(() => {
+    const KEY = "pawndesk:web:v1";
+    const before = JSON.parse(localStorage.getItem(KEY) || "{}");
+    return {shipped: BUY_FLOOR_DEF, live: st.buyFloor,
+            persists: Object.prototype.hasOwnProperty.call(
+              JSON.parse(JSON.stringify(before)), "buyFloor") || true,
+            /* the fallback inside bookSimple must follow the same name, or
+               the two drift - they already had, at 25 in both places */
+            srcHasConst: true};
+  });
+  ok(r.shipped === 10, "the shipped floor is $" + r.shipped);
+  ok(r.live === 10, "  and the desk is using it — $" + r.live);
+
+  /* The migration itself: a device carrying the OLD default and no flag
+     must come up on the new number; one where somebody actually moved the
+     control must keep theirs. Done in a fresh page so the stored state is
+     read at boot, which is the only place it is read. */
+  const mig = await (async () => {
+    const pg = await browser.newPage({viewport: {width: 1200, height: 900}});
+    await pg.goto(BASE + "/index.html", {waitUntil: "networkidle"});
+    const run = async (stored) => {
+      await pg.evaluate((s) => localStorage.setItem("pawndesk:web:v1", JSON.stringify(s)), stored);
+      await pg.reload({waitUntil: "networkidle"});
+      return pg.evaluate(() => ({floor: st.buyFloor, set: !!st.floorSet}));
+    };
+    const old = await run({buyFloor: 25});                      /* the whole shop */
+    const kept = await run({buyFloor: 40, floorSet: true});     /* somebody chose 40 */
+    const zero = await run({buyFloor: 0, floorSet: true});      /* and somebody chose none */
+    await pg.evaluate(() => localStorage.removeItem("pawndesk:web:v1"));
+    await pg.close();
+    return {old, kept, zero};
+  })();
+  ok(mig.old.floor === 10,
+     "a device carrying the old stored $25 comes up on $" + mig.old.floor + " — the change reaches it");
+  ok(mig.kept.floor === 40 && mig.kept.set === true,
+     "  but a floor somebody actually set is kept — $" + mig.kept.floor);
+  ok(mig.zero.floor === 0,
+     "  including a deliberate $0, which must not read as ‘never set’");
 }
 
 /* A SEED THAT POINTS NOWHERE IS HARVESTED INTO NOTHING. Every row in
@@ -1234,14 +1316,18 @@ console.log("\n  the run starts where the desk stops knowing");
     st.askAt = 0; render();
     const canGoBack = !!document.querySelector("#askCard [data-askgo]");
     const firstCard = (document.querySelector("#askCard .askQ") || {}).textContent || "";
-    return {drill, barrow: go("wheelbarrow"), tv: go("samsung 55 inch tv"),
+    /* Was the wheelbarrow. At the $10 floor a $28 wheelbarrow is a real
+       deal and IS asked for its make, so it no longer demonstrates the
+       skip. A $8 mouse still does - the rule did not change, the example
+       did. */
+    return {drill, barrow: go("wireless mouse"), tv: go("samsung 55 inch tv"),
             canGoBack, firstCard};
   });
   ok(r.drill.at > 0 && r.drill.allSkippedKnown,
      "a DeWalt drill skips the make it already read — lands on \"" + r.drill.id
      + "\", " + (r.drill.at + 1) + " of " + r.drill.n);
   ok(r.barrow.at > 0 && r.barrow.allSkippedKnown,
-     "  a wheelbarrow skips the make and model it does not have — lands on \""
+     "  a wireless mouse skips the make and model it does not have — lands on \""
      + r.barrow.id + "\"");
   ok(r.tv.at > 0 && r.tv.allSkippedKnown, "  and a television skips its make");
   ok([r.drill, r.barrow, r.tv].every(z => z.allSkippedKnown),

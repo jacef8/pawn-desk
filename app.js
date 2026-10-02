@@ -832,8 +832,11 @@ function pawnCharge(p){ return Math.max(5,Math.floor((Number(p)||0)*pawnPct()/10
 
 /* ---------------- state ---------------- */
 const KEY="pawndesk:web:v1";
+/* The shop's floor, shipped. One name, so the default and the fallback at
+   bookSimple() cannot drift apart - they already had, at 25 in two places. */
+const BUY_FLOOR_DEF=10;
 let st={mode:"item",catId:"guns",itemId:"g1",picked:false,needItem:false,askFrom:null,cond:"good",brand:"mid",complete:true,completeSet:false,struck:"",struckKind:"loan",liq:null,brandTyped:"",model:"",detail:"",specSel:{},
-        overrides:{},bookVals:{},modelVals:{},ltvs:{},buys:{},buyFloor:25,buyMult:2,pawnPct:25,pawnSet:false,spotHold:null,meltTgt:null,payPct:70,payTouched:false,loanPct:48,loanTouched:false,editing:false,
+        overrides:{},bookVals:{},modelVals:{},ltvs:{},buys:{},buyFloor:BUY_FLOOR_DEF,floorSet:false,buyMult:2,pawnPct:25,pawnSet:false,spotHold:null,meltTgt:null,payPct:70,payTouched:false,loanPct:48,loanTouched:false,editing:false,
         manual:null, /* {date, spot:{gold,silver}, avg90:{gold,silver}} — a same-day hand edit beats the feed */
         deal:"buy",metal:"gold",karat:"14k",grams:"",whyOpen:false,photoRead:null,bookQ:"",bookName:"",
         /* The shop's own reference weights, by sheet. See REF_SHEETS. */
@@ -842,7 +845,19 @@ try{
   const s=JSON.parse(localStorage.getItem(KEY)||"null");
   if(s){ st.overrides=s.overrides||{}; st.ltvs=s.ltvs||{}; st.buys=s.buys||{};
     st.bookVals=s.bookVals||{}; st.modelVals=s.modelVals||{};
-    if(s.buyFloor!=null)st.buyFloor=Math.max(0,Number(s.buyFloor)||0);
+    /* THE SAME TRAP THE PAWN RATE ALREADY FELL INTO, AND THE SAME FLAG.
+       "lets adjust the minimum required for me to do that deal down from
+       $25 to 10." The shipped floor moved 25 -> 10, and on its own that
+       would have reached nobody: persist() writes buyFloor on every save,
+       so every device in the shop was already sitting on a STORED 25 that
+       outranked the code. The counter would have asked for a change,
+       watched it ship, and seen no change at all.
+       So a stored floor only outranks the shipped one once somebody has
+       actually moved the control, which floorSet records. A device that
+       never touched it follows the shop's number, the way the pawn rate
+       does four lines down. */
+    st.floorSet=!!s.floorSet;
+    if(s.floorSet && s.buyFloor!=null)st.buyFloor=Math.max(0,Number(s.buyFloor)||0);
     if(s.buyMult!=null)st.buyMult=Math.max(1,Number(s.buyMult)||1);
     /* Shop policy, not a daily figure - it does not expire with the feed.
        But a stored number only outranks the code's default once somebody
@@ -876,7 +891,7 @@ function persist(){
   try{
     localStorage.setItem(KEY,JSON.stringify({overrides:st.overrides,ltvs:st.ltvs,buys:st.buys,
       bookVals:st.bookVals,modelVals:st.modelVals,
-      buyFloor:st.buyFloor,buyMult:st.buyMult,pawnPct:st.pawnPct,pawnSet:st.pawnSet,payPct:st.payPct,flow:st.flow,
+      buyFloor:st.buyFloor,floorSet:st.floorSet,buyMult:st.buyMult,pawnPct:st.pawnPct,pawnSet:st.pawnSet,payPct:st.payPct,flow:st.flow,
       payTouched:st.payTouched,loanPct:st.loanPct,loanTouched:st.loanTouched,payDate:FEED.date,manual:st.manual,meltTgt:st.meltTgt,
       /* The counter's own reference weights - see REF_SHEETS. These are
          measurements off the shop's own known-good stock, so they are the
@@ -3167,7 +3182,7 @@ function detailHint(x){
    they just do not hold the price back. */
 function bookSimple(x){
   return isCustom() && !!st.bookName
-      && (Number(x.resale)||0)*0.4 < (Number(x.buyFloor)||25);
+      && (Number(x.resale)||0)*0.4 < (Number(x.buyFloor)||BUY_FLOOR_DEF);
 }
 /* A SURFACE BOOK WAS BEING FILED AS A FIREARM.
    "Not on the lists" parked the item in custId(st.catId) - whatever
@@ -10984,7 +10999,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="1002.1514";
+const APP_BUILD="1002.1546";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -12666,7 +12681,7 @@ function refreshBuyRate(){
 }
 function wireBuy(){
   const fl=document.getElementById("buyFloorNum"), mu=document.getElementById("buyMultNum");
-  if(fl)fl.onchange=()=>{ st.buyFloor=Math.max(0,Number(fl.value)||0); persist(); render(); };
+  if(fl)fl.onchange=()=>{ st.buyFloor=Math.max(0,Number(fl.value)||0); st.floorSet=true; persist(); render(); };
   if(mu)mu.onchange=()=>{ st.buyMult=Math.max(1,Number(mu.value)||1); persist(); render(); };
   const sl=document.getElementById("buySlider"), n=document.getElementById("buyNum");
   if(!sl)return;
