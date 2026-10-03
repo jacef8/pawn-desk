@@ -13,16 +13,46 @@ function phVerdictHTML(x){
       ? `${F.unsure} check${F.unsure===1?"":"s"} on the <b>${esc(F.sh.title.toLowerCase())}</b> sheet unresolved. Price only what you can verify today, not the name.`
       : `${F.done} of ${F.n} checks done on the <b>${esc(F.sh.title.toLowerCase())}</b> sheet. No price until they are answered.`}</div></div>`
     +fakeCardHTML(x);
-  const ask=phAskNow(); if(!ask||!x.checked)return "";
+  /* THE FIELD SCREEN WENT SILENT ON EVERYTHING AT A YARD SALE.
+     "lets put our focus on the mobile functions for helping me buy while
+     im outside the store." Measured first, on five ordinary driveway
+     items, and the phone said NOTHING on all five:
+
+       Weber kettle grill    knew resale $32   knew buy $10   showed nothing
+       Craftsman tool chest  knew resale $120  knew buy $30   showed nothing
+       box of vinyl          knew resale $56   knew buy $20   showed nothing
+       kids bicycle          knew resale $48   knew buy $15   showed nothing
+       air compressor        knew resale $56   knew buy $20   showed nothing
+
+     It found the right shelf row every time. It had a figure. It refused
+     to say it, because `x.checked` was false - nothing had been LOOKED UP.
+
+     That gate is right at the counter, where the money is real and the man
+     can wait while you open eBay. It is wrong in a driveway, where there is
+     no signal, somebody else is reaching for the same grill, and the honest
+     answer to "is $25 too much" is not silence. A built-in figure said out
+     loud and marked an estimate beats a blank screen; a blank screen just
+     means he guesses with no tool at all.
+
+     WHAT DOES NOT SOFTEN: the fakes gate above this line. A fake is not
+     worth a share of the real one, it is worth nothing, and no amount of
+     being in a hurry changes that. */
+  const ask=phAskNow(); if(!ask)return "";
   const resale=Math.round(x.resale), buy=x.buy, pct=Math.round(ask/resale*100), left=resale-ask;
+  if(!(resale>0))return "";
+  const est=!x.checked;
   const catName=x.cat.label.toLowerCase();
   let cls,word,line;
   if(ask>=resale){ cls="pass"; word="Pass"; line=`They want ${money(ask)} &mdash; more than it resells for (${money(resale)}).`; }
   else if(ask<=buy){ cls="good"; word="Good buy"; line=`${money(ask)} is ${pct}% of what it resells for. You'd clear about <b>${money(left)}</b> when it sells, before any selling fees.`; }
   else if(pct<=Math.min(95,x.buyPct+20)){ cls="thin"; word="Thin"; line=`${money(ask)} is ${pct}% of what it resells for. That leaves about ${money(left)} &mdash; less room than you like. Offer <b>${money(buy)}</b>.`; }
   else { cls="pass"; word="Pass"; line=`${money(ask)} is ${pct}% of what it resells for. Not enough room. The most you'd normally pay is <b>${money(buy)}</b>.`; }
-  return `<div class="phVerdict ${cls}"><div class="phWord">${word}</div><div class="phLine">${line}</div>
-    <div class="phMath">Resells for about <b>${money(resale)}</b> &middot; your buy rate for ${esc(catName)} is ${x.buyPct}%, so you'd pay up to <b>${money(buy)}</b>.</div></div>`;
+  /* The estimate is said BEFORE the word, not after it. A banner under a
+     verdict reads as a footnote; above it, it is a condition on the answer. */
+  return `<div class="phVerdict ${cls}${est?" est":""}">
+    ${est?`<div class="phEst">Estimate &mdash; nothing looked up. The figure below is the built-in one for a ${esc(catName)}, not a sale anybody made.</div>`:""}
+    <div class="phWord">${word}</div><div class="phLine">${line}</div>
+    <div class="phMath">Resells for about <b>${money(resale)}</b> &middot; your buy rate for ${esc(catName)} is ${x.buyPct}%, so you'd pay up to <b>${money(buy)}</b>.${est?` <b>Check it if the money matters.</b>`:""}</div></div>`;
 }
 function phoneStepHTML(x){
   const m=x.market, what=[st.brandTyped,st.model].filter(Boolean).join(" ")||displayName(x);

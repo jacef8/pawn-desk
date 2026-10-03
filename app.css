@@ -1495,3 +1495,10 @@
     white-space:nowrap}
   .adSched:hover{text-decoration:underline}
   .adSched:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:6px}
+  /* THE ESTIMATE BANNER ON THE FIELD VERDICT. Warning ink, above the word,
+     because a condition on an answer that sits below it reads as a
+     footnote. It is deliberately not the same colour as the verdict itself:
+     the verdict says what to do, this says how much to trust it. */
+  .phVerdict.est{border-left:3px solid var(--warn)}
+  .phEst{font:700 12.5px var(--sans);color:var(--warn-ink);line-height:1.45;
+    margin-bottom:9px;letter-spacing:.01em}
