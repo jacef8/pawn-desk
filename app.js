@@ -4749,13 +4749,34 @@ function wireItem(){
   /* The tab strip. Keyboard too: a tablist a mouse can reach and a keyboard
      cannot is half a control. */
   v.querySelectorAll("[data-itab]").forEach(b=>{
-    b.onclick=()=>{ st.itemTab=b.dataset.itab; try{ persist(); }catch(e){} render(); };
+    b.onclick=()=>{
+      /* THE TAB AND THE DEAL KIND WERE TWO CONTROLS FOR ONE DECISION.
+         Reported from the counter: "im on the sale tab but this is talkin
+         about pawn and lent." He was on Sale, the card said YOU PAY $240,
+         and underneath it the log strip said LENT 220 and the rail said
+         "If he pawns it ... GO LOW $180 SUGGESTED $220".
+
+         st.itemTab said Sale. st.struckKind still said loan, because
+         nothing tied them together - I put the log strip on both deal tabs
+         and never made the tab mean anything about WHICH deal.
+
+         Picking Sale IS saying you are buying it. Picking Pawn IS saying
+         you are lending. One state, set from either control, which is the
+         rule this file already learned once when the deal tiles replaced a
+         separate Lent/Bought pill. */
+      st.itemTab=b.dataset.itab;
+      if(st.itemTab==="sale")st.struckKind="buy";
+      else if(st.itemTab==="pawn")st.struckKind="loan";
+      try{ persist(); }catch(e){} render(); };
     b.onkeydown=e=>{
       const i=ITEM_TABS.findIndex(z=>z[0]===b.dataset.itab);
       if(e.key==="ArrowRight"||e.key==="ArrowLeft"){
         e.preventDefault();
         const n=(i+(e.key==="ArrowRight"?1:ITEM_TABS.length-1))%ITEM_TABS.length;
-        st.itemTab=ITEM_TABS[n][0]; render();
+        st.itemTab=ITEM_TABS[n][0];
+        if(st.itemTab==="sale")st.struckKind="buy";
+        else if(st.itemTab==="pawn")st.struckKind="loan";
+        render();
         const el=document.querySelector('[data-itab="'+ITEM_TABS[n][0]+'"]'); if(el)el.focus();
       }};
   });
@@ -4887,7 +4908,12 @@ function wireItem(){
     for(const k of Object.keys(specFromRecord))delete st.specSel[k];
     specFromRecord={}; st.askEdit=false; st.askAt=0; st.askFrom=null; render(); };
   v.querySelectorAll("[data-ideal]").forEach(b=>b.onclick=()=>{
-    st.struckKind=b.dataset.ideal==="buy"?"buy":"loan"; persist(); render(); });
+    st.struckKind=b.dataset.ideal==="buy"?"buy":"loan";
+    /* The other half of the same rule: pressing "Buy it outright" on the
+       answer card takes him to the tab that is about buying, rather than
+       leaving him on Item with the rail quietly switching underneath. */
+    if(itemTabbed(calcItem()))st.itemTab=st.struckKind==="buy"?"sale":"pawn";
+    persist(); render(); });
   v.querySelectorAll("[data-comp]").forEach(b=>b.onclick=()=>{st.complete=b.dataset.comp==="1";st.completeSet=true;render();});
   /* Answering IS moving on. A questionnaire that makes you answer and then
      press Next has two actions where the counter's hand expects one. The
@@ -11377,7 +11403,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="1003.2154";
+const APP_BUILD="1003.2223";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

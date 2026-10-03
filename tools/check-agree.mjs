@@ -73,7 +73,13 @@ const out = await page.evaluate(async (n) => {
     st.flow = ""; st.mode = "item"; st.picked = false; st.market = null; st.mpNone = false;
     st.condSet = false; st.completeSet = false; st.brandSet = false; st.brandTyped = "";
     st.model = ""; st.detail = ""; st.specSel = {}; st.fakeAns = {}; st.fakeKey = mkKey();
-    st.struck = ""; st.ticket = ""; st.struckKind = "loan"; st.itemTab = "item";
+    /* WAS st.struckKind = "loan" FOR EVERY ROW, AND THAT IS WHY THIS AUDIT
+       MISSED THE BUG IT WAS BUILT TO CATCH. He pressed Sale and got "LENT
+       220" with a rail headed "If he pawns it"; I had pinned the kind to
+       loan and never pressed anything, so the tab and the kind could not
+       disagree in my walk the way they did on his screen.
+       It presses the tabs now, the way he does. */
+    st.struck = ""; st.ticket = ""; st.itemTab = "item";
     const R = omniRows(name) || {}, rows = R.rows || [];
     const f = rows.find(z => ["mp", "book", "item"].includes(z.kind));
     if (!f) { seen.skipped++; continue; }
@@ -91,12 +97,21 @@ const out = await page.evaluate(async (n) => {
     const card = txt(askDoneHTML(x));
     const pin  = txt(pinHTML(x));
     const rail = txt(weightHTML(x));
-    st.itemTab = "pawn"; render();
+    /* Pressed, not assigned - the handler is where the tab and the deal
+       kind are tied together, so setting st.itemTab directly would walk
+       straight past the bug again. */
+    const press = (name) => { const b = document.querySelector(`[data-itab="${name}"]`);
+      if (b) b.click(); else st.itemTab = name; render(); };
+    press("pawn");
     const tick = txt(ticketHTML(x));
     const pay  = txt(paybackHTML(x));
-    st.itemTab = "sale"; render();
+    const pawnScreen = txt(document.querySelector(".colQ") ? document.querySelector(".colQ").innerHTML : "");
+    const pawnRail = txt(dealPanelHTML(calcItem()));
+    press("sale");
     const sale = txt(saleTabHTML(x));
-    st.itemTab = "item"; render();
+    const saleScreen = txt(document.querySelector(".colQ") ? document.querySelector(".colQ").innerHTML : "");
+    const saleRail = txt(dealPanelHTML(calcItem()));
+    press("item");
 
     const gated = (() => { const sh = fakeSheet(x); const F = sh ? fakeState(sh) : null; return !!(F && F.blocks); })();
     if (gated) seen.gated++;
@@ -186,7 +201,20 @@ const out = await page.evaluate(async (n) => {
     if (x.resale > 0 && x.buy > x.resale) note(`pays $${x.buy} for something that resells at $${Math.round(x.resale)}`);
     if (x.target > 0 && x.target > x.resale) note(`lends $${x.target} against a $${Math.round(x.resale)} resale`);
 
-    /* ---- 9. exactly one place to write the deal down ---- */
+    /* ---- 9. A TAB MUST TALK ABOUT ITS OWN DEAL ----
+       The one he caught, and the one this audit was built for and missed.
+       On Sale the whole screen is about buying it outright; a box headed
+       LENT, or a rail headed "If he pawns it", is the screen contradicting
+       the tab the user chose. Same in reverse on Pawn. */
+    if (/\bLENT\b/i.test(saleScreen) || /If he pawns it/i.test(saleRail))
+      note("the Sale tab talks about lending \u2014 a LENT box or a pawn rail");
+    if (/\bBOUGHT\b/i.test(pawnScreen) || /If you buy it/i.test(pawnRail))
+      note("the Pawn tab talks about buying \u2014 a BOUGHT box or a buy rail");
+    /* and the suggested figure on each tab has to be that tab's figure */
+    if (saleScreen.indexOf(money(x.target)) >= 0 && x.target !== x.buy)
+      note(`the Sale tab shows the ${money(x.target)} loan figure`);
+
+    /* ---- 10. exactly one place to write the deal down ---- */
     const strips = document.querySelectorAll(".struck").length;
     if (strips > 1) note(`${strips} copies of the log strip on one screen`);
   }
