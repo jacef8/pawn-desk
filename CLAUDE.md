@@ -102,6 +102,31 @@ it was in the commit.
 
 ---
 
+## What this tool is, and what it is not
+
+**It is an appraisal tool. It does not track loans.**
+
+"this tool isn't really for tracking the loans. this is an appraisal tool."
+Said after I offered to build pawn extensions — a written memorandum, a new
+default date, charges owed — off the back of a question about § 539.001(11)(b).
+
+The line is not where the statute stops, it is where the counter's job
+changes. Everything here answers **what do I say to the man standing
+there**: what it is worth, what to offer, what to lend, what to quote him
+to get it back. The moment something would need to be *kept and updated over
+time* — a live ticket, an extension, a payment, a balance, a due date that
+moves — it belongs in the pawn system, not here. The ticket number is the
+whole of the join between the two.
+
+So the redemption ladder stays: it is what you quote. An extension screen
+does not: that is servicing a loan that is already written.
+
+This is easy to drift across, because every one of those features reads as
+helpful and sits one step from something already on the screen. The test is
+not "would this help?" — it is "does this still end when he walks out?"
+
+---
+
 ## Money
 
 Florida § 539.001(11): 25% per 30 days is the **ceiling**, not the price.
