@@ -3882,6 +3882,61 @@ function struckHTML(x){
     :`<div class="cardHint" style="margin-top:7px">Logging is not available on this device.</div>`}
   </div>`;
 }
+/* "HOW IS IT THAT WE HAVE A PRICE YET NOTHING WAS LOOKED UP? this is one of
+   our shorcut items from the homepage. i thought atleast those had a some
+   data backing them up."
+
+   He picked a string trimmer, the record named it a Stihl FS 131, and the
+   card printed BUY $150 / PAWN $105 with no warning on it at all while the
+   rail three inches away said "Nothing looked up - no source at all".
+   Both were telling the truth about different things, which is the worst
+   kind of screen.
+
+   Traced:
+
+     Stihl FS 131   checked=TRUE  conf=l  source=""           no count
+     Ryobi 40V      checked=TRUE  conf=h  source=ebay link    4 eBay sales
+
+   `checked` means THE BOOK HAS A FIGURE. It does not mean anybody measured
+   anything. For the Ryobi that is the same thing; for the Stihl it is a
+   range somebody typed on 22 September with a low-confidence flag and no
+   source, and the money card could not tell them apart.
+
+   187 of the book's 519 rows are in the Stihl's position - a figure with no
+   count behind it. He has now hit one twice and had to ask me to find out
+   which kind he was looking at.
+
+   THIS CHANGES NO ARITHMETIC. resale, buy and lend are untouched, and so is
+   the 8% guard on the loan, because moving those is his call and not mine.
+   What changes is whether the card ADMITS what it is standing on. */
+function evidenceBacked(x){
+  const m=x&&x.market;
+  if(!m||m.stale)return false;
+  /* typed in by hand at the counter is evidence - he saw the page */
+  if(m.kind==="hand"||m.kind==="shot"||m.kind==="found"||m.kind==="harvest"||m.kind==="own")return true;
+  if(m.kind!=="list")return !!x.checked;
+  /* a book row is backed when something was actually counted, or there is
+     a page to go and check. Low confidence alone is not disqualifying -
+     a counted figure that is thin is still a counted figure - but a low
+     one with neither a count nor a source is just somebody's number. */
+  const counted=/\b\d+\s+(ebay\s+)?(sales|listings|sold)/i.test(String(m.note||""));
+  const sourced=!!String(m.src||"").trim();
+  return counted||sourced;
+}
+/* THREE TIERS, NOT TWO, BECAUSE THE FIRST CUT WAS TOO GENEROUS.
+   Measured across the book: 303 rows carry a counted figure, 178 carry a
+   page you can open but nothing counted, and 6 carry neither. Treating the
+   middle 178 as "backed" would have let a gunwatcher link stand in for a
+   sale, and "i want verifiable sales data to back up every purchase" is
+   not satisfied by a link nobody has opened.
+   So the card says which of the three it is standing on. */
+function evidenceTier(x){
+  const m=x&&x.market;
+  if(!m||m.stale)return "none";
+  if(m.kind!=="list")return x.checked?"counted":"none";
+  if(/\b\d+\s+(ebay\s+)?(sales|listings|sold)/i.test(String(m.note||"")))return "counted";
+  return String(m.src||"").trim()?"sourced":"none";
+}
 function askDoneHTML(x){
   /* THE GATE WAS ON THE QUIET CARD AND MISSING FROM THE LOUD ONE.
      Reported from the counter with two screenshots of the same iPhone and
@@ -3978,7 +4033,10 @@ function askDoneHTML(x){
           figure, same words, read off the same calcItem that produced the
           numbers rather than worked out again here, which is the mistake
           that once had the melt card claiming 48% while handing over 42%. */""}
-    <div class="adWhy">${x.checked?"":`<b style="color:var(--warn-ink)">Estimate &mdash; nothing looked up.</b> `}<b>Resells for ${money(Math.round(x.resale))}</b> in this shape &mdash; that is where both numbers come from.${(x.resale>0)?` Buying at <b>${Math.round(x.buy/x.resale*100)}%</b> of that, lending <b>${Math.round(x.target/x.resale*100)}%</b>.`:""}${deskRail()?"":` Lend anywhere in ${money(x.low)}&ndash;${money(x.high)}, never above the top.`}${/*
+    <div class="adWhy">${(()=>{const T=evidenceTier(x);
+      if(T==="counted")return "";
+      if(T==="sourced")return `<b style="color:var(--warn-ink)">Not a counted sale.</b> A figure off a page nobody has opened today &mdash; check it before real money moves. `;
+      return `<b style="color:var(--warn-ink)">${x.checked?"Estimate &mdash; a built-in figure, nothing counted and no source.":"Estimate &mdash; nothing looked up."}</b> `;})()}<b>Resells for ${money(Math.round(x.resale))}</b> in this shape &mdash; that is where both numbers come from.${(x.resale>0)?` Buying at <b>${Math.round(x.buy/x.resale*100)}%</b> of that, lending <b>${Math.round(x.target/x.resale*100)}%</b>.`:""}${deskRail()?"":` Lend anywhere in ${money(x.low)}&ndash;${money(x.high)}, never above the top.`}${/*
       "I DONT SEE THE PAWN SCHEDULE." Said the day after I told him it
       follows the amount he types in. It does - and it lives in a closed
       fold on card 8, four cards and a scroll below the answer, which at a
@@ -11319,7 +11377,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="1003.2115";
+const APP_BUILD="1003.2142";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
