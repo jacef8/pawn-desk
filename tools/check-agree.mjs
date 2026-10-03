@@ -214,9 +214,36 @@ const out = await page.evaluate(async (n) => {
     if (saleScreen.indexOf(money(x.target)) >= 0 && x.target !== x.buy)
       note(`the Sale tab shows the ${money(x.target)} loan figure`);
 
-    /* ---- 10. exactly one place to write the deal down ---- */
-    const strips = document.querySelectorAll(".struck").length;
-    if (strips > 1) note(`${strips} copies of the log strip on one screen`);
+    /* ---- 10. exactly one place to write the deal down, ON EACH TAB ----
+       COUNTED ON THE WRONG TAB FIRST TIME. This ran after press("item"),
+       where the strip is deliberately not drawn at all, so it counted 0 or
+       1 and could never see a duplicate. Injected the fault - the answer
+       card drawing the strip as well as the tab - and this section stayed
+       silent, which is how the whole "four different spots to log the
+       deal" complaint got here in the first place.
+       Counted where the strip actually lives now. */
+    /* AND "MORE THAN ONE" WAS STILL THE WRONG TEST. The fault I injected -
+       the answer card drawing the strip as well as the tab - puts ONE strip
+       on Item, where there should be none. Nothing is duplicated on any
+       single tab, so a >1 count stayed silent through two attempts.
+       The invariant is exact, so state it exactly: none on Item, one on
+       each deal tab. Anything else is the deal log drifting back toward
+       the four places it used to live in. */
+    const WANT = {item: 0, pawn: 1, sale: 1};
+    const dupes = {};
+    for (const t of ["item", "pawn", "sale"]) {
+      press(t);
+      const n = document.querySelectorAll(".struck").length;
+      if (n !== WANT[t]) dupes[t] = n;
+      /* while we are here: a ticket box and a Save button are the same
+         decision, and two of either is the same bug wearing a hat */
+      const tix = document.querySelectorAll("#logTicket").length;
+      const save = document.querySelectorAll("#logDeal").length;
+      if (tix > 1 || save > 1) note(`the ${t} tab has ${tix} ticket boxes and ${save} Save buttons`);
+    }
+    press("item");
+    for (const t of Object.keys(dupes))
+      note(`the ${t} tab has ${dupes[t]} log strips, it should have ${WANT[t]}`);
   }
   return {bad, seen};
 }, N);
