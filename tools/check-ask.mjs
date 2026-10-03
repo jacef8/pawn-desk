@@ -1087,7 +1087,8 @@ console.log("\n  the number actually agreed can be typed, and it is what gets lo
     out.suggested = Math.round(x0.target);
     out.emptyLogs = struckAmt(x0).amt;
     out.emptyTyped = struckAmt(x0).typed;
-    const box = document.querySelector("#askCard .struck");
+    st.itemTab = "pawn"; render();
+    const box = document.querySelector(".struck");
     out.hasBox = !!box;
     const inp = box && box.querySelector(".struckIn");
     out.hasInput = !!inp;
@@ -1106,10 +1107,19 @@ console.log("\n  the number actually agreed can be typed, and it is what gets lo
        cosmetic. One field now, st.struckKind, written by the tiles. What
        this checks is unchanged: press "buy", and the log records a straight
        buy rather than a loan. */
+    /* The deal tiles live on the answer card, which is the Item tab. The
+       block above selected Pawn to read the log strip, so without this the
+       tile is null, the click never happens, and the kind stays "loan" -
+       which is exactly how this failed. */
+    st.itemTab = "item"; render();
     const bb = document.querySelector('#askCard .adDeal[data-ideal="buy"]');
     if (bb) bb.click();
     out.kind = struckAmt(calcItem()).kind;
-    const b2 = document.querySelector("#askCard .struck");
+    /* The strip follows the deal it is recording, so a BUY is on the Sale
+       tab and a loan is on Pawn. Selecting Pawn here read the loan copy
+       and the buy note was never going to be in it. */
+    st.itemTab = "sale"; render();
+    const b2 = document.querySelector(".struck");
     out.buyNote = b2 ? (b2.querySelector(".struckNote")||{}).textContent || "" : "";
     return out;
   });
@@ -1254,12 +1264,18 @@ console.log("\n  the answered question gives up the card to its answer");
     const q = askQueue(calcItem());
     out.order = q.map(z => z.id);
     st.askAt = q.findIndex(z => z.id === "cond"); render();
+    st.itemTab = "item"; render();
     const c1 = document.getElementById("askCard");
     out.before = {q: (c1.querySelector(".askQ")||{}).textContent,
                   conds: c1.querySelectorAll('[data-ask="cond"]').length,
                   answer: !!c1.querySelector(".askDone")};
     /* answer it */
     (c1.querySelector('[data-ask="cond"][data-askv="good"]')||c1.querySelector('[data-ask="cond"]')).click();
+    /* BACK TO ITEM. An earlier block in this file selects the Pawn tab to
+       find the log strip, and st.itemTab persists - so this block, which
+       is about the ANSWER card, rendered the Pawn tab and read null. Set
+       the tab you mean rather than inheriting the last one. */
+    st.itemTab = "item"; render();
     const c2 = document.getElementById("askCard");
     out.after = {q: !!c2.querySelector(".askQ"),
                  conds: c2.querySelectorAll('[data-ask="cond"]').length,
@@ -1272,7 +1288,15 @@ console.log("\n  the answered question gives up the card to its answer");
                    px: Math.round(parseFloat(getComputedStyle(e.querySelector(".d")).fontSize))})),
                  whyPx: Math.round(parseFloat(getComputedStyle(c2.querySelector(".adWhy")).fontSize)),
                  why: c2.querySelector(".adWhy").textContent,
-                 struck: !!c2.querySelector(".struck")};
+                 /* REPOINTED, NOT DROPPED. "Still here" used to mean "in
+                    the answer card", and the answer card is now the Item
+                    tab - the strip is 297px and moving it is what made
+                    that tab fit at his display scaling. The rule it holds
+                    is that the run still ends with somewhere to write the
+                    deal down, so it is checked where that somewhere is. */
+                 struck: (()=>{ const was=st.itemTab; st.itemTab="pawn"; render();
+                   const got=!!document.querySelector(".struck");
+                   st.itemTab=was; render(); return got; })()};
     /* and it is not a trap: the question it replaced is one tap away.
        Guarded, so that a build where the answer card never appears reports
        a failure rather than throwing and taking the suite with it. */

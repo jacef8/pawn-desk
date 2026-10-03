@@ -44,7 +44,31 @@ function phVerdictHTML(x){
   const catName=x.cat.label.toLowerCase();
   let cls,word,line;
   if(ask>=resale){ cls="pass"; word="Pass"; line=`They want ${money(ask)} &mdash; more than it resells for (${money(resale)}).`; }
-  else if(ask<=buy){ cls="good"; word="Good buy"; line=`${money(ask)} is ${pct}% of what it resells for. You'd clear about <b>${money(left)}</b> when it sells, before any selling fees.`; }
+  else if(ask<=buy){
+    /* AN ESTIMATE MAY STOP A PURCHASE. IT MAY NOT AUTHORISE ONE.
+       "i want verifiable sales data to back up every purchase." Said the
+       day after I let this box answer off the built-in figure, and it is
+       the harder rule, and it is right.
+
+       The two directions are not symmetrical and never were. If the
+       built-in figure is too LOW the box says Pass, he walks, and the cost
+       is a deal he did not make. If it is too HIGH the box says Good buy,
+       he hands over cash, and the cost is money out of the till against a
+       number nobody measured. CLAUDE.md has said the same thing about asks
+       for months - high is the wrong way to be wrong when money is going
+       out - and this is that rule applied to the direction of the verdict
+       rather than to the figure.
+
+       So on an unchecked figure the stopping words stand and the GO word
+       does not. "Good buy" needs a sale behind it. Without one the box
+       says what is actually true: this looks worth your time, now go and
+       prove it. The number he would pay is still shown, because he is
+       standing in a driveway and may buy it anyway - but the tool is no
+       longer the thing that told him to. */
+    if(est){ cls="thin"; word="Look it up first";
+      line=`${money(ask)} looks low against the built-in <b>${money(resale)}</b> for a ${esc(catName)} &mdash; but nothing has been looked up, and a figure nobody measured is not a reason to hand over cash. Check a sold page before you buy. If it holds, you'd pay up to <b>${money(buy)}</b>.`; }
+    else { cls="good"; word="Good buy"; line=`${money(ask)} is ${pct}% of what it resells for. You'd clear about <b>${money(left)}</b> when it sells, before any selling fees.`; }
+  }
   else if(pct<=Math.min(95,x.buyPct+20)){ cls="thin"; word="Thin"; line=`${money(ask)} is ${pct}% of what it resells for. That leaves about ${money(left)} &mdash; less room than you like. Offer <b>${money(buy)}</b>.`; }
   else { cls="pass"; word="Pass"; line=`${money(ask)} is ${pct}% of what it resells for. Not enough room. The most you'd normally pay is <b>${money(buy)}</b>.`; }
   /* The estimate is said BEFORE the word, not after it. A banner under a

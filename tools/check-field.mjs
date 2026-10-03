@@ -99,6 +99,72 @@ ok(YARD.every(q => field[q] && field[q].est),
    "  every one is marked an Estimate, in the warning ink");
 
 /* ------------------------------------------------------------------ */
+/* AN ESTIMATE MAY STOP A PURCHASE. IT MAY NOT AUTHORISE ONE.
+   "i want verifiable sales data to back up every purchase." The two
+   directions are not symmetrical. A built-in figure that is too LOW says
+   Pass, he walks, and it costs a deal he did not make. Too HIGH says Good
+   buy, he hands over cash, and it costs money out of the till against a
+   number nobody measured.
+
+   So the stopping words survive on an estimate and the GO word does not.
+   This is the section that holds that, and it is the one that matters:
+   everything else here is about the box being visible at all. */
+console.log("\n  an estimate can stop a purchase, never authorise one");
+{
+  const r = await page.evaluate(() => {
+    const set = (q, askPct, checked) => {
+      st.flow = ""; st.mode = "item"; st.picked = false; st.market = null; st.mpNone = false;
+      st.condSet = false; st.completeSet = false; st.brandSet = false; st.model = "";
+      st.specSel = {}; st.fakeAns = {}; st.fakeKey = mkKey(); st.ask = 0; st.askKey = "";
+      const R = omniRows(q) || {}, rows = R.rows || [];
+      const f = rows.find(x => ["mp", "book", "item"].includes(x.kind));
+      if (!f) return null;
+      omniPick(f); st.condSet = true; st.completeSet = true;
+      const x0 = calcItem();
+      if (checked) st.market = {kind: "hand", key: mkKey(), mid: Math.round(x0.resale)};
+      const x1 = calcItem();
+      /* an ask WELL under the buy figure - the strongest possible buy */
+      st.ask = Math.max(1, Math.round(x1.buy * 0.5)); st.askKey = mkKey();
+      const x = calcItem(); const h = String(phVerdictHTML(x) || "");
+      return {word: (h.match(/phWord">([^<]+)/) || [])[1] || "", buy: x.buy,
+              ask: st.ask, checked: !!x.checked,
+              txt: h.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ")};
+    };
+    return {est: set("air compressor", 0.5, false), checked: set("air compressor", 0.5, true)};
+  });
+  ok(!!r.est && !!r.checked, "a bargain ask is reachable both ways");
+  /* THE ASSERTION. A screaming bargain on an unmeasured figure must not
+     get the word that means go ahead. */
+  ok(r.est.word !== "Good buy",
+     `$${r.est.ask} against a $${r.est.buy} buy, unmeasured — it says "${r.est.word}", not "Good buy"`);
+  ok(/look it up|check a sold page/i.test(r.est.txt),
+     "  and it says to go and check a sold page before buying");
+  ok(/not a reason to hand over cash/i.test(r.est.txt),
+     "  naming the reason, rather than just hedging");
+  /* it must still SHOW the figure - he is in a driveway and may buy anyway */
+  ok(r.est.txt.indexOf("$" + r.est.buy) >= 0,
+     `  the $${r.est.buy} he would pay is still on screen — it stops telling him, not helping him`);
+  /* AND THE CONTROL. With a real sold price the same ask DOES get the go
+     word, or this has just broken the tool instead of tightening it. */
+  ok(r.checked.word === "Good buy",
+     `the same bargain WITH a sold price behind it still says "${r.checked.word}"`);
+  /* the stopping direction is untouched on an estimate */
+  const stop = await page.evaluate(() => {
+    st.flow = ""; st.mode = "item"; st.picked = false; st.market = null; st.mpNone = false;
+    st.condSet = false; st.completeSet = false; st.brandSet = false; st.model = "";
+    st.specSel = {}; st.fakeAns = {}; st.fakeKey = mkKey();
+    const R = omniRows("air compressor") || {}, rows = R.rows || [];
+    omniPick(rows.find(x => ["mp", "book", "item"].includes(x.kind)));
+    st.condSet = true; st.completeSet = true;
+    const x0 = calcItem();
+    st.ask = Math.round(x0.resale * 1.5); st.askKey = mkKey();   /* way over */
+    const h = String(phVerdictHTML(calcItem()) || "");
+    return (h.match(/phWord">([^<]+)/) || [])[1] || "";
+  });
+  ok(stop === "Pass",
+     `  while an ask well over the figure still stops him dead — "${stop}"`);
+}
+
 console.log("\n  a measured price does not wear the estimate banner");
 const measured = await page.evaluate(() => {
   st.flow = ""; st.mode = "item"; st.picked = false; st.market = null; st.mpNone = false;

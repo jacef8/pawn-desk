@@ -43,6 +43,15 @@ await page.waitForTimeout(1100);
 const read = () => page.evaluate(() => {
   const col = document.querySelector(".colQ");
   const has = (root, re) => !!(root && [...root.querySelectorAll(".card")].some(e => re.test(e.textContent)));
+    /* REPOINTED WHEN THE TABS LANDED, NOT WEAKENED. The rule this holds -
+       ONE place to write a deal down, not four - is unchanged and still
+       asserted below. What moved is where that one place lives: the log
+       strip is 297px and it was the entire reason the Item tab did not fit
+       at his display scaling, so it went to the two tabs that are actually
+       about a deal. It is no longer in the answer card because the answer
+       card is the Item tab. Selecting the tab first is the whole fix. */
+    st.itemTab = "pawn";
+    render();
   return {
     finished: runFinished(calcItem()), checked: calcItem().checked,
     midScroll: col ? Math.round(col.scrollHeight) : 0,

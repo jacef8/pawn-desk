@@ -3074,6 +3074,11 @@ console.log("\n  the card shows its own arithmetic, and says which day is which"
     st.mpNone = true;
     const q = askQueue(calcItem());
     st.askAt = q.length - 1;
+    /* The evidence line is on the answer card, which is the Item tab. An
+       earlier block selects Pawn and st.itemTab persists, so without this
+       the body held no such line and the match came back null/null. Set
+       the tab you mean rather than inheriting the last one. */
+    st.itemTab = "item";
     render();
     const x = calcItem();
     const t = document.body.innerText.replace(/\s+/g, " ");

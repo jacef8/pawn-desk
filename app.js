@@ -836,7 +836,7 @@ const KEY="pawndesk:web:v1";
    bookSimple() cannot drift apart - they already had, at 25 in two places. */
 const BUY_FLOOR_DEF=10;
 let st={mode:"item",catId:"guns",itemId:"g1",picked:false,needItem:false,askFrom:null,cond:"good",brand:"mid",complete:true,completeSet:false,struck:"",struckKind:"loan",liq:null,brandTyped:"",model:"",detail:"",specSel:{},
-        overrides:{},bookVals:{},modelVals:{},ltvs:{},buys:{},buyFloor:BUY_FLOOR_DEF,floorSet:false,buyMult:2,pawnPct:25,pawnSet:false,spotHold:null,meltTgt:null,payPct:70,payTouched:false,loanPct:48,loanTouched:false,editing:false,
+        overrides:{},bookVals:{},modelVals:{},ltvs:{},buys:{},buyFloor:BUY_FLOOR_DEF,floorSet:false,buyMult:2,itemTab:"item",pawnPct:25,pawnSet:false,spotHold:null,meltTgt:null,payPct:70,payTouched:false,loanPct:48,loanTouched:false,editing:false,
         manual:null, /* {date, spot:{gold,silver}, avg90:{gold,silver}} — a same-day hand edit beats the feed */
         deal:"buy",metal:"gold",karat:"14k",grams:"",whyOpen:false,photoRead:null,bookQ:"",bookName:"",
         /* The shop's own reference weights, by sheet. See REF_SHEETS. */
@@ -857,6 +857,7 @@ try{
        never touched it follows the shop's number, the way the pawn rate
        does four lines down. */
     st.floorSet=!!s.floorSet;
+    if(s.itemTab)st.itemTab=String(s.itemTab);
     if(s.floorSet && s.buyFloor!=null)st.buyFloor=Math.max(0,Number(s.buyFloor)||0);
     if(s.buyMult!=null)st.buyMult=Math.max(1,Number(s.buyMult)||1);
     /* Shop policy, not a daily figure - it does not expire with the feed.
@@ -891,7 +892,7 @@ function persist(){
   try{
     localStorage.setItem(KEY,JSON.stringify({overrides:st.overrides,ltvs:st.ltvs,buys:st.buys,
       bookVals:st.bookVals,modelVals:st.modelVals,
-      buyFloor:st.buyFloor,floorSet:st.floorSet,buyMult:st.buyMult,pawnPct:st.pawnPct,pawnSet:st.pawnSet,payPct:st.payPct,flow:st.flow,
+      buyFloor:st.buyFloor,floorSet:st.floorSet,itemTab:st.itemTab,buyMult:st.buyMult,pawnPct:st.pawnPct,pawnSet:st.pawnSet,payPct:st.payPct,flow:st.flow,
       payTouched:st.payTouched,loanPct:st.loanPct,loanTouched:st.loanTouched,payDate:FEED.date,manual:st.manual,meltTgt:st.meltTgt,
       /* The counter's own reference weights - see REF_SHEETS. These are
          measurements off the shop's own known-good stock, so they are the
@@ -2347,9 +2348,13 @@ function paybackHTML(x){
 
             AND "NOT 25% AGAIN EVERY MONTH" was only true to day 60. After
             it, one-thirtieth a day IS 25% a month, carrying on. */""}
-      Through day 60 the charge stops at <b style="color:var(--ink)">twice</b> the 30-day amount &mdash; it does not take another ${pawnPct()}% at day 31. After day 60 it keeps running at <b style="color:var(--ink)">$${(payAmt(x).charge/30).toFixed(2)}/day</b>, which is the 30-day charge split over 30 days. <b style="color:var(--ink)">All three of those are &sect; 539.001(11)(b) and (c), not shop policy</b> &mdash; the rate for a late redemption is set by statute, not priced by you, and charging above it voids the transaction.
+      Through day 60 the charge stops at <b style="color:var(--ink)">twice</b> the 30-day amount &mdash; it does not take another ${pawnPct()}% at day 31. After that, <b style="color:var(--ink)">$${(payAmt(x).charge/30).toFixed(2)}/day</b>. ${infoBtn("pawn-charge")}
     </div>
-    <div class="tagWarn"><b>Day 60 it's ours.</b> Maturity is day 30, then we must hold it 30 more. Not redeemed by day 60 and title passes to us automatically — no notice, no letter, no auction. Within the first 30 days only he or his attorney-in-fact may redeem it.</div>
+    ${/* "get rid of these extemrly long and wordy explanations. maybe an
+          info button that we can hover over and get more detail." The
+          headline is the half he needs at a counter. The four clauses
+          explaining it are the half he reads once and then knows. */""}
+    <div class="tagWarn"><b>Day 60 it&rsquo;s ours.</b> Title passes automatically. ${infoBtn("pawn-clock")}</div>
     <div class="fine">&sect; 539.001(11) caps the charge at 25% of the amount financed per 30 days, minimum $5. Overcharging voids the transaction and forfeits twice the charge — but an honest mistake corrected when you catch it carries no penalty. Fix it, don't hide it.</div>
   </details>`;
 }
@@ -3822,7 +3827,10 @@ function struckAmt(x){
 }
 function struckNoteHTML(x){
   const k=struckAmt(x), sug=k.kind==="buy"?x.buy:x.target;
-  if(!k.typed)return `Leave it empty and the log keeps the suggested ${money(sug)}. Type what you actually handed over instead — the shop's own price book is built out of this number.`;
+  /* 26 words to say "empty keeps $30". The reason it matters - that the
+     price book is built out of typed figures - is read once and then
+     known, so it moved behind the button. */
+  if(!k.typed)return `Empty keeps the suggested <b style="color:var(--ink)">${money(sug)}</b>. ${infoBtn("log-what")}`;
   if(k.kind==="loan"&&k.amt>x.high)
     return `<b style="color:var(--bad-ink)">${money(k.amt)} is over the ${money(x.high)} top.</b> That is the cushion spent. It will log exactly as typed — he gets it back for ${money(k.amt+pawnCharge(k.amt))} by day 30, interest ${money(pawnCharge(k.amt))}.`;
   return k.kind==="loan"
@@ -3867,7 +3875,10 @@ function struckHTML(x){
         style="flex:1;min-width:0;font-family:var(--mono);font-size:14px"></div>
     <button id="logDeal" class="brassBtn" style="width:100%;padding:11px 0"
       title="Saves the item, your estimate, the offer and the ticket number.">Log this deal</button>
-    <div class="cardHint" id="logMsg" style="margin-top:7px">Records the item, your estimate, the offer and the ticket number &mdash; nothing else off the ticket. No name, no address, no ID.${(()=>{const t=soldStats(dealKey());return t?` You've sold ${t.n} of these.`:"";})()}</div>`
+    <div class="cardHint" id="logMsg" style="margin-top:7px">${/* The privacy line STAYS on the screen. s. 539.001(9) is why this log
+         holds item facts only, and a compliance reminder behind a hover is
+         a compliance reminder nobody reads. What went is the list of the
+         four fields, which the form above it already shows. */""}Item facts only &mdash; no name, no address, no ID.${(()=>{const t=soldStats(dealKey());return t?` You've sold ${t.n} of these.`:"";})()}</div>`
     :`<div class="cardHint" style="margin-top:7px">Logging is not available on this device.</div>`}
   </div>`;
 }
@@ -3977,7 +3988,15 @@ function askDoneHTML(x){
       is held to one screen and was at 960 of 960. The budget is not
       negotiable just because my link is nice to have, and this sentence
       already ends where a link can follow it. */""}${st.struckKind!=="buy"?` <button type="button" class="adSched" id="toSchedule">Full schedule &rsaquo;</button>`:""}</div>
-    ${struckHTML(x)}
+    ${/* THE LOG STRIP WAS THE WHOLE OVERAGE, MEASURED TO THE PIXEL.
+          On the Item tab at 150% Windows scaling: colQ shows 552px and
+          held 848. The strip is 297px. The overage was 296.
+          It is also not an Item: "what you actually did - the number that
+          gets logged" is the record of a deal, and it already knows which
+          deal it is, because it reads st.struckKind and says Lent or
+          Bought. So it moves to whichever tab that is, where there is room
+          for it, and the Item tab fits the screen without one. */""}
+    ${itemTabbed(x)?"":struckHTML(x)}
     <!-- ANYTHING ELSE IS A NOTEPAD, NOT A QUESTION, AND IT IS STEP 8 NOW.
          Moving it after the condition made it the last card - and the
          answer card replaces the last card, so the box would have been
@@ -4263,6 +4282,93 @@ function brandAnswer(x){
               st.model||"",st.detail||""].map(t=>String(t).trim()).filter(Boolean);
   return bits.length?esc(bits.join(" \u00b7 ")):"not set";
 }
+/* "GET RID OF THESE EXTREMLY LONG AND WORDY EXPLANATIONS. MAYBE AN INFO
+   BUTTON THAT WE CAN HOVER OVER AND GET MORE DETAIL."
+
+   The standing complaint about this tool, said plainly enough this time to
+   build against. Measured on a finished DeWalt: 705 words across six cards,
+   and the single worst was the redemption card at 258.
+
+   One button, one store of text. The short sentence stays on the card; the
+   paragraph lives in here and appears on hover or on tap. Tap matters: the
+   phone has no hover, and a detail only a mouse can reach is a detail the
+   field screen does not have. */
+const INFO={
+ "sale-why":"A buy is a nought-day position. You own it the moment you pay, so the only risk is whether it sells and for how much \u2014 there is no 60-day clock and nothing to hand back. That is why the buy rate is higher than the lend rate on the same item.",
+ "pawn-clock":"Day 30 the ticket matures. You must then hold it 30 more days. Not redeemed by day 60 and title passes to you automatically \u2014 no notice, no letter, no auction. Within the first 30 days only he, or his attorney-in-fact, may redeem it.",
+ "pawn-charge":"After day 60 it keeps running at the 30-day charge split over 30 days. All of that is \u00a7 539.001(11)(b) and (c), not shop policy \u2014 the rate for a late redemption is set by statute, not priced by you, and charging above it voids the transaction.",
+ "log-what":"Leave it empty and the log keeps the suggested figure. Type what you actually handed over instead \u2014 the shop's own price book is built out of this number, so a typed figure teaches it and a blank one does not.",
+ "evidence":"Sold prices are what somebody paid. Asking prices are what a seller hopes for and run high. A built-in figure is neither \u2014 it is this book's starting point for the kind of thing it is. The bar shows which one is behind the number."
+};
+function infoBtn(key){
+  const t=INFO[key]; if(!t)return "";
+  return `<button type="button" class="infoBtn" data-info="${esc(key)}"
+    aria-label="More detail">i<span class="infoPop" role="tooltip">${esc(t)}</span></button>`;
+}
+/* TABS ACROSS THE TOP, BECAUSE EVERYTHING WAS IN ONE COLUMN.
+   "we need tabs across the top so i canfind everything. the item, the
+   pawn, the sale" - and before that, "im also tired of the constant
+   scrolling and scrolling of windows with info buried under other
+   windowss."
+
+   Measured first. At 100% Windows scaling nothing scrolls, which is why I
+   had never seen it: every suite in this repo runs at 1400x900 or wider.
+   At HIS scaling it is a third of the column:
+
+     100%  1990x1180  colQ hides   0px
+     125%  1592x944   colQ hides  38px   5%
+     150%  1327x787   colQ hides 284px  34%
+     175%  1138x674   colQ hides 405px  47%
+
+   So a third of the work area was below an internal scrollbar on the
+   machine it is used on, and the tool was built and measured at a size
+   nobody runs it at.
+
+   Three names, his words. Item is what it is and what it sells for - the
+   run, the research, the evidence. Pawn is the loan and what it costs to
+   get back. Sale is buying it outright and what you make. Nothing is
+   removed; it is the same cards, routed, so each tab is short enough to
+   need no scrollbar. */
+/* THE SALE SIDE, WHICH HAD NO CARD OF ITS OWN. Buying outright was two
+   numbers inside the answer card and a sentence about margin. On the phone
+   it is the whole job; on the desk it was a tile. It gets a tab, so the
+   question "what do I make if I just buy it" has somewhere to be asked. */
+function saleTabHTML(x){
+  const made=Math.round(x.resale)-x.buy;
+  return `<div class="card">
+    <span class="label" style="margin:0">Buy it outright</span>
+    <div class="tiles" style="grid-template-columns:1fr 1fr 1fr;margin-top:12px">
+      <div class="widget"><div class="l">You pay</div><div class="v">${money(x.buy)}</div></div>
+      <div class="widget"><div class="l">It resells for</div><div class="v">${money(Math.round(x.resale))}</div></div>
+      <div class="widget" style="box-shadow:inset 0 1px 0 rgba(255,255,255,.13),inset 0 0 0 2px var(--accent)"><div class="l">You make</div><div class="v">${money(made)}</div></div>
+    </div>
+    <div class="cardHint">Yours the moment you pay \u2014 no ticket, no clock, nothing to give back. ${infoBtn("sale-why")}</div>
+    ${x.checked?"":`<div class="tagWarn"><b>Estimate.</b> Nothing has been looked up, so that resale figure is the built-in one.</div>`}
+  </div>`;
+}
+const ITEM_TABS=[
+  ["item","Item","what it is, and what it sells for"],
+  ["pawn","Pawn","the loan, and what it costs him back"],
+  ["sale","Sale","buying it outright"]];
+/* Whether the tab strip is carrying the layout. The answer card asks this
+   before deciding to draw the log strip itself, so there is exactly one
+   place that decides and the two cannot disagree. */
+function itemTabbed(x){
+  try{ return stepFlow()==="ask" && (st.picked||st.needItem) && runFinished(x||calcItem()); }
+  catch(e){ return false; }
+}
+function itemTab(){
+  const t=String(st.itemTab||"item");
+  return ITEM_TABS.some(z=>z[0]===t)?t:"item";
+}
+function itemTabsHTML(){
+  const cur=itemTab();
+  return `<div class="iTabs" role="tablist" aria-label="Which part of the deal">`
+    +ITEM_TABS.map(([id,lab,sub])=>
+      `<button type="button" class="iTab${id===cur?" on":""}" role="tab"
+         aria-selected="${id===cur}" data-itab="${id}" title="${esc(sub)}">${esc(lab)}</button>`).join("")
+    +`</div>`;
+}
 function renderItem(){
   const x=calcItem(); const cat=x.cat;
   /* the pipeline: 1 category → 2 item → 3 your resale → 4 what changes it → 5 rate → 6 THE LOAN → 7 the rules */
@@ -4512,17 +4618,42 @@ function renderItem(){
   /* needItem runs too: the category is chosen, the thing in it is not, and
      the question that settles it is the first one in the queue. Gating on
      st.picked alone sent that screen to the step list instead. */
-  if(stepFlow()==="ask"&&(st.picked||st.needItem))
+  if(stepFlow()==="ask"&&(st.picked||st.needItem)){
+    /* THE TABS BELONG ON THE BRANCH THAT ACTUALLY RUNS. My first attempt
+       put them on the deskRail() layout below, which is not the one a
+       finished run lands on - the run stays in the ask flow, so the tabs
+       rendered nowhere and all three read identical. The test caught it by
+       counting [data-itab] on screen: zero.
+
+       DURING the run there are no tabs. The run is linear, one question at
+       a time, and Pawn and Sale have nothing to show until it is answered.
+       They appear when it is finished, which is the moment he starts
+       needing to find things rather than be led. */
+    const done=runFinished(x);
+    const tab=done?itemTab():"item";
+    const body=!done
+      ? `${askHTML(x)}<div id="ticket">${ticketHTML(x)}</div>${leftRef}${camRef}${logRef}`
+      : tab==="pawn" ? `<div id="ticket">${ticketHTML(x)}</div>${struckHTML(x)}`
+      : tab==="sale" ? `${saleTabHTML(x)}${struckHTML(x)}${logRef}`
+      : `${askHTML(x)}${leftRef}${camRef}`;
     return omniHTML()
       +(deskWide()
         ? (pin=>`<div class="rail"><div id="pin">${pin}</div>${weightHTML(x)}${railGuardHTML(x,pin)}${railComps?compsCardHTML(x):""}</div>`)(pinHTML(x))
-          +`<div class="colQ">${askHTML(x)}<div id="ticket">${ticketHTML(x)}</div>${leftRef}${camRef}${logRef}</div>`
-        : `<div id="pin">${pinHTML(x)}</div>`+weightHTML(x)+askHTML(x)
-          +`<div id="ticket">${ticketHTML(x)}</div>`+logRef);
-  if(deskRail())return omniHTML()+nextStepHTML(x)
-    +(pin=>`<div class="rail"><div id="pin">${pin}</div>${weightHTML(x)}${railGuardHTML(x,pin)}${railComps?compsCardHTML(x):""}</div>`)(pinHTML(x))
-    +`<div class="colQ">${left}${mid}<div id="ticket">${ticketHTML(x)}</div>`
-      +`${leftRef}${camRef}${logRef}</div>`;
+          +`<div class="colQ">${done?itemTabsHTML():""}${body}</div>`
+        : `<div id="pin">${pinHTML(x)}</div>`+weightHTML(x)
+          +(done?itemTabsHTML():"")+body);
+  }
+  if(deskRail()){
+    /* Each tab carries only its own cards, so none of them is tall enough
+       to need the scrollbar that was eating a third of this column. */
+    const tab=itemTab();
+    const body=tab==="pawn" ? `<div id="ticket">${ticketHTML(x)}</div>`
+             : tab==="sale" ? `${saleTabHTML(x)}${logRef}`
+             : `${left}${mid}${leftRef}${camRef}`;
+    return omniHTML()+nextStepHTML(x)
+      +(pin=>`<div class="rail"><div id="pin">${pin}</div>${weightHTML(x)}${railGuardHTML(x,pin)}${railComps?compsCardHTML(x):""}</div>`)(pinHTML(x))
+      +`<div class="colQ">${itemTabsHTML()}${body}</div>`;
+  }
   /* The meter went out with the rail, and the rail needs 1080px - so on a
      phone, and on a tablet held upright, the one card that says how much
      evidence is behind the number simply did not exist. It was asked for
@@ -4543,11 +4674,42 @@ function wireItem(){
      shut under the hand that opened it. */
   const ts=document.getElementById("toSchedule");
   if(ts)ts.onclick=()=>{
-    st.openPayback=true;
+    /* THE LINK AND THE THING IT OPENS ARE ON DIFFERENT TABS NOW. The
+       schedule lives inside the ticket card, which is the Pawn tab; the
+       link sits on the answer card, which is Item. Setting openPayback
+       alone left him on Item with nothing visibly changed - check-pricing
+       caught it, because the rungs it reads came back empty.
+       So it SWITCHES, which is what a link between two tabs has to do, and
+       is a better answer than the fold ever was: one press and he is
+       looking at the schedule rather than at a fold he has to find. */
+    st.openPayback=true; st.itemTab="pawn";
+    try{ persist(); }catch(e){}
     const go=()=>{ const d=document.getElementById("paybackFold");
       if(d){ d.open=true; if(d.scrollIntoView)d.scrollIntoView({block:"start",behavior:"smooth"}); } };
-    go(); try{ render(); }catch(e){} setTimeout(go,0);
+    try{ render(); }catch(e){} go(); setTimeout(go,0);
   };
+  /* The tab strip. Keyboard too: a tablist a mouse can reach and a keyboard
+     cannot is half a control. */
+  v.querySelectorAll("[data-itab]").forEach(b=>{
+    b.onclick=()=>{ st.itemTab=b.dataset.itab; try{ persist(); }catch(e){} render(); };
+    b.onkeydown=e=>{
+      const i=ITEM_TABS.findIndex(z=>z[0]===b.dataset.itab);
+      if(e.key==="ArrowRight"||e.key==="ArrowLeft"){
+        e.preventDefault();
+        const n=(i+(e.key==="ArrowRight"?1:ITEM_TABS.length-1))%ITEM_TABS.length;
+        st.itemTab=ITEM_TABS[n][0]; render();
+        const el=document.querySelector('[data-itab="'+ITEM_TABS[n][0]+'"]'); if(el)el.focus();
+      }};
+  });
+  /* The info button opens on tap as well as hover - the phone has no
+     hover, and a detail only a mouse can reach is one the field screen
+     does not have. */
+  v.querySelectorAll("[data-info]").forEach(b=>{
+    b.onclick=e=>{ e.preventDefault(); e.stopPropagation();
+      const was=b.classList.contains("open");
+      v.querySelectorAll("[data-info].open").forEach(o=>o.classList.remove("open"));
+      if(!was)b.classList.add("open"); };
+  });
   const br=document.getElementById("browseBox");
   if(br)br.ontoggle=()=>{ st.browse=br.open; };
   /* Opened by hand, it stays open through the re-render a click inside it
@@ -4645,7 +4807,12 @@ function wireItem(){
     const xx=calcItem();
     const vn=document.getElementById("valNum");if(vn)vn.textContent=money(xx.baseValue*xx.brandMult);
     const vs=document.getElementById("valSub");if(vs)vs.textContent=valSubText(xx).replace(/<[^>]*>/g,"");
-    document.getElementById("ticket").innerHTML=ticketHTML(xx); paintPin(xx);
+    /* GUARDED, BECAUSE #ticket IS NOT ALWAYS ON THE SCREEN NOW. The Pawn
+       tab carries it; Item and Sale do not. Three call sites wrote to it
+       unguarded and check-wizard caught the crash the moment the tabs
+       landed - "Cannot set properties of null". Line 11701 had the guard
+       already; these did not. */
+    {const tk=document.getElementById("ticket"); if(tk)tk.innerHTML=ticketHTML(xx);} paintPin(xx);
     refreshStep4();
   };
   v.querySelectorAll("[data-cond]").forEach(b=>b.onclick=()=>{st.cond=b.dataset.cond;st.condSet=true;render();});
@@ -4786,7 +4953,12 @@ function wireItem(){
     const sv=document.getElementById("specVerdict");if(sv){sv.innerHTML=specVerdictHTML(xx);wireUseSpec();}
     const vn=document.getElementById("valNum");if(vn)vn.textContent=money(xx.baseValue*xx.brandMult*xx.specMult);
     const vs=document.getElementById("valSub");if(vs)vs.textContent=valSubText(xx).replace(/<[^>]*>/g,"");
-    document.getElementById("ticket").innerHTML=ticketHTML(xx); paintPin(xx);
+    /* GUARDED, BECAUSE #ticket IS NOT ALWAYS ON THE SCREEN NOW. The Pawn
+       tab carries it; Item and Sale do not. Three call sites wrote to it
+       unguarded and check-wizard caught the crash the moment the tabs
+       landed - "Cannot set properties of null". Line 11701 had the guard
+       already; these did not. */
+    {const tk=document.getElementById("ticket"); if(tk)tk.innerHTML=ticketHTML(xx);} paintPin(xx);
     refreshStep4();
   }
   function wireUseSpec(){
@@ -4844,7 +5016,7 @@ function wireItem(){
   wireStep4();
   const sl=document.getElementById("ltvSlider"), ln=document.getElementById("ltvNum");
   function ltvRefresh(){
-    document.getElementById("ticket").innerHTML=ticketHTML(calcItem()); paintPin(calcItem());
+    {const tk=document.getElementById("ticket"); if(tk)tk.innerHTML=ticketHTML(calcItem());} paintPin(calcItem());
     refreshStep4(); refreshBuyRate();
     const c=CATALOG.find(x=>x.id===st.catId);
     document.getElementById("ltvSuggest").innerHTML=ltvSuggestHTML(c,st.ltvs[st.catId]??c.ltv);
@@ -11147,7 +11319,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="1003.2040";
+const APP_BUILD="1003.2115";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
