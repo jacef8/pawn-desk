@@ -2210,6 +2210,13 @@ console.log("\n  the trend warns, suggests, and can be ignored");
     out.fullLen = card ? card.innerText.length : 0;
     out.faceLen = card ? out.faceWords : 0;
     out.lit = !!document.querySelector(".mWarn.on");
+    /* Where the double-charge reassurance went. Read off the popup that is
+       actually in the page, not out of INFO, so a button drawn without
+       its text still fails. */
+    out.doubleInfo = (() => {
+      const p = document.querySelector(".mWarn .infoBtn .infoPop");
+      return p ? (p.textContent || "").replace(/\s+/g, " ").trim() : null;
+    })();
     out.button = !!document.getElementById("useTrend");
     /* pressing it sets the rate, and nothing else moves */
     const before = curRate();
@@ -2242,9 +2249,29 @@ console.log("\n  the trend warns, suggests, and can be ignored");
     ["lower than the rate without the trend read", r.rate && r.rate.pay < r.rate.bare],
     ["and it SHOWS that other rate, so ignoring it is a real choice",
      !!(r.strip && r.strip.includes(r.rate.bare + "%"))],
-    ["it says the guard has not already charged this",
-     !!(r.strip && /not the same one twice/i.test(r.strip))],
-    ["it calls itself a suggestion, not a rule", !!(r.strip && /not a rule/i.test(r.strip))],
+    /* TWO ASSERTIONS WENT RED WHEN THE SCREEN WAS SHORTENED, AND THEY ARE
+       TWO DIFFERENT CASES.
+
+       The first one's INTENT MOVED. "not the same one twice" answers a
+       real worry - that the direction read and the volatility guard are
+       charging for the same thing - and that worry is worth answering
+       somewhere, not necessarily in the sentence over the button. It is
+       in the info button now, so the assertion follows it there: the
+       reassurance still has to EXIST and still has to be reachable, which
+       is what this tests. Checking the strip for it would be checking
+       that the cleanup did not happen.
+
+       The second one MATCHED WORDING, and the meaning is intact. "A
+       suggestion, not a rule" became "Work off 85% if you read it
+       differently" - the same claim, in fewer words, and saying what to
+       do rather than what the thing is. The row above already proves the
+       other rate is on screen; this one now proves he is told he may use
+       it. If both of those are true the screen cannot read as binding,
+       whatever words it uses. */
+    ["the double-charge worry is answered somewhere he can reach",
+     !!(r.doubleInfo && /not .*same thing twice|same one twice/i.test(r.doubleInfo))],
+    ["and the suggested rate does not read as binding",
+     !!(r.strip && /if you read it differently|not a rule/i.test(r.strip))],
     ["there is a button to take it", r.button === true],
     ["and pressing it moves the rate to the suggestion", r.took && r.took.after === r.rate.pay],
     ["the trim is small — never more than 5 points", !!(r.now && r.now.cut <= 5)],

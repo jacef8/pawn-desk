@@ -4460,12 +4460,66 @@ const INFO={
  "pawn-clock":"Day 30 the ticket matures. You must then hold it 30 more days. Not redeemed by day 60 and title passes to you automatically \u2014 no notice, no letter, no auction. Within the first 30 days only he, or his attorney-in-fact, may redeem it.",
  "pawn-charge":"After day 60 it keeps running at the 30-day charge split over 30 days. All of that is \u00a7 539.001(11)(b) and (c), not shop policy \u2014 the rate for a late redemption is set by statute, not priced by you, and charging above it voids the transaction.",
  "log-what":"Leave it empty and the log keeps the suggested figure. Type what you actually handed over instead \u2014 the shop's own price book is built out of this number, so a typed figure teaches it and a blank one does not.",
- "evidence":"Sold prices are what somebody paid. Asking prices are what a seller hopes for and run high. A built-in figure is neither \u2014 it is this book's starting point for the kind of thing it is. The bar shows which one is behind the number."
+ "evidence":"Sold prices are what somebody paid. Asking prices are what a seller hopes for and run high. A built-in figure is neither \u2014 it is this book's starting point for the kind of thing it is. The bar shows which one is behind the number.",
+ /* ══ THE SETUP SCREEN'S PARAGRAPHS ═══════════════════════════════════
+    "get rid of these extemrly long and wordy explanations. maybe an info
+    button that we can hover over and get more detail." Said twice, and the
+    info button he asked for was built for the item screens and never
+    reached the screen that needed it most.
+
+    Measured every screen state on both surfaces before cutting anything,
+    counting every visible word:
+
+      phone  home 56   mid-run 80-109   finished 82-84   SETUP 248
+      desk   home 163  mid-run 192-203  finished 340-363 SETUP 450
+
+    Setup was the wordiest screen in the tool on both, and one block was a
+    third of it: 153 words explaining four layout modes, permanently on
+    screen, under four buttons whose names already say what they do. That
+    is documentation, and documentation is what an info button is for.
+
+    Each entry below came off the screen and went in here. Nothing was
+    deleted - every one of these is reachable in one tap or hover. */
+ "flow-modes":"One question at a time: one question on the screen, big answers, and answering it moves on by itself. Back, or any dot, goes anywhere. One page at a time: one job to a page \u2014 what it is, what it is worth, condition, your offer \u2014 with the price always on top. It is the default, because everything at once is thirteen cards. One step at a time: the step you are on, with the rest folded to a line carrying its answer. The way the phone works, and it fits an item on about one screen. Everything open: every step expanded at once, the old layout.",
+ "own-prices":"tools/pawn-desk-prices.xlsx in the repository has all of them, a sheet per kind of thing, and a spreadsheet beats a phone screen for going through them. Blank rows are left exactly as they are, so a few at a time is fine.",
+ "handoff-qr":"The link works once per device, and wipes itself out of the phone's address bar as soon as it is read \u2014 so the token never goes into a text message or sits in a history.",
+ "shelf-move":"With the service on, Sync on the pricing page does this by itself. These two are for moving the record by hand between devices, or for keeping a copy.",
+ "hard-reload":"This throws away the files this browser has cached and fetches them again from the site. Nothing you have recorded is touched \u2014 shelf tags, listings and the deal log are kept separately.",
+ /* THREE OF THESE CAME BACK AT 19 TO 24 WORDS AND check-tabs WAS RIGHT
+    TO GO RED. Its rule is that an info button holds a real paragraph,
+    not the same six words the label already said - which is the
+    difference between moving an explanation off a screen and pretending
+    to. A fact that short was never the clutter; it either belongs on the
+    screen or it belongs here with the rest of what it means. These three
+    had the rest. */
+ "conn-test":"It sends a real request, the same way the camera does, and prints what comes back. A good answer names the service and the lookups it can reach. A bad one says which part failed \u2014 the address, the token, or the service itself being down \u2014 so you are not guessing which of the three to fix.",
+ "device-each":"Every phone and tablet keeps its own copy of the settings, so each one has to be told once. A device nobody told looks like it is working: it prices things off the built-in figures and simply never looks anything up. If a phone is quiet about sold prices, this is the first thing to check.",
+ "token-key":"The token is the only thing between the open internet and this shop's lookups, and the lookups cost money, so treat it like a key to the building. If a phone goes missing, change PAWN_TOKEN in Railway and switch each device on again \u2014 that locks out the lost one and nothing else.",
+ /* The gold screen was 720 words, more than any other screen in the tool,
+    and these two hints were 93 of them. Both say why the arithmetic is
+    what it is, which is what this map is for. The suggested-rate line
+    kept its arithmetic and lost its market analysis to infoBtnText,
+    which takes the text rather than a key because that half is worked
+    out this morning. */
+ "melt-policy":"Shop policy, set here and kept \u2014 it does not reset tomorrow. The trade puts a walk-in counter at 75\u201385% of melt on a gold buy; a mail-in refiner pays 85\u201395% and holds nothing for 30 days.",
+ "melt-avg":"A buy is priced off today's price: scrap ships fast and the spread is the profit. A loan is a 60-day bet, so it is priced off the LOWER of today's price or this average \u2014 if today is a peak, the loan is sized as if the peak never happened.",
+ "melt-double":"This is for the DIRECTION the market has been going. How hard it is swinging is priced into the guard below instead, so the two are not charging you for the same thing twice.",
+ "log-why":"After a few months this list is worth more than any outside price guide \u2014 it is the only record of what things actually bring in Bristol."
 };
 function infoBtn(key){
   const t=INFO[key]; if(!t)return "";
-  return `<button type="button" class="infoBtn" data-info="${esc(key)}"
-    aria-label="More detail">i<span class="infoPop" role="tooltip">${esc(t)}</span></button>`;
+  return infoBtnText(t,key);
+}
+/* THE DETAIL IS NOT ALWAYS A FIXED STRING.
+   The gold card's long half is worked out this morning - how far off the
+   peak, which side of the 200-day average, how hard it is swinging - so it
+   cannot live in the INFO map. The popup text is already inline in the
+   HTML, so taking the text instead of a key costs nothing. The handler
+   only looks for data-info. */
+function infoBtnText(t,key){
+  if(!t)return "";
+  return `<button type="button" class="infoBtn" data-info="${esc(key||"x")}"
+    aria-label="More detail">i<span class="infoPop" role="tooltip">${esc(String(t).replace(/<[^>]+>/g,""))}</span></button>`;
 }
 /* TABS ACROSS THE TOP, BECAUSE EVERYTHING WAS IN ONE COLUMN.
    "we need tabs across the top so i canfind everything. the item, the
@@ -4826,6 +4880,29 @@ function renderItem(){
     +`<div id="pin">${pinHTML(x)}</div>`+weightHTML(x)
     +left+mid+right;
 }
+/* THE TAP HANDLER WAS WIRED INSIDE wireItem, AND ONLY THE ITEM PAGE RUNS IT.
+   Caught by the assertion in check-words that says an info button has to
+   OPEN - which is the whole premise of moving words into one. The button
+   was drawn on setup and on the gold screen, the popup existed, and on a
+   desk it even appeared, because CSS shows it on :hover. On a phone there
+   is no hover. So the detail those screens had just handed to an info
+   button was, on the field surface, gone.
+
+   Exactly the failure the suite's own comment calls a deletion with extra
+   steps, found the first time anything asked the button to work. It is
+   wired for every screen now, off the view element, after whichever
+   render drew it. */
+function wireInfo(){
+  const v=document.getElementById("view"); if(!v)return;
+  /* Opens on tap as well as hover - the phone has no hover, and a detail
+     only a mouse can reach is one the field screen does not have. */
+  v.querySelectorAll("[data-info]").forEach(b=>{
+    b.onclick=e=>{ e.preventDefault(); e.stopPropagation();
+      const was=b.classList.contains("open");
+      v.querySelectorAll("[data-info].open").forEach(o=>o.classList.remove("open"));
+      if(!was)b.classList.add("open"); };
+  });
+}
 function wireItem(){
   const v=document.getElementById("view");
   /* Opened once, it stays open for the session - thumbing the lists is a
@@ -4883,15 +4960,6 @@ function wireItem(){
         render();
         const el=document.querySelector('[data-itab="'+ITEM_TABS[n][0]+'"]'); if(el)el.focus();
       }};
-  });
-  /* The info button opens on tap as well as hover - the phone has no
-     hover, and a detail only a mouse can reach is one the field screen
-     does not have. */
-  v.querySelectorAll("[data-info]").forEach(b=>{
-    b.onclick=e=>{ e.preventDefault(); e.stopPropagation();
-      const was=b.classList.contains("open");
-      v.querySelectorAll("[data-info].open").forEach(o=>o.classList.remove("open"));
-      if(!was)b.classList.add("open"); };
   });
   const br=document.getElementById("browseBox");
   if(br)br.ontoggle=()=>{ st.browse=br.open; };
@@ -5399,10 +5467,19 @@ function suggestRate(){
   const todayCut=meltCut(metal,S?S.band:"normal","loan");
   const lands=Math.round(base*(1-todayCut/100));
   let cut=0;
+  /* THE REASONING COMES OFF THE SCREEN AND THE ARITHMETIC STAYS ON IT.
+     Measured: this card was the longest block of prose in the tool, ~95
+     words above a slider, and most of it was market analysis - how far off
+     the 12-month peak, which side of the 200-day average, the annual
+     swing, which fifth of its own history. All true, none of it the thing
+     he is about to do, and the guard it explains is already a row in the
+     ladder below. So `why` is the arithmetic he is being asked to agree
+     with, and `more` is why, one tap away. */
   let why=`a pawn is a 60-day position, so it aims lower: <b>${tgt}% of melt</b>. The ${todayCut.toFixed(1)}% guard for 60 days brings it to about <b>${lands}%</b> out the door`;
-  if(s.trend&&s.trend.cut>0){ cut+=s.trend.cut; why+=`. And ${String(s.trend.detail||"").replace(/\.$/,"")}`; }
+  let more="";
+  if(s.trend&&s.trend.cut>0){ cut+=s.trend.cut; more=String(s.trend.detail||"").replace(/\.$/,"")+"."; }
   return {pay:Math.max(25,Math.round(base-cut)),
-          bare:Math.max(25,Math.round(base)), trend:s.trend, target:tgt, lands, why};
+          bare:Math.max(25,Math.round(base)), trend:s.trend, target:tgt, lands, why, more};
 }
 function syncPay(){
   if(curTouched()) return;
@@ -5454,11 +5531,10 @@ function suggestHTML(){
   if(!s)return "";
   const match=curRate()===s.pay;
   return `<div class="cardHint" style="border-top:1px solid rgba(255,255,255,.08);margin-top:10px;padding-top:9px">
-    <span style="color:var(--accent);font-family:var(--mono);font-weight:600">Suggested today: ${s.pay}%</span> — ${s.why}.
-    ${match?`<span style="color:var(--ink-2)"> ${curTouched()?"You're on it.":"Filled in for you \u2014 drag the slider to set your own for today."}</span>`
+    <span style="color:var(--accent);font-family:var(--mono);font-weight:600">Suggested today: ${s.pay}%</span> — ${s.why}.${s.more?" "+infoBtnText(s.more,"melt-trend"):""}
+    ${match?`<span style="color:var(--ink-2)"> ${curTouched()?"You're on it.":"Drag the slider to set your own."}</span>`
       :`<button id="useSuggest" class="ghostBtn" style="padding:5px 12px;font-size:11.5px;margin-left:8px">Use ${s.pay}%</button>`}
-    <div class="rateRow" style="margin-top:12px"><span class="label">What you aim to pay, as a share of melt (%)</span><input id="meltTgtNum" class="numIn rateNum" type="number" inputmode="numeric" min="30" max="100" value="${meltTarget(st.metal,PAWN()?"loan":"buy")}"></div>
-    <div class="cardHint" style="font-size:12.5px">Shop policy, set here and kept \u2014 it does not reset tomorrow. The trade puts a walk-in counter at 75\u201385% of melt on a gold buy; a mail-in refiner pays 85\u201395% and holds nothing for 30 days.</div>
+    <div class="rateRow" style="margin-top:12px"><span class="label">What you aim to pay, as a share of melt (%) ${infoBtn("melt-policy")}</span><input id="meltTgtNum" class="numIn rateNum" type="number" inputmode="numeric" min="30" max="100" value="${meltTarget(st.metal,PAWN()?"loan":"buy")}"></div>
     ${meltLadderHTML()}
   </div>`;
 }
@@ -5796,10 +5872,15 @@ function metalGuardHTML(metal){
       ${(()=>{ const S=suggestRate();
         if(!(T.cut>0&&S))return "";
         const on=curRate()===S.pay;
-        return `<div class="ask">Suggested ${lending?"lending":"buy"} rate <b>${S.pay}%</b>, not <b>${S.bare}%</b>, for the direction.
-          How hard it is moving is priced in the guard below, not here &mdash; not the same one twice.
+        /* THREE CLOSERS IN FORTY-FIVE WORDS. "not the same one twice" and
+           "a suggestion, not a rule" both restated the line above them
+           rather than adding anything, and the first one answers a worry
+           about double-counting that is worth answering - in the button,
+           where a worry belongs. What is left is the number, the button,
+           and what to do if he disagrees. */
+        return `<div class="ask">Suggested ${lending?"lending":"buy"} rate <b>${S.pay}%</b>, not <b>${S.bare}%</b>, for the direction. ${infoBtn("melt-double")}
           ${on?`<span class="ison">You're on it.</span>`:`<button class="ghostBtn" id="useTrend">Use ${S.pay}%</button>`}
-          <span class="no">A suggestion, not a rule &mdash; work off ${S.bare}% if you read it differently.</span></div>`;
+          <span class="no">Work off ${S.bare}% if you read it differently.</span></div>`;
       })()}
     </div>`:""}
     ${metalChartHTML(metal)}
@@ -6030,7 +6111,7 @@ function renderMetal(){
   </div>`;
   const avgCard=()=>`<div class="card"><span class="label">${n()} &middot; 90-day average — the peak guard</span>
     <input id="avgIn" type="number" inputmode="decimal" value="${avg}" class="numIn">
-    <div class="cardHint">Auto-filled by the morning feed. A buy is priced off today's price — scrap ships fast, and the spread is the profit. A loan is a 60-day bet, so it is priced off the LOWER of today's price or this average: if today is a peak, the loan is sized as if the peak never happened.</div>
+    <div class="cardHint">Auto-filled by the morning feed. ${infoBtn("melt-avg")}</div>
   </div>`;
   const rb=rateBounds();
   /* THE SCALE COMES FIRST.
@@ -6492,11 +6573,14 @@ let shPend=null, shMsg="";
 function sheetCardHTML(){
   const n=(CATALOG.reduce((a,c)=>a+c.items.length,0))+PRICEBOOK.length+MODEL_PRICES.length;
   const mine=Object.keys(st.overrides||{}).length+Object.keys(st.bookVals||{}).length+Object.keys(st.modelVals||{}).length;
-  return `<div class="card"><span class="label">Your own prices, from a spreadsheet</span>
-    <div class="cardHint" style="margin-top:0">The tool prices <b style="color:var(--ink)">${n}</b> things, and a spreadsheet
-      beats a phone screen for going through them. <b style="color:var(--ink)">tools/pawn-desk-prices.xlsx</b> in the repository has
-      every one, a sheet per kind of thing. Put what you actually get for it in the <b style="color:var(--ink)">YOUR VALUE</b> column,
-      save that sheet as CSV, and drop it here. Blank rows are left exactly as they are.</div>
+  /* The steps STAY on the screen. An info button is for the reasons and
+     the background, not for what he has to do next - hiding an instruction
+     behind a hover is the same bug as burying it in a paragraph. What went
+     into the button is why a spreadsheet, where the file lives, and what
+     happens to a blank row. */
+  return `<div class="card"><span class="label">Your own prices, from a spreadsheet ${infoBtn("own-prices")}</span>
+    <div class="cardHint" style="margin-top:0">Put what you get for it in the <b style="color:var(--ink)">YOUR VALUE</b> column,
+      save the sheet as CSV, and drop it here. ${n} things priced.</div>
     ${mine?`<div class="tagNote" style="margin-top:9px"><b style="color:var(--accent)">${mine}</b> of them are already carrying your numbers rather than the built-in ones.</div>`:""}
     <div class="row2" style="gap:9px;flex-wrap:wrap;margin-top:10px">
       <label class="brassBtn" style="cursor:pointer;margin:0;padding:11px 18px">Choose the CSV
@@ -6534,14 +6618,22 @@ function sheetPreviewHTML(){
 /* Everything about this copy of the tool rather than about an item: which
    build it is running, how the pricing page is laid out, and moving the
    shelf record by hand. None of it is part of buying or lending. */
+/* One line each, for the mode he is actually in. The other three are a
+   hover away rather than three paragraphs he is not reading. */
+const FLOW_LINE={
+  ask:"One question on the screen at a time. Answering it moves on.",
+  pages:"One job to a page, with the price always on top.",
+  steps:"The step you are on; the rest folded to a line.",
+  all:"Every step expanded at once."
+};
 function renderSetup(){
   return `<div class="narrow">
 
   <div class="card"><span class="label">This copy of the tool</span>
     <div class="cardHint" style="margin-top:0">Running <b style="color:var(--ink);font-family:var(--mono)">${APP_BUILD}</b>${st.newBuild
       ?` &mdash; the site has <b style="color:var(--warn);font-family:var(--mono)">${esc(st.newBuild)}</b>, so this device is behind. Fetch it.`
-      :` &mdash; the newest there is.`} The same number sits beside SYS.OK at the top, so you can tell at a glance what a device is actually running.</div>
-    <div class="row2" style="margin-top:9px"><button class="ghostBtn" id="pdFresh">Get the newest version</button></div>
+      :` &mdash; the newest there is.`} It also sits beside SYS.OK at the top of every screen.</div>
+    <div class="row2" style="margin-top:9px;align-items:center"><button class="ghostBtn" id="pdFresh">Get the newest version</button>${infoBtn("hard-reload")}</div>
   </div>
   ${pdServer()?harvCardHTML():""}
   ${sheetCardHTML()}
@@ -6549,41 +6641,40 @@ function renderSetup(){
     <div class="cardHint" style="margin-top:0"><b style="color:var(--accent)">This phone is on.</b> It can look up what things sold for, and the camera works \u2014 the card for it is on the <b style="color:var(--ink)">Check a price</b> tab, headed <i>Snap it</i>.</div>
   </div>`:""}
   ${window.PHONE||!pdServer()?"":`<div class="card"><span class="label">Switching another device on</span>
-    <div class="cardHint" style="margin-top:0">This computer is connected. Every phone and tablet keeps its own copy, so each one has to be told once \u2014 point its camera at the code below, or type these two lines into it.</div>
+    <div class="cardHint" style="margin-top:0">This computer is connected. Point a phone\u2019s camera at the code below, or type these two lines into it. ${infoBtn("device-each")}</div>
     ${pdServer()?`<span class="label" style="margin-top:12px">Service address</span>
     <div class="roOut" style="user-select:all">${esc(pdServer())}</div>
     <span class="label" style="margin-top:10px">Token</span>
     <div class="roOut" style="user-select:all">${esc(pdToken()||"(none set)")}</div>
     ${typeof qrSVG==="function"?`<div style="margin-top:12px;display:flex;gap:16px;align-items:center;flex-wrap:wrap">
       <div style="background:#fff;padding:9px;border-radius:10px;line-height:0">${qrSVG(pdHandoffLink(),196)}</div>
-      <div class="cardHint" style="margin:0;flex:1;min-width:190px">Open the phone\u2019s camera and point it at this. Tap the link it offers and the phone switches itself on \u2014 nothing to type, and the token never goes into a text message.<br><br>The link works once per device and wipes itself out of the phone\u2019s address bar as soon as it is read.</div>
+      <div class="cardHint" style="margin:0;flex:1;min-width:190px">Point the phone\u2019s camera at this and tap the link. Nothing to type. ${infoBtn("handoff-qr")}</div>
     </div>`:""}
     <div class="row2" style="margin-top:9px"><button class="ghostBtn" id="pdCopyConn" title="Copy both lines so you can send them to yourself">Copy both</button></div>
-    <div class="cardHint" style="font-size:12.5px">Treat the token like a key to the shop. If a phone goes missing, change PAWN_TOKEN in Railway and switch each device on again.</div>`:""}
+    <div class="cardHint" style="font-size:12.5px">The token is a key to the shop. ${infoBtn("token-key")}</div>`:""}
   </div>`}
   ${pdServer()?"":pdConnectHTML()}
   ${pdServer()?`<div class="card"><span class="label">Is the service working?</span>
-    <div class="cardHint" style="margin-top:0">Switched on and pointing at <b style="color:var(--ink)">${esc(pdServer())}</b>. This sends a real request the same way the camera does and says exactly what comes back &mdash; or exactly what is wrong.</div>
+    <div class="cardHint" style="margin-top:0">On, and pointing at <b style="color:var(--ink)">${esc(pdServer())}</b>. ${infoBtn("conn-test")}</div>
     <div class="row2" style="margin-top:9px"><button class="brassBtn" id="pdConnTest" style="padding:11px 18px">Test the connection</button>
       <button class="ghostBtn" id="pdConnOff">Disconnect</button></div>
     <div class="cardHint" id="pdConnMsg" style="min-height:16px"></div>
   </div>`:""}
   <div class="card"><span class="label">Move the shelf record between devices</span>
-    <div class="cardHint" style="margin-top:0">${seenAll().length} tag${seenAll().length===1?"":"s"} on this device. With the service on, <b style="color:var(--ink)">Sync</b> on the pricing page does this by itself &mdash; these are for moving the record by hand, or keeping a copy.</div>
+    <div class="cardHint" style="margin-top:0">${seenAll().length} tag${seenAll().length===1?"":"s"} on this device. ${infoBtn("shelf-move")}</div>
     <div class="row2" style="margin-top:9px;gap:8px;flex-wrap:wrap">
       <button class="ghostBtn" id="seenOut" title="Save every recorded tag to a file">Export</button>
       <label class="ghostBtn" style="margin:0;cursor:pointer" title="Load tags from a file exported on another device">Import<input id="seenImp" type="file" accept="application/json,.json" style="display:none"></label>
     </div>
   </div>
-${window.PHONE?"":`  <div class="card"><span class="label">How the pricing page is laid out</span>
+${window.PHONE?"":`  <div class="card"><span class="label">How the pricing page is laid out ${infoBtn("flow-modes")}</span>
     <div class="pills mb14" style="border-radius:var(--r-s);margin-top:8px;flex-wrap:wrap">
       <button class="${stepFlow()==="ask"?"on":""}" style="flex:1;padding:9px 6px;font-size:12px;min-width:110px" data-flow="ask">One question at a time</button>
       <button class="${stepFlow()==="pages"?"on":""}" style="flex:1;padding:9px 6px;font-size:12px;min-width:110px" data-flow="pages">One page at a time</button>
       <button class="${stepFlow()==="steps"?"on":""}" style="flex:1;padding:9px 6px;font-size:12px;min-width:110px" data-flow="steps">One step at a time</button>
       <button class="${stepFlow()==="all"?"on":""}" style="flex:1;padding:9px 6px;font-size:12px;min-width:110px" data-flow="all">Everything open</button>
     </div>
-    <div class="cardHint" style="margin-top:0"><b style="color:var(--ink)">One question at a time</b> is the questionnaire: one question on the screen, big answers, and answering it moves to the next by itself. The specifics &mdash; how many batteries, whether it is all there &mdash; are questions in the run rather than fields buried under it. Back, or tap any dot, to go anywhere.<br><b style="color:var(--ink)">One page at a time</b> puts one job on the screen &mdash; what it is, what it is worth, condition, your offer &mdash; with a bar to move between them and the price always on top. The default, because everything at once is thirteen cards.<br><b style="color:var(--ink)">One step at a time</b> shows the step you are on and folds the rest to a line carrying its answer &mdash; click any line to open it. The way the phone works, and it puts an item on about one screen.<br><b style="color:var(--ink)">Everything open</b> is the old layout, every step expanded at once.</div>
-    <div class="cardHint" style="font-size:12.5px">Throws away everything this browser has cached and reloads from the site. Nothing you have recorded is touched &mdash; the shelf tags, listings and deal log are kept separately.</div>
+    <div class="cardHint" style="margin-top:0">${esc(FLOW_LINE[stepFlow()]||"")}</div>
   </div>`}
   <details class="card foldCard" id="rulesFold"${st.openRules?" open":""}>
     <summary><span class="label" style="margin:0">Walk away, and what goes to the sheriff</span><span class="foldSub">the red flags, what we don't take, and the reporting deadlines</span></summary>
@@ -8239,7 +8330,10 @@ function renderLog(){
     return wrap(`<div class="card" style="text-align:center;color:var(--ink-3);padding:26px">Loading the log…</div>`);
   }
   if(!DEALS.length){
-    return wrap(`<div class="card"><p style="font-size:14px;line-height:1.6;margin:0;color:var(--ink-2)">Nothing logged yet. Price something on the first tab and hit <b style="color:var(--ink)">Log this deal</b>. After a few months this list is worth more than any outside price guide &mdash; it is the only record of what things actually bring in Bristol.</p></div>`);
+    /* 41 words on an empty screen, and the budget caught it once the
+       block measure could see past an inline <b>. The instruction stays;
+       the reason it is worth doing goes in the button. */
+    return wrap(`<div class="card"><p style="font-size:14px;line-height:1.6;margin:0;color:var(--ink-2)">Nothing logged yet. Price something on the first tab and hit <b style="color:var(--ink)">Log this deal</b>. ${infoBtn("log-why")}</p></div>`);
   }
   const open=DEALS.filter(d=>d.status==="open"), done=DEALS.filter(d=>d.status!=="open");
   const row=d=>{
@@ -11538,7 +11632,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="1004.1908";
+const APP_BUILD="1004.2141";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -13340,6 +13434,8 @@ function render(){
      its else, this line stole the else, and every screen that was not
      out of date drew the walk-away list instead of itself. */
   if(st.newBuild)v.insertAdjacentHTML("afterbegin",staleHTML());
+  /* Every screen, after whichever render drew it. */
+  try{ wireInfo(); }catch(e){}
   /* The spotting-fakes card shows on the item page and the metal page both,
      so its measurement boxes are wired after whichever one drew it. */
   try{ wireSpec(); }catch(e){}
