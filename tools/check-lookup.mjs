@@ -303,6 +303,115 @@ console.log("\n  the lookup starts itself when the desk knows exactly what it is
   await page.close();
 }
 
+/* ══════════════════════════════════════════════════════════════════════
+   THE BUTTON HE PRESSES, ON BOTH SURFACES.
+
+   "lets get the lookup working so i dont have to type prices."
+
+   Everything above calls priceFind(null, FALSE). Not one button does:
+   both surfaces' Look up, the desk's pdFindGo and the two photo paths all
+   pass true. So the saving the section above proves - "NO paid search was
+   fired" when eBay answers with sales - was proved on a code path the
+   counter cannot reach, and on the path he does reach three paid searches
+   went out on top of ten counted sold prices.
+
+   And the desk's one-question run, which is the DEFAULT layout, had no
+   lookup button at all on the price question. Measured: the only controls
+   were "Enter what one sold for", "Nothing to find", Back and Skip.
+   Typing was the only way to answer the question he asked to stop typing.
+
+   This section finds the button on the screen, presses it, and counts
+   what it spent.
+   ══════════════════════════════════════════════════════════════════════ */
+async function press(page, mode) {
+  /* the button, wherever the surface keeps it */
+  const btn = await page.evaluate(() => {
+    const b = document.getElementById("pdFindGo") || document.querySelector('[data-wact="look"]');
+    return b && !b.disabled ? {id: b.id || "", wact: b.dataset.wact || "",
+                               text: (b.textContent || "").trim().slice(0, 30)} : null;
+  });
+  if (!btn) return {btn: null};
+  await page.evaluate(() => {
+    const b = document.getElementById("pdFindGo") || document.querySelector('[data-wact="look"]');
+    if (b) b.click();
+  });
+  await page.waitForTimeout(2500);
+  return Object.assign({btn}, await page.evaluate(() => {
+    const x = calcItem(), t = compStats(compsMatch(x));
+    return {checked: !!x.checked, resale: Math.round(x.resale || 0),
+            n: t && t.n, sold: t && t.sold, msg: findMsg};
+  }));
+}
+
+for (const [tag, file, w, h] of [["the phone", "phone.html", 390, 844],
+                                 ["the desk", "index.html", 1500, 1000]]) {
+  console.log(`\n  ${tag}: one press on the real button`);
+  for (const mode of ["sold", "asks"]) {
+    const page = await browser.newPage({viewport: {width: w, height: h}});
+    const hits = [], errs = [];
+    page.on("pageerror", e => errs.push(String(e)));
+    await page.route("**/*", async route => {
+      const u = route.request().url();
+      if (!u.startsWith(SVC)) return route.continue();
+      const path = new URL(u).pathname;
+      hits.push(path);
+      const json = (code, body) => route.fulfill({status:code, contentType:"application/json",
+        headers:{"access-control-allow-origin":"*","access-control-allow-headers":"content-type,x-pawn-token"},
+        body:JSON.stringify(body)});
+      if (path === "/limits") return json(200, {ok:true, ebay:true,
+        images:{mediaTypes:["image/jpeg"],maxCount:4,maxBytes:5242880},
+        photo:{key:true, model:"m", usdPerMTok:{in:1,out:1}, dayCap:10, spentToday:0}});
+      if (path === "/sync") return json(200, {ok:true, mode:"memory", rows:[]});
+      if (path === "/ebay") return mode === "sold"
+        ? json(200, {ok:true, basis:"sold", source:"marketplace_insights", comps:soldComps(10)})
+        : json(200, {ok:true, basis:"asking", source:"browse", comps:askComps(10),
+                     warning:"sold data unavailable: this keyset is not granted Marketplace Insights"});
+      if (path === "/json") return json(200, searchBody(6));
+      return json(404, {ok:false});
+    });
+    await page.addInitScript(([srv, tok]) => {
+      localStorage.setItem("pawndesk_server", srv);
+      localStorage.setItem("pawndesk_token", tok);
+      try { localStorage.removeItem("pawndesk_comps"); } catch (e) {}
+    }, [SVC, "t"]);
+    await page.goto(BASE + "/" + file, {waitUntil:"networkidle"});
+    await page.waitForTimeout(800);
+    /* Typed, tapped, and standing on the price question - his route in. */
+    await page.fill("#omniIn", "Weber kettle grill");
+    await page.waitForTimeout(400);
+    const row = page.locator('#omniList [data-omni="0"]');
+    if (await row.count()) await row.click();
+    await page.waitForTimeout(450);
+    await page.evaluate(() => {
+      const Q = askQueue(calcItem());
+      const i = Q.findIndex(z => z.id === "worth");
+      if (i >= 0) st.askAt = i;
+      render();
+    });
+    await page.waitForTimeout(350);
+
+    const r = await press(page, mode);
+    const paid = hits.filter(h => h === "/json").length;
+    ok(!!r.btn, `  ${mode}: there is a lookup button on the price question${r.btn ? ` — "${r.btn.text}"` : " — NONE, typing is the only way"}`);
+    if (r.btn) {
+      ok(r.checked && r.resale > 0,
+         `    one press and it is priced at $${r.resale}, nothing typed`);
+      if (mode === "sold") {
+        /* THE MONEY ASSERTION. eBay is free; the searches are not. */
+        ok(paid === 0,
+           `    and it spent NOTHING on searches — ${paid} paid call(s) against 10 counted sales`);
+        ok(r.sold === 10, `    all ten kept as sold, got ${r.sold}`);
+      } else {
+        ok(paid > 0,
+           `    asks only, so it did pay to corroborate — ${paid} search(es)`);
+        ok(r.sold === 0, `    and none of them is called a sale, got ${r.sold}`);
+      }
+    } else { fails += 2; }
+    ok(!errs.length, `    no page errors${errs.length ? ": " + errs[0] : ""}`);
+    await page.close();
+  }
+}
+
 await browser.close();
 console.log(fails ? "\n  " + fails + " FAILED\n" : "\n  all passed\n");
 process.exit(fails ? 1 : 0);

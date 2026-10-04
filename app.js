@@ -12006,7 +12006,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="1005.0318";
+const APP_BUILD="1005.0624";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -12378,7 +12378,41 @@ function step4Inner(x,bare){
             there, and the two buttons share one row. 78 words, 553px. */""}
       <ol class="mkSteps"><li>${pdBridge?"Click a link. The page reads itself.":isTouch()?"Open one, screenshot the sold results, read it here.":"Open one, type the middle sold price in."}</li><li><b>Sold, not asking.</b> Skip odd rows — ran for minutes, or a different model. Middle of the rest.${who?"":` ${mpCount()} models have built-in prices.`}</li></ol>
       <div class="worthBtns">
-      <button class="brassBtn" id="valEdit">Enter what one sold for</button>
+      ${/* THE DESK HAD NO LOOKUP BUTTON ON THE QUESTION THAT NEEDS ONE.
+            "lets get the lookup working so i dont have to type prices."
+            Measured it against a mock service, both surfaces, with the
+            device connected. The phone works: one tap on Look up and a
+            figure lands. The desk's price question offered "Enter what
+            one sold for", "Nothing to find", Back and Skip - and nothing
+            else. Typing was the only way to answer it.
+
+            pdFindGo does exist, in nextStepHTML's step card, which the
+            one-question run does not render - and the one-question run is
+            the default layout. So the button was two layouts away from
+            the question it answers. Same shape of fault as the phone's
+            asking-price box: real code, wired, tested, on a screen
+            nobody is looking at.
+
+            It leads here, because it is the thing that does the work and
+            typing is the fallback. Same id and same message node as the
+            other copies so the existing handler and say() reach it
+            without a second path to drift. */""}
+      ${/* ONLY IN THE ONE-QUESTION RUN, WHICH IS THE LAYOUT THAT LACKED IT.
+            First go put it on every layout and made two elements share
+            the id pdFindGo on the desk - two visible in "one step at a
+            time" and in "everything open". The comment on the phone's
+            copy, twenty lines down, warns about precisely that: the
+            message gets written to whichever comes first, which is how it
+            once ended up on a hidden one. Measured it rather than reading
+            the comment and hoping: #pdFindGo=2 in three of four layouts.
+
+            The other layouts already carry a working button in their step
+            card. `bare` is true only from askWorth, so this adds the
+            button where it was missing and nowhere else. */""}
+      ${(bare&&typeof CAP!=="undefined"&&CAP.sample&&!ebayBlind(x))
+        ? `<button class="brassBtn" id="pdFindGo">${findBusy?"Looking it up\u2026":(x.checked?"Look it up again":"Look it up \u2014 everywhere")}</button>`
+        : ``}
+      <button class="${(bare&&typeof CAP!=="undefined"&&CAP.sample&&!ebayBlind(x))?"ghostBtn":"brassBtn"}" id="valEdit">Enter what one sold for</button>
       ${/* THE RUN HAD NO WAY OUT OF THIS QUESTION. Reported from the
             counter: "there's no screen at the end of the workflow that
             indicates there isn't any more steps to take until you look it
@@ -12397,6 +12431,7 @@ function step4Inner(x,bare){
             thing and is already everywhere else on the screen. */""}
       <button class="ghostBtn" id="worthNone">Nothing to find</button>
       </div>
+      ${(bare&&typeof CAP!=="undefined"&&CAP.sample&&!ebayBlind(x))?`<div class="cardHint" id="pdFindMsg">${esc(findMsg||"")}</div>`:``}
 `;
   }
   return h+ownCompsHTML(x);
@@ -13085,13 +13120,53 @@ async function priceFind(signal,all){
     const cs=((r.value&&r.value.comps)||[]).filter(c=>c&&Number(c.price)>0);
     cs.forEach(c=>got.push(Object.assign({},c,{where:String(c.where||P.where).slice(0,24)})));
     runs.push({name:P.name,ok:true,n:cs.length});
-    if(!all&&got.length>=ENOUGH){ break; }
+    /* EVERY BUTTON PASSES all=true, SO THIS SAVING NEVER HAPPENED.
+       "lets get the lookup working so i dont have to type prices." It
+       works - measured on the phone against a mock service, one tap, all
+       three cases - but measuring it showed three paid searches going out
+       on a lookup where eBay had already handed back TEN counted sold
+       prices.
+
+       All five call sites pass true: both surfaces' Look up buttons, the
+       desk's pdFindGo, and the two photo paths. The only caller that
+       passes false is the automatic read after a photo. So the comment
+       above claiming "most lookups now cost one search, not two" was
+       false for every lookup he can actually press, and check-lookup
+       proved the saving on priceFind(null,false) - a path no button
+       takes. An assertion on a code path the counter never reaches.
+
+       The flag means "ignore what is on file and search fresh", which is
+       a real thing to want and is left alone. It should never have also
+       meant "pay for every source regardless". So the stop now depends on
+       what came back rather than on who asked:
+
+         enough comps and mostly SOLD  -> stop, spend nothing more. Three
+                                          searches cannot improve on ten
+                                          counted sales.
+         enough comps but mostly asks  -> carry on. Asks run high and want
+                                          corroborating, which is worth
+                                          the money.
+         eBay thin or failed           -> carry on, as before.
+
+       This is the one place in the lookup that decides whether money goes
+       out, so it decides on the evidence. */
+    const soldSoFar=got.filter(c=>c&&c.basis==="sold").length;
+    if(got.length>=ENOUGH&&(soldSoFar*2>=got.length||!all)){ break; }
   }
   /* What a new one costs, gathered in the same sweep. It is the weakest
      number here and it is never chosen over a sale, but it is the one that
      answers "is this worth anything at all" when nothing else lands. */
   let retail=null;
-  if(all&&!(signal&&signal.aborted)){
+  /* AND NEITHER DOES THE NEW PRICE, ONCE REAL SALES HAVE LANDED.
+     This fired on every press too, so a lookup that came back with ten
+     counted sold prices still paid for one more search to find out what a
+     new one costs. The comment above says what this figure is for: it is
+     the weakest number here and it answers "is this worth anything at
+     all" WHEN NOTHING ELSE LANDS. With ten sales on file nothing is being
+     answered, so the same test the pass loop uses decides it. */
+  const soldGot=got.filter(c=>c&&c.basis==="sold").length;
+  const haveSales=got.length>=ENOUGH&&soldGot*2>=got.length;
+  if(all&&!haveSales&&!(signal&&signal.aborted)){
     say("Checking what it costs new\u2026");
     retail=await retailFetch(q,signal);
     /* kept as a number, said in words below */
