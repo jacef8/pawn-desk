@@ -69,6 +69,31 @@ const FIELD = [
   ["Aimpoint red dot sight", "Aimpoint"],
   ["Storm bowling ball", "Storm"],
   ["Element skateboard", "Element"],
+  /* And the two aisles done second: "a turntable offered Apple / Samsung
+     flagship, a sewing machine offered DeWalt / Milwaukee / Makita."
+     Tools is right for a circular saw and wrong the moment the row is a
+     hand tool, a jack or a welder. Electronics is right for a phone and
+     wrong for everything else in the aisle. */
+  ["Technics turntable", "Technics"],
+  ["Denon AV receiver", "Denon"],
+  ["DJI camera drone", "DJI"],
+  ["Canon DSLR camera", "Canon"],
+  ["Sonos soundbar", "Sonos"],
+  ["Epson projector", "Epson"],
+  ["Logitech wireless mouse", "Logitech"],
+  ["Pioneer DJ controller", "Pioneer"],
+  ["Brother printer", "Brother"],
+  ["Netgear wifi router", "Netgear"],
+  ["Singer sewing machine", "Singer"],
+  ["KitchenAid stand mixer", "KitchenAid"],
+  ["Miller stick welder", "Miller"],
+  ["Snap-on socket set", "Snap-on"],
+  ["Werner extension ladder", "Werner"],
+  ["Graco paint sprayer", "Graco"],
+  ["Jet drill press", "Jet"],
+  ["NOCO jump box", "NOCO"],
+  ["Autel OBD scan tool", "Autel"],
+  ["Hypertherm plasma cutter", "Hypertherm"],
 ];
 
 const browser = await chromium.launch({executablePath: EXE});

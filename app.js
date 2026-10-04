@@ -465,7 +465,27 @@ function knownMakeWord(w){
    every make the row does not list unfindable - a Whirlpool typed on the
    grill row would read as no maker at all - and these overrides exist to
    add an answer, not to remove the ones that already worked. */
+/* THE SEARCH MUST NOT READ THE ITEM ON THE COUNTER.
+   check-reach caught this: two Jabra earbud rows stopped being reachable,
+   landing on "Something else" and "ATV / four wheeler". The sweep walks
+   all 500 measured rows in one session and PICKS each one, so st.bookName
+   is whatever was priced last - and ovBrands was handing that row's brand
+   book to the parser reading the NEXT query. The tent row's book answered
+   for a hunting search, and what the search found depended on what had
+   been looked at before it, which is the same bug the comment above this
+   one describes from the other direction.
+
+   It was already true of ITEM_OVERRIDES, on 17 items. BOOK_OV made it 131
+   rows, which is why it surfaced now rather than being found at the
+   counter later.
+
+   An override belongs to the thing in his hands. While a query is being
+   parsed there is nothing in his hands yet, so the aisle's own book
+   answers and the override stays out of it. knownMakeWord is the stateless
+   half the search does need, and it reads the tables directly. */
+let _omniDepth=0;
 function ovBrands(catId){
+  if(_omniDepth)return null;
   if(catId!==st.catId)return null;
   const ov=itemOv();
   if(!ov)return null;
@@ -3238,7 +3258,83 @@ const BOOK_OV={
  "Bowling ball":{tiers:{hi:"Storm / Hammer / Roto Grip",mid:"Brunswick / Ebonite",lo:"House ball / no name"}},
  "Skateboard":{tiers:{hi:"Independent / Thunder / named deck",mid:"Element / Santa Cruz / Girl",lo:"Big-box complete / no name"}},
  "Surfboard":{tiers:{hi:"Channel Islands / Lost / Firewire",mid:"NSP / Torq / Catch Surf",lo:"Soft-top / no name"}},
- "Paddle board \u2014 SUP":{tiers:{hi:"Red Paddle / Starboard / BOTE",mid:"iRocker / Bluefin",lo:"Big-box inflatable / no name"}}
+ "Paddle board \u2014 SUP":{tiers:{hi:"Red Paddle / Starboard / BOTE",mid:"iRocker / Bluefin",lo:"Big-box inflatable / no name"}},
+
+ /* ---- tools: the aisle's tiers are cordless-power-tool tiers --------
+    Right for a circular saw, a miter saw, a jigsaw, a nail gun. Wrong
+    the moment the row is a hand tool, a jack, a welder or a thing that
+    only looks like it came off the same shelf: a sewing machine was
+    offered "DeWalt / Milwaukee / Makita". */
+ "Band saw \u2014 benchtop":{tiers:{hi:"Jet / Rikon / Laguna",mid:"Grizzly / WEN",lo:"Harbor Freight / no name"}},
+ "TIG / stick welder":{tiers:{hi:"Miller / Lincoln Electric",mid:"Hobart / Everlast",lo:"Harbor Freight / no name"}},
+ "Stick welder":{tiers:{hi:"Miller / Lincoln Electric",mid:"Hobart / Everlast",lo:"Harbor Freight / no name"}},
+ "Plasma cutter":{tiers:{hi:"Hypertherm / Miller",mid:"Lincoln Electric / Everlast",lo:"Harbor Freight / no name"}},
+ "Oxy-acetylene torch set":{tiers:{hi:"Victor / Harris",mid:"Lincoln Electric / Forney",lo:"Harbor Freight / no name"}},
+ "Benchtop planer":{tiers:{hi:"DeWalt / Makita",mid:"WEN / Craftsman",lo:"Harbor Freight / no name"}},
+ "Drill press":{tiers:{hi:"Jet / Powermatic",mid:"WEN / Ryobi / Craftsman",lo:"Harbor Freight / no name"}},
+ "Bench grinder":{tiers:{hi:"Baldor / Jet",mid:"DeWalt / Ryobi / WEN",lo:"Harbor Freight / no name"}},
+ "Shop vac":{tiers:{hi:"Festool / Nilfisk",mid:"Ridgid / Shop-Vac / DeWalt",lo:"Harbor Freight / no name"}},
+ "Extension ladder":{tiers:{hi:"Werner / Little Giant",mid:"Louisville / Gorilla",lo:"Harbor Freight / no name"}},
+ "Scaffolding \u2014 section":{tiers:{hi:"Werner / Bil-Jax",mid:"Metaltech / big-box",lo:"Harbor Freight / no name"}},
+ "Floor jack":{tiers:{hi:"Snap-on / Hein-Werner",mid:"Daytona / Arcan / Craftsman",lo:"Harbor Freight / no name"}},
+ "Jack stands \u2014 pair":{tiers:{hi:"Esco / Hein-Werner",mid:"Craftsman / Torin",lo:"Harbor Freight / no name"}},
+ "Socket set \u2014 complete":{tiers:{hi:"Snap-on / Matco / Mac",mid:"Craftsman / Husky / Kobalt",lo:"Harbor Freight / no name"}},
+ "Torque wrench":{tiers:{hi:"Snap-on / CDI / Precision Instruments",mid:"Tekton / Husky / Craftsman",lo:"Harbor Freight / no name"}},
+ "Come-along / hand winch":{tiers:{hi:"Lug-All / Maasdam",mid:"Tekton / big-box",lo:"Harbor Freight / no name"}},
+ "Chain hoist":{tiers:{hi:"CM / Harrington",mid:"Jet / Vevor",lo:"Harbor Freight / no name"}},
+ "Engine hoist":{tiers:{hi:"OTC / Sunex",mid:"Torin / big-box",lo:"Harbor Freight / no name"}},
+ "Concrete mixer":{tiers:{hi:"Multiquip / Crown",mid:"Kushlan / YardMax",lo:"Harbor Freight / no name"}},
+ "Sewing machine":{tiers:{hi:"Bernina / Juki industrial",mid:"Brother / Singer / Janome",lo:"No name"}},
+ "Stand mixer \u2014 KitchenAid class":{tiers:{hi:"KitchenAid Pro / Hobart",mid:"KitchenAid Classic / Cuisinart",lo:"Hamilton Beach / no name"}},
+ "Paint sprayer \u2014 airless":{tiers:{hi:"Graco / Titan",mid:"Wagner / HomeRight",lo:"Harbor Freight / no name"}},
+ "Laser level":{tiers:{hi:"Leica / Topcon / Hilti",mid:"Bosch / DeWalt / Johnson",lo:"Harbor Freight / no name"}},
+ "OBD scan tool":{tiers:{hi:"Snap-on / Autel / Launch",mid:"Innova / Ancel / BlueDriver",lo:"No name"}},
+ "Drywall lift":{tiers:{hi:"Telpro / PanelLift",mid:"Troy / big-box",lo:"Harbor Freight / no name"}},
+ "Battery charger / jump box":{tiers:{hi:"NOCO / Schumacher pro",mid:"Schumacher / DeWalt",lo:"Harbor Freight / no name"}},
+ "Tile saw":{tiers:{hi:"MK Diamond / Husqvarna",mid:"Ridgid / DeWalt",lo:"Harbor Freight / no name"}},
+ "Wet tile saw":{tiers:{hi:"MK Diamond / Husqvarna",mid:"Ridgid / DeWalt",lo:"Harbor Freight / no name"}},
+ "Wheelbarrow":{brandOff:true},
+ "Mechanic\u2019s creeper":{brandOff:true},
+ "Mechanic's creeper":{brandOff:true},
+ "Grease gun":{brandOff:true},
+
+ /* ---- electronics: the aisle's tiers are phone tiers ----------------
+    "Apple / Samsung flagship" is right for a phone, a tablet and a
+    smartwatch and wrong for everything else in the aisle. Neither makes
+    a turntable, a drone, an AV receiver or an airless printer. */
+ "Wireless earbuds":{tiers:{hi:"Apple AirPods / Sony / Bose",mid:"Samsung / Jabra / Anker",lo:"Off brand"}},
+ "DSLR / mirrorless camera":{tiers:{hi:"Canon / Nikon / Sony",mid:"Fujifilm / Olympus / Panasonic",lo:"No name"}},
+ "Headphones \u2014 over-ear":{tiers:{hi:"Sony / Bose / Sennheiser",mid:"Audio-Technica / JBL / Beats",lo:"Off brand"}},
+ "Game controller":{tiers:{hi:"Sony / Microsoft / Nintendo official",mid:"8BitDo / PowerA",lo:"Off brand"}},
+ "Wireless mouse \u2014 computer":{tiers:{hi:"Logitech MX / Razer",mid:"Logitech / Microsoft",lo:"Off brand"}},
+ "Computer keyboard":{tiers:{hi:"Keychron / Das / Razer",mid:"Logitech / Microsoft / Corsair",lo:"Off brand"}},
+ "Soundbar":{tiers:{hi:"Sonos / Bose / Sennheiser",mid:"Samsung / LG / Vizio",lo:"Off brand"}},
+ "AV receiver":{tiers:{hi:"Denon / Marantz / Yamaha",mid:"Onkyo / Sony / Pioneer",lo:"Off brand"}},
+ "Turntable":{tiers:{hi:"Technics / Rega / Pro-Ject",mid:"Audio-Technica / Fluance",lo:"Crosley / no name"}},
+ "Record player / turntable set":{tiers:{hi:"Technics / Rega",mid:"Audio-Technica / Fluance",lo:"Crosley / no name"}},
+ "Gaming desktop PC":{tiers:{hi:"Custom build, named GPU",mid:"Alienware / HP Omen / Lenovo Legion",lo:"No name prebuilt"}},
+ "Monitor \u2014 27in":{tiers:{hi:"Apple / LG UltraFine / Dell UltraSharp",mid:"Dell / Asus / Acer",lo:"Off brand"}},
+ "Camera drone":{tiers:{hi:"DJI",mid:"Autel / Skydio",lo:"Off brand"}},
+ "Gimbal / pocket camera":{tiers:{hi:"DJI / Insta360",mid:"Zhiyun / Hohem",lo:"Off brand"}},
+ "Gaming laptop":{tiers:{hi:"Razer / Asus ROG / Alienware",mid:"Lenovo Legion / HP Omen / MSI",lo:"Off brand"}},
+ "GoPro / action camera":{tiers:{hi:"GoPro / DJI / Insta360",mid:"Akaso",lo:"Off brand"}},
+ "VR headset":{tiers:{hi:"Apple / Valve / Meta Quest Pro",mid:"Meta Quest / PSVR",lo:"Off brand"}},
+ "Handheld game console":{tiers:{hi:"Nintendo / Steam Deck / ROG Ally",mid:"Anbernic",lo:"Off brand emulator"}},
+ "Projector":{tiers:{hi:"Epson / BenQ / Sony",mid:"Optoma / ViewSonic / Anker",lo:"Off brand"}},
+ "Two-way radios \u2014 pair":{tiers:{hi:"Motorola / Garmin Rino",mid:"Midland / Cobra",lo:"Off brand"}},
+ "DJ controller":{tiers:{hi:"Pioneer DJ / Denon DJ",mid:"Numark / Hercules",lo:"Off brand"}},
+ "Ring / smart doorbell":{tiers:{hi:"Ring / Nest / Arlo",mid:"Eufy / Wyze",lo:"Off brand"}},
+ "Dash camera":{tiers:{hi:"BlackVue / Thinkware / Viofo",mid:"Garmin / Vantrue",lo:"Off brand"}},
+ "Security camera system":{tiers:{hi:"Ubiquiti / Lorex / Reolink",mid:"Ring / Wyze / Eufy",lo:"Off brand"}},
+ "Wifi router / modem":{tiers:{hi:"Ubiquiti / Asus ROG / Netgear Nighthawk",mid:"TP-Link / Netgear / Linksys",lo:"Off brand"}},
+ "Printer \u2014 all in one":{tiers:{hi:"HP OfficeJet Pro / Brother laser",mid:"Canon / Epson / HP",lo:"Off brand"}},
+ "Karaoke machine":{tiers:{hi:"JBL PartyBox / Singing Machine",mid:"Ion / Singsation",lo:"Off brand"}},
+ "E-reader \u2014 Kindle class":{tiers:{hi:"Kindle Oasis / Kobo Elipsa / reMarkable",mid:"Kindle / Kobo",lo:"Off brand"}},
+ /* The publisher is already in the row name on these three, and a game
+    does not have a maker tier the way a drill does. */
+ "Video game \u2014 sports title":{brandOff:true},
+ "Video game \u2014 Nintendo title":{brandOff:true},
+ "Video game \u2014 current title":{brandOff:true}
 };
 function itemOv(){return (st.bookName&&BOOK_OV[st.bookName])||ITEM_OVERRIDES[st.itemId]||null;}
 /* ══════════════════════════════════════════════════════════════════════
@@ -9219,6 +9315,10 @@ const NOT_METAL=/\b(ring\s*(doorbell|camera|cam|light|alarm|security|video|flood
 const METAL_RE=/\b(gold|silver|sterling|925|karat|carat|ring|rings|necklace|bracelet|earrings?|jewelry|jewellery|pendant|bullion|scrap|coin|coins|(10|14|18|22|24)\s*(k|kt|karat))\b/;
 
 function omniParse(q){
+  _omniDepth++;
+  try{ return _omniParse(q); } finally { _omniDepth--; }
+}
+function _omniParse(q){
   const raw=omniNorm(q);
   const P={raw,brand:"",brandCats:[],modelLabel:"",modelItem:null,spec:{},detail:[],words:[],left:[],cond:null,complete:true,metal:null,karat:null,hints:[]};
   if(!raw)return P;
@@ -9335,6 +9435,10 @@ function wordHit(tok,words){
 }
 const OMNI_MAX=16;
 function omniRows(q){
+  _omniDepth++;
+  try{ return _omniRows(q); } finally { _omniDepth--; }
+}
+function _omniRows(q){
   const P=omniParse(q), rows=[];
   /* Did anything really match what was typed - a known model, a price-list
      row, or an entry carrying every word? Brand-only listings do not count:
@@ -9600,7 +9704,31 @@ function omniRows(q){
     if(t.length>=3&&!P.metal){
       const own={kind:"own",q:t.slice(0,60)};
       const before=rows.findIndex(r=>r.kind==="sold");
-      rows.splice(strong?(before<0?rows.length:before):0,0,own);
+      /* A ROW THAT ACCOUNTS FOR EVERY WORD HE TYPED IS NOT A LOOSE MATCH.
+         `strong` is worked out inside one of several passes, and the two
+         searches that were still wrong - "Epson projector" and "Jet drill
+         press" - are found by a different pass that never sets it. Rather
+         than teach each pass the same lesson, the question is asked here,
+         where `rows` is final and the only decision left is whether the
+         matches or the typed words go on top.
+
+         The question: is one of these rows carrying every word of the
+         query that is not a stop word and not the name of a make? If so
+         he did not type anything the row fails to explain, and "price
+         what I typed" belongs underneath it rather than above.
+
+         Epson is an alias on the printer row, so Printer outscored
+         Projector and the single-top-scorer test asked the wrong row.
+         This asks all of them. */
+      const left=omniWords(t).filter(w=>!STOP.has(w)&&!knownMakeWord(w));
+      const explained=left.length>0&&rows.some(r=>
+        (r.kind==="book"||r.kind==="item"||r.kind==="mp")&&(()=>{
+          const e=findEntry(r.kind==="item"?r.itemId:r.name);
+          const w=(e&&e.words)||omniWords(String(r.name||""));
+          return left.every(x=>wordHit(x,w));
+        })());
+      const lead=strong||explained;
+      rows.splice(lead?(before<0?rows.length:before):0,0,own);
     } }
   return {P,rows};
 }
@@ -11878,7 +12006,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="1005.0112";
+const APP_BUILD="1005.0318";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
