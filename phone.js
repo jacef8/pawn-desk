@@ -130,7 +130,11 @@ function phoneStepHTML(x){
      An empty list is a question now, not an answer. Only where the maker
      matters - the same flag that turns the brand question on - because a
      wheelbarrow has no model plate to read. */
-  const wantModel=started&&!x.checked&&!st.mpNone&&!st.model&&!cands.length&&!!(x.cat.brand&&x.cat.brand.on);
+  /* Through brandOf too, or a row that turned the make question off would
+     still be asked for a model on the ground that its aisle cares about
+     makers. Same resolver, so the two cannot drift. */
+  const wantModel=started&&!x.checked&&!st.mpNone&&!st.model&&!cands.length
+    &&!!((typeof brandOf==="function"?brandOf(x.cat):x.cat.brand)||{}).on;
   /* THE PHONE WAS NAMING THINGS IT HAD NO WAY TO ASK FOR.
      "Still needs the make, what it sells for and the condition" is built
      from the same question list the desk uses - but the phone's own flow

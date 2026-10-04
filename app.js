@@ -409,9 +409,71 @@ function brandFromName(catId,txt){
    kit" read as carrying no maker, and a Black & Decker drill was handed
    the DeWalt row at +40%. Which book answered depended on what had been
    looked at last, which is why the same search gave two answers. */
+/* A TIER LIST IS ALREADY A LIST OF MAKES, SO IT DOES NOT NEED TYPING TWICE.
+   The row's three tiers are display strings - "Weber / Big Green Egg /
+   Kamado Joe" - and brandLookup wants names. Writing both for 68 rows
+   would be the same content in two places, which in this repo means one
+   of them drifts. So the names are read off the tiers, with the phrases
+   that are not makes thrown out: "no name", "house ball", "particle
+   board", "solid wood, named maker".
+
+   Trailing qualifiers go too, because "RTIC higher" and "Yamaha student"
+   are a tier's note about a make, not the make. That is what puts a plain
+   Yamaha trumpet in the student tier and a Yamaha Xeno in the top one:
+   brandLookup prefers an exact name over a containing one, so "Yamaha"
+   hits mid exactly while "Yamaha Xeno" is only reachable by containment.
+   A typed "Coleman" lands on mid's "Coleman Xtreme" the same way. */
+const NOT_A_MAKE=/^(no name|house ball|student outfit|particle board|soft-top|home-built|big-box|named |solid wood|riveted|welded|premium maker|standard maker|budget|off brand|fashion|mid grade|common|bulk|reprint|raw)/i;
+function tierBrands(t){
+  const out={hi:[],mid:[],lo:[]};
+  for(const k of ["hi","mid","lo"]){
+    String((t&&t[k])||"").split("/").forEach(raw=>{
+      const x=String(raw).trim();
+      if(!x||NOT_A_MAKE.test(x))return;
+      out[k].push(x.replace(/\s+(higher|basic|pro|student|class)$/i,"").trim());
+    });
+  }
+  return out;
+}
+/* Every make word named in a tier table, flattened once. Used only to
+   decide whether a word in the search counts against an item match - see
+   the `need` filter in omniRows. Two letters is the floor because a
+   one-letter token matches everything. */
+/* BUILT ON FIRST USE, NOT AT LOAD. My first version ran here at load
+   time, which is 2,700 lines above where BOOK_OV is declared - so it threw
+   on the temporal dead zone, my own try/catch swallowed it, and the set
+   was silently empty. Nothing broke, nothing logged, and the ranking it
+   was written to fix went on being wrong. The measurement is the only
+   reason I know: size 0, hasVitamix false. A catch around a build step is
+   the same bug as an assertion that cannot fail. */
+let _makeWords=null;
+function knownMakeWord(w){
+  if(!_makeWords){
+    _makeWords=new Set();
+    const eat=t=>{ const d=tierBrands(t);
+      for(const k of ["hi","mid","lo"]) d[k].forEach(nm=>
+        String(nm).toLowerCase().split(/[^a-z0-9&+.-]+/).forEach(x=>{
+          if(x.length>=2)_makeWords.add(x); })); };
+    const tbl=[typeof BOOK_OV!=="undefined"?BOOK_OV:null,
+               typeof ITEM_OVERRIDES!=="undefined"?ITEM_OVERRIDES:null];
+    tbl.forEach(T=>{ if(!T)return;
+      Object.keys(T).forEach(k=>{ if(T[k]&&T[k].tiers)eat(T[k].tiers); }); });
+  }
+  return _makeWords.has(w);
+}
+/* MERGED INTO THE AISLE'S BOOK, NEVER REPLACING IT. Replacing would make
+   every make the row does not list unfindable - a Whirlpool typed on the
+   grill row would read as no maker at all - and these overrides exist to
+   add an answer, not to remove the ones that already worked. */
 function ovBrands(catId){
-  const ov=(catId===st.catId)?ITEM_OVERRIDES[st.itemId]:null;
-  return (ov&&ov.brands)||null;
+  if(catId!==st.catId)return null;
+  const ov=itemOv();
+  if(!ov)return null;
+  if(ov.brands)return ov.brands;
+  if(!ov.tiers)return null;
+  const d=tierBrands(ov.tiers), book=BRANDBOOK[catId];
+  if(!book)return d;
+  return {hi:d.hi.concat(book.hi||[]), mid:d.mid.concat(book.mid||[]), lo:d.lo.concat(book.lo||[])};
 }
 function brandLookup(catId,txt){
   const book=ovBrands(catId)||BRANDBOOK[catId]; if(!book)return null;
@@ -1363,10 +1425,11 @@ function calcItem(){
      catalog row, the model they picked off the list ("DeWalt 20V drill
      kit" - the make is the first word of it), and anything typed in the
      price book. A tier they tapped themselves outranks all of it. */
-  const namedBrand=(cat.brand.on&&!st.brandTyped&&!st.brandSet)
+  const BR=brandOf(cat);
+  const namedBrand=(BR.on&&!st.brandTyped&&!st.brandSet)
     ? brandFromName(cat.id,(item.name||"")+" "+(st.model||"")+" "+(st.bookName||"")) : null;
   const brandTier=namedBrand?namedBrand.tier:st.brand;
-  const brandMult=cat.brand.on?BRANDS.find(b=>b.id===brandTier).mult:1;
+  const brandMult=BR.on?BRANDS.find(b=>b.id===brandTier).mult:1;
   /* What a missing piece costs. It was a flat 30% for everything, which was
      a guess nobody had checked - and it is the wrong number where it has
      been checked. Consoles sold WITHOUT a controller went for 0.88 to 0.94
@@ -1507,7 +1570,7 @@ function calcItem(){
   const target=buyTooThin?Math.max(1,Math.round(targetRaw)):Math.min(buy,r5(targetRaw));
   return {cat,item,baseValue,baseLtv,condition,liquidity,liqId,resale,guardResale,guard:_g,ltv,target,market,checked,handSet,buyBase,buySuggest,buyWhy,buyPct,buy,lendWant,lendCapped,
           brandTier,namedBrand:namedBrand&&namedBrand.name,
-          brandMult,brandName:cat.brand.on?(((ITEM_OVERRIDES[st.itemId]||{}).tiers)||cat.brand)[brandTier]:null,spec,specMult:spec.mult,
+          brandMult,brandName:BR.on?BR[brandTier]:null,spec,specMult:spec.mult,
           /* The range is held to the same ceiling as the suggested loan -
              a "top loan" above what you would pay to own the thing is the
              original fault wearing a different label. Capped at the BUY
@@ -3095,7 +3158,140 @@ const ITEM_OVERRIDES={
      brands:{hi:["Sony","Samsung","LG OLED","LG"],mid:["TCL","Hisense","Vizio"],lo:["Onn","RCA","Sceptre","Element","Westinghouse"]},
      detail:{ph:"size & year — 65in, 2024",hint:"Size and model year ARE the price — two model years old is half of new."}}
 };
-function itemOv(){return ITEM_OVERRIDES[st.itemId]||null;}
+/* Keyed on the PRICEBOOK row's own name, so a row can answer for itself
+   rather than inheriting whatever its aisle sells most of. Two shapes:
+   its own three tiers, or brandOff where the maker does not move the
+   price and inventing a ladder would be worse than not asking. */
+const BOOK_OV={
+ /* ---- instruments: the aisle's tiers are guitar tiers --------------- */
+ "Audio mixer \u2014 PA board":{tiers:{hi:"Allen & Heath / Midas",mid:"Yamaha / Soundcraft / Mackie",lo:"Behringer / no name"}},
+ "Bass guitar":{tiers:{hi:"Fender / Gibson / Rickenbacker",mid:"Squier / Ibanez / Yamaha",lo:"No name"}},
+ "Keyboard \u2014 61 key":{tiers:{hi:"Roland / Korg / Nord",mid:"Yamaha / Casio higher range",lo:"Casio basic / no name"}},
+ "Digital piano \u2014 88 key":{tiers:{hi:"Roland / Kawai / Nord",mid:"Yamaha / Casio Privia",lo:"Williams / no name"}},
+ "Banjo":{tiers:{hi:"Deering / Gibson",mid:"Recording King / Gold Tone",lo:"Rogue / no name"}},
+ "Mandolin":{tiers:{hi:"Gibson / Collings",mid:"Eastman / Kentucky",lo:"Rogue / no name"}},
+ "Fiddle / violin":{tiers:{hi:"Named luthier / handmade",mid:"Yamaha / Eastman / Cremona",lo:"Student outfit / no name"}},
+ "Full drum set":{tiers:{hi:"DW / Tama Star / Gretsch USA",mid:"Pearl / Tama / Yamaha / Ludwig",lo:"First Act / no name"}},
+ "Vocal mic \u2014 SM58 class":{tiers:{hi:"Shure / Neumann / Sennheiser",mid:"Audio-Technica / AKG",lo:"Behringer / no name"}},
+ "Powered PA speaker":{tiers:{hi:"QSC / JBL Pro / RCF",mid:"Yamaha / Mackie / Electro-Voice",lo:"Rockville / no name"}},
+ "Guitar pedal":{tiers:{hi:"Strymon / Eventide",mid:"Boss / MXR / Electro-Harmonix",lo:"Behringer / no name"}},
+ "Trumpet":{tiers:{hi:"Bach Stradivarius / Yamaha Xeno",mid:"Yamaha student / Getzen / Jupiter",lo:"Mendini / no name"}},
+ "Alto saxophone":{tiers:{hi:"Selmer Paris / Yanagisawa",mid:"Yamaha / Jupiter / Conn-Selmer",lo:"Mendini / no name"}},
+ "Clarinet":{tiers:{hi:"Buffet Crampon / Selmer Paris",mid:"Yamaha / Jupiter",lo:"Mendini / no name"}},
+ "Flute":{tiers:{hi:"Yamaha pro / solid silver",mid:"Gemeinhardt / Jupiter student",lo:"Mendini / no name"}},
+ "Trombone":{tiers:{hi:"Bach / Yamaha Xeno",mid:"Yamaha student / Jupiter",lo:"Mendini / no name"}},
+ "French horn":{tiers:{hi:"Conn / Holton pro",mid:"Yamaha / Jupiter student",lo:"Mendini / no name"}},
+ "Cello":{tiers:{hi:"Named luthier / Eastman higher",mid:"Cremona / Yamaha",lo:"Student outfit / no name"}},
+ "Ukulele":{tiers:{hi:"Kamaka / Martin",mid:"Kala / Cordoba / Lanikai",lo:"Mahalo / no name"}},
+
+ /* ---- hunting & fishing: the aisle's tiers are scope tiers ---------- */
+ "Climbing tree stand":{tiers:{hi:"Lone Wolf / Summit",mid:"Millennium / Muddy / Ol\u2019 Man",lo:"Guide Gear / no name"}},
+ "Ladder stand":{tiers:{hi:"Millennium / Summit",mid:"Muddy / Rivers Edge / Big Game",lo:"Guide Gear / no name"}},
+ "Ground blind":{tiers:{hi:"Primos / Ameristep higher",mid:"Barronett / Rhino",lo:"No name"}},
+ "Deer feeder \u2014 barrel":{tiers:{hi:"Boss Buck / Moultrie Pro",mid:"American Hunter / Wildgame",lo:"Home-built / no name"}},
+ "Cellular game camera":{tiers:{hi:"Tactacam / Spypoint / Moultrie Edge",mid:"Stealth Cam / Wildgame",lo:"No name"}},
+ "Duck decoys \u2014 dozen":{tiers:{hi:"Avian-X / Dive Bomb",mid:"Greenhead Gear / Flambeau",lo:"No name"}},
+ "Kayak \u2014 sit-on-top":{tiers:{hi:"Hobie / Native / Old Town",mid:"Perception / Pelican higher",lo:"Lifetime / Sun Dolphin / no name"}},
+ "Jon boat \u2014 12ft, no motor":{tiers:{hi:"Lowe / Alumacraft / Tracker",mid:"Lund / welded generic",lo:"Riveted, no name"}},
+ "Fish finder":{tiers:{hi:"Garmin / Humminbird Solix / Lowrance HDS",mid:"Humminbird Helix / Lowrance Hook",lo:"No name"}},
+ "Offshore rod & reel":{tiers:{hi:"Shimano / Penn International / Daiwa Saltiga",mid:"Penn / Daiwa / Okuma",lo:"No name"}},
+ "Fly rod & reel":{tiers:{hi:"Sage / Scott / Orvis Helios",mid:"Orvis Clearwater / Redington / TFO",lo:"No name"}},
+ "Hard gun case":{tiers:{hi:"Pelican / Nanuk",mid:"SKB / Plano Field Locker",lo:"Plano basic / no name"}},
+ "Waders":{tiers:{hi:"Simms / Orvis Pro",mid:"Redington / Frogg Toggs higher",lo:"Hodgman / no name"}},
+ "Red dot sight":{tiers:{hi:"Aimpoint / Trijicon / EOTech",mid:"Holosun / Vortex / Sig Romeo",lo:"Bushnell / no name"}},
+ "Camp stove":{tiers:{hi:"Camp Chef / Jetboil",mid:"Coleman / Stansport",lo:"No name"}},
+ "Tent \u2014 4 to 6 person":{tiers:{hi:"Big Agnes / REI / NEMO",mid:"Coleman / Kelty",lo:"Ozark Trail / no name"}},
+ "Sleeping bag":{tiers:{hi:"Western Mountaineering / Marmot down",mid:"Coleman / Kelty",lo:"No name"}},
+ "Hard cooler \u2014 Yeti class":{tiers:{hi:"Yeti / Orca / RTIC higher",mid:"Igloo BMX / Coleman Xtreme",lo:"Igloo basic / no name"}},
+ "Soft cooler / tote":{tiers:{hi:"Yeti Hopper / RTIC",mid:"Coleman / Igloo",lo:"No name"}},
+ /* The maker does not move these enough to be worth a question. */
+ "Boat trailer":{brandOff:true},
+ "Cast net":{brandOff:true},
+ "Crossbow bolts & broadheads \u2014 lot":{brandOff:true},
+ "Camp chairs \u2014 pair":{brandOff:true},
+ "Life jackets \u2014 set":{brandOff:true},
+ "Boat anchor & rode":{brandOff:true},
+
+ /* ---- appliances: the aisle's tiers are white-goods tiers ----------- */
+ "Gas grill":{tiers:{hi:"Weber / Napoleon",mid:"Char-Broil / Nexgrill / Dyna-Glo",lo:"Expert Grill / no name"}},
+ "Charcoal grill / kettle":{tiers:{hi:"Weber / Big Green Egg / Kamado Joe",mid:"Char-Griller / Oklahoma Joe\u2019s",lo:"Expert Grill / no name"}},
+ "Pellet grill / smoker":{tiers:{hi:"Traeger / Yoder / Recteq",mid:"Pit Boss / Camp Chef",lo:"No name"}},
+ "Offset smoker":{tiers:{hi:"Oklahoma Joe\u2019s / Yoder",mid:"Char-Griller / Dyna-Glo",lo:"No name"}},
+ "Flat-top griddle \u2014 Blackstone class":{tiers:{hi:"Blackstone / Camp Chef",mid:"Royal Gourmet / Nexgrill",lo:"No name"}},
+ "Air fryer":{tiers:{hi:"Ninja / Instant / Cosori",mid:"Chefman / Gourmia",lo:"No name"}},
+ "Pressure cooker \u2014 Instant Pot class":{tiers:{hi:"Instant Pot / Ninja Foodi",mid:"Crock-Pot / Cosori",lo:"No name"}},
+ "Blender":{tiers:{hi:"Vitamix / Blendtec",mid:"Ninja / KitchenAid / Oster",lo:"Hamilton Beach / no name"}},
+ "Coffee maker":{tiers:{hi:"Breville / Jura / Technivorm",mid:"Keurig / Cuisinart / Ninja",lo:"Mr. Coffee / no name"}},
+ "Space heater":{tiers:{hi:"Dyson / Vornado",mid:"Lasko / Honeywell / DeLonghi",lo:"No name"}},
+ "Box fan / tower fan":{tiers:{hi:"Dyson / Vornado",mid:"Lasko / Honeywell",lo:"No name"}},
+ "Dehumidifier":{tiers:{hi:"Frigidaire higher / hOmeLabs",mid:"Honeywell / GE",lo:"No name"}},
+ "Portable air conditioner":{tiers:{hi:"Midea / LG / Whynter",mid:"Frigidaire / Honeywell",lo:"Black+Decker / no name"}},
+ "Garbage disposal":{tiers:{hi:"InSinkErator Evolution",mid:"InSinkErator Badger / Waste King",lo:"No name"}},
+ "Recliner":{tiers:{hi:"La-Z-Boy / Ekornes / named leather",mid:"Ashley / Lane / Flexsteel",lo:"No name"}},
+ "Sofa / couch":{tiers:{hi:"Ekornes / Natuzzi leather",mid:"Ashley / La-Z-Boy / Flexsteel",lo:"No name"}},
+ "Dresser / chest of drawers":{tiers:{hi:"Solid wood, named maker",mid:"Ashley / Sauder higher",lo:"Particle board / no name"}},
+ "Dining table & chairs":{tiers:{hi:"Solid wood, named maker",mid:"Ashley / Sauder higher",lo:"Particle board / no name"}},
+ "TV stand / entertainment center":{tiers:{hi:"Solid wood, named maker",mid:"Sauder / Ameriwood",lo:"Particle board / no name"}},
+ "Propane tank \u2014 20lb, full":{brandOff:true},
+
+ /* ---- fitness: the aisle's tiers are treadmill tiers ---------------- */
+ "Bowling ball":{tiers:{hi:"Storm / Hammer / Roto Grip",mid:"Brunswick / Ebonite",lo:"House ball / no name"}},
+ "Skateboard":{tiers:{hi:"Independent / Thunder / named deck",mid:"Element / Santa Cruz / Girl",lo:"Big-box complete / no name"}},
+ "Surfboard":{tiers:{hi:"Channel Islands / Lost / Firewire",mid:"NSP / Torq / Catch Surf",lo:"Soft-top / no name"}},
+ "Paddle board \u2014 SUP":{tiers:{hi:"Red Paddle / Starboard / BOTE",mid:"iRocker / Bluefin",lo:"Big-box inflatable / no name"}}
+};
+function itemOv(){return (st.bookName&&BOOK_OV[st.bookName])||ITEM_OVERRIDES[st.itemId]||null;}
+/* ══════════════════════════════════════════════════════════════════════
+   THE MAKE QUESTION BELONGS TO THE ROW, NOT THE AISLE.
+
+   "lets get back to the mobile buying functions." Measured first: twelve
+   things off a driveway, counting taps from picking it to a number on the
+   screen. Eight of the twelve never got one, and two of them were stuck
+   on a question nobody could answer:
+
+     Weber kettle grill   offered  Speed Queen / Sub-Zero / Bosch
+                                   Whirlpool / Maytag / LG / Samsung / GE
+                                   Kenmore / Frigidaire / Amana / Hotpoint
+     Coleman cooler       offered  Leupold / Vortex / Zeiss
+                                   Bushnell / Nikon
+                                   Tasco / no name
+
+   Washing-machine brands for a grill, and rifle-scope brands for a
+   cooler. Weber is THE premium grill name and it is on neither list;
+   Yeti is the cooler everything else is measured against and it is on
+   neither. He cannot answer, so the run cannot finish, so there is no
+   price - in a driveway, with somebody else reaching for the same grill.
+
+   This is not a new bug, it is a recurring one. ITEM_OVERRIDES was built
+   when a Tactacam game camera was offered Leupold and Zeiss, and its own
+   comment says the aisle's lines are guitar lines and say nothing to a
+   man holding a trumpet. But ITEM_OVERRIDES is keyed on st.itemId, and
+   every PRICEBOOK row in a category shares one id - cust-appl for all 21
+   appliance rows - so a book row had nowhere to put its own answer.
+
+   Counted how far it goes, by category, comparing the aisle's three
+   tiers against what its rows actually are:
+
+     Instruments         17 of 19 rows wrong   trumpet, flute, drum set
+     Hunting & fishing   23 of 26             tents, kayaks, waders
+     Appliances          19 of 21             grills, recliners, sofas
+     Fitness & sporting   4 of 4              bowling ball, surfboard
+
+   So the row gets to answer for itself, two ways. Where the maker really
+   does move the price it carries its own three tiers. Where it does not -
+   a propane tank, a bowling ball, duck decoys - the question goes off
+   rather than being answered with invented brands, which is the same
+   reasoning the model question already uses for a wheelbarrow.
+
+   THE TIER LISTS BELOW ARE MY READING AND HE SHOULD CHECK THEM. Moving
+   one changes a price, so they are on the screen where he can see them
+   and the table is one place rather than scattered.
+   ══════════════════════════════════════════════════════════════════════ */
+function brandOf(cat){
+  const ov=itemOv();
+  if(ov&&ov.brandOff)return {on:false,hi:"",mid:"",lo:""};
+  return (ov&&ov.tiers)?Object.assign({},cat.brand,ov.tiers):cat.brand;
+}
 /* THE MAKE OFTEN SAYS WHAT THE THING IS.
    Reported from the counter, with a Tactacam Reveal SK on the glass: the
    make question offered "Leupold / Vortex / Zeiss", "Bushnell / Nikon" and
@@ -3357,8 +3553,8 @@ function askQueue(x){
      So it stays in the run, marked answered and filled-in rather than
      outstanding: the run opens past it, the dots still reach it, and a tap
      still overrules it. */
-  if(cat.brand.on){
-    const tiers=(ov&&ov.tiers)||cat.brand;
+  if(brandOf(cat).on){
+    const tiers=brandOf(cat);
     /* If the make is known, that IS the answer - show it answered rather
        than lighting a tier nobody chose.
        Known two ways, and both have to say the make out loud. Typing
@@ -4674,10 +4870,10 @@ function renderItem(){
           reading - once. Folded, so it is one line until somebody wants it. */""}
     <details class="fold driverFold"${st.openDriver?" open":""} id="driverFold"><summary class="foldLine">What sets the price on one of these</summary>
     <div class="driver"><p><b class="go">What sets the price:</b> ${(itemOv()&&itemOv().driver)||cat.driver}</p><p><b class="no">What kills it:</b> ${(itemOv()&&itemOv().killer)||cat.killer}</p></div></details>`;
-  if(cat.brand.on){
+  if(brandOf(cat).on){
     const ov=itemOv();
     const book=(ov&&ov.brands)||BRANDBOOK[cat.id];
-    const tiers=(ov&&ov.tiers)||cat.brand;
+    const tiers=brandOf(cat);
     mid+=`<span class="label">Brand — type it, I'll place it</span>
     <input id="brandIn" type="text" autocomplete="off" list="dlBrands" placeholder="${book?book.hi[0]+", "+book.lo[0]+"…":"brand…"}" value="${esc(st.brandTyped)}" class="numIn" style="font-family:var(--sans);font-size:15px">
     ${book?`<datalist id="dlBrands">${["hi","mid","lo"].flatMap(t=>book[t]).sort().map(b=>`<option value="${b}">`).join("")}</datalist>`:""}
@@ -9329,7 +9525,31 @@ function omniRows(q){
          named "any size" and asks the screen size itself; the size is an
          answer to that question, not evidence of a different item. */
       const placed=omniWords(P.detail.join(" ")+" "+Object.values(P.spec||{}).join(" "));
-      const need=omniWords(q).filter(w=>!STOP.has(w)&&bw.indexOf(w)<0&&placed.indexOf(w)<0);
+      /* A MAKE THE SEARCH HAS NEVER HEARD OF WAS DEMOTING ITS OWN ROW.
+         Measured on eighteen searches. The book row is FOUND every time -
+         it is the ranking that goes wrong:
+
+           blender          -> [book] Blender   first
+           Vitamix blender  -> [own] Vitamix blender first, Blender second
+
+         Typing the make in front pushed the row the make belongs to below
+         "price what I typed", and the top row is the one a thumb takes. It
+         then lands in a custom row, which has no category, which means the
+         gun aisle - so "Vitamix blender" priced as a firearm at 50%.
+
+         `bw` already excuses a word the parser placed as a brand, and that
+         is why "Ninja air fryer" works and "Vitamix blender" does not:
+         Ninja is in a BRANDBOOK, Vitamix is only in the blender row's own
+         tiers, and you cannot be on the row until the search has put you
+         there. Chicken and egg.
+
+         So every make named anywhere in the tier tables counts as a make
+         word here. It assigns no tier and picks no row - it only stops a
+         maker's name from being counted as evidence of a different item.
+         That can make a match stronger and never weaker, so nothing that
+         ranks correctly today can start ranking worse. */
+      const need=omniWords(q).filter(w=>!STOP.has(w)&&bw.indexOf(w)<0&&placed.indexOf(w)<0
+                                        &&!knownMakeWord(w));
       const top=sc.slice().sort((a,b)=>b.s-a.s)[0].e;
       /* OR, NOT ASSIGN. This line used to overwrite `strong`, and `strong`
          had already been set true a few lines up by a measured price-list
@@ -11658,7 +11878,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="1004.2318";
+const APP_BUILD="1005.0112";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
