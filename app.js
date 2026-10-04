@@ -11582,8 +11582,34 @@ function fakeCardHTML(x){
       :F.verdict==="unsure"?`<b style="color:var(--warn-ink)">Not proven.</b> Price only what you can verify.`
       :`<b style="color:var(--accent)">All ${F.n} checks pass.</b>`)
     : `Worth a look &mdash; this one advises, it does not hold the price. ${F.done} of ${F.n} done.`;
-  return `<div class="card" id="fakeCard" style="border-left:3px solid ${tone}">
-    <span class="label">Spotting fakes &middot; ${esc(sh.title)}</span>
+  /* CLOSED UNTIL HE TAPS IT, UNLESS IT IS HOLDING THE PRICE.
+     "yes close it until i tap it." It was 261 words sitting open on the
+     gold screen, the largest single thing left on the wordiest screen in
+     the tool, and most days it is advice rather than a question.
+
+     BUT NOT ALWAYS, AND THE DIFFERENCE IS THE WHOLE OF THIS. Of the
+     eleven sheets, four gate: bullion, watch, cards, apple. A gating
+     sheet is the reason there is no price on the screen, so folding that
+     one shut would hide the thing doing the blocking and leave him
+     looking at a card that says nothing while the desk refuses to quote.
+     On the gold screen both live one tab apart - Jewelry advises, Coin or
+     bar gates.
+
+     So it opens itself when it is gating, and when any check has been
+     answered. A closed card can therefore never be hiding a failed check
+     or a held price: a failed check has an answer on it, and an answer
+     forces it open. What it can hide is advice nobody has touched, which
+     is what he asked for.
+
+     The summary carries the state either way, so the shut card still says
+     how many checks are done and still wears the colour of its verdict. */
+  const started=F.done>0;
+  const open=!!(sh.gate||started||st.openFakes);
+  return `<details class="card foldCard" id="fakeCard" style="border-left:3px solid ${tone}"${open?" open":""}>
+    <summary><span class="label" style="margin:0">Spotting fakes &middot; ${esc(sh.title)}</span><span class="foldSub">${
+      sh.gate?`holds the price &middot; ${F.done} of ${F.n} done`
+      :started?`${F.done} of ${F.n} done`
+      :`${F.n} check${F.n===1?"":"s"} &mdash; what gets faked, and how to tell`}</span></summary>
     ${st.mode==="metal"?`<div class="pills mb14" style="border-radius:var(--r-s);margin-top:6px">
       <button class="${st.metalKind!=="bullion"?"on":""}" style="flex:1;padding:8px 6px;font-size:11.5px" data-mkind="jewelry">Jewelry</button>
       <button class="${st.metalKind==="bullion"?"on":""}" style="flex:1;padding:8px 6px;font-size:11.5px" data-mkind="bullion">Coin or bar</button>
@@ -11605,7 +11631,7 @@ function fakeCardHTML(x){
     ${sh.rule?`<div class="cardHint" style="font-size:13px;margin-top:9px"><b style="color:var(--ink)">Shop rule:</b> ${esc(sh.rule)}</div>`:""}
     ${F.verdict==="fail"?`<div class="tagWarn" style="border-left-color:var(--bad);background:var(--bad-wash);color:var(--bad-ink);margin-top:9px"><b>Set it aside.</b> ${esc(FAKES.law)}</div>`:""}
     <div class="row2" style="margin-top:8px"><button class="ghostBtn" id="fakeClear" style="padding:9px 15px">Start the check over</button></div>
-  </div>`;
+  </details>`;
 }
 /* What stands in for the loan while a gating check is unanswered. */
 function fakeHoldHTML(F){
@@ -11632,7 +11658,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="1004.2141";
+const APP_BUILD="1004.2318";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -13199,6 +13225,28 @@ function nextStepHTML(x){
    the caliper does - but only the verdict is redrawn, never the input the
    finger is in, or the number being typed would jump away mid-digit. */
 function wireSpec(){
+  /* Opened by hand, it stays open through the re-render that answering a
+     check causes - otherwise it shuts under the finger that opened it.
+     Wired here because this card draws on the item page and the gold
+     page both, and wireSpec is already called after whichever one drew
+     it.
+
+     THE TOGGLE EVENT CANNOT TELL HIS FINGER FROM A RENDER, and that is
+     not a detail. Measured it: tap Coin or bar on the gold screen, which
+     gates, and the card is drawn with the open attribute - and a details
+     inserted open fires `toggle` on the new element. Listening for that
+     recorded the gate's own doing as "he opened it", so st.openFakes
+     stuck true and from then on every advising sheet came back open. The
+     fold would have worked until the first gated item of the day and
+     then quietly stopped, which is the kind of thing nobody reports and
+     nobody notices is a bug.
+
+     A click on the summary is unambiguous. It runs BEFORE the toggle, so
+     the state he is asking for is the opposite of the one on screen. */
+  const fc=document.getElementById("fakeCard");
+  const sm=fc&&fc.querySelector(":scope > summary");
+  if(sm&&!sm.dataset.wired){ sm.dataset.wired="1";
+    sm.addEventListener("click",()=>{ st.openFakes=!fc.open; }); }
   const sel=document.getElementById("specPick");
   if(sel)sel.onchange=()=>{ st.specPick=sel.value; st.specOpen=true; render(); };
   const box=document.getElementById("specFold");

@@ -187,6 +187,98 @@ ok(/cannot clear anything/i.test(look.flagText),
    "  with the limit on the card itself, not just in the prompt");
 ok(look.tokens < 900, `  the prompt is ${look.tokens} tokens, so a read is cheap`);
 
+/* ══════════════════════════════════════════════════════════════════════
+   SHUT UNTIL HE TAPS IT, UNLESS IT IS HOLDING THE PRICE.
+
+   "yes close it until i tap it." The card was 261 words sitting open on
+   the gold screen, which was the wordiest screen in the tool at 724
+   words. Closed it is 363.
+
+   The danger in closing it is the reason this section exists. Four of the
+   eleven sheets GATE - bullion, watch, cards, apple - and a gating sheet
+   is the whole reason there is no price on the screen. Shut that one and
+   he is looking at a card that says nothing while the desk silently
+   refuses to quote. So it opens itself when it gates and when any check
+   has been answered, which means a shut card can never be hiding a
+   failed check or a held price: a failed check carries an answer, and an
+   answer forces it open.
+   ══════════════════════════════════════════════════════════════════════ */
+console.log("\n  the card is shut until he taps it, and opens itself when it must");
+{
+  const pg = await browser.newPage({viewport: {width: 1500, height: 1000}});
+  pg.on("pageerror", e => errs.push(String(e)));
+  await pg.goto(BASE + "/index.html", {waitUntil: "networkidle"});
+  await pg.waitForTimeout(800);
+  const at = async (kind) => {
+    await pg.evaluate(k => { st.mode = "metal"; st.metalKind = k; render(); }, kind);
+    await pg.waitForTimeout(350);
+    return pg.evaluate(() => {
+      const d = document.getElementById("fakeCard");
+      const t = (document.body.innerText || "").replace(/\s+/g, " ").trim();
+      return {there: !!d, open: d ? d.open : null, gate: !!(fakeSheet(calcItem()) || {}).gate,
+              sum: d ? ((d.querySelector(":scope > summary") || {}).innerText || "").replace(/\s+/g, " ") : "",
+              words: t ? t.split(" ").length : 0};
+    });
+  };
+  await pg.evaluate(() => { st.openFakes = false; st.fakeAns = {}; });
+  const adv = await at("jewelry");
+  ok(adv.there, "the card is on the gold screen");
+  ok(!adv.gate && adv.open === false, `  the advising sheet is shut — ${adv.words} words on screen`);
+  ok(/\d of \d|check/i.test(adv.sum),
+     `  and the shut card still says where it stands — "${adv.sum.slice(0, 54)}"`);
+
+  const gate = await at("bullion");
+  ok(gate.gate && gate.open === true,
+     "  the GATING sheet opens itself — it is the reason there is no price");
+  ok(/holds the price/i.test(gate.sum),
+     `  and says so — "${gate.sum.slice(0, 54)}"`);
+
+  /* THE BUG THIS SECTION EXISTS FOR. A details inserted with the open
+     attribute fires `toggle` on the new element, so listening for toggle
+     recorded the gate's own doing as "he opened it" - st.openFakes stuck
+     true and every advising sheet came back open from then on. The fold
+     would have worked until the first gated item of the day and then
+     quietly stopped. The summary's click is wired instead, because a
+     click is unambiguously his finger. */
+  const back = await at("jewelry");
+  ok(back.open === false,
+     "  and coming back from it does not leave the advising one open");
+  ok(await pg.evaluate(() => st.openFakes === false),
+     "  the gate's own open is not remembered as a tap");
+
+  /* His tap sticks through the re-render that answering a check causes. */
+  await pg.locator("#fakeCard > summary").click();
+  await pg.waitForTimeout(300);
+  const tapped = await pg.evaluate(() => {
+    const d = document.getElementById("fakeCard");
+    return {open: d.open, st: st.openFakes};
+  });
+  ok(tapped.open === true && tapped.st === true, "  a tap opens it");
+  await pg.evaluate(() => render());
+  await pg.waitForTimeout(300);
+  ok(await pg.evaluate(() => document.getElementById("fakeCard").open),
+     "  and it stays open through a re-render, not shutting under his finger");
+
+  /* An answered check forces it open, so a failed one can never be hidden. */
+  await pg.evaluate(() => { st.openFakes = false; st.fakeAns = {}; render(); });
+  await pg.waitForTimeout(300);
+  const before = await pg.evaluate(() => document.getElementById("fakeCard").open);
+  await pg.evaluate(() => {
+    const b = document.querySelector('#fakeCard [data-fake$=":fail"]')
+           || document.querySelector("#fakeCard [data-fake]");
+    if (b) b.click();
+  });
+  await pg.waitForTimeout(350);
+  const after = await pg.evaluate(() => {
+    const d = document.getElementById("fakeCard");
+    return {open: d.open, sum: ((d.querySelector(":scope > summary") || {}).innerText || "").replace(/\s+/g, " ")};
+  });
+  ok(before === false && after.open === true,
+     "  answering one check forces it open — a shut card cannot hide a failed one");
+  ok(/1 of \d done/.test(after.sum), `  and the summary counts it — "${after.sum.slice(0, 50)}"`);
+  await pg.close();
+}
+
 ok(errs.length === 0, "\n  no page errors" + (errs.length ? ": " + errs[0] : ""));
 await browser.close();
 console.log(fails ? `\n${fails} FAILED` : "\nall good");

@@ -56,12 +56,16 @@ const ok = (c, m) => { console.log((c ? "  ok    " : "  FAIL  ") + m); if (!c) f
    fifth, so an honest new control does not go red while a paragraph
    coming back does. */
 const BUDGET = {
-  phone: {item: 90, setup: 200, log: 115, device: 275, metal: 650},
-  desk:  {item: 200, setup: 240, log: 115, device: 275, metal: 660}
+  phone: {item: 90, setup: 200, log: 115, device: 275, metal: 420},
+  desk:  {item: 200, setup: 240, log: 115, device: 275, metal: 430}
 };
 /* No single run of prose longer than this, anywhere, fakes checks aside.
    40 words is about three lines on a phone. */
 const BLOCK = 40;
+/* The gold screen's budget came down from 650 to 430 when the spotting-
+   fakes card was shut by default: "yes close it until i tap it." 724
+   words when this started, 363 now. The budget is what stops it drifting
+   back open. */
 
 const browser = await chromium.launch({executablePath: EXE});
 const errs = [];
