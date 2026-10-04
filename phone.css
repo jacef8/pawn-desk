@@ -118,6 +118,24 @@
 
   /* ---- the walk-away verdict -----------------------------------------
      Three states, three washes, and the word carries the colour. */
+  /* ---- what are they asking ------------------------------------------
+     One row, no card, no heading: check-screens priced the card version at
+     115px on a 390x844 handset against a page that already fit exactly.
+     The verdict below it is unbudgeted on purpose - it does not exist
+     until he types a price, and scrolling after you ask for an answer is
+     the bargain the killer fold already made. */
+  body.phone .wAskPrice{margin-top:10px}
+  body.phone .wAskPrice .phIn{margin-top:0}
+  /* THE THIRD COPY OF "NOT FINISHED" COMES OFF THE HERO.
+     Unpriced, the hero said it three times - "5 of 7 answered", then "No
+     price until the run is finished.", then a progress bar of the same
+     fraction - and the verdict directly below now says it a fourth time
+     and better, by naming the answers that are missing. The sentence is
+     the one of the four that carries nothing the others do not, so it
+     goes, at every height rather than only on a short screen: it is a
+     judgement about what the screen says, not about where it fits. The
+     priced hero keeps its sub - there it carries the arithmetic. */
+  body.phone .snapWrap:not(.ready) .hero .heroSub{display:none}
   .phIn{display:flex;align-items:center;gap:8px;width:100%;margin-top:4px}
   .phIn span{font:700 22px var(--mono);color:var(--ink)}
   .phIn input{flex:1;min-width:0;font:700 22px var(--mono);color:var(--ink);background:var(--well);
@@ -233,6 +251,26 @@
     body.phone .act span{font-size:11px}
     body.phone .heroSub{font-size:12.5px}
     body.phone .wRow .t b{font-size:14px}
+    /* THE ASKING ROW, PAID FOR ON A SHORT SCREEN.
+       It cost 59px of overflow on a 360x780 handset as a 51px row, and
+       this is the file's own way of settling that: the row tightens, and
+       on an unfinished run the hero stops spending a line on "no price
+       until the run is finished" - the verdict directly underneath now
+       says which answers are missing and by name, so the sentence above
+       it was the third copy of the same fact, after the counter and the
+       bar. */
+    /* The last 24px on a 360x780, and it comes off the least important
+       thing on the screen rather than off a tap target: the answer
+       buttons are 40-60px each and must stay thumb-sized, so the
+       not-connected footnote gives it up instead - two lines of 12.5px
+       about a setting, on the screen where he is deciding whether to hand
+       over cash. On a connected phone it is not there at all. */
+    body.phone .snapOff{padding:7px 10px;font-size:11.5px;line-height:1.4}
+    body.phone .snapOff .ghostBtn{padding:4px 10px;font-size:11.5px}
+    body.phone .wAskPrice{margin-top:3px}
+    body.phone .wAskPrice .phIn input{font-size:19px;padding:9px 12px}
+    body.phone .wAskPrice .phIn span{font-size:19px}
+
     body.phone .snapOff{padding:7px 10px}
   }
   /* Mid-run the evidence is a glance, not a paragraph: which source and

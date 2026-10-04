@@ -42,6 +42,41 @@ const ok = (c, m) => { console.log((c ? "  ok    " : "  FAIL  ") + m); if (!c) f
 const browser = await chromium.launch({executablePath: EXE});
 const page = await browser.newPage({viewport: {width: 390, height: 780}});
 const errs = []; page.on("pageerror", e => errs.push(String(e)));
+/* FINISHING THE RUN, THE WAY THE SCREEN COUNTS IT.
+   Two blocks below set the condition and what came with it and called that
+   a finished run. It never was: the spec questions - bar length, kit or
+   bare tool, tank size - were left unanswered, and those ARE the price.
+   On the air compressor answering them moved resale from $120 to $96.
+   The screen has always refused a price in that state; the verdict box now
+   refuses the GO word in it too, which is what made these two go red. */
+await page.addInitScript(() => {
+  window.__finishRun = () => {
+    for (let i = 0; i < 14; i++) {
+      const open = askQueue(calcItem()).filter(z => !z.answered && !z.optional);
+      if (!open.length) return true;
+      for (const z of open) {
+        if (z.id === "cond") st.condSet = true;
+        else if (z.id === "complete") st.completeSet = true;
+        else if (z.id === "brand") { st.brandTyped = st.brandTyped || "Ryobi"; st.brandSet = true; }
+        else if (z.id === "model") { st.model = st.model || "X"; st.mpNone = true; }
+        else if (z.id === "which") { const c = mpCandidates();
+          if (c && c.length) st.mpPin = {id: c[0][0], model: c[0][2]}; else st.mpNone = true; }
+        else if (String(z.id).indexOf("spec:") === 0)
+          st.specSel = Object.assign({}, st.specSel, {[st.itemId + ":" + String(z.id).slice(5)]: 0});
+        /* The caller owns what it sells for - and SETTING a model or a
+           pin clears st.market, so the run is finished first and the
+           price goes on afterwards. Getting that order wrong turned a
+           checked item back into an unchecked one and cost me a red I
+           read as the app's fault. */
+        else if (z.id === "worth") continue;
+        else return false;
+      }
+      const left = askQueue(calcItem()).filter(z => !z.answered && !z.optional);
+      if (!left.length || left.every(z => z.id === "worth")) return true;
+    }
+    return false;
+  };
+});
 await page.goto(BASE + "/phone.html", {waitUntil: "networkidle"});
 await page.waitForTimeout(900);
 
@@ -56,6 +91,129 @@ ok(have.phone, "  and this really is the phone surface");
 if (!have.ph || !have.calc || !have.phone) {
   console.log("\n  (skipping the rest - there is nothing to check)");
   await browser.close(); console.log(`\n${fails} FAILED`); process.exit(1);
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   THE SECTION THAT WOULD HAVE CAUGHT TWO SESSIONS OF DEAD CODE.
+
+   Everything below this point calls phVerdictHTML and reads the string it
+   returns. That is how this suite passed twice while there was no asking-
+   price box anywhere on the live phone: phoneStepHTML, which held the box,
+   IS NOT CALLED ON THE PHONE. snapHTML replaces renderItem here and never
+   routes through nextStepHTML. I tested the function and shipped a screen.
+
+   So this section touches no app function at all. It types into the search
+   box, taps the row, types a price into whatever input is on the screen,
+   and reads the verdict out of the DOM. If the box is not rendered or not
+   wired, every line of it goes red - which is the only shape of assertion
+   that could have failed before.
+   ══════════════════════════════════════════════════════════════════════ */
+console.log("\n  the box is ON THE SCREEN, and typing in it answers");
+{
+  const DRIVEWAY = ["Weber kettle grill", "Craftsman tool chest",
+                    "Ryobi air compressor", "Schwinn kids bicycle",
+                    "Stihl chainsaw", "Coleman cooler"];
+  const seen = [];
+  for (const q of DRIVEWAY) {
+    await page.goto(BASE + "/phone.html", {waitUntil: "networkidle"});
+    await page.waitForTimeout(700);
+    await page.fill("#omniIn", q);
+    await page.waitForTimeout(450);
+    const row = page.locator('#omniList [data-omni="0"]');
+    if (!await row.count()) { seen.push({q, noRow: true}); continue; }
+    await row.click();
+    await page.waitForTimeout(450);
+    const box = await page.locator("#phAsk").count();
+    if (!box) { seen.push({q, noBox: true}); continue; }
+    const buy = await page.evaluate(() => calcItem().buy);
+    /* LOW: well under the buy figure. A driveway ask. */
+    await page.fill("#phAsk", String(Math.max(1, Math.round(buy * 0.5))));
+    await page.waitForTimeout(300);
+    const low = await page.evaluate(() => ({
+      word: (document.querySelector(".phWord") || {}).textContent || "",
+      est: !!document.querySelector(".phEst"),
+    }));
+    /* HIGH: more than it resells for. Must stop him. */
+    await page.fill("#phAsk", "99999");
+    await page.waitForTimeout(300);
+    const high = await page.evaluate(() =>
+      (document.querySelector(".phWord") || {}).textContent || "");
+    seen.push({q, buy, low: low.word, est: low.est, high});
+  }
+  for (const r of seen) {
+    ok(!r.noRow && !r.noBox && !!r.low,
+       `${r.q} — box on screen, $${Math.round((r.buy||0)*0.5)} typed → "${r.low||(r.noBox?"NO BOX":"NO ROW")}"`);
+  }
+  /* The one that matters most: the GO word cannot come out of a screen
+     where nothing has been looked up and the run is not finished. */
+  /* "r.low !== 'Good buy'" was true of a screen with no box on it at all -
+     it passed while the revert was in place, which makes it an assertion
+     that cannot fail for the reason it is here. It has to see the word
+     before it can approve of it. */
+  ok(seen.length === 6 && seen.every(r => !!r.low && r.low !== "Good buy"),
+     "  all six answered, and not one said Good buy — nothing looked up, run unfinished");
+  ok(seen.length === 6 && seen.every(r => r.est),
+     "  and every one carried the condition banner above the word");
+  ok(seen.every(r => r.high === "Pass"),
+     "  asked 99,999 for it, every one says Pass — stopping still works off a loose figure");
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   CHECKED IS NOT FINISHED, AND I NEARLY SHIPPED THAT UNTESTED.
+   I reverted the run-is-unfinished half of this on its own and the six
+   driveway items above stayed green, because none of them has anything
+   looked up - "est" alone was already doing the softening and the new rule
+   was carrying no weight it could be caught dropping.
+
+   The state it actually governs is the one the DeWalt kit is in off a cold
+   start: a real sold figure on file, AND the run still asking what came
+   with it. A bare driver and a two-battery kit are nearly twice apart in
+   this book, so a GO word there is a measured price for the wrong thing -
+   which is the Samsung tablet again, wearing a sold price. The hero
+   already refuses to print a figure in this state; the box has to hold the
+   same line, or one screen says two things.
+   ══════════════════════════════════════════════════════════════════════ */
+console.log("\n  a sold price on an unfinished run is still not a Good buy");
+{
+  await page.goto(BASE + "/phone.html", {waitUntil: "networkidle"});
+  await page.waitForTimeout(700);
+  await page.fill("#omniIn", "DeWalt 20V impact driver kit");
+  await page.waitForTimeout(450);
+  const row = page.locator('#omniList [data-omni="0"]');
+  const found = await row.count();
+  ok(!!found, "the DeWalt kit is reachable from the search box");
+  if (found) {
+    await row.click();
+    await page.waitForTimeout(450);
+    const g = await page.evaluate(() => {
+      const x = calcItem();
+      return {checked: !!x.checked, ready: priceReady(x), buy: x.buy,
+              missing: priceMissing(x).join(", "),
+              box: !!document.getElementById("phAsk"),
+              heroBig: (document.querySelector(".heroBig") || {}).textContent || ""};
+    });
+    /* The premise. If either of these stops being true the assertion below
+       is testing nothing and must be rebuilt on an item that is. */
+    ok(g.checked, "  it has a real figure on file off a cold start");
+    ok(!g.ready, `  and the run is NOT finished — still wants ${g.missing}`);
+    ok(g.box, "  the asking-price box is on the screen anyway");
+    if (g.checked && !g.ready && g.box) {
+      await page.fill("#phAsk", String(Math.max(1, Math.round(g.buy * 0.5))));
+      await page.waitForTimeout(300);
+      const v = await page.evaluate(() => ({
+        word: (document.querySelector(".phWord") || {}).textContent || "",
+        ban: (document.querySelector(".phEst") || {}).textContent || "",
+      }));
+      ok(!!v.word && v.word !== "Good buy",
+         `  a bargain ask on it says "${v.word}", not "Good buy"`);
+      ok(/not finished/i.test(v.ban),
+         `  and the banner says which problem it is — "${v.ban.slice(0, 64)}"`);
+      /* AND THE SCREEN AGREES WITH ITSELF. The hero prints no figure in
+         this state; the box must not quote one as a verdict either. */
+      ok(g.heroBig.indexOf("$") < 0,
+         "  the hero is printing no price here either — one screen, one answer");
+    } else { fails += 3; console.log("  (premise gone - rebuild this on an item that holds it)"); }
+  } else { fails += 6; }
 }
 
 /* ------------------------------------------------------------------ */
@@ -120,6 +278,11 @@ console.log("\n  an estimate can stop a purchase, never authorise one");
       const f = rows.find(x => ["mp", "book", "item"].includes(x.kind));
       if (!f) return null;
       omniPick(f); st.condSet = true; st.completeSet = true;
+      /* The GO word needs a finished run as well as a sale, so the control
+         has to BE a finished run or it is testing the wrong thing. The run
+         is finished BEFORE the price goes on: answering the model clears
+         st.market. */
+      if (checked) window.__finishRun();
       const x0 = calcItem();
       if (checked) st.market = {kind: "hand", key: mkKey(), mid: Math.round(x0.resale)};
       const x1 = calcItem();
@@ -173,6 +336,7 @@ const measured = await page.evaluate(() => {
   const R = omniRows("air compressor") || {}, rows = R.rows || [];
   const f = rows.find(x => ["mp", "book", "item"].includes(x.kind));
   omniPick(f); st.condSet = true; st.completeSet = true;
+  window.__finishRun();
   st.market = {kind: "hand", key: mkKey(), mid: 120};
   st.ask = 40; st.askKey = mkKey();
   const x = calcItem(); const h = phVerdictHTML(x);

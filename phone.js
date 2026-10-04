@@ -40,7 +40,30 @@ function phVerdictHTML(x){
   const ask=phAskNow(); if(!ask)return "";
   const resale=Math.round(x.resale), buy=x.buy, pct=Math.round(ask/resale*100), left=resale-ask;
   if(!(resale>0))return "";
-  const est=!x.checked;
+  /* AN UNFINISHED RUN SOFTENS THIS THE SAME WAY AN UNCHECKED FIGURE DOES.
+     Measured on eight driveway items and every one of them came back
+     ready=false with six to nine questions outstanding - which is the
+     normal state of this screen, not an edge case. So the box has to
+     answer in it, and the figure it answers off is a category default
+     that has not yet been narrowed to the thing in his hand. That is the
+     Samsung tablet: a Tab A7 Lite and a Tab S9 Ultra are ten times apart
+     and the question that separates them is one of the unanswered ones.
+
+     The two directions are still not symmetrical, and that is what lets
+     this screen speak at all. A stopping verdict off a loose figure costs
+     a deal he did not make. A GO verdict off one costs cash against a
+     number for the wrong model. So: stopping words stand, the GO word
+     needs a finished run AND a sale behind it, and the banner says which
+     of the two is missing rather than a general disclaimer. */
+  const ready=(typeof priceReady==="function")?priceReady(x):true;
+  const left_q=(typeof priceMissing==="function")?priceMissing(x):[];
+  const est=!x.checked, soft=est||!ready;
+  /* EVERY CATEGORY LABEL IS PLURAL - Tools, Firearms, Electronics,
+     Appliances & household - so "the built-in $32 for A TOOLS" has been on
+     the live phone for as long as this box has, and I wrote it a second
+     time into the new sentence before reading one back. No article: the
+     line below it has always said "your buy rate for tools" and reads
+     correctly, which is the pattern. */
   const catName=x.cat.label.toLowerCase();
   let cls,word,line;
   if(ask>=resale){ cls="pass"; word="Pass"; line=`They want ${money(ask)} &mdash; more than it resells for (${money(resale)}).`; }
@@ -65,18 +88,33 @@ function phVerdictHTML(x){
        prove it. The number he would pay is still shown, because he is
        standing in a driveway and may buy it anyway - but the tool is no
        longer the thing that told him to. */
-    if(est){ cls="thin"; word="Look it up first";
-      line=`${money(ask)} looks low against the built-in <b>${money(resale)}</b> for a ${esc(catName)} &mdash; but nothing has been looked up, and a figure nobody measured is not a reason to hand over cash. Check a sold page before you buy. If it holds, you'd pay up to <b>${money(buy)}</b>.`; }
+    if(soft){ cls="thin"; word=est?"Look it up first":"Finish the run first";
+      line=est
+        ? `${money(ask)} looks low against the built-in <b>${money(resale)}</b> for ${esc(catName)} &mdash; but nothing has been looked up, and a figure nobody measured is not a reason to hand over cash. Check a sold page before you buy. If it holds, you'd pay up to <b>${money(buy)}</b>.`
+        : `${money(ask)} looks low against <b>${money(resale)}</b> &mdash; but that figure is the one for ${esc(catName)} in general, and ${esc(left_q.slice(0,2).join(" and "))} ${left_q.length>2?"and more are":left_q.length>1?"are":"is"} still unanswered. Those are what move the price. Answer them and you'd pay up to <b>${money(buy)}</b>.`; }
     else { cls="good"; word="Good buy"; line=`${money(ask)} is ${pct}% of what it resells for. You'd clear about <b>${money(left)}</b> when it sells, before any selling fees.`; }
   }
   else if(pct<=Math.min(95,x.buyPct+20)){ cls="thin"; word="Thin"; line=`${money(ask)} is ${pct}% of what it resells for. That leaves about ${money(left)} &mdash; less room than you like. Offer <b>${money(buy)}</b>.`; }
   else { cls="pass"; word="Pass"; line=`${money(ask)} is ${pct}% of what it resells for. Not enough room. The most you'd normally pay is <b>${money(buy)}</b>.`; }
   /* The estimate is said BEFORE the word, not after it. A banner under a
      verdict reads as a footnote; above it, it is a condition on the answer. */
-  return `<div class="phVerdict ${cls}${est?" est":""}">
-    ${est?`<div class="phEst">Estimate &mdash; nothing looked up. The figure below is the built-in one for a ${esc(catName)}, not a sale anybody made.</div>`:""}
+  /* The condition on the answer is said BEFORE the word, not after it. A
+     banner under a verdict reads as a footnote; above it, it is a
+     condition on the answer. And it names WHICH condition: "nothing
+     looked up" and "four questions outstanding" are different problems
+     with different fixes, and a single disclaimer covering both tells him
+     neither. */
+  const banner=est&&!ready
+    ? `Estimate, and not finished. The figure below is the built-in one for ${esc(catName)}; ${esc(left_q.slice(0,3).join(", "))}${left_q.length>3?" and more":""} still unanswered.`
+    : est
+    ? `Estimate &mdash; nothing looked up. The figure below is the built-in one for ${esc(catName)}, not a sale anybody made.`
+    : !ready
+    ? `Not finished &mdash; ${esc(left_q.slice(0,3).join(", "))}${left_q.length>3?" and more":""} still unanswered, and those are what move the price.`
+    : "";
+  return `<div class="phVerdict ${cls}${soft?" est":""}">
+    ${banner?`<div class="phEst">${banner}</div>`:""}
     <div class="phWord">${word}</div><div class="phLine">${line}</div>
-    <div class="phMath">Resells for about <b>${money(resale)}</b> &middot; your buy rate for ${esc(catName)} is ${x.buyPct}%, so you'd pay up to <b>${money(buy)}</b>.${est?` <b>Check it if the money matters.</b>`:""}</div></div>`;
+    <div class="phMath">Resells for about <b>${money(resale)}</b> &middot; your buy rate for ${esc(catName)} is ${x.buyPct}%, so you'd pay up to <b>${money(buy)}</b>.${soft?` <b>Check it if the money matters.</b>`:""}</div></div>`;
 }
 function phoneStepHTML(x){
   const m=x.market, what=[st.brandTyped,st.model].filter(Boolean).join(" ")||displayName(x);
@@ -102,14 +140,56 @@ function phoneStepHTML(x){
      desk filters, the same one tap that sets the spelling and the tier. */
   const _q=askQueue(x);
   const needs=(id)=>_q.some(z=>z.id===id&&!z.answered&&!z.optional);
-  const wantBrand=started&&!x.checked&&needs("brand");
-  const s1=started&&(x.checked||(!wantBrand&&!cands.length&&!wantModel)), s2=started&&x.checked, s3=started&&x.checked&&!!st.condSet, ask=phAskNow();
+  /* A MAKE HE TYPED IS A MAKE HE GAVE YOU.
+     Measured on the field items: brandTyped came back "Craftsman",
+     "Ryobi", "Schwinn" - and brandSet stayed FALSE on every one, because
+     brandSet means "the catalog recognised it and could tier it", not "we
+     know what it is". So the screen kept asking for a make that was
+     already on it, and the asking price sat behind that question.
+
+     At the counter that extra question costs a few seconds. In a driveway
+     it is the difference between the tool answering and not, and the
+     price barely moves anyway: an unrecognised make prices at mid tier,
+     which is what it was already doing while it asked.
+
+     So a typed make satisfies this step. The question stays reachable -
+     nothing is removed - it just stops being a locked door, and the tier
+     it assumed is on the screen either way. */
+  const wantBrand=started&&!x.checked&&needs("brand")&&!String(st.brandTyped||"").trim();
+  /* STEP 4 WAS LOCKED BEHIND A LOOKUP, ON THE SCREEN FOR YARD SALES.
+     Walked the real flow on five driveway items and only the one with a
+     book row could reach "What are they asking":
+
+       DeWalt 20V kit     checked=true    ask box: yes
+       Weber kettle grill checked=false   ask box: NO
+       tool chest         checked=false   ask box: NO
+       air compressor     checked=false   ask box: NO
+       kids bicycle       checked=false   ask box: NO
+
+     I "fixed" this once already by making phVerdictHTML answer on a
+     built-in figure - and it never fired, because the flow would not let
+     him type a price in the first place. I had tested the function
+     instead of the screen.
+
+     A built-in resale IS a figure. It is not a measured one, and the step
+     row says so in the next line rather than refusing to move. The verdict
+     it leads to already marks itself an estimate and already refuses to
+     say "Good buy" without a sale behind it, so the guard that matters is
+     still there - it is just no longer a locked door. */
+  const haveFigure=x.checked||(Number(x.resale)>0);
+  const s1=started&&(x.checked||(!wantBrand&&!cands.length&&!wantModel)),
+        s2=started&&haveFigure,
+        s3=started&&haveFigure&&!!st.condSet, ask=phAskNow();
   const cur=!s1?1:!s2?2:!s3?3:4;
   const cw=COND_WORDS[st.cond]||["Good",""];
   const row=(n,label,val,done,id)=>`<div class="nsStep${done?" done":""}${cur===n?" cur":""}"><span class="nsDot">${done?"&#10003;":n}</span><span class="nsL">${label}</span><span class="nsV"${id?` id="${id}"`:""}>${val}</span></div>`;
   const steps=`<div class="nsSteps">
     ${row(1,"What it is",started?esc(what):"not set",s1)}
-    ${row(2,"Resale value",x.checked?`${money(Math.round(x.resale))}<small>${esc(nsSrcShort(m))}${Math.round(x.resale)!==m.mid?`, in ${cw[0].toLowerCase()} shape`:""}</small>`:"not checked",s2)}
+    ${row(2,"Resale value",x.checked
+        ? `${money(Math.round(x.resale))}<small>${esc(nsSrcShort(m))}${m&&Math.round(x.resale)!==m.mid?`, in ${cw[0].toLowerCase()} shape`:""}</small>`
+        : (Number(x.resale)>0
+            ? `${money(Math.round(x.resale))}<small>built in, nothing looked up</small>`
+            : "not checked"),s2)}
     ${row(3,"Condition",s3?cw[0]:"not set",s3)}
     ${row(4,"Asking price",ask?money(ask):"&mdash;",cur===4&&ask>0,"phAskV")}</div>`;
   let h="",sub="",act="";
@@ -346,6 +426,20 @@ function phoneBoot(){
         if(a==="type"){ const i2=document.getElementById("omniIn");
                         if(i2){ i2.focus(); try{ i2.scrollIntoView({block:"center"}); }catch(e){} } return; }
       });
+      /* THE BOX NEEDS A HANDLER ON THIS SCREEN TOO.
+         wireNext() wires #phAsk, and wireNext belongs to the step card
+         that this screen does not render - so without this the input
+         would sit there taking digits and nothing would ever read them.
+         The same split that made the box invisible for two sessions. */
+      (()=>{
+        const ai=document.getElementById("phAsk");
+        if(!ai)return;
+        ai.oninput=()=>{
+          const n=parseFloat(ai.value); st.ask=n>0?n:0; st.askKey=mkKey();
+          const vb=document.getElementById("phVerdictBox");
+          if(vb)vb.innerHTML=phVerdictHTML(calcItem());
+        };
+      })();
       document.querySelectorAll("[data-wact]").forEach(btn=>btn.onclick=()=>{
         const a=btn.dataset.wact;
         if(a==="look"){ try{ priceFind(null,true); }catch(e){} return; }
@@ -704,16 +798,83 @@ function snapHTML(){
       <div class="t"><b>${evid.b}</b>${ready?`<span>${evid.s}</span>`:""}
         <div class="wBar"><i class="${evid.tone}" style="width:${Math.max(3,evid.pct)}%"></i></div></div>
     </button>` : "";
+  /* THE LOAN IS ONE ROW HERE, NOT TWO.
+     check-phone-killer caught the asking-price row costing a priced
+     PlayStation 25px of overflow on a 412x915 Pixel - the suite
+     check-screens missed, because its "priced" state leaves the spec
+     questions unanswered and so is not actually ready. Something had to
+     pay, and CLAUDE.md says which: "the phone is the field screen - yard
+     sales, clearance racks, other shops - so it is about buying outright,
+     not lending." Two rows of pawn arithmetic are the least field thing
+     on it.
+
+     Not deleted - merged. The loan, the fee and the cushion are all still
+     here in one row, and the full ticket is still a tap away on Detail
+     and whole on the desk. That is 50px for 25px of need, and if he wants
+     the pair back it is this block. */
   const rows = ready ? `
     <div class="wRow"><i><svg viewBox="0 0 24 24" aria-hidden="true">${ICON.lend}</svg></i>
-      <div class="t"><b>Lend him</b><span>60-day pawn loan</span></div>
-      <div class="v">${x.buyTooThin?"&mdash;":money(x.target)}</div></div>
-    <div class="wRow"><i><svg viewBox="0 0 24 24" aria-hidden="true">${ICON.math}</svg></i>
-      <div class="t"><b>Your cushion</b><span>fee ${money(x.charge)} \u00b7 lending ${x.ltv}% of resale</span></div>
-      <div class="v">${money(x.margin)}</div></div>` : "";
+      <div class="t"><b>Lend him</b><span>60-day pawn \u00b7 fee ${money(x.charge)} \u00b7 your cushion ${money(x.margin)}</span></div>
+      <div class="v">${x.buyTooThin?"&mdash;":money(x.target)}</div></div>` : "";
+
+  /* ══ WHAT ARE THEY ASKING ═══════════════════════════════════════════
+     THE ONE QUESTION THIS SCREEN EXISTS FOR WAS NOT ON IT.
+     "lets get back to the mobile buying functions." Walked the live phone
+     on eight driveway items and measured what was actually on screen:
+
+       Weber kettle grill    resale $32   ask box: NO   verdict: NO
+       Craftsman tool chest  resale $120  ask box: NO   verdict: NO
+       Ryobi air compressor  resale $56   ask box: NO   verdict: NO
+       Schwinn kids bicycle  resale $80   ask box: NO   verdict: NO
+       DeWalt 20V kit        resale $95   ask box: NO   verdict: NO
+       Stihl chainsaw        resale $202  ask box: NO   verdict: NO
+       Coleman cooler        resale $160  ask box: NO   verdict: NO
+       Little Tikes slide    resale $80   ask box: NO   verdict: NO
+
+     Eight for eight. There was no way, on the phone, to type what
+     somebody wanted for a thing and be told whether to pay it.
+
+     And I had "fixed" this twice. Both fixes were real code in
+     phoneStepHTML and phVerdictHTML, both tested, both green - and
+     phoneStepHTML IS NOT ON THE SCREEN HE USES. snapOn() is true until
+     snapDetail is set, so snapHTML replaces renderItem and never routes
+     through nextStepHTML: the four-step card, the asking-price box and the
+     verdict under it live behind the Detail button, two taps deep, on the
+     screen whose whole point is that nothing is two taps deep. Measured
+     it rather than assuming: nsSteps=0 and phAsk=0 on the front screen,
+     nsSteps=1 once snapDetail is set. Not dead code - unreachable code,
+     which from a driveway is the same thing. Two sessions of work behind
+     a fold, because I tested the function and not the screen, which is
+     the exact mistake CLAUDE.md names, made twice running on one
+     component.
+
+     So the box goes HERE, on the screen that renders, directly under the
+     hero: at a yard sale the figure he needs is not "what is it worth",
+     it is "they want $25, do I pay it". The verdict under it holds every
+     line it held before - the fakes gate stops it dead, an unchecked
+     figure or an unfinished run cannot produce a GO - which is why it can
+     be shown this early at all. */
+  /* AND IT HAS TO COST ALMOST NOTHING, BECAUSE THE SCREEN WAS ALREADY FULL.
+     First go was a proper card - a "What are they asking?" heading, the big
+     30px input, the verdict under it - and check-screens measured what that
+     costs: 115px on a 390x844 iPhone, 109px on a 360x780 Android, and
+     overflow of +91px and +121px against a baseline of zero. The phone fit
+     its own screen exactly, so the card was the whole of the failure.
+
+     So the label goes in the placeholder, the heading goes, the card chrome
+     goes, and it is one row. The verdict is not in the budget at all: it
+     only exists once he has typed a price, and a screen that scrolls after
+     he asks it a question is the deal phKillHTML already struck. */
+  const askRow=(Number(x.resale)>0)
+    ? `<div class="wAskPrice">
+        <div class="phIn"><span>$</span><input id="phAsk" type="number" inputmode="decimal" placeholder="What are they asking?" value="${phAskNow()||""}"></div>
+        <div id="phVerdictBox">${phVerdictHTML(x)}</div>
+      </div>`
+    : "";
 
   return `<div class="snapWrap${ready?" ready":""}">${cam}
     ${hero}
+    ${askRow}
     ${/* No price yet: the question is the first thing under the hero,
           inline. askHTML is the same component the detailed screen uses,
           so there is nothing over there that is not already here. */""}

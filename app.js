@@ -9500,8 +9500,29 @@ function startOver(){
    piece at a time is what showed it was dead, and dead code with a comment
    claiming it matters is worse than none. Clicking back into the box works
    exactly as before. */
+/* What is left of the typed words once the matched row's own name is taken
+   out of them. "Weber kettle grill" against "Charcoal grill / kettle"
+   leaves "Weber". Used only as a fallback, and only to fill in a make
+   nobody else supplied - it never overrides a make the row itself carries,
+   and it never sets brandSet, because an unrecognised make still prices at
+   the standard tier and the screen has to keep saying so. */
+function leftoverMake(q,rowName){
+  const stop=new Set(["the","a","an","and","with","for","in","of","my","used","new","old"]);
+  const words=w=>String(w||"").toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+  const had=new Set(words(rowName));
+  const left=words(q).filter(w=>!had.has(w)&&!stop.has(w)&&w.length>2&&!/^\d+$/.test(w));
+  if(!left.length)return "";
+  /* One or two words at most: a make, not a sentence. */
+  return left.slice(0,2).map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(" ");
+}
 function omniPick(r){
   if(!r||r.kind==="sold")return;
+  /* WHAT HE TYPED, BEFORE THIS FUNCTION REPLACES IT. omniPick puts the
+     chosen row's name into the box - "leave the chosen thing in the box" -
+     so by the time the brand fallback runs, st.omniQ says "Charcoal grill
+     / kettle" and the word Weber is gone. Held here, where it still
+     exists. */
+  const typedQ=String(st.omniQ||"");
   { const i=document.getElementById("omniIn"), l=document.getElementById("omniList");
     if(i){ try{ i.blur(); }catch(e){} i.setAttribute("aria-expanded","false"); }
     if(l)l.hidden=true; }
@@ -9558,7 +9579,17 @@ function omniPick(r){
   /* Same rule one path over: when the matched row carries no make of its
      own, read one out of what was actually typed before settling for the
      standard tier. */
-  st.brandTyped=r.brand||"";
+  /* THE COMMENT ABOVE WAS RIGHT AND THE LINE DID NOT DO IT.
+     "read one out of what was actually typed" - but it only ever read
+     r.brand, which a price-book row does not carry. So "Weber kettle
+     grill" matched the book row "Charcoal grill / kettle", lost the word
+     Weber, and the field screen then asked whether the thing in the
+     driveway was a Speed Queen, a Frigidaire or a Sub-Zero. That row is
+     filed under Appliances, so it inherits washing-machine brand tiers,
+     and no tier list in this app fits a charcoal grill.
+     Re-filing the row does not fix it - tool brands are no better for a
+     Weber. Keeping the make he actually typed does. */
+  st.brandTyped=r.brand||leftoverMake(typedQ,r.name||"")||"";
   st.brandSet=false;
   let hit=st.brandTyped?brandLookup(st.catId,st.brandTyped):null;
   if(!hit){
@@ -11403,7 +11434,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="1003.2223";
+const APP_BUILD="1004.1612";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
