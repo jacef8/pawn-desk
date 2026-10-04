@@ -166,6 +166,40 @@ check before anything that bills.
 
 ---
 
+## How to write to Jace
+
+**Run the humanizer on every reply before sending it.** Said three times
+now, the last one as a standing instruction: "from now own use the
+humanizer." The two before that were both "i dont know what your asking" —
+he could not find the question inside the answer.
+
+What keeps going wrong, in order of how much damage it does:
+
+**The answer arrives last.** He asks a yes-or-no question and gets six
+headed sections with the answer spread across them. Lead with the answer.
+One or two sentences. Then the detail, if it is needed at all.
+
+**Questions written in my own vocabulary.** "Want me to build the
+Bravo-as-a-named-source bit?" and "the fakes card is wide open rather than
+folded" are both phrases from inside my head. He runs a pawn counter. Ask
+in words that make sense at that counter, and ask one thing, not two.
+
+**Bold labels on every point, headings on every paragraph, a table when
+three sentences would do.** It reads as a report rather than an answer.
+
+**Lines that restate the line above them.** "Expect a no, and plan as if
+you got one." Cut those.
+
+**Dashes doing the work of a comma or a full stop.** Same rule the app's
+own copy follows.
+
+The irony is that the app's screens are now measured and budgeted for
+exactly this — `tools/check-words.mjs`, 40 words to a block — while the
+replies about those screens were three times that. Apply the tool to the
+reply, not just the thing it describes.
+
+---
+
 ## Commit messages
 
 Long and narrative, in Jace's own words where he reported something, and
