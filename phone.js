@@ -237,7 +237,8 @@ function phoneStepHTML(x){
        was in the middle of them. The one that does the work leads now and
        the rest folds away. */
     const manual=compTargets(x).map(t=>`<a class="nsBtn nsSold" data-label="${t.name}" href="${esc(t.url)}" target="_blank" rel="opener" referrerpolicy="no-referrer"><span>${t.name}</span><b>&#8599;</b></a>`).join("")
-       +`<div class="phIn"><span>$</span><input id="phVal" type="number" inputmode="decimal" placeholder="What it sells for"><button class="nsBtn on" id="phValGo"><span>Use it</span></button></div>`
+       +`<div class="phIn"><span>$</span><input id="phVal" type="number" inputmode="decimal" placeholder="What it sells for"></div>`
+       +((typeof handSrcHTML==="function")?handSrcHTML(x.market&&x.market.kind==="hand"?x.market.src:""):"")
        +altSourcesHTML(x,true)
        +`<div class="label" style="margin-top:14px">No sold prices? Use what it costs new</div>`
        +(CAP.sample?`<button class="nsBtn on" id="pdRetGo"><span>${retailBusy?"Looking it up&hellip;":"Look up the new price"}</span></button><div class="cardHint" id="pdRetMsg"></div>`:retailTargets(compQuery(x)).map(t=>`<a class="nsBtn nsRetail" data-label="${esc(t.name)}" href="${esc(t.url)}" target="_blank" rel="opener" referrerpolicy="no-referrer"><span>${esc(t.name)}</span><b>&#8599;</b></a>`).join(""))
@@ -312,9 +313,14 @@ function wirePhone(){
   }
   const more=document.getElementById("phMore");
   if(more&&!more.dataset.w){ more.dataset.w="1"; more.addEventListener("toggle",()=>{ st.phMoreOpen=more.open; }); }
-  const vi=document.getElementById("phVal"), vg=document.getElementById("phValGo");
-  const useVal=()=>{ const n=parseFloat(vi&&vi.value); if(n>0){ st.market={kind:"hand",key:mkKey(),mid:Math.round(n)}; render(); } };
-  if(vg)vg.onclick=useVal; if(vi)vi.onkeydown=e=>{ if(e.key==="Enter")useVal(); };
+  /* THE PHONE WRITES THIS RECORD TOO, AND WROTE IT ITS OWN WAY.
+     Three boxes, three identical copies of the same object literal, which
+     is exactly how the desk gets a field the phone does not. All three go
+     through handMarket now. */
+  const vi=document.getElementById("phVal");
+  if(typeof wireHandSrc==="function")wireHandSrc("phVal");
+  if(vi)vi.onkeydown=e=>{ if(e.key==="Enter"){ e.preventDefault();
+    const b=document.querySelector("[data-handsrc]"); if(b)b.focus(); } };
   const ri=document.getElementById("phRet"), rg=document.getElementById("phRetGo");
   const useRetail=()=>{ const n=parseFloat(ri&&ri.value);
     if(n>0){ const p=retailPct(calcItem()); st.market={kind:"retail",key:mkKey(),retail:Math.round(n),pct:p,mid:Math.max(5,Math.round(n*p/100/5)*5)}; render(); } };
@@ -780,6 +786,19 @@ function snapHTML(){
                 s:"nobody paid these \u2014 "+site+", "+when,pct:26,tone:"warn"};
       return {b:"Nothing looked up",s:band+" is a built-in starting figure",
               pct:8,tone:"warn"};
+    }
+    if(mk==="hand"){
+      /* The phone drew every typed figure as "Checked" at 100%, which on
+         the yard-sale screen is the screen telling him his own guess is
+         verified. */
+      const hs=(typeof handSrc==="function")?handSrc(m.src):null;
+      const when=m.date?esc(fmtDay(m.date)):"typed in";
+      if(!hs)return {b:"Your own figure",s:"typed in, no source recorded",pct:64,tone:"warn"};
+      if(hs.id==="gut")return {b:"Your own judgement",s:"nothing looked up \u2014 "+when,pct:14,tone:"warn"};
+      if(hs.id==="ask")return {b:"An asking price",s:"nobody paid it \u2014 "+when,pct:30,tone:"warn"};
+      if(hs.id==="bravo")return {b:"Bravo Estimator",s:"their figure, real pawn deals \u2014 "+when,pct:88,tone:""};
+      if(hs.id==="sold")return {b:"A sold price you read",s:"what somebody paid \u2014 "+when,pct:84,tone:""};
+      return {b:"This shop\u2019s own sales",s:"what we get here \u2014 "+when,pct:96,tone:""};
     }
     return {b:"Checked",s:esc(checkedNote(x)),pct:100,tone:""};
   })();

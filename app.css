@@ -734,6 +734,18 @@
     color:var(--on-accent);border-color:transparent;box-shadow:var(--fill-sh)}
   .nsBtn.on b{color:var(--on-accent)}
   .nsBtn.on i,.nsBtn.on span i{color:color-mix(in srgb,var(--on-accent) 76%,transparent)}
+  /* ---- where a typed figure came from --------------------------------
+     Five answers, stacked, each with its label and a quiet line saying
+     what it means. They replace the Save button beside the box, so they
+     are the control that does the work rather than a decoration next to
+     one, and they are full width for that reason. The sub-line is prose,
+     not a figure, so it does not take .nsBtn b's mono accent. */
+  .handSrc{display:flex;flex-direction:column;gap:7px;margin-top:7px}
+  .handSrc .nsBtn{width:100%;justify-content:flex-start;gap:0;
+    flex-direction:column;align-items:flex-start;padding:10px 14px;text-align:left}
+  .handSrc .nsBtn b{font-family:var(--sans);font-weight:600;font-size:12.5px;
+    color:var(--ink-2);margin-top:2px}
+  .handSrc .nsBtn.on b{color:color-mix(in srgb,var(--on-accent) 80%,transparent)}
   .nsBtn.ghost{background:transparent;box-shadow:none;border-color:var(--ink-3);color:var(--ink)}
   .nsBtn.srcLink{text-decoration:none;color:var(--accent-ink)}
   @media (min-width:1080px){

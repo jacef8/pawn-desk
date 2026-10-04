@@ -1262,9 +1262,23 @@ function itemGuard(x){
   if(!(mid>0))return null;
   /* A figure the counter typed is about THIS thing, in their hands. There
      is no sampling error to guard against - they looked at it. */
-  if(m.kind==="hand")return {kind:"hand",mid,guard:mid,cut:0,why:[],warn:false,
-    head:"Your own number for this one",
-    detail:"You typed this in, so it is about the thing in front of you rather than a sample of listings. Nothing to guard."};
+  if(m.kind==="hand"){
+    /* "Nothing to guard" rested on "he looked at it", which the record
+       now either confirms or does not. A declared guess and an asking
+       price are the two it was never true of, so they say so. The guard
+       FIGURE is untouched either way - moving that is his call, not mine,
+       and this card is about what it admits. */
+    const hs=handSrc(m.src);
+    const soft=hs&&(hs.id==="gut"||hs.id==="ask");
+    return {kind:"hand",mid,guard:mid,cut:0,why:[],warn:!!soft,
+      head:soft?(hs.id==="gut"?"Your own read, nothing behind it":"An asking price, not a sale")
+               :"Your own number for this one",
+      detail:soft
+        ? (hs.id==="gut"
+            ? "You typed this as your own judgement, so there is no sample and nothing counted. The loan works off it exactly as typed \u2014 which is why it is worth checking a sold page before this much money goes out."
+            : "This is what somebody was asking. Asks run high, so the loan is working off a ceiling rather than a price.")
+        : "You typed this in, so it is about the thing in front of you rather than a sample of listings. Nothing to guard."};
+  }
   const ev=(typeof rowEvidence==="function")?rowEvidence(m.note,m.src):{kind:"research",n:0};
   const spread=(hi>lo&&mid>0)?(hi-lo)/mid:0;
   const age=Number(m.age)||0;
@@ -2197,9 +2211,26 @@ function weightHTML(x){
     return card("No sales found","worked back from new",bar(25,"warn"),
       "Nothing sold turned up, so this is "+money(m.retail)+" new taken down to a used share. A real sold price beats it every time.");
 
-  if(m.kind==="hand")
-    return card("Your own figure","typed in",bar(100,""),
-      "You typed this price for the item in front of you, so it is used exactly as you entered it. Picking a condition will not change it \u2014 the wear is already in your number.");
+  if(m.kind==="hand"){
+    /* ONE CARD FOR FIVE DIFFERENT KINDS OF NUMBER WAS THE BUG.
+       It drew every typed figure at 100% and told him he had looked at
+       the thing in front of him, which is true of a sold page he read and
+       not true of a number off the top of his head. */
+    const hs=handSrc(m.src);
+    const tail=" Picking a condition will not change it \u2014 the wear is already in your number.";
+    if(!hs)return card("Your own figure","typed in, source not recorded",bar(64,"warn"),
+      "You typed this in before the desk asked where figures come from, so it cannot say. Type it again and it will."+tail);
+    if(hs.id==="gut")return card("Your own judgement","nothing looked up",bar(14,"warn"),
+      "You said this one is your own read rather than anything looked up, and the desk is taking you at your word. It prices exactly as typed. Check a sold page before real money moves."+tail);
+    if(hs.id==="ask")return card("An asking price","nobody paid it",bar(30,"warn"),
+      "This is what somebody wanted, not what anybody got. Asks run high, so treat it as a ceiling rather than a price."+tail);
+    if(hs.id==="bravo")return card("Bravo Estimator","their figure, real pawn deals",bar(88,""),
+      "Read off Bravo\u2019s estimator, which works from real pawn transactions. You did not count these sales yourself, but somebody did."+tail);
+    if(hs.id==="sold")return card("A sold price you read","what somebody paid",bar(84,""),
+      "You read this off a sold page, so it is what the thing actually went for rather than what anybody is asking."+tail);
+    return card("This shop\u2019s own sales","what we get here",bar(96,""),
+      "What this shop has actually got for them. No national median beats knowing what sells in Bristol."+tail);
+  }
 
   return "";
 }
@@ -3909,6 +3940,69 @@ function struckHTML(x){
    THIS CHANGES NO ARITHMETIC. resale, buy and lend are untouched, and so is
    the 8% guard on the loan, because moving those is his call and not mine.
    What changes is whether the card ADMITS what it is standing on. */
+/* ══════════════════════════════════════════════════════════════════════
+   WHERE A TYPED NUMBER CAME FROM.
+
+   "when you type a price in, you pick where you got it."
+
+   Until now every typed figure was recorded the same way - kind "hand",
+   a number, nothing else - and the desk described all of them with one
+   sentence: "You typed this price for the item in front of you, so it is
+   used exactly as you entered it." The evidence bar drew it at 100% and
+   evidenceTier called it COUNTED, the same tier as twelve counted eBay
+   sales.
+
+   That sentence is a guess about where he was looking. A figure read off
+   a sold page, a figure off Bravo's estimator, a figure off this shop's
+   own sales and a figure off the top of his head all landed in the same
+   record and all read as proof. "i want verifiable sales data to back up
+   every purchase" cannot be satisfied by a field that cannot tell those
+   apart.
+
+   So the typed figure carries a source and a date now. The source is not
+   an extra tap: the five source buttons ARE the save, so it is the one
+   tap it always was, and there is no path that records a number with no
+   provenance at all - including his own judgement, which is a real answer
+   and says so in those words.
+
+   THIS MOVES NO MONEY. resale, buy and lend are untouched, and so is the
+   8% guard. What changes is what the screen admits it is standing on.
+   evidenceTier is display, and the two figures that stop claiming to be
+   counted - an asking price and his own judgement - are the two that were
+   never counted. */
+const HAND_SRC=[
+  {id:"mine",  t:"What we get for them here", sub:"this shop's own sales",  tier:"counted"},
+  {id:"bravo", t:"Bravo Estimator",           sub:"their figure, off real pawn deals", tier:"counted"},
+  {id:"sold",  t:"A sold price I read",       sub:"eBay, GunBroker, a sold page", tier:"counted"},
+  {id:"ask",   t:"An asking price I saw",     sub:"nobody has paid it yet", tier:"sourced"},
+  {id:"gut",   t:"My own judgement",          sub:"nothing looked up",      tier:"none"}
+];
+const HAND_BY_ID={}; HAND_SRC.forEach(s=>{ HAND_BY_ID[s.id]=s; });
+function handSrc(id){ return HAND_BY_ID[String(id||"")]||null; }
+/* ONE WRITER, BECAUSE THERE ARE THREE BOXES.
+   Step 4 on the desk, the step card's own box, and the phone all wrote
+   this record separately and identically, which is how a fourth field
+   ends up on two of them and not the third. */
+function handMarket(n,src){
+  return {kind:"hand",key:mkKey(),mid:Math.round(n),src:String(src||""),date:todayStr()};
+}
+/* An older record, saved before the source existed, has no src. It is not
+   relabelled as a guess - nobody asked it that question - it says it was
+   not asked. */
+function handSrcHTML(cur){
+  return `<div class="label" style="margin-top:12px">Where did that figure come from?</div>
+    <div class="handSrc">${HAND_SRC.map(s=>`<button type="button" class="nsBtn${cur===s.id?" on":""}" data-handsrc="${s.id}"><span>${esc(s.t)}</span><b>${esc(s.sub)}</b></button>`).join("")}</div>`;
+}
+function wireHandSrc(valId){
+  document.querySelectorAll("[data-handsrc]").forEach(b=>b.onclick=()=>{
+    const v=document.getElementById(valId), n=parseFloat(v&&v.value);
+    /* No number yet: the tap is not an error, it is early. Put him back in
+       the box rather than saving nothing and re-rendering as though
+       something happened. */
+    if(!(n>0)){ if(v){ v.focus(); } return; }
+    st.market=handMarket(n,b.dataset.handsrc); st.editing=false; render();
+  });
+}
 function evidenceBacked(x){
   const m=x&&x.market;
   if(!m||m.stale)return false;
@@ -3933,6 +4027,16 @@ function evidenceBacked(x){
 function evidenceTier(x){
   const m=x&&x.market;
   if(!m||m.stale)return "none";
+  /* A TYPED FIGURE IS WORTH WHAT ITS SOURCE IS WORTH.
+     This returned "counted" for every hand-typed number, so a price off
+     the top of his head read as verified on the same line that twelve
+     counted eBay sales read as verified. The source says which. A record
+     saved before the source field existed keeps the old answer rather
+     than being downgraded for a question it was never asked. */
+  if(m.kind==="hand"){
+    const hs=handSrc(m.src);
+    return hs?hs.tier:(x.checked?"counted":"none");
+  }
   if(m.kind!=="list")return x.checked?"counted":"none";
   if(/\b\d+\s+(ebay\s+)?(sales|listings|sold)/i.test(String(m.note||"")))return "counted";
   return String(m.src||"").trim()?"sourced":"none";
@@ -11434,7 +11538,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="1004.1612";
+const APP_BUILD="1004.1908";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -11694,6 +11798,16 @@ function marketSrcHTML(m){
   if(m.kind==="seen")return `From <b>${m.n}</b> shelf tag${m.n===1?"":"s"} you recorded, asking ${money(m.lo)}&ndash;${money(m.hi)}, typically ${money(m.ask)} &mdash; what a used one goes for at a shop near you.`;
   if(m.kind==="harvest")return `From the price list this shop built: <b>${esc(m.name)}</b>, ${m.n} listing${m.n===1?"":"s"}${m.sold?`, ${m.sold} sold`:""} on ${esc(fmtDay(m.date))}. ${srcLink(m.src,"See those sales")} Nobody has checked this one by hand &mdash; it is a search, kept.`;
   if(m.kind==="retail")return `Estimated from <b>${money(m.retail)}</b> new retail, taken to ${(m.pct||retailPct())}% for a used one. This is not a sold price &mdash; check sold prices when you can.`;
+  if(m.kind==="hand"){
+    const hs=handSrc(m.src);
+    if(!hs)return "Your number, typed in. No source recorded \u2014 type it again to say where it came from.";
+    const when=m.date?esc(fmtDay(m.date)):"";
+    if(hs.id==="gut")return `<b style="color:var(--warn-ink)">Your own judgement</b>, ${when} \u2014 nothing looked up behind it. It prices exactly as typed.`;
+    if(hs.id==="ask")return `An <b>asking price</b> you saw, ${when}. <span style="color:var(--warn-ink)">Nobody has paid it \u2014 asks run high, so this is a ceiling.</span>`;
+    if(hs.id==="bravo")return `<b style="color:var(--accent-ink)">Bravo Estimator</b>, read ${when}. Their figure, off real pawn deals. Not a sale you counted, but not a guess either.`;
+    if(hs.id==="sold")return `A <b style="color:var(--accent-ink)">sold price</b> you read, ${when}. What somebody actually paid.`;
+    return `<b style="color:var(--accent-ink)">This shop's own sales</b>, ${when}. The best figure there is for Bristol.`;
+  }
   return "Your number, typed in.";
 }
 function step4Inner(x,bare){
@@ -11724,8 +11838,12 @@ function step4Inner(x,bare){
       <div class="pinWorkT"><b>Looking it up\u2026</b>
         <span>checking what these actually sell for${x.checked?" \u2014 this figure may change":""}</span></div></div>`;
   if(st.editing){
-    h+=`<div class="row2"><input id="valIn" type="number" inputmode="numeric" placeholder="What a used one sold for" value="${m&&m.kind==="hand"?m.mid:""}" class="numIn" style="flex:1;min-width:0"><button class="brassBtn" id="valSave" style="padding:11px 18px">Save</button><button class="ghostBtn" id="valCancel" style="padding:11px 14px">Cancel</button></div>
-      <div class="cardHint" style="font-size:13.5px;color:var(--ink-2)">What one like this actually sells for used, in normal shape. The loan works from this number.</div>`;
+    /* THE SOURCE BUTTONS ARE THE SAVE. There is no Save beside them,
+       because a Save button is a way to record a number with no source
+       and that is the thing being fixed. Same one tap it always was. */
+    h+=`<div class="row2"><input id="valIn" type="number" inputmode="numeric" placeholder="What a used one sold for" value="${m&&m.kind==="hand"?m.mid:""}" class="numIn" style="flex:1;min-width:0"><button class="ghostBtn" id="valCancel" style="padding:11px 14px">Cancel</button></div>
+      <div class="cardHint" style="font-size:13.5px;color:var(--ink-2)">What one like this actually sells for used, in normal shape. The loan works from this number.</div>
+      ${handSrcHTML(m&&m.kind==="hand"?m.src:"")}`;
   } else if(x.checked){
     h+=`<div class="mkRow"><div><div class="mkBig">${money(m.mid)}</div>${m.lo!=null&&m.hi!=null&&m.lo!==m.hi?`<div class="mkRange">usually ${money(m.lo)} to ${money(m.hi)}</div>`:""}</div><span class="mkOk">&#10003; Checked</span></div>
       <div class="mkWhat">Not the loan &mdash; the loan is worked out from it.</div>
@@ -11820,10 +11938,12 @@ function wireStep4(){
   const edit=document.getElementById("valEdit");
   if(edit)edit.onclick=()=>{ st.editing=true; render(); const v=document.getElementById("valIn"); if(v)v.focus(); };
   const cancel=document.getElementById("valCancel"); if(cancel)cancel.onclick=()=>{ st.editing=false; render(); };
-  const save=document.getElementById("valSave"), vin=document.getElementById("valIn");
-  const doSave=()=>{ const n=parseFloat(vin&&vin.value); if(n>0){ st.market={kind:"hand",key:mkKey(),mid:Math.round(n)}; } st.editing=false; render(); };
-  if(save)save.onclick=doSave;
-  if(vin)vin.onkeydown=e=>{ if(e.key==="Enter")doSave(); };
+  const vin=document.getElementById("valIn");
+  wireHandSrc("valIn");
+  /* Enter used to save with no source. It moves focus to the source
+     buttons instead, which is where the answer now has to come from. */
+  if(vin)vin.onkeydown=e=>{ if(e.key==="Enter"){ e.preventDefault();
+    const b=document.querySelector("[data-handsrc]"); if(b)b.focus(); } };
   const clr=document.getElementById("mkClear"); if(clr)clr.onclick=()=>{ st.market=null; render(); };
   const own=document.getElementById("useOwn");
   if(own)own.onclick=()=>{ const s=soldStats(dealKey()); if(!s)return; st.market={kind:"own",key:mkKey(),mid:Math.round(s.mid),lo:s.lo,hi:s.hi,n:s.n}; render(); };
@@ -12910,7 +13030,12 @@ function nextStepHTML(x){
     /* A button saying "type it" that jumped the page 900px down to a box
        somewhere else. The box belongs here, beside the one for the new
        price, which has worked this way all along. */
-    const typeIt=`<div class="row2" style="margin-top:8px;flex-basis:100%"><input id="nsVal" class="numIn" title="What ONE OF THESE sells for used \u2014 not what you will lend, and not what it cost new." type="number" inputmode="decimal" placeholder="I know the price \u2014 type what it sells for used" style="flex:1;min-width:0"><button class="ghostBtn" id="nsValGo" title="Use the price you typed as the resale value" style="padding:10px 15px">Use it</button></div>`;
+    /* "Use it" recorded a number with no source. The source buttons take
+       its place here too, so the two boxes on the desk behave the same -
+       they already wrote to the same record, and one of them quietly
+       growing a field the other lacked is this repo's oldest bug. */
+    const typeIt=`<div class="row2" style="margin-top:8px;flex-basis:100%"><input id="nsVal" class="numIn" title="What ONE OF THESE sells for used \u2014 not what you will lend, and not what it cost new." type="number" inputmode="decimal" placeholder="I know the price \u2014 type what it sells for used" style="flex:1;min-width:0"></div>
+      <div style="flex-basis:100%">${handSrcHTML(x.market&&x.market.kind==="hand"?x.market.src:"")}</div>`;
     const rest=altSourcesHTML(x)
        +`<div class="label" style="margin-top:14px;flex-basis:100%">No sold prices? Use what it costs new</div>`
        +(CAP.sample?`<button class="nsBtn on" id="pdRetGo"><span>${retailBusy?"Looking it up&hellip;":"Look up the new price"}</span></button><div class="cardHint" id="pdRetMsg"></div>`:retailTargets(compQuery(x)).map(t=>`<a class="nsBtn nsRetail" title="Opens ${esc(t.name)} to find what it costs NEW. Use this only when there are no sold prices." data-label="${esc(t.name)}" href="${esc(t.url)}" target="_blank" rel="opener" referrerpolicy="no-referrer"><span>${esc(t.name)}</span><b>&#8599;</b></a>`).join(""))
@@ -13043,12 +13168,12 @@ function wireNext(){
   const useRetail=()=>{ const n=parseFloat(ri&&ri.value);
     if(n>0){ const p=retailPct(calcItem()); st.market={kind:"retail",key:mkKey(),retail:Math.round(n),pct:p,mid:Math.max(5,Math.round(n*p/100/5)*5)}; render(); } };
   if(rg)rg.onclick=useRetail; if(ri)ri.onkeydown=e=>{ if(e.key==="Enter")useRetail(); };
-  const vi=document.getElementById("nsVal"), vg=document.getElementById("nsValGo");
+  const vi=document.getElementById("nsVal");
   /* Same shape as the new-price box beside it, and the same place the step-4
      box writes to, so it makes no difference which one is used. */
-  const useTyped=()=>{ const n=parseFloat(vi&&vi.value);
-    if(n>0){ st.market={kind:"hand",key:mkKey(),mid:Math.round(n)}; st.editing=false; render(); } };
-  if(vg)vg.onclick=useTyped; if(vi)vi.onkeydown=e=>{ if(e.key==="Enter")useTyped(); };
+  wireHandSrc("nsVal");
+  if(vi)vi.onkeydown=e=>{ if(e.key==="Enter"){ e.preventDefault();
+    const b=document.querySelector("[data-handsrc]"); if(b)b.focus(); } };
   ns.querySelectorAll("[data-ncond]").forEach(b=>b.onclick=()=>{
     if(b.id==="nsCond"){ st.condSet=false; render(); return; }
     st.cond=b.dataset.ncond; st.condSet=true; render();
