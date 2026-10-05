@@ -684,7 +684,9 @@ console.log("\n  the run asks which one it is");
       const q = askQueue(calcItem());
       st.askAt = q.length - 1; render();
       const b = document.querySelector(".askNav .brassBtn[data-askdone],.askNav .brassBtn[data-askgo]");
-      return b ? {t:b.textContent.trim(), k:b.dataset.askdone || "go"} : null;
+      const g = document.querySelector(".askGap");
+      return b ? {t:b.textContent.trim(), k:b.dataset.askdone || "go",
+                  named:g ? (g.textContent || "").replace(/^\s*Still to answer:\s*/i, "").trim() : ""} : null;
     };
     const out = {};
     st.mode = "item"; st.catId = "tools"; st.itemId = "t1"; st.picked = true;
@@ -706,9 +708,23 @@ console.log("\n  the run asks which one it is");
      the button must NAME the gap and jump to it, so that is what is checked,
      and it is checked by the destination appearing in the label rather than
      by any wording of my own. */
-  ok(lbl.gap && lbl.gap.k === "go" && /^next\b/i.test(lbl.gap.t)
-     && lbl.gap.t.replace(/^next\s*.?\s*/i, "").length > 3,
-     "a gap earlier in the run is named and jumped to — \"" + (lbl.gap||{}).t + "\"");
+  /* THE RULE HELD, THE PLACE MOVED, 5 Oct 2026.
+     "the button must NAME the gap and jump to it" is right and is still
+     what is checked. What changed is where the name is printed. On the
+     button it ran to "Next → What does one sell for used", 203px of the
+     390 on his phone, and that label was what shoved the progress dots
+     around - the complaint that started this. The nav buttons are a
+     fixed width now, so a long label could only be cut to "Next → Whic…",
+     which names nothing.
+     So the name went back to its own line above the nav, which is where
+     it was before somebody put it on a button; the objection then was
+     that a question printed on a BUTTON reads as something to answer
+     there, and as a line of text it does not. The button still jumps.
+     Both halves asserted, separately, so neither can quietly go. */
+  ok(lbl.gap && lbl.gap.k === "go",
+     "a gap earlier in the run is jumped to — \"" + (lbl.gap||{}).t + "\"");
+  ok(lbl.gap && lbl.gap.named && lbl.gap.named.length > 3,
+     "  and named, above the nav rather than on the button — \"" + ((lbl.gap||{}).named||"") + "\"");
   ok(lbl.done && /write the ticket/i.test(lbl.done.t) && lbl.done.k === "log",
      "  and a finished run offers the thing you actually do next — \"" + (lbl.done||{}).t + "\"");
   ok(!/see the detail/i.test(JSON.stringify(lbl)),

@@ -4578,7 +4578,7 @@ function askHTML(x){
     ${askDoneHTML(x)}
     <div class="askNav">
       <button class="ghostBtn" data-askgo="${lastReal}">&larr; Change an answer</button>
-      <div class="askDots">${q.map((z,i)=>`<i class="${i===at?"on":""}${z.answered?(z.auto?" auto":" done"):""}" title="${esc(z.title)}${z.auto?" \u2014 filled in for you":""}" data-askgo="${i}"></i>`).join("")}</div>
+<div class="askDots">${q.map((z,i)=>`<i class="${i===at?"on":""}${z.answered?(z.auto?" auto":" done"):""}" title="${esc(z.title)}${z.auto?" \u2014 filled in for you":""}" data-askgo="${i}"></i>`).join("")}</div>
       <button class="brassBtn" data-askdone="log">Write the ticket &darr;</button>
     </div>
   </div>`;
@@ -4605,6 +4605,22 @@ function askHTML(x){
     ${cur.named?`<div class="cardHint" style="margin-top:0"><b style="color:var(--accent)">${esc(cur.named)}</b> &mdash; read off the name. Tap another if it is wrong.${cur.tierMoot?" The price here is a measured figure for this exact model, and a make tier is not part of that arithmetic \u2014 the tap goes on the ticket, not into the number.":""}</div>`
       :cur.hint?`<div class="cardHint" style="margin-top:0">${esc(cur.hint)}</div>`:""}
     ${body}
+    ${/* THE GAP IS NAMED HERE, NOT ON THE BUTTON.
+          It was on the button - "Next \u2192 What does one sell for used" -
+          and that label ran to 203px of the 390 on his phone, which is
+          what was shoving the progress dots around: "do you see how the
+          progression dots are reactive to the size of the buttons".
+
+          The rule the label served is right and stays: the counter has
+          to be told WHERE the button goes, not just that it moves. So
+          the name comes off the button and goes on its own line above
+          the nav, which is where it lived before somebody put it on a
+          button. The objection then was that a question printed on a
+          BUTTON reads as something to answer there; as a line of text it
+          reads as what it is. The button keeps a fixed width and the
+          dots keep their place. */""}
+    ${(at>=q.length-1&&(()=>{const o=q.findIndex(z=>!z.answered);return o>=0&&o!==at;})())
+      ? `<div class="askGap">Still to answer: <b>${esc(q[q.findIndex(z=>!z.answered)].title.replace(/\?$/,""))}</b></div>` : ``}
     <div class="askNav">
       ${at<=0
         /* THE SAME DEAD BUTTON, AT THE OTHER END OF THE RUN.
@@ -4645,8 +4661,20 @@ function askHTML(x){
              if(open<0)return `<button class="brassBtn" data-askdone="log">Write the ticket &darr;</button>`;
              /* "Still to answer: What does one sell for used?" reads as a
                 question printed on a button rather than somewhere to go.
-                The move first, the destination after it. */
-             if(open!==at)return `<button class="brassBtn" data-askgo="${open}">Next → ${esc(q[open].title.replace(/\?$/,""))}</button>`;
+                The move first, the destination after it.
+
+                AND THEN THE DESTINATION CAME OFF IT AGAIN, 5 Oct. The
+                title made this button 203px of the 390 on his phone,
+                which is what was shoving the progress dots around -
+                "do you see how the progression dots are reactive to the
+                size of the buttons". The nav buttons have a fixed width
+                now, so a long label would only be cut to "Next → Whic…",
+                which is worse than not saying it.
+                The destination has somewhere better to live anyway: the
+                dot for that question is on the row above, the card says
+                what is missing, and the button's job is the move. */
+             if(open!==at)return `<button class="brassBtn" data-askgo="${open}" title="${esc(q[open].title)}">Go to it &rarr;</button>`;
+             /* unreachable; the gap's name is printed above the nav */
              return `<button class="brassBtn" data-askdone="here">Pick one above &uarr;</button>`;
            })()
         : `<button class="brassBtn" data-askmove="1">${cur.answered?"Next":"Skip"} &rarr;</button>`}
@@ -12049,7 +12077,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="1005.0947";
+const APP_BUILD="1005.1143";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

@@ -900,10 +900,63 @@
     12%{box-shadow:0 0 0 3px var(--accent)}
     100%{box-shadow:0 0 0 0 transparent}}
   @media(prefers-reduced-motion:reduce){ .flashTo{animation:none} }
-  .askNav{display:flex;align-items:center;gap:12px;margin-top:16px}
-  .askNav .ghostBtn,.askNav .brassBtn{min-height:42px;padding:0 20px;font-size:13px;
-    display:inline-flex;align-items:center;justify-content:center;line-height:1}
-  .askDots{flex:1;display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+  /* THE DOTS GET THEIR OWN ROW, BECAUSE THEY WERE MOVING WITH THE BUTTONS.
+     "do you see how the progression dots are reactive to the size of the
+     buttons. it shold be a standard layout." They were, and measuring it
+     was worse than it looked. The nav was one flex row - button, dots,
+     button - with the dots as the flex:1 middle, so they took whatever
+     width the two buttons left over. The buttons change wording on every
+     question: "Skip", "Next", "Write the ticket", and on the last card
+     "Next → Which one is it", which is 203px of the 390 on his phone.
+
+     Walked all eight questions of a TCL at three handset sizes:
+
+       iPhone 390    dot row at 2 different x positions, wrapping to
+                     2, 3 or EIGHT lines, nav 42px tall then 114px
+       Android 360   3 lines normally, 8 on the last question
+       Pixel 412     2, 3 and 5 lines
+
+     Eight lines is the dots standing in a vertical column beside the
+     button, which is not a progress indicator any more.
+
+     So: one grid, dots across the top on a row of their own, the two
+     buttons underneath pinned to their own halves. The dots now sit in
+     the same place on every question and at every width, whatever the
+     buttons say, which is what "a standard layout" means. The buttons
+     cannot squeeze them because they are no longer on the same row. */
+  /* GIVING THE DOTS THEIR OWN ROW COST 21px AND THE PHONE CANNOT PAY IT.
+     That was my first fix and it worked - one position, one width, one
+     row at every size. Then check-ask went to 574px against a budget of
+     560, and check-screens said the phone scrolls by 20px on an iPhone
+     and 21px on a small Android. "The phone fits its own screen" is not
+     a rule that bends for a nicer nav, so the own-row version is out.
+
+     THE REAL FAULT WAS ELASTICITY, NOT THE ROW. The dots were flex:1,
+     taking whatever two buttons of changing width left over, and the
+     buttons grew to fit their labels - "Skip" against "Next → Which one
+     is it", 87px against 203px on the same card. Fix the three widths
+     instead and the row stops moving without costing a pixel of height:
+     the buttons get a fixed basis and ellipsise a long label, and the
+     dots sit in the middle and never wrap.
+
+     Same standard layout. Same 42px nav it always was. */
+  .askNav{display:flex;align-items:center;gap:10px;margin-top:16px}
+  .askNav .ghostBtn,.askNav .brassBtn{min-height:42px;padding:0 14px;font-size:13px;
+    display:inline-flex;align-items:center;justify-content:center;line-height:1;
+    /* Fixed, so the label cannot move anything but itself. */
+    flex:0 0 104px;width:104px;max-width:104px;box-sizing:border-box;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;
+    /* height, not min-height: the ghost button carries a border and the
+       brass one does not, so a min-height gave 44px against 42px and
+       check-ask caught the pair sitting at different heights. */
+    height:42px;padding-block:0;line-height:40px}
+  .askDots{flex:1 1 auto;min-width:0;display:flex;gap:6px;justify-content:center;
+    flex-wrap:nowrap;overflow:hidden}
+  /* Named above the nav rather than on the button - see the note in
+     askHTML. One line, only on the last card, only when something is
+     still open. */
+  .askGap{font-size:12.5px;color:var(--ink-2);text-align:center;margin-top:12px}
+  .askGap b{color:var(--ink)}
   .askDots i{width:9px;height:9px;border-radius:999px;background:var(--line);cursor:pointer;
     display:block;transition:transform .16s,background .16s}
   .askDots i.done{background:var(--info)}
