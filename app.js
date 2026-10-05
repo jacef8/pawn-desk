@@ -1846,7 +1846,7 @@ function railHTML(x){
     lend:'<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>',
     math:'<path d="M4 18V9M10 18V5M16 18v-6M2 21h20"/>'
   };
-  const canLook=!!(CAP.sample&&!ebayBlind(x));
+  const canLook=!!(CAP.sample&&!lookBlind(x));
   const act=(id,label,icon,on)=>`<button class="act" data-dact="${id}"${on?"":" disabled"}>`
     +`<i><svg viewBox="0 0 24 24" aria-hidden="true">${icon}</svg></i><span>${label}</span></button>`;
   /* THE SAME THREE NUMBERS, TWICE, SIX INCHES APART.
@@ -3876,21 +3876,27 @@ function askQueue(x){
      token the step already went last.
 
      The gate asked "IS THERE A SERVICE?" when the rule above turns on
-     "WILL THE LOOKUP ACTUALLY HAPPEN FOR THIS ITEM?", and for a firearm
-     the answer is never. eBay does not sell guns; priceFind bails out on
-     ebayBlind before it fetches anything; and the card on his screen SAID
-     SO, three lines under the question - "So this one is yours to look
-     up." The desk knew the service would not answer and put the step third
-     anyway, to fetch in the background while the taps happen. Nothing was
-     fetching. That is the whole guns aisle, the whole rolling aisle, and
-     every item in EBAY_CANNOT_ITEM - mowers, fridges, treadmills,
-     outboards, welders: the ones where the counter is always the one doing
-     the looking.
+     "WILL THE LOOKUP ACTUALLY HAPPEN FOR THIS ITEM?".
+
+     AND THEN THE ANSWER TO THAT CHANGED, 5 Oct 2026. It used to be never,
+     for a firearm: priceFind bailed on ebayBlind before it fetched
+     anything. The counter sent a Ruger with Look up greyed out and a TCL
+     that would not finish, and the cause was that ebayBlind was being
+     read as "there is no way to price this" when findPasses has always
+     carried other passes. Now only the eBay pass is dropped, so a gun
+     fetches GunWatcher and guns.com in the background and belongs at
+     third like anything else.
+
+     Which leaves this branch for one case: no service. Nothing fetches
+     then, whatever the item, and the step goes last so the cheap taps are
+     done before the counter is thrown into a browser. Said plainly
+     because a reader could otherwise take this block for the guns-aisle
+     special case it used to be.
 
      canLook, which is the same test line 1480 already uses to decide
      whether to offer the automatic lookup at all. One predicate for "the
      desk will do this for you", asked in both places. */
-  const willFetch=(typeof CAP!=="undefined"&&CAP.sample&&!ebayBlind(x));
+  const willFetch=(typeof CAP!=="undefined"&&CAP.sample&&!lookBlind(x));
   if(!willFetch){
     const wi=q.findIndex(z=>z.id==="worth");
     if(wi>=0){
@@ -5420,10 +5426,47 @@ function wireItem(){
   v.querySelectorAll("[data-askmove]").forEach(b=>b.onclick=()=>{
     const q=askQueue(calcItem());
     const at=Math.max(0,Math.min(q.length-1,Number(st.askAt)||0));
-    /* Moving on from the model question without typing one IS the answer
-       "there is no model". Every other question stays where it is. */
+    /* SKIP HAS TO ANSWER, OR IT IS A LOOP.
+       "It keeps cycling back to the same question and will not look up any
+       prices on this common item." Sent with two screenshots of a TCL a
+       minute apart, both on "What does one sell for used?" with 7 of 8
+       answered.
+
+       Only the model question was answered by moving on; the comment here
+       said so outright - "every other question stays where it is". But the
+       run is finished when nothing is unanswered, and when it is not
+       finished it goes to the FIRST unanswered question. So a skipped
+       question is one the run walks you back to, and skipping your way
+       through a run means arriving at the end and being sent to the
+       beginning. Walked it: askAt went 1, 3, 5, 6, 7 while the first
+       unanswered question sat on spec:1 the whole way round.
+
+       So Skip answers. The value it answers with is the one the ARITHMETIC
+       IS ALREADY USING for an unanswered question - specBase for a spec,
+       the standing condition, the standing completeness, the neutral mid
+       tier for a make. That is the whole point: this records what the
+       price has been quietly assuming, so no figure moves by a cent, and
+       the screen stops pretending it has a question outstanding that it is
+       already answering for itself.
+
+       What it does NOT do is dress a default as a decision. An unanswered
+       run still prices as an estimate and still says so. */
     const d=Number(b.dataset.askmove);
-    if(d>0&&q[at]&&q[at].id==="model"&&!q[at].answered)st.mpNone=true;
+    if(d>0&&q[at]&&!q[at].answered){
+      const id=String(q[at].id||"");
+      if(id==="model")st.mpNone=true;
+      else if(id==="cond")st.condSet=true;
+      else if(id==="complete")st.completeSet=true;
+      else if(id==="brand")st.brandSet=true;
+      else if(id.indexOf("spec:")===0){
+        const gi=Number(id.slice(5));
+        const g=(SPEC_CHOICES[st.itemId]||[])[gi];
+        if(g)st.specSel=Object.assign({},st.specSel,{[st.itemId+":"+gi]:specBase(g)});
+      }
+      /* The price question has its own answer already, and it is the one
+         the card spells out: he looked and found nothing. */
+      else if(id==="worth"){ st.worthNone=true; }
+    }
     /* FORWARD SKIPS WHAT IS ANSWERED. BACK DOES NOT. Going on should not
        park the counter on a question that already has its answer in it -
        that is the same rule the option handlers follow. Going BACK is the
@@ -12006,7 +12049,7 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="1005.0624";
+const APP_BUILD="1005.0947";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -12284,7 +12327,7 @@ function step4Inner(x,bare){
      SHELF it landed on, in lower case. Two names for one thing, and it
      reads as though the desk is confused about what is in front of it.
      When the counter has named it, that is its name. */
-  const m=x.market, who=[st.brandTyped,st.model].filter(Boolean).join(" "), name=displayName(x);
+  const m=x.market, who=madeName(), name=displayName(x);
   const called=who||name;
   /* In the one-question run the question IS the heading, and a card that
      announces "4 - Resale value" under "What does one sell for used?" says
@@ -12409,7 +12452,7 @@ function step4Inner(x,bare){
             The other layouts already carry a working button in their step
             card. `bare` is true only from askWorth, so this adds the
             button where it was missing and nowhere else. */""}
-      ${(bare&&typeof CAP!=="undefined"&&CAP.sample&&!ebayBlind(x))
+      ${(bare&&typeof CAP!=="undefined"&&CAP.sample&&!lookBlind(x))
         ? `<button class="brassBtn" id="pdFindGo">${findBusy?"Looking it up\u2026":(x.checked?"Look it up again":"Look it up \u2014 everywhere")}</button>`
         : ``}
       <button class="${(bare&&typeof CAP!=="undefined"&&CAP.sample&&!ebayBlind(x))?"ghostBtn":"brassBtn"}" id="valEdit">Enter what one sold for</button>
@@ -12431,7 +12474,7 @@ function step4Inner(x,bare){
             thing and is already everywhere else on the screen. */""}
       <button class="ghostBtn" id="worthNone">Nothing to find</button>
       </div>
-      ${(bare&&typeof CAP!=="undefined"&&CAP.sample&&!ebayBlind(x))?`<div class="cardHint" id="pdFindMsg">${esc(findMsg||"")}</div>`:``}
+      ${(bare&&typeof CAP!=="undefined"&&CAP.sample&&!lookBlind(x))?`<div class="cardHint" id="pdFindMsg">${esc(findMsg||"")}</div>`:``}
 `;
   }
   return h+ownCompsHTML(x);
@@ -13038,22 +13081,81 @@ const EBAY_CANNOT={
   guns:"eBay does not sell firearms, so a search for one comes back as parts — latches, barrels, stocks. Use the GunBroker and GunWatcher buttons above: completed auctions there are the real comp.",
   rolling:"Nobody ships a quad, a side-by-side or a golf cart, so eBay only ever lists their parts. Price it off your own sales and what the dealers near you are asking."
 };
+/* "Ruger Ruger LCP", off the counter's own screen.
+   The title is the make and the model joined, and the model rows carry
+   the make in their names - "Ruger LCP", "DeWalt DCD791". The model
+   picker strips it, but only when the make is already known AT THE
+   MOMENT OF THE TAP; here the make was read OUT of the row afterwards,
+   so the strip never ran and both words stayed.
+   Stripping at display time instead fixes it whichever order the two
+   arrive in, which is the thing the pick-time version could not do. */
+function madeName(){
+  const b=String(st.brandTyped||"").trim(), m=String(st.model||"").trim();
+  if(!b)return m;
+  if(!m)return b;
+  return m.toLowerCase().indexOf(b.toLowerCase()+" ")===0 ? m : (b+" "+m);
+}
 function ebayBlind(x){
   const cat=x&&x.cat?x.cat.id:st.catId;
   if(EBAY_CANNOT[cat])return EBAY_CANNOT[cat];
   const id=x&&x.item?x.item.id:st.itemId;
   return EBAY_CANNOT_ITEM[id]||"";
 }
+/* ══════════════════════════════════════════════════════════════════════
+   EBAY BEING BLIND IS NOT THE LOOKUP BEING BLIND.
+
+   Sent from the counter: a Ruger LCP on the phone, priced, with Look up
+   GREYED OUT. The one category with 76 rows carrying no counted sale is
+   the one category where the button will not press.
+
+   Both EBAY_CANNOT lines are about eBay and are correct about eBay -
+   "eBay does not sell firearms, so a search for one comes back as parts"
+   is true. But canLook and priceFind read that message as "there is no
+   way to look this up", and for a firearm that is flatly wrong:
+   findPasses has a dedicated branch handing back FOUR passes, none of
+   them the eBay call -
+
+     GunWatcher          sold prices off completed GunBroker auctions
+     Guns.com ended      the winning bid, ninety days back
+     Auction results     the houses that publish hammer prices
+     GunBroker, asking   live listings, labelled as asks
+
+   So the lookup has always known how to price a gun, and a guard named
+   for eBay switched the button off before it could. The eBay pass is the
+   thing that cannot answer, so the eBay pass is what gets dropped; the
+   rest run. The message stays, because the counter should still know why
+   eBay is not in the answer.
+
+   A category with nothing left after that is still blind, and still says
+   so. This test asks what is left rather than assuming.
+
+   WORTH SAYING OUT LOUD: today nothing is. The two search passes at the
+   foot of findPasses are unconditional, so every item keeps at least two
+   ways to look it up once the eBay call is dropped, and lookBlind returns
+   "" for everything in the book. It is a guard against a pass list that
+   empties out, not a thing the counter will meet - and a guard that can
+   never fire is one somebody should know is not load-bearing, rather than
+   discover later while trusting it. The branch it protects is reached
+   only with no service at all, which is the case askQueue uses to send
+   the price step to the end. */
+function lookPasses(x){
+  const all=(typeof findPasses==="function")?findPasses(x):[];
+  return ebayBlind(x)?all.filter(p=>!p.ebay):all;
+}
+function lookBlind(x){
+  if(!ebayBlind(x))return "";
+  return lookPasses(x).length?"":ebayBlind(x);
+}
 async function priceFind(signal,all){
   if(findBusy||!CAP.sample)return;
   const x=calcItem(), q=compQuery(x);
   if(!q)return;
-  const blind=ebayBlind(x);
+  const blind=lookBlind(x);
   if(blind){ findMsg=blind;
     const el=document.getElementById("pdFindMsg"); if(el)el.textContent=blind;
     try{ render(); }catch(e){}
     return; }
-  const passes=findPasses(x);
+  const passes=lookPasses(x);
   /* Every search costs money, so two things happen before one is fired.
 
      First: has this already been looked up? Listings are kept, so a chainsaw
@@ -13522,7 +13624,7 @@ function nsSrcShort(m){
 }
 function nextStepHTML(x){
   if(window.PHONE&&window.phoneStepHTML)return phoneStepHTML(x);
-  const m=x.market, what=[st.brandTyped,st.model].filter(Boolean).join(" ")||displayName(x);
+  const m=x.market, what=madeName()||displayName(x);
   const cands=(!x.checked&&!st.mpNone)?mpCandidates():[];
   const started=!!st.picked;
   /* A hand-set resale already has the wear in it, so condition is not

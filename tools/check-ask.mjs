@@ -597,21 +597,53 @@ console.log("\n  the run asks which one it is");
         st.brandSet = false; st.model = "";
         const ids = askQueue(calcItem()).map(z => z.id);
         return {ids, worth: ids.indexOf("worth"), n: ids.length,
-                blind: !!ebayBlind(calcItem())};
+                blind: !!ebayBlind(calcItem()),
+                lookBlind: !!lookBlind(calcItem())};
       };
       const out = {gun: at("guns", "g10"), quad: at("rolling", "r1"),
                    laptop: at("elec", "e2")};
+      /* the same gun with the service switched off */
+      CAP.sample = null;
+      out.noSvc = at("guns", "g10");
+      CAP.sample = {json: () => {}, limits: () => {}};
       CAP.sample = save; st.catId = savedCat; st.itemId = savedItem;
       st.picked = true; render();
       return out;
     });
-    ok(r2.gun.blind, "  eBay is blind to a firearm, service or no service");
-    ok(r2.gun.worth >= r2.gun.n - 2,
-       `  SO THE PRICE STEP GOES LAST ON A GUN even with a service — ${r2.gun.worth + 1} of ${r2.gun.n}`);
-    ok(r2.gun.ids.indexOf("worth") > r2.gun.ids.indexOf("cond"),
-       `    after caliber, optics and condition, not before them — ${r2.gun.ids.join(" > ")}`);
-    ok(r2.quad.blind && r2.quad.worth >= r2.quad.n - 2,
-       `  and last on a quad, for the same reason — ${r2.quad.worth + 1} of ${r2.quad.n}`);
+    /* THE RULE IS UNCHANGED. THE FACT UNDER IT MOVED, 5 Oct 2026.
+       This block used to assert that the price step goes LAST on a gun
+       and on a quad, because priceFind bailed on ebayBlind before it
+       fetched anything and the counter was always the one doing the
+       looking. That was true when it was written.
+
+       It stopped being true when the counter sent a Ruger with Look up
+       greyed out and a TCL that would not finish. ebayBlind was being
+       read as "there is no way to price this", and findPasses has always
+       had other passes - four for a firearm, none of them the eBay call.
+       The eBay pass is what cannot answer a gun, so the eBay pass is now
+       what gets dropped, and the lookup fetches GunWatcher and guns.com
+       in the background like any other item.
+
+       So the rule - "automatic and it stays third, fetching while the
+       taps happen; by hand and it goes last" - now sends a gun to third,
+       and that is the rule working rather than the rule breaking. The
+       assertion follows the predicate the code actually uses, lookBlind,
+       and the "goes last" half is still held by the no-service case in
+       the block above, which is where it now lives. */
+    ok(r2.gun.blind, "  eBay is still blind to a firearm");
+    ok(!r2.gun.lookBlind,
+       "  but the lookup is not — GunWatcher and guns.com answer for it");
+    ok(r2.gun.ids.indexOf("worth") === r2.gun.ids.indexOf("model") + 1,
+       `  so the gun sits third too, fetching while the taps happen — ${r2.gun.worth + 1} of ${r2.gun.n}`);
+    ok(r2.quad.blind && !r2.quad.lookBlind,
+       `  and a quad the same — eBay blind, lookup not — ${r2.quad.worth + 1} of ${r2.quad.n}`);
+    /* AND THE HALF THAT MUST STILL BITE. If every item everywhere became
+       reachable, the "goes last" branch would be dead and this section
+       would be proving nothing. With no service nothing fetches, whatever
+       the item, and the step goes last - which is the rule's other half
+       and the one the counter hits on an unconnected phone. */
+    ok(r2.noSvc.worth >= r2.noSvc.n - 2,
+       `  with no service at all it still goes last — ${r2.noSvc.worth + 1} of ${r2.noSvc.n}`);
     /* The other half, which must NOT move: where the lookup really does
        fire, third is right and the whole argument for it still holds. */
     ok(!r2.laptop.blind, "  eBay can price a laptop");

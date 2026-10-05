@@ -117,7 +117,7 @@ function phVerdictHTML(x){
     <div class="phMath">Resells for about <b>${money(resale)}</b> &middot; your buy rate for ${esc(catName)} is ${x.buyPct}%, so you'd pay up to <b>${money(buy)}</b>.${soft?` <b>Check it if the money matters.</b>`:""}</div></div>`;
 }
 function phoneStepHTML(x){
-  const m=x.market, what=[st.brandTyped,st.model].filter(Boolean).join(" ")||displayName(x);
+  const m=x.market, what=(typeof madeName==="function"?madeName():"")||displayName(x);
   const cands=(!x.checked&&!st.mpNone)?mpCandidates():[];
   const started=!!st.picked;
   /* The model question was a pick-list and nothing else. When the desk had no
@@ -554,7 +554,7 @@ function snapHTML(){
      counter typed, those words are the name; the model is added only if it
      is not already among them. */
   const name=(function(){
-    const made=[st.brandTyped,st.model].filter(Boolean).join(" ").trim();
+    const made=(typeof madeName==="function"?madeName():"").trim();
     let typed="";
     try{ if(isCustom()&&st.bookName)typed=String(st.bookName).trim(); }catch(e){}
     if(!typed)return made||(has?displayName(x):"");
@@ -706,7 +706,9 @@ function snapHTML(){
   };
   const act=(id,label,icon,on)=>`<button class="act" data-wact="${id}"${on?"":" disabled"}>`
     +`<i><svg viewBox="0 0 24 24" aria-hidden="true">${icon}</svg></i><span>${label}</span></button>`;
-  const canLook=!!(CAP.sample&&!ebayBlind(x));
+  /* Through lookBlind, not ebayBlind: eBay being unable to price a gun
+     is not the lookup being unable to. See the note by lookBlind. */
+  const canLook=!!(CAP.sample&&!(typeof lookBlind==="function"?lookBlind(x):ebayBlind(x)));
   const actions=`<div class="acts">
     ${act("look",busy?"Looking\u2026":"Look up",ICON.look,canLook&&!busy)}
     ${act("log","Log it",ICON.log,ready)}
