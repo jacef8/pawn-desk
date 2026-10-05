@@ -327,6 +327,43 @@ Measured, not assumed:
   too. A browser on a home connection gets both. This service cannot harvest it.
 - `outdooranalytics.com` and `www.gunbroker.com`: 403 from here.
 
-So the order of usefulness is: a registered DevKey (automatic, nothing to
-click), then Gun Genius read by hand in a browser (two numbers a model), then
-the screenshot reader already in the app.
+So the order of usefulness WAS expected to be: a registered DevKey
+(automatic, nothing to click), then Gun Genius read by hand in a browser
+(two numbers a model), then the screenshot reader already in the app. The
+first of those is now gone — see below.
+
+### GunBroker answered: NO — 4 Oct 2026
+
+The DevKey request came back refused, on ticket 3053032, from
+api@gunbroker.com:
+
+> The API is not open for retrieving pricing, characteristic or sold data.
+> We recommend you reaching out to our partner OutdoorAnalytics.com to
+> inquire about retrieving this data.
+
+So the whole question above is settled, and settled worse than the file
+feared. It was written expecting the answer to be "active listings only",
+which would have made the key worth less than the screenshot reader. The
+real answer is that prices are not on the API at any level, completed or
+active. A DevKey would authenticate a caller to endpoints that will not
+answer the one question this service asks.
+
+**Do not set `GUNBROKER_DEVKEY`.** Nothing in this service uses it for a
+price, and nothing will. `/gun/probe` and `/gun/ip` are left in place
+because they cost nothing when unset and they are the record of what was
+asked and what came back, but they are no longer a route to anything.
+
+OutdoorAnalytics is GunBroker's own data arm — 36 million sold items and
+$11.9bn of transactions, which IS the sold-price history for guns. Two
+things known about it, neither self-serve:
+
+- GunBroker sells a pricing report through it at about **$1.99 a gun**.
+  At a pawn counter that is a per-item charge on the one category that
+  already takes the longest to price.
+- The API connection they mention is sold to retailers through a sales
+  conversation, not a key you register for. No public price.
+
+Nothing changes on the counter screens. The guns aisle already prices off
+GunWatcher and guns.com read through the search pass, and that path never
+touched the GunBroker API.
+

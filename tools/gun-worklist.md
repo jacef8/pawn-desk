@@ -59,10 +59,31 @@ or above what a new one costs, so they are wrong today.
 
 ---
 
-## State of the GunBroker API request — 1 Oct 2026
+## State of the GunBroker API request — REFUSED, 4 Oct 2026
 
-DevKey request **submitted** via api.gunbroker.com/User/DevKey/Create.
-GunBroker reviews roughly once a week, up to two weeks to hear back.
+**Closed. The answer is no, and it is not worth asking again.**
+
+api@gunbroker.com, ticket 3053032: "The API is not open for retrieving
+pricing, characteristic or sold data. We recommend you reaching out to
+our partner OutdoorAnalytics.com to inquire about retrieving this data."
+
+Not "active listings only", which is what this file was braced for. No
+prices on the API at all, at any tier. Do not set `GUNBROKER_DEVKEY`;
+there is nothing behind it for us.
+
+OutdoorAnalytics is GunBroker's own data arm and does hold the sold
+history, but it is a sales conversation rather than a self-serve key, and
+GunBroker's own pricing report through it runs about $1.99 a gun. That is
+a per-item charge on the slowest category to price. Jace's call.
+
+Everything below stands: the 50 rows still need numbers, and the route to
+them is Gun Genius or GunWatcher read by hand, exactly as the three rows
+at the foot of this file were done.
+
+The original request, kept because the registration still describes what
+this service sends:
+
+DevKey request submitted via api.gunbroker.com/User/DevKey/Create.
 
 Registered, and the service must keep matching it:
 

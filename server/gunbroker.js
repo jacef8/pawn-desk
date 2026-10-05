@@ -26,6 +26,17 @@
  *     key, in plain English, in a body I had not looked at. A status code
  *     is not a reason; read what the server actually said.
  *
+ * ANSWERED, 4 OCT 2026: NO. GunBroker refused the DevKey request on
+ * ticket 3053032 - "The API is not open for retrieving pricing,
+ * characteristic or sold data" - and pointed at OutdoorAnalytics.com,
+ * which is their own data arm and sells it through a salesman rather
+ * than a key. So the question the rest of this header frames is settled,
+ * and settled worse than it feared: not "asks only", but no prices on
+ * the API at any level. Do not set GUNBROKER_DEVKEY. The probe stays
+ * because it costs nothing unset and it is the record of what was asked.
+ * The guns aisle is unaffected - it has always priced off GunWatcher and
+ * guns.com through the search pass, never through this API.
+ *
  * THE SECOND THING IT ANSWERS IS THE ONE THAT DECIDES EVERYTHING. GunBroker
  * sells guns by auction, and an API that only lists what is FOR SALE gives
  * asking prices. This book already has a rule about that - asks run high,
