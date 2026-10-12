@@ -9,6 +9,22 @@ the point of the document. Two full redesigns were shipped on judgement
 and both were rejected; every rule below that has a test attached has
 stayed put.
 
+**October 2026: the third design.** The governing directive changed and
+now rejects see-through panels outright, raises the secondary type floor
+to 14px, requires 44px tap targets, bans browser pop-ups, caps motion at
+300ms and makes an effects layer compulsory rather than optional. The
+liquid glass this document was written around is gone; Sections 3, 4 and
+8 are rewritten and `check-design` holds the new numbers.
+
+The first attempt at it was shown to Jace as one screen, per the
+directive's rule about showing one before building the rest. His entire
+reply was **"kind of boring"**, and he was right: it was the same stack
+of cards in the same order with new paint, which Section 1 of the
+directive calls a failed redesign in so many words. The second attempt
+changed what is biggest, what is first and what got cut, and he said to
+roll it out. Both of those are the same lesson this document already
+carries twice.
+
 ---
 
 ## 0. The four sources, and what each one actually contributed
@@ -98,8 +114,19 @@ Closer is lighter; recessed is darker. Never freehand a surface colour.
 Display **Sora**, text **Instrument Sans**, mono **JetBrains Mono**.
 
 - Numerals are the design: `tabular-nums`, tight tracking, display weight.
-- Minimums: body 15px, secondary 13px, labels 12px. Nothing smaller.
+- Minimums: body 15px, **secondary 14px**, labels 12px and ONLY for a
+  short uppercase label. Nothing smaller. → `check-design`
 - No glow, halo or text-shadow on any text, ever. Sharp beats luminous.
+
+**The floor went from 13px to 14px, and 12px lost its general licence**,
+on the October 2026 pass. Rolling that out took four sweeps because each
+one measured less than it reported: a grep of the stylesheets missed 80
+inline sizes written from JS; a probe of the screen the app opens to
+missed 499 more on the other tabs; one viewport missed a whole media
+query; measuring element boxes called a 44px hit area 18px. Every one of
+those sweeps printed "0 violations". That is why `check-design` walks
+every tab on both surfaces at four sizes and reads computed values rather
+than source.
 
 ⚠️ **Webfonts are a network dependency and they do not always arrive.**
 They are blocked in the build sandbox, which means every screenshot in
@@ -110,16 +137,29 @@ a screenshot taken here, and keep the fallback stack good enough to ship.
 
 ## 4. Material and shape
 
-Liquid glass: translucent surfaces over a live colour field, so depth is
-refraction rather than a drawn bevel. `backdrop-filter: blur(20px)
-saturate(165%)`.
+**Solid. There is no glass left in this app.** Surfaces are opaque
+colours on a ladder — `#161A22` housing → `#1E2430` widget → `#0D1017`
+well — and `backdrop-filter` appears nowhere. → `check-design` asserts
+both: no declaration in the source, and nothing see-through on the
+painted page.
 
-**Glass is for surfaces you look AT. Anything you read OFF is opaque.**
-The search dropdown was folded in with the cards once and you could read
-the page's own hint line straight through the suggestions.
+This replaces the liquid-glass material the first two sections of this
+document were written around. The rule it broke was already written here
+in the old wording — *anything you read OFF is opaque* — and the honest
+reading of it is that on a pricing tool, everything is something you read
+off. The directive now says so outright: see-through panels make the text
+over them muddy.
 
-Concentric radii: `26px` housing → `18px` widget → `12px` readout. Pills
+What depth is made of instead: a one-pixel lit top lip, a short shadow
+(14px blur or less), and the ladder above. Nothing hazy.
+
+Concentric radii: `18px` housing → `14px` widget → `12px` readout. Pills
 only for a segmented control sunk into a well — never a floating pill.
+
+**Every tap target is 44×44**, including the part you cannot see: the
+info buttons draw an 18px circle and carry the other 26px on an invisible
+`::after`. → `check-design` hit-tests rather than measuring boxes,
+because the first version of that check called those buttons a failure.
 
 ---
 
@@ -180,12 +220,40 @@ real money at the counter.
 
 ## 8. Motion
 
-Micro-interactions only: a press answers, a card that genuinely just
-arrived rises 14px. Guard everything with `prefers-reduced-motion`.
+Nothing runs longer than **300ms**. Guard everything with
+`prefers-reduced-motion`. → `check-design` scans every duration in both
+stylesheets; a loading spinner's rotation period and the ambient drift
+behind the panels are named exemptions, because a period is not a
+duration.
 
 **Never put an entrance animation on a container that re-renders.** This
 screen re-renders on every answer; `.card { animation: rise }` faded the
-whole page back in on every tap, which reads as the app stalling.
+whole page back in on every tap, which reads as the app stalling. The
+entrance now fires only when the SCREEN changes — `deskRise()` keys on
+mode, item, category and detail, and does nothing when the key is
+unchanged.
+
+**An entrance must start from a visible base state.** Written the wrong
+way round first: `.rise{opacity:0}` with a `forwards` animation, which is
+a card that stays blank for good if the animation never runs. It also
+read as 1:1 contrast to `check-screens`, which folds in the composite
+opacity of every ancestor and was right to. Base visible, keyframe fades
+in from nothing. → `check-design`
+
+**View Transitions go on the tab press, not around `render()`.** Wrapping
+`render()` looked obvious and broke six `check-screens` blocks at once
+with "drew:false": `startViewTransition` runs its callback
+asynchronously, and this file reads the DOM straight after `render()` in
+dozens of places.
+
+**The field behind the panels** is a plain-canvas star field: three depth
+layers, radius and brightness both rising with depth, pixel ratio capped
+at 2, paused when the tab is hidden, one still frame under reduced
+motion. No three.js (the desk has to come up off a cached copy with no
+signal) and no Lenis (both shells fit one screen and scroll their panels,
+not the page). The first version was 34 identical faint dots and the
+counter's whole verdict on it was "kind of boring" — depth is the point,
+not the dots.
 
 ---
 
@@ -211,7 +279,9 @@ Each of these was shipped, or nearly shipped, in this project.
 
 The reference asks for contrast "from day one" rather than a checklist at
 the end. `tools/check-contrast.mjs` reads the tokens out of the live page,
-composites every translucent layer the way the compositor does, and
+composites every layer the way the compositor does (it still does the
+alpha maths, even though the surfaces are opaque now — a future
+translucent one would be caught rather than waved through), and
 measures the real ratio **at every place the ambient field reaches** — a
 ratio that only holds in one corner is not a ratio.
 
@@ -236,13 +306,25 @@ happened three times here:
 - The price-book drift check called a counter the suite does not have, so
   its failure branches would have thrown and the run would still exit 0.
 
+- `check-design`, written on the October 2026 directive pass, failed on
+  its own terms three separate ways before it was worth reading: it
+  called a computed 13.9998px "under 14"; it probed 21px from the centre
+  of controls whose box was already 44px and landed on their borders;
+  and it treated `elementFromPoint` returning null for a control below
+  the fold as "unreachable". Each of those printed a red line that was
+  the suite's fault, which is as bad as a green one that is.
+
 **Before trusting a new test, delete the fix and watch it fail.**
+`check-design` was taken through five: the glass put back on `.card`,
+one prose class dropped to 12.5px, one pill shrunk to 34px, one
+`alert()` restored, and the entrance set back to `opacity:0`. All five
+went red; restoring all five went green.
 
 Current suites, with the counts they actually print when run —
 `check-ask` (75), `check-merge` (47), `check-soldcomps` (37), and
 `check-pricing`, `check-ebay`, `check-lookup`, `check-wizard`,
-`check-screens`, `check-contrast`, `check-search`, which report pass or
-fail without a total. Counting `ok(` in the source instead gives a
+`check-screens`, `check-contrast`, `check-search`, `check-design`, which
+report pass or fail without a total. Counting `ok(` in the source instead gives a
 bigger, wrong number: some are never reached.
 
 ---

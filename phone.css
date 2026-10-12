@@ -24,11 +24,11 @@
      Not a card. With the navigation gone to the foot there is one line of
      text left up here, and a panel around one line of text is furniture. */
   body.phone .bar{background:none;border:none;box-shadow:none;border-radius:0;
-    padding:2px 2px 0;gap:10px;row-gap:6px;-webkit-backdrop-filter:none;backdrop-filter:none}
+    padding:2px 2px 0;gap:10px;row-gap:6px;}
   body.phone .brand .eyebrow{display:none}
   body.phone .brand h1{font-size:15px;color:var(--ink-3);font-weight:700;letter-spacing:-.01em;
     margin:0;white-space:nowrap}
-  body.phone .sys{font-size:11px;letter-spacing:.05em;margin-left:auto}
+  body.phone .sys{font-size:14px;letter-spacing:.05em;margin-left:auto}
   /* Spot gold earns a line while gold is on the scale, and nowhere else. */
   body.phone .dash:has(#view.item) .sys{display:none}
 
@@ -38,25 +38,28 @@
      stopping dead at a bar. The current place is LIT, not filled: a solid
      pill sitting under the thumb all day reads as a button waiting to be
      pressed. */
-  body.phone{--dock:58px}
+  body.phone{--dock:52px}
   body.phone .dash{padding-bottom:calc(var(--dock) + env(safe-area-inset-bottom) + 14px)}
   body.phone .dock{position:fixed;left:0;right:0;bottom:0;z-index:50;
     display:grid;grid-auto-flow:column;grid-auto-columns:1fr;align-items:stretch;gap:0;
-    padding:6px 4px calc(6px + env(safe-area-inset-bottom));
+    padding:3px 4px calc(4px + env(safe-area-inset-bottom));
     background:linear-gradient(to top,var(--glass-hi),var(--glass));
-    -webkit-backdrop-filter:blur(22px) saturate(170%);backdrop-filter:blur(22px) saturate(170%);
     border-top:1px solid var(--line)}
   body.phone .dock button{display:flex;flex-direction:column;align-items:center;
-    justify-content:center;gap:3px;min-width:0;padding:5px 2px;border:none;background:transparent;
+    justify-content:center;gap:2px;min-width:0;padding:3px 2px;min-height:44px;border:none;background:transparent;
     cursor:pointer;border-radius:var(--r-s);color:var(--ink-3);
     transition:color .16s,transform .12s}
   body.phone .dock button:active{transform:scale(.94)}
   body.phone .dock button svg{width:21px;height:21px;fill:none;stroke:currentColor;
     stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-  body.phone .dock button i{font-style:normal;font-size:10.5px;font-weight:600;line-height:1;
+  body.phone .dock button i{font-style:normal;font-size:14px;font-weight:600;line-height:1;
     max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   body.phone .dock button.on{color:var(--accent-ink)}
   body.phone .dock button.on svg{stroke-width:2.1}
+
+  /* Five cards stacked, so every pixel between them is paid four times.
+     The desk's 14px was inherited here by omission, not by choice. */
+  body.phone .snapWrap{gap:10px}
 
   /* ---- the anchor -----------------------------------------------------
      Sized off the SHORT phone as well as the narrow one: 56vw is 201px on
@@ -72,7 +75,7 @@
      actually allows - so on a 360px screen the clear circle is 111px and
      this was still free to run to 170. The cap has to scale with the
      dial or it is not a cap. */
-  body.phone .snapAnchor .gcenter .gs{font-size:11.5px;margin:0 auto}
+  body.phone .snapAnchor .gcenter .gs{font-size:12px;margin:0 auto}
   /* A dash set at the size of a price is a brick. It is a placeholder and
      should look like one. */
   body.phone .snapAnchor .gcenter b .gdash{font-size:.48em;color:var(--ink-3);
@@ -88,7 +91,7 @@
   body.phone .snapStats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:2px}
   body.phone .snapStats>div{padding:10px 13px;border-radius:var(--r-s);background:var(--well);
     box-shadow:var(--well-sh);display:flex;flex-direction:column;gap:3px;min-width:0}
-  body.phone .snapStats span{font-family:var(--mono);font-size:10.5px;letter-spacing:.11em;
+  body.phone .snapStats span{font-family:var(--mono);font-size:12px;letter-spacing:.11em;
     text-transform:uppercase;color:var(--ink-3)}
   body.phone .snapStats b{font-family:var(--disp);font-size:22px;font-weight:800;
     letter-spacing:-.035em;color:var(--ink);font-variant-numeric:tabular-nums}
@@ -98,7 +101,7 @@
      single well they read as one choice, which is what they are. */
   body.phone .snapCond{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:3px;
     padding:4px;border-radius:999px;background:var(--well);box-shadow:var(--well-sh)}
-  body.phone .snapCond button{min-width:0;padding:10px 2px;font-size:12px}
+  body.phone .snapCond button{min-width:0;padding:10px 2px;font-size:14px;min-height:44px}
   body.phone .snapCond button.on{box-shadow:var(--fill-sh);font-weight:700}
 
   /* ---- out of the detailed screen ------------------------------------
@@ -112,8 +115,8 @@
 
   /* ---- the unconnected footnote --------------------------------------
      Only ever true until somebody types two lines into Setup. */
-  body.phone .snapOff{padding:9px 12px;font-size:12.5px;line-height:1.5}
-  body.phone .snapOff .ghostBtn{padding:5px 12px;font-size:12px}
+  body.phone .snapOff{padding:7px 11px;font-size:14px;line-height:1.45}
+  body.phone .snapOff .ghostBtn{padding:5px 12px;font-size:14px}
   body.phone .snapFoot button{padding:12px 15px;font-size:14px}
 
   /* ---- the walk-away verdict -----------------------------------------
@@ -181,7 +184,7 @@
      its own arc, pushing the question it was counting off the screen. */
   body.phone .snapAnchor.bare{margin:0}
   .askBar{display:flex;flex-direction:column;gap:7px}
-  .askBar span{font-family:var(--mono);font-size:11px;letter-spacing:.11em;
+  .askBar span{font-family:var(--mono);font-size:12px;letter-spacing:.11em;
     text-transform:uppercase;color:var(--ink-3)}
   .askBar i{display:block;height:7px;border-radius:99px;background:var(--well);
     box-shadow:var(--well-sh);overflow:hidden}
@@ -189,12 +192,11 @@
     background:linear-gradient(90deg,var(--accent),var(--accent-2));transition:width .3s}
   /* The ask card is already inside the anchor card here, so it drops its
      own housing and becomes the body of it. */
-  body.phone .snapCard .askCard{background:none;border:none;box-shadow:none;padding:12px 0 0;
-    -webkit-backdrop-filter:none;backdrop-filter:none;margin:0}
+  body.phone .snapCard .askCard{background:none;border:none;box-shadow:none;padding:9px 0 0;margin:0}
   body.phone .snapCard .askQ{font-size:21px;margin-top:4px}
-  body.phone .snapCard .askOpts{gap:7px;margin-top:11px}
-  body.phone .snapCard .askOpt{padding:12px 14px}
-  body.phone .snapCard .askNav{margin-top:13px}
+  body.phone .snapCard .askOpts{gap:6px;margin-top:9px}
+  body.phone .snapCard .askOpt{padding:8px 14px;min-height:44px}
+  body.phone .snapCard .askNav{margin-top:11px}
   /* The bar over the card already says "3 of 6 answered"; askHTML's own
      "3 of 6" says which one you are standing on. Two counters a line
      apart, agreeing by coincidence, read as one fact printed twice - and
@@ -227,13 +229,14 @@
   /* ---- the wallet on a phone ----------------------------------------
      The hero is the whole top of the screen; the ask card underneath it
      drops its own housing because the hero is already the container. */
-  body.phone .hero{padding:18px 18px 15px}
+  body.phone .hero{padding:14px 18px 12px}
   body.phone .wAsk{padding:14px 15px}
-  body.phone .wAsk .askCard{background:none;border:none;box-shadow:none;padding:0;margin:0;
-    -webkit-backdrop-filter:none;backdrop-filter:none}
+  body.phone .wAsk .askCard{background:none;border:none;box-shadow:none;padding:0;margin:0;}
   body.phone .wAsk .askWhere{display:none}
   body.phone .wAsk .askQ{font-size:21px;margin-top:0}
-  body.phone .wAsk .askOpts{gap:7px;margin-top:11px}
+  body.phone .wAsk .askOpts{gap:6px;margin-top:9px}
+  body.phone .wAsk .askOpt{padding:9px 14px;min-height:44px}
+  body.phone .wAsk .askNav{margin-top:10px}
   body.phone .wAsk .askOpt{padding:12px 14px}
   body.phone .wAsk .askNav{margin-top:12px}
   @media (max-height:800px){
@@ -242,14 +245,14 @@
     body.phone .acts{margin-top:13px}
     body.phone .act i{width:42px;height:42px}
     body.phone .wAsk .askQ{font-size:19px}
-    body.phone .wAsk .askOpt{padding:10px 13px}
-    body.phone .wSect{margin:13px 2px 7px}
-    body.phone .wRow{padding:10px 12px}
+    body.phone .wAsk .askOpt{padding:7px 13px;min-height:44px}
+    body.phone .wSect{margin:10px 2px 6px}
+    body.phone .wRow{padding:8px 12px}
     body.phone .wRow>i{width:36px;height:36px;border-radius:11px}
-    body.phone .snapWrap{gap:9px}
-    body.phone .snapCond button{padding:9px 2px}
-    body.phone .act span{font-size:11px}
-    body.phone .heroSub{font-size:12.5px}
+    body.phone .snapWrap{gap:7px}
+    body.phone .snapCond button{padding:9px 2px;min-height:44px}
+    body.phone .act span{font-size:14px}
+    body.phone .heroSub{font-size:14px}
     body.phone .wRow .t b{font-size:14px}
     /* THE ASKING ROW, PAID FOR ON A SHORT SCREEN.
        It cost 59px of overflow on a 360x780 handset as a 51px row, and
@@ -265,8 +268,8 @@
        not-connected footnote gives it up instead - two lines of 12.5px
        about a setting, on the screen where he is deciding whether to hand
        over cash. On a connected phone it is not there at all. */
-    body.phone .snapOff{padding:7px 10px;font-size:11.5px;line-height:1.4}
-    body.phone .snapOff .ghostBtn{padding:4px 10px;font-size:11.5px}
+    body.phone .snapOff{padding:7px 10px;font-size:14px;line-height:1.4}
+    body.phone .snapOff .ghostBtn{padding:4px 10px;font-size:14px}
     body.phone .wAskPrice{margin-top:3px}
     body.phone .wAskPrice .phIn input{font-size:19px;padding:9px 12px}
     body.phone .wAskPrice .phIn span{font-size:19px}
@@ -278,7 +281,7 @@
      the section heading wait until there is a price to attach them to. */
   body.phone .wRow.tight{padding:8px 12px}
   body.phone .wRow.tight>i{width:32px;height:32px;border-radius:10px}
-  body.phone .wRow.tight .t b{font-size:13px}
+  body.phone .wRow.tight .t b{font-size:14px}
   body.phone .wRow.tight .wBar{margin-top:5px;height:4px}
   /* Mid-run the hero is carrying progress AND the item, so it gives up
      the actions: Look-up is the evidence row directly under it, Another

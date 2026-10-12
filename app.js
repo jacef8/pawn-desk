@@ -696,7 +696,7 @@ function ltvSuggestHTML(cat,cur){
   const s=LTV_BOOK[cat.id]; if(!s)return "";
   if(cur===s.p)return `<div class="cardHint" style="margin-top:8px"><span style="color:var(--accent);font-family:var(--mono);font-weight:600">Suggested: ${s.p}%</span> — ${s.why}. You're on it.</div>`;
   return `<div class="cardHint" style="margin-top:8px"><span style="color:var(--accent);font-family:var(--mono);font-weight:600">Suggested: ${s.p}%</span> — ${s.why}.
-    <button id="useLtv" class="ghostBtn" style="padding:5px 12px;font-size:11.5px;margin-left:8px">Use ${s.p}%</button></div>`;
+    <button id="useLtv" class="ghostBtn" style="padding:5px 12px;font-size:14px;margin-left:8px">Use ${s.p}%</button></div>`;
 }
 /* The price list used to want every typed word to appear inside the row name,
    which only ever worked for someone typing the row name. A photo read comes
@@ -1243,13 +1243,19 @@ const REF_TABS=[["log","Deal log"],["device","Phones & devices"],["setup","Setup
    wide is what is left once the working area has what it needs. Line art
    at one weight: a tag, a coin, a ledger, a phone, a hand, a dial. */
 const TAB_SHORT={item:"Price",metal:"Gold",log:"Deal log",device:"Devices",setup:"Setup"};
+/* One icon set, and it is Lucide (2.11). These were hand-drawn
+   approximations of Lucide shapes - close enough that nobody would have
+   noticed, which is exactly why they were worth replacing: "one set only"
+   is a rule about the next twenty icons, not these six. Paths are
+   Lucide's own, on its 24x24 grid, so they inherit the same stroke
+   weight and joins as the rest. */
 const TAB_ICON={
-  item:'<path d="M3 11.5V4.5A1.5 1.5 0 0 1 4.5 3h7L21 12.5 12.5 21 3 11.5Z"/><circle cx="7.6" cy="7.6" r="1.3"/>',
-  metal:'<circle cx="12" cy="12" r="8.2"/><path d="M12 7.4v9.2M9.6 9.6h4a1.9 1.9 0 0 1 0 3.8h-3.6a1.9 1.9 0 0 0 0 3.8h4"/>',
-  log:'<path d="M5 3.8h11a2 2 0 0 1 2 2v14.4H7a2 2 0 0 1-2-2V3.8Z"/><path d="M8.6 8.2h6M8.6 12h6M8.6 15.8h3.4"/>',
-  device:'<rect x="6.4" y="2.6" width="11.2" height="18.8" rx="2.4"/><path d="M10.6 18.4h2.8"/>',
-  flags:'<path d="M5.6 20.4V4.2M5.6 5.2h10.8l-1.9 3.6 1.9 3.6H5.6"/>',
-  setup:'<circle cx="12" cy="12" r="3.1"/><path d="M12 2.6v3M12 18.4v3M21.4 12h-3M5.6 12h-3M18.6 5.4l-2.1 2.1M7.5 16.5l-2.1 2.1M18.6 18.6l-2.1-2.1M7.5 7.5 5.4 5.4"/>'};
+  item:'<path d="M12.6 2.7a1 1 0 0 0-1.4 0l-8.5 8.5a2 2 0 0 0 0 2.8l6.6 6.6a2 2 0 0 0 2.8 0l8.5-8.5a1 1 0 0 0 .3-.7V4a2 2 0 0 0-2-2Z"/><circle cx="16.5" cy="7.5" r="1.5"/>',
+  metal:'<path d="M6 3h12l4 6-10 13L2 9Z"/><path d="M11 3 8 9l4 13 4-13-3-6"/><path d="M2 9h20"/>',
+  log:'<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v5h5"/><path d="M8 13h8"/><path d="M8 17h5"/>',
+  device:'<rect width="14" height="20" x="5" y="2" rx="2"/><path d="M12.5 18h-1"/>',
+  flags:'<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/>',
+  setup:'<path d="M12.2 2h-.4a2 2 0 0 0-2 2 2 2 0 0 1-1 1.7l-.4.2a2 2 0 0 1-2 0 2 2 0 0 0-2.7.7l-.2.4a2 2 0 0 0 .7 2.7 2 2 0 0 1 1 1.7v.5a2 2 0 0 1-1 1.7 2 2 0 0 0-.7 2.7l.2.4a2 2 0 0 0 2.7.7 2 2 0 0 1 2 0l.4.2a2 2 0 0 1 1 1.7 2 2 0 0 0 2 2h.4a2 2 0 0 0 2-2 2 2 0 0 1 1-1.7l.4-.2a2 2 0 0 1 2 0 2 2 0 0 0 2.7-.7l.2-.4a2 2 0 0 0-.7-2.7 2 2 0 0 1-1-1.7v-.5a2 2 0 0 1 1-1.7 2 2 0 0 0 .7-2.7l-.2-.4a2 2 0 0 0-2.7-.7 2 2 0 0 1-2 0l-.4-.2a2 2 0 0 1-1-1.7 2 2 0 0 0-2-2Z"/><circle cx="12" cy="12" r="3"/>'};
 function renderTabs(){
   /* Six destinations were a row of pills along the top bar - laid out on
      the one edge the eye leaves last, over the top of the thing being
@@ -1291,7 +1297,12 @@ document.getElementById("tabs").addEventListener("click",e=>{
      otherwise it is still the no-op it always was. */
   if(b.dataset.tab===st.mode&&st.mode==="item"&&(st.picked||st.needItem)){
     startOver(); return; }
-  st.mode=b.dataset.tab; st.editing=false; render();
+  /* The one gesture that really is a change of screen, so the one place a
+     View Transition belongs (6.0). pdMove falls straight through to a
+     plain call where the browser has no View Transitions, or where the
+     phone is set to reduce motion. */
+  st.mode=b.dataset.tab; st.editing=false;
+  if(window.pdMove)window.pdMove(render); else render();
 });
 
 /* ---------------- item tab ---------------- */
@@ -2424,7 +2435,7 @@ function paybackHTML(x){
           principal named is the thing that caused this. */""}
     <span class="label" style="margin-bottom:0;margin-top:14px;color:var(--ink-2)">To get it back &mdash; on ${money(payAmt(x).amt)}${payAmt(x).typed?" (what you typed)":" (the suggested loan)"}</span>
     <div class="ladder" id="payLadder">${ladder(payAmt(x).amt,payAmt(x).charge).map(r=>`<div class="widget rung"><div class="k">${r.k}</div><div class="d">${money(r.due)}</div></div>`).join("")}</div>
-    <div style="font-size:12px;line-height:1.5;color:var(--ink-2);margin-top:9px">
+    <div style="font-size:14px;line-height:1.5;color:var(--ink-2);margin-top:9px">
       ${/* "this by statute?" Asked of the sentence that used to sit here,
             and worth asking: three of its four clauses were statute and the
             fourth was wrong in the direction that costs money.
@@ -3483,7 +3494,7 @@ function specVerdictHTML(x){
   }
   let h=s.notes.map(n=>`<span style="color:${/NO DEAL/.test(n)?"var(--bad)":"var(--accent)"};font-weight:600">&#9656;</span> ${n}`).join("<br>");
   if(s.absSuggest&&(st.overrides[st.itemId]??null)!==s.absSuggest)
-    h+=` <button id="useSpec" class="ghostBtn" style="padding:4px 10px;font-size:11px;margin-left:6px">Use $${s.absSuggest} baseline</button>`;
+    h+=` <button id="useSpec" class="ghostBtn" style="padding:4px 10px;font-size:14px;margin-left:6px">Use $${s.absSuggest} baseline</button>`;
   return h;
 }
 function valSubText(x){
@@ -4926,7 +4937,7 @@ function renderItem(){
       ${CATALOG.map(c=>`<button class="catBtn${c.id===st.catId?" on":""}" data-cat="${c.id}">${c.label}</button>`).join("")}
     </div>
     <div class="card"><span class="label">2 &middot; Item</span>
-      <div class="cardHint" style="margin-top:0;font-size:13.5px">Not here? Type it in the search bar at the top. It also searches ${PRICEBOOK.length}+ more items.</div>
+      <div class="cardHint" style="margin-top:0;font-size:14px">Not here? Type it in the search bar at the top. It also searches ${PRICEBOOK.length}+ more items.</div>
       ${itemsByUse(cat).map(({it,seen},ix)=>`<button class="itemBtn${st.picked&&it.id===st.itemId?" on":""}" data-item="${it.id}"><span class="idx">${String(ix+1).padStart(2,"0")}</span><span style="flex:1">${it.name}</span>${seen?`<span class="seenTag">${seen}\u00d7 taken in</span>`:""}${ownAvgTag(it.id)}</button>`).join("")}
       <button class="itemBtn${st.picked&&st.itemId===custId(cat.id)?" on":""}" data-item="${custId(cat.id)}"><span class="idx">+</span><span style="flex:1">${st.itemId===custId(cat.id)&&st.bookName?esc(st.bookName):"Not on any list — I set the price"}</span></button>
     /* On the phone this column is hidden and the camera card is drawn in the
@@ -5015,15 +5026,15 @@ function renderItem(){
           know the brand is there a question left to ask. */""}
     ${brandLookup(st.catId,st.brandTyped)
       ? `<details class="fold"${st.openTier?" open":""} id="tierFold"><summary class="foldLine">Placed as ${esc(tiers[st.brand])} &mdash; change it</summary>
-         <div class="pills mb14" style="border-radius:var(--r-s);margin-top:8px">${BRANDS.map(br=>`<button class="${st.brand===br.id?"on":""}" style="flex:1;font-size:11px;padding:7px 6px" data-brand="${br.id}">${tiers[br.id]}</button>`).join("")}</div></details>`
-      : `<div class="pills mb14" style="border-radius:var(--r-s);margin-top:8px">${BRANDS.map(br=>`<button class="${st.brand===br.id?"on":""}" style="flex:1;font-size:11px;padding:7px 6px" data-brand="${br.id}">${tiers[br.id]}</button>`).join("")}</div>`}`;
+         <div class="pills mb14" style="border-radius:var(--r-s);margin-top:8px">${BRANDS.map(br=>`<button class="${st.brand===br.id?"on":""}" style="flex:1;font-size:14px;padding:7px 6px" data-brand="${br.id}">${tiers[br.id]}</button>`).join("")}</div></details>`
+      : `<div class="pills mb14" style="border-radius:var(--r-s);margin-top:8px">${BRANDS.map(br=>`<button class="${st.brand===br.id?"on":""}" style="flex:1;font-size:14px;padding:7px 6px" data-brand="${br.id}">${tiers[br.id]}</button>`).join("")}</div>`}`;
   }
   const _ov=itemOv();
   const dh=(_ov&&_ov.detail)||DETAIL_HINTS[cat.id]||{ph:"",hint:""};
   const _sc=SPEC_CHOICES[st.itemId];
   if(_sc)_sc.forEach((g,gi)=>{
     const sel=st.specSel[st.itemId+":"+gi]??specBase(g);
-    mid+=`<span class="label">${g.label}</span><div class="pills mb14" style="border-radius:var(--r-s)">${g.options.map((o,oi)=>`<button class="${sel===oi?"on":""}" style="flex:1;padding:7px 5px;font-size:11px" data-spec="${gi}:${oi}">${o.t}</button>`).join("")}</div>`;
+    mid+=`<span class="label">${g.label}</span><div class="pills mb14" style="border-radius:var(--r-s)">${g.options.map((o,oi)=>`<button class="${sel===oi?"on":""}" style="flex:1;padding:7px 5px;font-size:14px" data-spec="${gi}:${oi}">${o.t}</button>`).join("")}</div>`;
   });
   /* Both optional, and when the pickers above set the price these are notes
      for the ticket rather than questions. Folded unless something has been
@@ -5048,13 +5059,13 @@ function renderItem(){
      thing is broken. */
   mid+=`<span class="label">Condition${x.handSet?" &mdash; already in your figure":(x.checked?" &mdash; next to a typical used one":"")}</span>`
     +(x.handSet?`<div class="tagNote">You typed the resale value yourself, so condition does not move the price &mdash; the wear is already in your number. Clear it in <b>Resale value</b> to price off the list again and have condition adjust it.</div>`:"")
-    +`<div class="pills mb14" style="border-radius:var(--r-s)">${condList(x.item.id).map(c=>`<button class="${c.id===st.cond?"on":""}" style="flex:1;padding:7px 5px;font-size:11px${x.handSet?";opacity:.55":""}" data-cond="${c.id}" title="${x.handSet?"Does not change the price while the resale value is your own figure":c.hint}">${c.label.replace("New in box","New")}</button>`).join("")}</div>`;
+    +`<div class="pills mb14" style="border-radius:var(--r-s)">${condList(x.item.id).map(c=>`<button class="${c.id===st.cond?"on":""}" style="flex:1;padding:7px 5px;font-size:14px${x.handSet?";opacity:.55":""}" data-cond="${c.id}" title="${x.handSet?"Does not change the price while the resale value is your own figure":c.hint}">${c.label.replace("New in box","New")}</button>`).join("")}</div>`;
   if(cat.complete.on){
     mid+=`<span class="label">${cat.complete.label}</span><div class="pills mb14" style="border-radius:var(--r-s)">
       <button class="${st.completeSet&&st.complete?"on":""}" style="flex:1" data-comp="1">All there</button>
       <button class="${st.completeSet&&!st.complete?"on":""}" style="flex:1" data-comp="0">Pieces missing</button></div>`;
   }
-  mid+=`<span class="label">How fast it moves in Bristol</span><div class="pills" style="border-radius:var(--r-s)">${LIQUIDITY.map(l=>`<button class="${x.liqId===l.id?"on":""}" style="flex:1;padding:7px 5px;font-size:11px" data-liq="${l.id}" title="${l.hint}">${l.label}</button>`).join("")}</div>
+  mid+=`<span class="label">How fast it moves in Bristol</span><div class="pills" style="border-radius:var(--r-s)">${LIQUIDITY.map(l=>`<button class="${x.liqId===l.id?"on":""}" style="flex:1;padding:7px 5px;font-size:14px" data-liq="${l.id}" title="${l.hint}">${l.label}</button>`).join("")}</div>
   ${ST?"</details>":"</div>"}
   <details class="card foldCard"${st.openRates?" open":""} id="rateFold">
     <summary><span class="label" style="margin:0">6 &middot; Lending and buying rates</span><span class="foldSub">${x.baseLtv}% lend &middot; ${x.buyPct}% buy &mdash; shop policy, rarely per deal</span></summary>
@@ -5871,9 +5882,9 @@ function meltLadderHTML(){
   const guardPts=Math.round(s.target*((1-nc/100)-(1-tc/100))/(1-nc/100));
   const trendPts=(s.trend&&s.trend.cut>0)?s.trend.cut:0;
   const row=(l,r,note,tone)=>`<div style="display:flex;gap:10px;align-items:baseline;padding:3px 0">
-    <span style="flex:0 0 96px;font-family:var(--mono);font-size:12.5px;color:${tone||"var(--ink-2)"}">${r}</span>
-    <span style="flex:0 0 auto;font-size:13px;color:var(--ink)">${l}</span>
-    <span style="font-size:12.5px;color:var(--ink-2)">${note||""}</span></div>`;
+    <span style="flex:0 0 96px;font-family:var(--mono);font-size:14px;color:${tone||"var(--ink-2)"}">${r}</span>
+    <span style="flex:0 0 auto;font-size:14px;color:var(--ink)">${l}</span>
+    <span style="font-size:14px;color:var(--ink-2)">${note||""}</span></div>`;
   return `<div style="border-top:1px solid rgba(255,255,255,.08);margin-top:10px;padding-top:9px">
     <span class="label" style="margin:0 0 4px">What is between melt and the offer</span>
     ${/* "what the metal in it is worth at spot" - and check-screens was
@@ -5896,7 +5907,7 @@ function suggestHTML(){
   return `<div class="cardHint" style="border-top:1px solid rgba(255,255,255,.08);margin-top:10px;padding-top:9px">
     <span style="color:var(--accent);font-family:var(--mono);font-weight:600">Suggested today: ${s.pay}%</span> — ${s.why}.${s.more?" "+infoBtnText(s.more,"melt-trend"):""}
     ${match?`<span style="color:var(--ink-2)"> ${curTouched()?"You're on it.":"Drag the slider to set your own."}</span>`
-      :`<button id="useSuggest" class="ghostBtn" style="padding:5px 12px;font-size:11.5px;margin-left:8px">Use ${s.pay}%</button>`}
+      :`<button id="useSuggest" class="ghostBtn" style="padding:5px 12px;font-size:14px;margin-left:8px">Use ${s.pay}%</button>`}
     <div class="rateRow" style="margin-top:12px"><span class="label">What you aim to pay, as a share of melt (%) ${infoBtn("melt-policy")}</span><input id="meltTgtNum" class="numIn rateNum" type="number" inputmode="numeric" min="30" max="100" value="${meltTarget(st.metal,PAWN()?"loan":"buy")}"></div>
     ${meltLadderHTML()}
   </div>`;
@@ -6362,7 +6373,7 @@ function meltMathHTML(m){
   const basis=PAWN()?Math.min(spot,avg||spot):spot;
   const perG=basis/31.1035, perGk=perG*purity, gross=perGk*g;
   const rate=curRate(), out=PAWN()?m.loan:m.buy;
-  const row=(k,v)=>`<div class="valRow" style="padding:6px 0"><span style="font-size:13px;color:var(--ink-2)">${k}</span><span class="num" style="font-size:15px">${v}</span></div>`;
+  const row=(k,v)=>`<div class="valRow" style="padding:6px 0"><span style="font-size:14px;color:var(--ink-2)">${k}</span><span class="num" style="font-size:15px">${v}</span></div>`;
   return `<div class="card"><span class="label">How the number is built</span>
     ${row("Today's price, per troy ounce","$"+spot.toLocaleString("en-US"))}
     ${PAWN()&&basis<spot?row("Loans price off the 90-day average","$"+basis.toLocaleString("en-US")):""}
@@ -6379,7 +6390,7 @@ function metalLadderHTML(m){
   return `<div class="card"><span class="label">What it costs him to get it back</span>
     ${pawnRateHTML()}
     <div class="ladder" id="payLadder" style="margin-top:14px">${ladder(m.loan,charge).map(r=>`<div class="widget rung"><div class="k">${r.k}</div><div class="d">${money(r.due)}</div></div>`).join("")}</div>
-    <div style="font-size:13.5px;line-height:1.5;color:var(--ink-2);margin-top:9px">
+    <div style="font-size:14px;line-height:1.5;color:var(--ink-2);margin-top:9px">
       It is <b style="color:var(--ink)">not</b> ${pawnPct()}% again every month. The charge caps at <b style="color:var(--ink)">twice</b> the
       30-day amount from day 31 through day 60, then runs <b style="color:var(--ink)">$${(charge/30).toFixed(2)}/day</b>.
       Past day 60 the metal is already ours \u2014 late redemption is a courtesy you price with that rate.
@@ -6396,7 +6407,7 @@ function metalResultHTML(num){
      is not the order the desk stacks them. The caller hands them out. */
   const n=(typeof num==="function")?num:(()=>{let i=5;return()=>++i;})();
   const m=calcMetal();
-  if(!m)return `<div class="card" style="text-align:center;color:var(--ink-3);font-size:13px;padding:28px">Put it on the scale and enter the grams.</div>`;
+  if(!m)return `<div class="card" style="text-align:center;color:var(--ink-3);font-size:14px;padding:28px">Put it on the scale and enter the grams.</div>`;
   const pawn=st.deal==="pawn";
   const wt=esc(st.grams)+"g "+(st.metal==="gold"?st.karat:".925");
   const shown=pawn?m.loan:m.buy;
@@ -6781,9 +6792,9 @@ function harvShareHTML(){
     <b style="color:var(--accent)">Saved, and on all your devices.</b> A price you build here shows up on the
     phone too, and none of it is lost when the service restarts. Nothing to do — this is the way it should read.
     Last checked ${esc(when)}.
-    <div style="margin-top:8px"><button class="ghostBtn" id="harvCheck" style="padding:5px 11px;font-size:11.5px">${syncBusy?"Checking\u2026":"Check again"}</button></div></div>`;
+    <div style="margin-top:8px"><button class="ghostBtn" id="harvCheck" style="padding:5px 11px;font-size:14px">${syncBusy?"Checking\u2026":"Check again"}</button></div></div>`;
   return `<div class="cardHint">Whether these reach your other devices depends on the service having a disk attached.
-    <button class="ghostBtn" id="harvCheck" style="padding:6px 12px;font-size:12px;margin-left:6px">${syncBusy?"Checking\u2026":"Check sharing"}</button>
+    <button class="ghostBtn" id="harvCheck" style="padding:6px 12px;font-size:14px;margin-left:6px">${syncBusy?"Checking\u2026":"Check sharing"}</button>
     Costs nothing to ask.</div>`;
 }
 function harvCardHTML(){
@@ -6813,8 +6824,8 @@ function harvCardHTML(){
     ${S.done?`<div class="tagNote" style="margin-top:10px">
       <b style="color:var(--ink)">${S.done} done</b> &middot; ${S.priced} priced${S.wild?` &middot; <span style="color:var(--warn)">${S.wild} looked wrong and were held back</span>`:""}${S.empty?` &middot; ${S.empty} found nothing`:""} &middot; ${left} left.
       ${f?`<div style="margin-top:9px">To put them in the copy everyone downloads, save the file and send it to me:
-        <button class="ghostBtn" id="harvDl" style="padding:6px 12px;font-size:12px;margin-left:6px">Save prices.json (${f.total} rows)</button></div>`:""}
-      <div style="margin-top:6px"><button class="ghostBtn" id="harvClear" style="padding:5px 11px;font-size:11.5px">Start the list over</button></div>
+        <button class="ghostBtn" id="harvDl" style="padding:6px 12px;font-size:14px;margin-left:6px">Save prices.json (${f.total} rows)</button></div>`:""}
+      <div style="margin-top:6px"><button class="ghostBtn" id="harvClear" style="padding:5px 11px;font-size:14px">Start the list over</button></div>
     </div>`:""}
   </div>`;
 }
@@ -6951,7 +6962,7 @@ function sheetCardHTML(){
       <button class="ghostBtn" id="shPasteGo" style="padding:11px 16px">or paste the rows</button>
     </div>
     ${st.shPaste?`<textarea id="shPaste" placeholder="Select the rows in Excel or Sheets, copy, and paste them here — headings included."
-      style="width:100%;margin-top:9px;min-height:110px;background:var(--well);color:var(--ink);border:1px solid var(--e2);border-radius:10px;padding:10px;font-family:var(--mono);font-size:12px"></textarea>
+      style="width:100%;margin-top:9px;min-height:110px;background:var(--well);color:var(--ink);border:1px solid var(--e2);border-radius:10px;padding:10px;font-family:var(--mono);font-size:14px"></textarea>
       <div class="row2" style="margin-top:8px"><button class="ghostBtn" id="shPasteRead">Read what I pasted</button></div>`:""}
     ${shMsg?`<div class="cardHint" style="color:var(--warn)">${esc(shMsg)}</div>`:""}
     ${shPend?sheetPreviewHTML():""}
@@ -7014,7 +7025,7 @@ function renderSetup(){
       <div class="cardHint" style="margin:0;flex:1;min-width:190px">Point the phone\u2019s camera at this and tap the link. Nothing to type. ${infoBtn("handoff-qr")}</div>
     </div>`:""}
     <div class="row2" style="margin-top:9px"><button class="ghostBtn" id="pdCopyConn" title="Copy both lines so you can send them to yourself">Copy both</button></div>
-    <div class="cardHint" style="font-size:12.5px">The token is a key to the shop. ${infoBtn("token-key")}</div>`:""}
+    <div class="cardHint" style="font-size:14px">The token is a key to the shop. ${infoBtn("token-key")}</div>`:""}
   </div>`}
   ${pdServer()?"":pdConnectHTML()}
   ${pdServer()?`<div class="card"><span class="label">Is the service working?</span>
@@ -7032,10 +7043,10 @@ function renderSetup(){
   </div>
 ${window.PHONE?"":`  <div class="card"><span class="label">How the pricing page is laid out ${infoBtn("flow-modes")}</span>
     <div class="pills mb14" style="border-radius:var(--r-s);margin-top:8px;flex-wrap:wrap">
-      <button class="${stepFlow()==="ask"?"on":""}" style="flex:1;padding:9px 6px;font-size:12px;min-width:110px" data-flow="ask">One question at a time</button>
-      <button class="${stepFlow()==="pages"?"on":""}" style="flex:1;padding:9px 6px;font-size:12px;min-width:110px" data-flow="pages">One page at a time</button>
-      <button class="${stepFlow()==="steps"?"on":""}" style="flex:1;padding:9px 6px;font-size:12px;min-width:110px" data-flow="steps">One step at a time</button>
-      <button class="${stepFlow()==="all"?"on":""}" style="flex:1;padding:9px 6px;font-size:12px;min-width:110px" data-flow="all">Everything open</button>
+      <button class="${stepFlow()==="ask"?"on":""}" style="flex:1;padding:9px 6px;font-size:14px;min-width:110px" data-flow="ask">One question at a time</button>
+      <button class="${stepFlow()==="pages"?"on":""}" style="flex:1;padding:9px 6px;font-size:14px;min-width:110px" data-flow="pages">One page at a time</button>
+      <button class="${stepFlow()==="steps"?"on":""}" style="flex:1;padding:9px 6px;font-size:14px;min-width:110px" data-flow="steps">One step at a time</button>
+      <button class="${stepFlow()==="all"?"on":""}" style="flex:1;padding:9px 6px;font-size:14px;min-width:110px" data-flow="all">Everything open</button>
     </div>
     <div class="cardHint" style="margin-top:0">${esc(FLOW_LINE[stepFlow()]||"")}</div>
   </div>`}
@@ -7292,7 +7303,7 @@ function pdConnectHTML(){
     '<span class="label" style="margin-top:10px">Token</span>'+
     '<input id="pdTokIn" class="numIn" type="text" autocomplete="off" spellcheck="false" '+
       'style="font-family:var(--mono);font-size:14px" placeholder="the PAWN_TOKEN you set in Railway" value="'+esc(pdToken()||"")+'">'+
-    '<div class="cardHint" style="font-size:12.5px">Switch tabs to copy &mdash; what you typed stays put.'+
+    '<div class="cardHint" style="font-size:14px">Switch tabs to copy &mdash; what you typed stays put.'+
       (window.PHONE?" Both are under <b style=\"color:var(--ink)\">Setup</b> on the counter computer.":"")+'</div>'+
     '<div class="row2" style="margin-top:8px"><button class="brassBtn" id="pdConnBtn" style="padding:10px 18px">'+
       (on?"Save and reconnect":"Switch it on")+'</button>'+
@@ -7618,7 +7629,7 @@ function ownCompsInner(x){
   if(s){
     h+=`<b style="color:var(--ink)">Your own sales: ${s.n}</b> — middle <b style="color:var(--accent)">${money(s.mid)}</b>`;
     h+=(s.n>1?`, range ${money(s.lo)}&ndash;${money(s.hi)}`:``)+`. `;
-    h+=`This is Bristol money, not eBay money. <button id="useOwn" class="ghostBtn" style="padding:6px 12px;font-size:12.5px;margin-left:4px">Use ${money(s.mid)}</button>`;
+    h+=`This is Bristol money, not eBay money. <button id="useOwn" class="ghostBtn" style="padding:6px 12px;font-size:14px;margin-left:4px">Use ${money(s.mid)}</button>`;
   }
   if(open)h+=`${s?" ":""}${open} still on the shelf or in loan.`;
   return h+`</div>`;
@@ -7954,7 +7965,7 @@ function compsCardHTML(x){
           panel you scroll. The fold stays open once opened, like every
           other fold on the page. */""}
     <span class="label" style="margin-top:8px">What those buttons search for</span>
-    <div class="row2"><input id="compQ" class="roOut" readonly tabindex="-1" aria-label="What those buttons search for" value="${esc(q)}" style="flex:1;min-width:0;font-size:13px"><button id="compCopy" class="ghostBtn" style="padding:10px 15px">Copy</button></div>
+    <div class="row2"><input id="compQ" class="roOut" readonly tabindex="-1" aria-label="What those buttons search for" value="${esc(q)}" style="flex:1;min-width:0;font-size:14px"><button id="compCopy" class="ghostBtn" style="padding:10px 15px">Copy</button></div>
     <details class="fold" id="compFold"${st.openComp?" open":""}>
       <summary class="foldLine">Paste a sold screenshot, and what to read off it</summary>
       ${shotZoneHTML(x)}
@@ -8057,7 +8068,7 @@ function wireComps(){
         fb.innerHTML=`<div class="tagWarn"><b>Blank tab, or "blocked / refused to connect"?</b>
           That is ${esc(label)} turning away the page, not a broken button. Copy this link into a
           fresh browser tab &mdash; pasted links always load.
-          <input class="numIn" id="compUrl" readonly value="${esc(url)}" style="margin-top:9px;font-family:var(--mono);font-size:11px;padding:9px 11px">
+          <input class="numIn" id="compUrl" readonly value="${esc(url)}" style="margin-top:9px;font-family:var(--mono);font-size:14px;padding:9px 11px">
           <button id="compUrlCopy" class="ghostBtn" style="margin-top:9px;padding:8px 14px">Copy link</button></div>`;
         wireCopy("compUrlCopy","compUrl","Copy link");
       }
@@ -8082,7 +8093,7 @@ function photoCardHTML(){
     if(!window.PHONE && st.picked) return `<div class="card" id="photoCard">
       <span class="label" style="margin:0">Not connected &mdash; no sold-price lookups on this device</span>
       <div class="cardHint" style="margin:5px 0 0">Connect it to the shop's service and it can look up what things sold for, photograph an item and price it, and read another shop's tag.
-        <button class="ghostBtn" data-gotab="setup" type="button" style="padding:5px 12px;font-size:12px;margin-left:6px">Set it up</button></div>
+        <button class="ghostBtn" data-gotab="setup" type="button" style="padding:5px 12px;font-size:14px;margin-left:6px">Set it up</button></div>
     </div>`;
     return pdConnectHTML();
   }
@@ -8242,7 +8253,7 @@ function photoErrHTML(){
   const i=st.photoInfo, mb=n=>(n/1e6).toFixed(2)+"MB";
   return `<div class="tagWarn" style="border-left-color:var(--bad);background:var(--bad-wash);color:var(--bad-ink);margin-top:9px">
     <b>The photo didn\u2019t read.</b> ${esc(e.text)}
-    <div style="font-family:var(--mono);font-size:11.5px;opacity:.75;margin-top:6px">reason code: ${esc(e.code)}${e.why?"<br>browser said: "+esc(e.why):""}
+    <div style="font-family:var(--mono);font-size:14px;opacity:.75;margin-top:6px">reason code: ${esc(e.code)}${e.why?"<br>browser said: "+esc(e.why):""}
     ${i?`<br>photo: ${esc(i.type)} &middot; ${mb(i.was)} \u2192 ${mb(i.sent)} sent${i.shrunk?"":" (NOT shrunk)"}`:""}
     <br>from: ${esc(location.origin)}<br>to: ${esc(pdServer()||"(none)")}</div></div>`;
 }
@@ -8410,8 +8421,8 @@ function photoLookHTML(){
      didn’t work" sends us both guessing; a code says whether the service
      never answered, the key is dry, or the web simply had nothing. */
   return `<div class="tagWarn" style="background:rgba(255,201,143,.12)"><b>The web didn’t settle it.</b> ${esc(l.err||"")}
-    <div style="font-family:var(--mono);font-size:11.5px;opacity:.75;margin-top:6px">reason code: ${esc(l.code||"unknown")}${l.why?"<br>browser said: "+esc(l.why):""}<br>build ${esc(BUILD||"unknown")}</div>
-    ${st.photoLast?`<button class="ghostBtn" id="lookAgain" style="padding:6px 12px;font-size:12px;margin-left:6px">Search the web again</button>`:""}</div>`;
+    <div style="font-family:var(--mono);font-size:14px;opacity:.75;margin-top:6px">reason code: ${esc(l.code||"unknown")}${l.why?"<br>browser said: "+esc(l.why):""}<br>build ${esc(BUILD||"unknown")}</div>
+    ${st.photoLast?`<button class="ghostBtn" id="lookAgain" style="padding:6px 12px;font-size:14px;margin-left:6px">Search the web again</button>`:""}</div>`;
 }
 function wireLook(){
   const b=document.getElementById("lookAgain");
@@ -8603,7 +8614,7 @@ function logCardInner(x){
       <div class="cardHint">Not available on this device. Every deal you log builds the shop's own price book, which beats any outside comp inside a year.</div></div>`;
   }
   if(!x.checked)return `<div class="card"><span class="label">Deal log</span>
-      <div class="cardHint" style="font-size:13.5px;color:var(--ink-2)">Check the market first (step 4), so the log only keeps real numbers.</div></div>`;
+      <div class="cardHint" style="font-size:14px;color:var(--ink-2)">Check the market first (step 4), so the log only keeps real numbers.</div></div>`;
   const s=soldStats(dealKey());
   /* The ticket number is the one thing that ties this record to the pawn
      system, and it is the only number on a ticket that is not about the
@@ -8708,7 +8719,7 @@ function renderLog(){
           <div class="feedTag" style="margin-top:3px">${esc(d.day||"")}${d.ticket?` &middot; <b style="color:var(--ink-2)">#${esc(d.ticket)}</b>`:""} &middot; ${esc(d.catLabel||"")}${d.specs?" &middot; "+esc(d.specs):""}</div>
           <div class="feedTag" style="margin-top:2px">Est. resale ${money(d.resale||0)} &middot; lent ${money(d.loan||0)}${d.status==="sold"&&d.soldPrice?` &middot; <b style="color:var(--accent)">sold ${money(d.soldPrice)}</b>`:""}${d.status==="redeemed"?` &middot; <b style="color:var(--accent-2)">redeemed</b>`:""}</div>
         </div>
-        <button class="ghostBtn" style="padding:6px 12px;font-size:11.5px" data-del="${esc(d._id)}">Delete</button>
+        <button class="ghostBtn" style="padding:6px 12px;font-size:14px" data-del="${esc(d._id)}">Delete</button>
       </div>
       ${d.status==="open"?`<div class="row2" style="margin-top:9px;gap:7px;flex-wrap:wrap">
         <input class="numIn" type="number" inputmode="decimal" placeholder="Sold for $" data-price="${esc(d._id)}" style="flex:1;min-width:110px;font-size:15px;padding:9px 11px">
@@ -8720,9 +8731,9 @@ function renderLog(){
   return wrap(`
     <div class="card"><p style="font-size:14px;line-height:1.6;margin:0;color:var(--ink-2)">Your own sold history. Item facts only &mdash; no names, no ID numbers, nothing off the state form. That record lives in the pawn system, not here.</p></div>
     ${open.length?`<div class="card" style="padding:12px 15px"><span class="label" style="margin:0">Not settled yet &mdash; ${open.length}</span>
-      <div class="cardHint" style="margin-top:4px;font-size:12.5px">Logged, and nothing has happened since. On a pawn that means your money is still out; on a buy it means the item has not sold. Close it with <b style="color:var(--ink)">Sold</b> or <b style="color:var(--ink)">Redeemed</b> and it starts teaching the next appraisal.</div></div>${open.map(row).join("")}`:""}
+      <div class="cardHint" style="margin-top:4px;font-size:14px">Logged, and nothing has happened since. On a pawn that means your money is still out; on a buy it means the item has not sold. Close it with <b style="color:var(--ink)">Sold</b> or <b style="color:var(--ink)">Redeemed</b> and it starts teaching the next appraisal.</div></div>${open.map(row).join("")}`:""}
     ${done.length?`<div class="card" style="padding:12px 15px"><span class="label" style="margin:0">Settled &mdash; ${done.length}</span>
-      <div class="cardHint" style="margin-top:4px;font-size:12.5px">Sold, or redeemed by the customer. These are what the next price is built from.</div></div>${done.map(row).join("")}`:""}
+      <div class="cardHint" style="margin-top:4px;font-size:14px">Sold, or redeemed by the customer. These are what the next price is built from.</div></div>${done.map(row).join("")}`:""}
   `);
 }
 function wireLog(){
@@ -11702,7 +11713,7 @@ function specGravity(air,water){
 function specRow(label,j,extra){
   if(!j)return "";
   const tone=j.ok?"var(--accent)":"var(--bad)";
-  return `<div class="cardHint" style="margin-top:5px;font-size:13px">
+  return `<div class="cardHint" style="margin-top:5px;font-size:14px">
     <b style="color:${tone}">${j.ok?"\u2713":"\u2717"}</b> ${esc(label)}:
     you measured <b style="color:var(--ink)">${j.v}</b>, spec is <b style="color:var(--ink)">${j.want}</b>
     (${j.pct>=0?"+":""}${j.pct.toFixed(1)}%). ${esc(extra||"")}</div>`;
@@ -11773,32 +11784,32 @@ function specCardHTML(sh){
     const any=rows.length;
     const bad=[jg,jd,jt,jl].filter(z=>z&&!z.ok).length;
     out=`<div style="margin-top:10px">
-      ${any?rows.join(""):`<div class="cardHint" style="margin-top:5px;font-size:13px">Type a measurement above and it will be checked against the spec.</div>`}
-      ${any?`<div class="cardHint" style="font-size:13px;margin-top:8px">
+      ${any?rows.join(""):`<div class="cardHint" style="margin-top:5px;font-size:14px">Type a measurement above and it will be checked against the spec.</div>`}
+      ${any?`<div class="cardHint" style="font-size:14px;margin-top:8px">
         <b style="color:${bad?"var(--bad)":"var(--accent)"}">${bad?bad+" of "+any+" measurements are out.":"Every measurement you gave matches."}</b>
         ${bad?(isWatch?" A real one is made to its own factory spec. Treat this as a fail until something explains it."
                       :isKarat?" Density is the alloy, not a maker's choice \u2014 but read the note above before calling it: a hollow piece or a stone in it reads light for honest reasons."
                       :" A real one does not miss its own mint spec. Treat this as a fail until something explains it.")
              :" That rules out the cheap fakes. It does not rule out a good one \u2014 keep working the checks above."}</div>`:""}
-      ${isGold?`<div class="tagWarn" style="margin-top:9px;font-size:12.5px"><b>Tungsten reads 19.25, gold reads 19.32.</b> Specific gravity cannot tell them apart on a shop scale, and a tungsten core in a gold shell is the fake that matters. On a big gold loan, weight and gravity are not enough \u2014 ping it, or send it out.</div>`:""}
-      <div class="cardHint" style="font-size:12px;margin-top:8px">Spec figures are the mint's own. Silver Eagle 31.103 g / 40.6 mm; Gold Eagle 33.931 g gross (22k) / 32.70 mm; Krugerrand 33.93 g / 32.77 mm; Gold Maple 31.10 g / 30.0 mm; pre-1965 US silver at 90%.</div>
+      ${isGold?`<div class="tagWarn" style="margin-top:9px;font-size:14px"><b>Tungsten reads 19.25, gold reads 19.32.</b> Specific gravity cannot tell them apart on a shop scale, and a tungsten core in a gold shell is the fake that matters. On a big gold loan, weight and gravity are not enough \u2014 ping it, or send it out.</div>`:""}
+      <div class="cardHint" style="font-size:14px;margin-top:8px">Spec figures are the mint's own. Silver Eagle 31.103 g / 40.6 mm; Gold Eagle 33.931 g gross (22k) / 32.70 mm; Krugerrand 33.93 g / 32.77 mm; Gold Maple 31.10 g / 30.0 mm; pre-1965 US silver at 90%.</div>
     </div>`;
   }
 
   return `<details class="fold" style="margin-top:12px"${st.specOpen?" open":""} id="specFold">
     <summary class="foldLine">Check it by the numbers &mdash; weight, size, density</summary>
-    <div class="cardHint" style="margin-top:8px;font-size:13px">A scale and a caliper catch more fakes than any photograph, and this costs nothing: it is arithmetic against the published spec, done here on the device. Leave a box empty and it is simply not checked.</div>
+    <div class="cardHint" style="margin-top:8px;font-size:14px">A scale and a caliper catch more fakes than any photograph, and this costs nothing: it is arithmetic against the published spec, done here on the device. Leave a box empty and it is simply not checked.</div>
     <span class="label" style="margin-top:10px">What is it supposed to be?</span>
     <select id="specPick" class="numIn" style="width:100%;font-size:14px">
       <option value=""${pick?"":" selected"}>&mdash; pick one &mdash;</option>${opts}
     </select>
-    ${sp?`<div class="cardHint" style="margin-top:6px;font-size:12.5px">${esc(sp.metal||"")}${sp.note?" &mdash; "+esc(sp.note):""}${sp.grp==="watch"?` <b style="color:var(--ink)">Weight is not scored here</b> &mdash; it moves with how many bracelet links are in it. It is still worth knowing: a steel sports Rolex on a full bracelet is heavy in the hand, and a fake usually feels obviously light.`:""}</div>`:""}
+    ${sp?`<div class="cardHint" style="margin-top:6px;font-size:14px">${esc(sp.metal||"")}${sp.note?" &mdash; "+esc(sp.note):""}${sp.grp==="watch"?` <b style="color:var(--ink)">Weight is not scored here</b> &mdash; it moves with how many bracelet links are in it. It is still worth knowing: a steel sports Rolex on a full bracelet is heavy in the hand, and a fake usually feels obviously light.`:""}</div>`:""}
     ${/* A CHAIN HAS NO SPEC DIAMETER. On the jewelry table the only two
           boxes that mean anything are the two weights, and showing a
           caliper field next to them invites a measurement that gets
           compared to nothing. */""}
     ${densityOnly||(sp&&sp.grp==="karat")?`
-    <div class="tagWarn" style="margin-top:10px;font-size:12.5px"><b>Solid, plain metal only.</b> A stone, a hollow chain, a spring clasp or solder all make a real piece read light \u2014 that is the piece, not a fake. Weigh a plain band, a solid link, or nothing at all. Light on a hollow rope proves nothing; light on a solid band is worth acid.</div>
+    <div class="tagWarn" style="margin-top:10px;font-size:14px"><b>Solid, plain metal only.</b> A stone, a hollow chain, a spring clasp or solder all make a real piece read light \u2014 that is the piece, not a fake. Weigh a plain band, a solid link, or nothing at all. Light on a hollow rope proves nothing; light on a solid band is worth acid.</div>
     <div class="row2" style="margin-top:10px;flex-wrap:wrap;gap:8px">
       <label style="flex:1;min-width:120px"><span class="label">Weight, dry (g)</span>
         <input id="spec_g" class="numIn" type="number" inputmode="decimal" step="0.001" value="${esc(String(inp.g||""))}" placeholder="8.40"></label>
@@ -11817,7 +11828,7 @@ function specCardHTML(sh){
       <label style="flex:1;min-width:120px"><span class="label">Weight in water (g)</span>
         <input id="spec_w" class="numIn" type="number" inputmode="decimal" step="0.001" value="${esc(String(inp.w||""))}" placeholder="optional"></label>
     </div>`}
-    <div class="cardHint" style="font-size:12.5px;margin-top:5px">For <b style="color:var(--ink)">weight in water</b>: hang it on thread in a cup of water so it touches nothing, and read the scale. That gives the density, which is what most fakes cannot copy.</div>
+    <div class="cardHint" style="font-size:14px;margin-top:5px">For <b style="color:var(--ink)">weight in water</b>: hang it on thread in a cup of water so it touches nothing, and read the scale. That gives the density, which is what most fakes cannot copy.</div>
     ${out}
   </details>`;
 }
@@ -11897,32 +11908,32 @@ function fakeLookHTML(sh){
   const poor=r&&r.quality==="poor";
   return `<div style="margin-top:12px">
     <span class="label">Look at the photo for tells</span>
-    <div class="cardHint" style="margin-top:0;font-size:12.5px">${have
+    <div class="cardHint" style="margin-top:0;font-size:14px">${have
       ? "Reads the picture you just took against this sheet. It costs a service call, so it is a button. <b style=\"color:var(--ink)\">It cannot clear anything</b> — no photograph can weigh it, magnet it or shine a light through it."
       : "Take a picture of it first and this will read that picture against this sheet."}</div>
     <div class="row2" style="margin-top:7px">
       <button class="ghostBtn" id="fakeLookGo" style="padding:9px 15px"${have&&!fakeLookBusy?"":" disabled"}>${fakeLookBusy?"Looking…":"Look at the photo"}</button>
       ${fakeLookBusy?`<button class="ghostBtn" id="fakeLookStop" style="padding:9px 15px">Stop</button>`:""}
     </div>
-    ${st.fakeLookErr?`<div class="cardHint" style="margin-top:7px;font-size:13px;color:var(--bad-ink)">${esc(st.fakeLookErr)}</div>`:""}
+    ${st.fakeLookErr?`<div class="cardHint" style="margin-top:7px;font-size:14px;color:var(--bad-ink)">${esc(st.fakeLookErr)}</div>`:""}
     ${r?`<div style="margin-top:9px">
       ${/* THE LIMIT HAS TO RIDE THE RESULT. It was written into the line
             above the button, which is replaced by the result the moment
             there is one - so the sentence saying a photograph cannot
             clear anything disappeared at exactly the moment somebody was
             reading a photograph's answer. Caught by the suite. */""}
-      <div class="cardHint" style="font-size:12.5px;margin-bottom:2px"><b style="color:var(--ink)">A photograph cannot clear anything.</b> It has not weighed it, magneted it, or shone a light through it.</div>
-      ${poor?`<div class="tagWarn" style="font-size:12.5px"><b>That picture is not good enough to judge printing.</b> Closer, flatter, more light — or skip it and work the sheet by hand.</div>`:""}
+      <div class="cardHint" style="font-size:14px;margin-bottom:2px"><b style="color:var(--ink)">A photograph cannot clear anything.</b> It has not weighed it, magneted it, or shone a light through it.</div>
+      ${poor?`<div class="tagWarn" style="font-size:14px"><b>That picture is not good enough to judge printing.</b> Closer, flatter, more light — or skip it and work the sheet by hand.</div>`:""}
       ${flags.length?flags.map(f=>{
         const n=Number(f.check)||0;
-        return `<div class="cardHint" style="margin-top:6px;font-size:13px">
+        return `<div class="cardHint" style="margin-top:6px;font-size:14px">
           <b style="color:var(--warn-ink)">⚠</b> ${esc(String(f.saw||""))}
           ${f.do?`<br><b style="color:var(--ink)">Now check:</b> ${esc(String(f.do))}`:""}
           ${n>0&&sh.checks[n-1]?`<br><span style="opacity:.8">That is check ${n} on this sheet.</span>`:""}</div>`;
         }).join("")
-        :poor?"":`<div class="cardHint" style="margin-top:6px;font-size:13px"><b style="color:var(--ink)">Nothing visible in the photo.</b> That is not a pass. It means the picture showed nothing wrong — the checks above are still the ones that decide.</div>`}
-      ${(r.readable&&(r.readable.serial||r.readable.model))?`<div class="cardHint" style="margin-top:7px;font-size:13px"><b style="color:var(--ink)">Read off it:</b> ${esc([r.readable.serial,r.readable.model].filter(Boolean).join(" · "))} — type that into the free lookup yourself.</div>`:""}
-      ${(r.cannot&&r.cannot.length)?`<div class="cardHint" style="margin-top:7px;font-size:12.5px"><b style="color:var(--ink)">A photo cannot answer:</b> ${esc(r.cannot.slice(0,3).join("; "))}</div>`:""}
+        :poor?"":`<div class="cardHint" style="margin-top:6px;font-size:14px"><b style="color:var(--ink)">Nothing visible in the photo.</b> That is not a pass. It means the picture showed nothing wrong — the checks above are still the ones that decide.</div>`}
+      ${(r.readable&&(r.readable.serial||r.readable.model))?`<div class="cardHint" style="margin-top:7px;font-size:14px"><b style="color:var(--ink)">Read off it:</b> ${esc([r.readable.serial,r.readable.model].filter(Boolean).join(" · "))} — type that into the free lookup yourself.</div>`:""}
+      ${(r.cannot&&r.cannot.length)?`<div class="cardHint" style="margin-top:7px;font-size:14px"><b style="color:var(--ink)">A photo cannot answer:</b> ${esc(r.cannot.slice(0,3).join("; "))}</div>`:""}
     </div>`:""}
   </div>`;
 }
@@ -11962,15 +11973,15 @@ function refCardHTML(sh){
   const v=Number((st.refIn&&st.refIn[sh.id])||0);
   const j=refJudge(ref,v);
   const rows=list.length
-    ? list.map(z=>`<div class="cardHint" style="display:flex;align-items:baseline;gap:8px;margin-top:5px;font-size:13px">
+    ? list.map(z=>`<div class="cardHint" style="display:flex;align-items:baseline;gap:8px;margin-top:5px;font-size:14px">
         <button class="${z.name===pick?"on":""}" style="flex:1;text-align:left;border:none;background:none;padding:0;cursor:pointer;color:${z.name===pick?"var(--accent)":"var(--ink-2)"};font:inherit" data-refpick="${esc(sh.id)}:${esc(z.name)}">
           <b style="color:var(--ink)">${esc(z.name)}</b> &mdash; ${z.g} g${z.at?" &middot; "+esc(fmtDay(z.at)):""}</button>
-        <button class="ghostBtn" style="padding:2px 8px;font-size:11px" data-refdel="${esc(sh.id)}:${esc(z.name)}">Remove</button></div>`).join("")
-    : `<div class="cardHint" style="margin-top:5px;font-size:13px">Nothing recorded yet. There is nothing to compare against until you weigh one.</div>`;
+        <button class="ghostBtn" style="padding:2px 8px;font-size:14px" data-refdel="${esc(sh.id)}:${esc(z.name)}">Remove</button></div>`).join("")
+    : `<div class="cardHint" style="margin-top:5px;font-size:14px">Nothing recorded yet. There is nothing to compare against until you weigh one.</div>`;
   return `<details class="fold" style="margin-top:12px"${st.refOpen?" open":""} id="refFold">
     <summary class="foldLine">Weigh one you know is real &mdash; ${esc(cfg.label)}</summary>
-    <div class="cardHint" style="margin-top:8px;font-size:13px">Nobody publishes a figure for these that is worth trusting, so the shop supplies it. Weigh one you are sure of, once. After that the desk can tell you when the next one is out. <b style="color:var(--ink)">One sample is not a specification</b> &mdash; it is a good reference, and it is allowed to be 5% out before this says anything.</div>
-    <div class="cardHint" style="margin-top:6px;font-size:12.5px">${esc(cfg.hint)}</div>
+    <div class="cardHint" style="margin-top:8px;font-size:14px">Nobody publishes a figure for these that is worth trusting, so the shop supplies it. Weigh one you are sure of, once. After that the desk can tell you when the next one is out. <b style="color:var(--ink)">One sample is not a specification</b> &mdash; it is a good reference, and it is allowed to be 5% out before this says anything.</div>
+    <div class="cardHint" style="margin-top:6px;font-size:14px">${esc(cfg.hint)}</div>
     <span class="label" style="margin-top:10px">Your references</span>
     ${rows}
     <div class="row2" style="margin-top:9px;flex-wrap:wrap;gap:8px">
@@ -11981,10 +11992,10 @@ function refCardHTML(sh){
       <button class="ghostBtn" id="refSave" style="align-self:flex-end;padding:9px 15px" data-refsave="${esc(sh.id)}">Record it</button>
     </div>
     ${list.length?`<span class="label" style="margin-top:12px">Check the one on the counter</span>
-    <div class="cardHint" style="margin-top:0;font-size:12.5px">${ref?`Comparing against <b style="color:var(--ink)">${esc(ref.name)}</b>. Tap another above to switch.`:"Tap one of your references above first."}</div>
+    <div class="cardHint" style="margin-top:0;font-size:14px">${ref?`Comparing against <b style="color:var(--ink)">${esc(ref.name)}</b>. Tap another above to switch.`:"Tap one of your references above first."}</div>
     <label style="display:block;margin-top:7px"><span class="label">This one weighs (g)</span>
       <input id="refIn" class="numIn" type="number" inputmode="decimal" step="0.1" style="width:100%" value="${esc(String((st.refIn&&st.refIn[sh.id])||""))}" placeholder="0"></label>
-    ${j?`<div class="cardHint" style="margin-top:7px;font-size:13px">
+    ${j?`<div class="cardHint" style="margin-top:7px;font-size:14px">
       <b style="color:${j.ok?"var(--accent)":"var(--bad)"}">${j.ok?"✓":"✗"}</b> You measured <b style="color:var(--ink)">${j.v}</b> g against your own <b style="color:var(--ink)">${j.want}</b> g (${j.pct>=0?"+":""}${j.pct.toFixed(1)}%).
       ${j.ok?"Within 5% of the one you know. That rules out a pack built on cheaper cells or a card on the wrong stock - it does not rule out a careful copy."
             :"Out by more than 5%. On batteries that is usually fewer or cheaper cells inside; on a slab it is the wrong plastic. Work the checks above before you pay."}</div>`:""}`:""}
@@ -12030,24 +12041,24 @@ function fakeCardHTML(x){
       :started?`${F.done} of ${F.n} done`
       :`${F.n} check${F.n===1?"":"s"} &mdash; what gets faked, and how to tell`}</span></summary>
     ${st.mode==="metal"?`<div class="pills mb14" style="border-radius:var(--r-s);margin-top:6px">
-      <button class="${st.metalKind!=="bullion"?"on":""}" style="flex:1;padding:8px 6px;font-size:11.5px" data-mkind="jewelry">Jewelry</button>
-      <button class="${st.metalKind==="bullion"?"on":""}" style="flex:1;padding:8px 6px;font-size:11.5px" data-mkind="bullion">Coin or bar</button>
+      <button class="${st.metalKind!=="bullion"?"on":""}" style="flex:1;padding:8px 6px;font-size:14px" data-mkind="jewelry">Jewelry</button>
+      <button class="${st.metalKind==="bullion"?"on":""}" style="flex:1;padding:8px 6px;font-size:14px" data-mkind="bullion">Coin or bar</button>
     </div>`:""}
-    <div class="cardHint" style="margin-top:0;font-size:13.5px;color:var(--ink-2)">${esc(sh.why||"")}</div>
-    <div class="cardHint" style="font-size:13.5px">${head}</div>
+    <div class="cardHint" style="margin-top:0;font-size:14px;color:var(--ink-2)">${esc(sh.why||"")}</div>
+    <div class="cardHint" style="font-size:14px">${head}</div>
     ${(sh.steps||[]).map(t=>`<div class="fakeRow"><div class="fakeQ" style="color:var(--ink-2)">${esc(t)}</div></div>`).join("")}
     ${sh.checks.map((c,i)=>`<div class="fakeRow${a[i]?" done":""}">
       <div class="fakeQ">${esc(c)}</div>
       <div class="pills" style="border-radius:var(--r-s);margin-top:6px">${FAKE_BTN.map(([v,l])=>
-        `<button class="${a[i]===v?"on "+v:""}" style="flex:1;padding:7px 5px;font-size:11px" data-fake="${sh.id}:${i}:${v}">${l}</button>`).join("")}</div>
+        `<button class="${a[i]===v?"on "+v:""}" style="flex:1;padding:7px 5px;font-size:14px" data-fake="${sh.id}:${i}:${v}">${l}</button>`).join("")}</div>
     </div>`).join("")}
     ${sh.lookup.length?`<span class="label" style="margin-top:10px">Look it up free</span>
-      <div class="cardHint" style="margin-top:0;font-size:13px">Type the address in yourself. Never scan a QR code on a holder or tag &mdash; fake cases point at copycat sites.</div>
-      ${sh.lookup.map(l=>`<div class="cardHint" style="font-size:13px;margin-top:4px">${l.what?`<b style="color:var(--ink)">${esc(l.what)}</b> &mdash; `:""}${esc(l.where)}</div>`).join("")}`:""}
+      <div class="cardHint" style="margin-top:0;font-size:14px">Type the address in yourself. Never scan a QR code on a holder or tag &mdash; fake cases point at copycat sites.</div>
+      ${sh.lookup.map(l=>`<div class="cardHint" style="font-size:14px;margin-top:4px">${l.what?`<b style="color:var(--ink)">${esc(l.what)}</b> &mdash; `:""}${esc(l.where)}</div>`).join("")}`:""}
     ${specCardHTML(sh)}
     ${refCardHTML(sh)}
     ${fakeLookHTML(sh)}
-    ${sh.rule?`<div class="cardHint" style="font-size:13px;margin-top:9px"><b style="color:var(--ink)">Shop rule:</b> ${esc(sh.rule)}</div>`:""}
+    ${sh.rule?`<div class="cardHint" style="font-size:14px;margin-top:9px"><b style="color:var(--ink)">Shop rule:</b> ${esc(sh.rule)}</div>`:""}
     ${F.verdict==="fail"?`<div class="tagWarn" style="border-left-color:var(--bad);background:var(--bad-wash);color:var(--bad-ink);margin-top:9px"><b>Set it aside.</b> ${esc(FAKES.law)}</div>`:""}
     <div class="row2" style="margin-top:8px"><button class="ghostBtn" id="fakeClear" style="padding:9px 15px">Start the check over</button></div>
   </details>`;
@@ -12077,7 +12088,30 @@ function fakeHoldHTML(F){
    network, and where they differ the screen says so.
 
    THIS MUST BE BUMPED WITH THE CACHE NAME IN sw.js, every change. */
-const APP_BUILD="1005.1143";
+/* A small message that slides in at the bottom and goes away on its own.
+   Replaces six alert() calls (2.11). It is deliberately dumb: one element,
+   reused, no queue - a second message replaces the first rather than
+   stacking, because two grey boxes at a counter is worse than one. */
+let _toastEl=null,_toastT=0;
+function say(msg,kind){
+  try{
+    if(!_toastEl){
+      _toastEl=document.createElement("div");
+      _toastEl.id="toast"; _toastEl.setAttribute("role","status");
+      _toastEl.setAttribute("aria-live","polite");
+      document.body.appendChild(_toastEl);
+    }
+    _toastEl.textContent=String(msg||"");
+    _toastEl.className=(kind==="bad"?"bad":(kind==="ok"?"ok":""));
+    /* force a reflow so the transition runs when the same element is reused */
+    void _toastEl.offsetWidth;
+    _toastEl.classList.add("on");
+    clearTimeout(_toastT);
+    _toastT=setTimeout(function(){ _toastEl&&_toastEl.classList.remove("on"); },
+      String(msg||"").length>54?4600:3000);
+  }catch(e){}
+}
+const APP_BUILD="1012.0243";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -12098,7 +12132,7 @@ function staleHTML(){
   return `<div class="tagWarn" style="background:rgba(255,201,143,.16);border-left-color:var(--accent);margin:0 0 12px">
     <b>This copy is out of date.</b> It is running <b style="font-family:var(--mono)">${esc(APP_BUILD)}</b>
     and the site has <b style="font-family:var(--mono)">${esc(st.newBuild)}</b>.
-    <button class="ghostBtn" id="pdFresh" style="padding:6px 12px;font-size:12px;margin-left:6px">Get the newest version</button></div>`;
+    <button class="ghostBtn" id="pdFresh" style="padding:6px 12px;font-size:14px;margin-left:6px">Get the newest version</button></div>`;
 }
 /* Clear everything cached and come back with whatever the site is serving.
    The service worker already asks the network first, so this is for the
@@ -12381,13 +12415,13 @@ function step4Inner(x,bare){
        because a Save button is a way to record a number with no source
        and that is the thing being fixed. Same one tap it always was. */
     h+=`<div class="row2"><input id="valIn" type="number" inputmode="numeric" placeholder="What a used one sold for" value="${m&&m.kind==="hand"?m.mid:""}" class="numIn" style="flex:1;min-width:0"><button class="ghostBtn" id="valCancel" style="padding:11px 14px">Cancel</button></div>
-      <div class="cardHint" style="font-size:13.5px;color:var(--ink-2)">What one like this actually sells for used, in normal shape. The loan works from this number.</div>
+      <div class="cardHint" style="font-size:14px;color:var(--ink-2)">What one like this actually sells for used, in normal shape. The loan works from this number.</div>
       ${handSrcHTML(m&&m.kind==="hand"?m.src:"")}`;
   } else if(x.checked){
     h+=`<div class="mkRow"><div><div class="mkBig">${money(m.mid)}</div>${m.lo!=null&&m.hi!=null&&m.lo!==m.hi?`<div class="mkRange">usually ${money(m.lo)} to ${money(m.hi)}</div>`:""}</div><span class="mkOk">&#10003; Checked</span></div>
       <div class="mkWhat">Not the loan &mdash; the loan is worked out from it.</div>
       <div class="mkSrc">${marketSrcHTML(m)}</div>
-      ${(m.note&&["research","read"].indexOf(rowEvidence(m.note,m.src).kind)>=0)?`<div class="cardHint" style="font-size:13.5px;color:var(--ink-2)">What moves it: ${esc(m.note)}.</div>`:""}
+      ${(m.note&&["research","read"].indexOf(rowEvidence(m.note,m.src).kind)>=0)?`<div class="cardHint" style="font-size:14px;color:var(--ink-2)">What moves it: ${esc(m.note)}.</div>`:""}
 
       <div class="row2" style="gap:8px;margin-top:10px;flex-wrap:wrap"><button class="ghostBtn" id="valEdit">Type my own number</button>${m.kind!=="list"?`<button class="ghostBtn" id="mkClear">Clear it</button>`:""}</div>`;
   } else {
@@ -12399,7 +12433,7 @@ function step4Inner(x,bare){
        it should say which of those failed rather than leave him to guess. */
     const blindWhy=(typeof ebayBlind==="function")?ebayBlind(x):"";
     h+=`<div class="mkNo"><b>Not checked yet.</b> ${m&&m.stale?`The price list for ${esc(m.name)} is ${m.age} days old.`:`No measured price for <b>${esc(called)}</b>.`}</div>
-      <div class="cardHint" style="font-size:13.5px;color:var(--ink-2);margin-top:6px">${blindWhy
+      <div class="cardHint" style="font-size:14px;color:var(--ink-2);margin-top:6px">${blindWhy
         ? esc(blindWhy)+" So this one is yours to look up."
         : "The loan works from this number."}</div>
       ${(function(){
@@ -13425,7 +13459,7 @@ function evidenceHTML(){
   const row=(kind,label,num,note)=>{
     const on=(kind===now)||(kind==="comps"&&now==="found");
     return `<button class="nsBtn${on?" on":""}" data-use="${kind}"${on?" disabled":""}>
-      <span>${label}${note?`<i style="display:block;font-style:normal;opacity:.7;font-size:11.5px">${note}</i>`:""}</span>
+      <span>${label}${note?`<i style="display:block;font-style:normal;opacity:.7;font-size:14px">${note}</i>`:""}</span>
       <b>${money(num)}</b><i>${on?"in use":"use this"}</i></button>`;
   };
   /* THE HARVEST CHECKS ITS OWN ANSWERS AND THE APP DID NOT.
@@ -13489,25 +13523,25 @@ function seenEstimate(list){
 }
 function seenExport(){
   const a=seenAll();
-  if(!a.length){ alert("Nothing recorded yet."); return; }
+  if(!a.length){ say("Nothing recorded yet."); return; }
   try{
     const b=new Blob([JSON.stringify(a,null,1)],{type:"application/json"});
     const u=URL.createObjectURL(b), el=document.createElement("a");
     el.href=u; el.download="pawn-desk-shelf-prices.json"; el.click();
     setTimeout(()=>URL.revokeObjectURL(u),4000);
-  }catch(e){ alert("Couldn't export."); }
+  }catch(e){ say("Couldn't export.","bad"); }
 }
 function seenImport(f){
   const r=new FileReader();
   r.onload=()=>{
     let rows=null; try{ rows=JSON.parse(String(r.result||"")); }catch(e){}
-    if(!Array.isArray(rows)){ alert("That file isn't a shelf-price export."); return; }
+    if(!Array.isArray(rows)){ say("That file isn't a shelf-price export.","bad"); return; }
     const have=seenAll(), ids={};
     have.forEach(s=>{ ids[s.id]=1; });
     let added=0;
     rows.forEach(s=>{ if(s&&s.id&&!ids[s.id]&&s.ask>0&&s.name){ have.push(s); ids[s.id]=1; added++; } });
     seenSave(have); render();
-    alert(added+" added. "+seenAll().length+" on this device now.");
+    say(added+" added. "+seenAll().length+" on this device now.","ok");
   };
   r.readAsText(f);
 }
@@ -13524,9 +13558,9 @@ async function seenFromPhoto(f){
       'If this is not a price tag, reply {"name":"","ask":0}.',
       {images:f});
     seenBusy=false;
-    if(!d||!(Number(d.ask)>0)){ render(); alert("Couldn't read a price off that tag."); return; }
+    if(!d||!(Number(d.ask)>0)){ render(); say("Couldn't read a price off that tag. Type it in instead.","bad"); return; }
     seenAdd(d); render(); pdSync();
-  }catch(e){ seenBusy=false; render(); alert("Couldn't read that tag ("+((e&&e.code)||"error")+")."); }
+  }catch(e){ seenBusy=false; render(); say("Couldn't read that tag ("+((e&&e.code)||"error")+"). Type the price in instead.","bad"); }
 }
 function seenCardHTML(){
   const all=seenAll();
@@ -13935,8 +13969,8 @@ function buyRateHTML(x){
     <div class="sliderScale"><span>10% &mdash; lowball</span><span>90% &mdash; almost no profit</span></div>
     <div class="rateRow" style="margin-top:16px"><span class="label">Least you\u2019ll clear on any buy ($)</span><input id="buyFloorNum" class="numIn rateNum" type="number" inputmode="numeric" min="0" max="500" value="${x.buyFloor}"></div>
     <div class="rateRow" style="margin-top:8px"><span class="label">Times your money back (\u00d7)</span><input id="buyMultNum" class="numIn rateNum" type="number" inputmode="decimal" min="1" max="10" step="0.1" value="${x.buyMult}"></div>
-    <div class="cardHint" style="font-size:13px">These two apply everywhere rather than per category, and the tightest of the three decides. The rate bites on expensive things; the ${money(x.buyFloor)} floor stops the cheap item you haul home for nothing; the ${x.buyMult}\u00d7 bites in the middle, where a percentage looks fine and the dollars are thin. <b style="color:var(--ink)">On this one: ${esc(buyCapWhy(x))}.</b></div>
-    <div class="cardHint" style="font-size:13.5px;color:var(--ink-2)">What you pay to buy it outright, as a share of the resale value. ${(()=>{
+    <div class="cardHint" style="font-size:14px">These two apply everywhere rather than per category, and the tightest of the three decides. The rate bites on expensive things; the ${money(x.buyFloor)} floor stops the cheap item you haul home for nothing; the ${x.buyMult}\u00d7 bites in the middle, where a percentage looks fine and the dollars are thin. <b style="color:var(--ink)">On this one: ${esc(buyCapWhy(x))}.</b></div>
+    <div class="cardHint" style="font-size:14px;color:var(--ink-2)">What you pay to buy it outright, as a share of the resale value. ${(()=>{
       /* The suggestion has to be THIS item's, not the shelf it stands on.
          A television carries its own rate because the category's was
          written for a phone, and quoting the phone's number under a TV
@@ -13946,7 +13980,7 @@ function buyRateHTML(x){
       const own=(typeof BUY_ITEM!=="undefined"&&BUY_ITEM[x.item.id]!=null);
       const forWhat=own?esc(x.item.name.replace(/\s*\u2014.*$/,"").toLowerCase()):x.cat.label.toLowerCase();
       return set&&x.buyBase!==d
-        ? `Suggested for ${forWhat}: <b style="color:var(--ink)">${d}%</b> (${why}). <button id="buyReset" class="ghostBtn" style="padding:5px 12px;font-size:12px;margin-left:4px">Use ${d}%</button>`
+        ? `Suggested for ${forWhat}: <b style="color:var(--ink)">${d}%</b> (${why}). <button id="buyReset" class="ghostBtn" style="padding:5px 12px;font-size:14px;margin-left:4px">Use ${d}%</button>`
         : `Suggested for ${forWhat}: <b style="color:var(--ink)">${d}%</b> &mdash; ${why}.`; })()} You carry the risk and hold it 30 days before you can sell.</div></div>`;
 }
 function buyRowHTML(x){
@@ -14056,3 +14090,147 @@ function render(){
    service is on, so this runs ahead of the first draw. */
 try{ pdReadHandoff(); }catch(e){}
 render();
+
+/* ══ THE MODERN LAYER ═══════════════════════════════════════════════════
+   Directive Section 6, required for every project, and for a Work tool
+   that reads: a slow low-contrast field behind the solid panels, cards
+   that animate in, and figures that move when the money moves.
+
+   Both surfaces load app.js, so this is one copy rather than two. That is
+   the whole reason it lives at the bottom of this file and not in a new
+   one: CLAUDE.md's standing warning is that phone.js carries its own
+   copies of panels and they drift. An effects layer is exactly the kind
+   of thing that would have been pasted twice.
+
+   No three.js. 6.2 scopes it to Showpiece and real 3D work, and the desk
+   has to come up off a cached copy with no signal - a CDN import map is
+   the one thing that cannot. No Lenis: 6.3 excludes it from shells that
+   fit one screen, which both of these are (.dash is height:100dvh with
+   the panels scrolling inside themselves). Plain canvas, about 2KB. ── */
+(function(){
+  if(typeof document==="undefined")return;
+  const calm=matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ---- the field ------------------------------------------------------
+     Depth is the point (4.2): radius AND brightness both rise with z, so
+     near stars are ~2.8px at 90% and far ones ~0.4px at 12%. A flat
+     scatter of identical faint dots is what "kind of boring" meant. */
+  let cv=document.getElementById("fx");
+  if(!cv){ cv=document.createElement("canvas"); cv.id="fx";
+    cv.setAttribute("aria-hidden","true");
+    document.body.insertBefore(cv,document.body.firstChild); }
+  const ctx=cv.getContext&&cv.getContext("2d");
+  if(!ctx)return;
+
+  let w=0,h=0,dots=[],tx=0,ty=0,px=0,py=0,running=false;
+  function build(){
+    const dpr=Math.min(window.devicePixelRatio||1,2);   /* capped, 2.10 */
+    w=innerWidth; h=innerHeight;
+    cv.width=Math.round(w*dpr); cv.height=Math.round(h*dpr);
+    cv.style.width=w+"px"; cv.style.height=h+"px";
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    const n=w<700?170:340;                              /* fewer on phones */
+    dots=[];
+    for(let i=0;i<n;i++){
+      const z=Math.random();
+      dots.push({x:Math.random()*w,y:Math.random()*h,z:z,
+        r:.4+z*z*2.4, s:.05+z*.46, a:.12+z*z*.78,
+        tw:Math.random()*6.283, tws:.6+Math.random()*1.3});
+    }
+    dots.sort(function(a,b){return a.z-b.z;});          /* far ones first */
+  }
+  function paint(t){
+    ctx.clearRect(0,0,w,h);
+    px+=(tx-px)*.06; py+=(ty-py)*.06;
+    for(let i=0;i<dots.length;i++){
+      const d=dots[i], x=d.x+px*d.z*26, y=d.y+py*d.z*26;
+      const tw=calm?1:(.72+.28*Math.sin(t*.001*d.tws+d.tw));
+      ctx.beginPath(); ctx.arc(x,y,d.r,0,6.283);
+      ctx.fillStyle="rgba(196,219,255,"+(d.a*tw)+")"; ctx.fill();
+      if(d.z>.80){                                       /* the near few bloom */
+        ctx.beginPath(); ctx.arc(x,y,d.r*3.4,0,6.283);
+        ctx.fillStyle="rgba(120,170,255,"+(d.a*tw*.16)+")"; ctx.fill();
+      }
+    }
+  }
+  function frame(t){
+    for(let i=0;i<dots.length;i++){ const d=dots[i];
+      d.y-=d.s; if(d.y<-6){ d.y=h+6; d.x=Math.random()*w; } }
+    paint(t);
+    if(document.hidden){ running=false; return; }        /* paused, 2.10 */
+    requestAnimationFrame(frame);
+  }
+  function start(){ if(running||calm)return; running=true; requestAnimationFrame(frame); }
+
+  build();
+  let rT=0;
+  addEventListener("resize",function(){ clearTimeout(rT); rT=setTimeout(build,160); });
+  if(calm){ paint(0); }
+  else{
+    start();
+    document.addEventListener("visibilitychange",function(){ if(!document.hidden)start(); });
+    addEventListener("pointermove",function(e){
+      tx=(e.clientX/w-.5)*2; ty=(e.clientY/h-.5)*2; },{passive:true});
+    addEventListener("deviceorientation",function(e){
+      if(e.gamma==null)return;
+      tx=Math.max(-1,Math.min(1,e.gamma/26));
+      ty=Math.max(-1,Math.min(1,(e.beta-50)/26)); },{passive:true});
+  }
+
+  /* ---- cards animate in ----------------------------------------------
+     Only when the SCREEN changes, never on a re-render of the same one.
+     Every answer tapped calls render(), and a stack of cards that fades
+     itself in again after every tap is the thing that makes an app feel
+     slow - 2.3 says a tap must show its result where you are looking. */
+  let lastKey="";
+  function deskRise(){
+    if(calm)return;
+    try{
+      /* st is a top-level `let`, so it is NOT window.st - but this block
+         is appended to the same file, so the binding is in scope here. */
+      const key=[st.mode,st.itemId,st.catId,st.snapDetail?1:0].join("|");
+      if(key===lastKey)return;
+      lastKey=key;
+      const view=document.getElementById("view");
+      if(!view)return;
+      const cards=view.querySelectorAll(":scope > .card, :scope > * > .card, :scope > .snapCard");
+      for(let i=0;i<cards.length&&i<8;i++){
+        cards[i].classList.remove("rise","r"+(i+1));
+        void cards[i].offsetWidth;
+        cards[i].classList.add("rise","r"+(i+1));
+      }
+    }catch(e){}
+  }
+  /* render() is this file's single draw path, so wrapping it catches every
+     screen on both surfaces without touching 60-odd call sites. */
+  /* ---- sliding view changes (6.0 Work tool) --------------------------
+     View Transitions, where the browser has them, and nothing where it
+     does not.
+
+     WIRED AT THE TAB, NOT AROUND render(). The first attempt wrapped
+     render() itself, and that is a trap: startViewTransition runs its
+     callback ASYNCHRONOUSLY, so render() stopped being synchronous. This
+     file reads the DOM straight after render() in dozens of places and
+     every one of them started seeing the previous screen - six
+     check-screens blocks went red at once with "drew:false" and "no
+     .colL". The suites were right and the change was wrong.
+
+     So it goes on the one gesture that is actually a screen change: a tab
+     press. Everything else - every answer tapped - stays synchronous and
+     instant, which is what 2.3 wants anyway. */
+  window.pdMove=function(fn){
+    if(calm||!document.startViewTransition){ fn(); return; }
+    try{ document.startViewTransition(fn); }catch(e){ fn(); }
+  };
+
+  /* render() is a top-level function DECLARATION, so it is a property of
+     the global object and reassigning it here redirects every bare
+     render() call in this file. The original is kept and called first. */
+  if(typeof window.render==="function"){
+    const _r=window.render;
+    window.render=function(){
+      const o=_r.apply(this,arguments); deskRise(); return o;
+    };
+  }
+  try{ deskRise(); }catch(e){}
+})();

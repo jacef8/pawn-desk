@@ -37,17 +37,17 @@
     color-scheme:dark;
 
     /* ---- the field: what the glass has to refract --------------------- */
-    --paper:#15171C;
-    --field-a:rgba(59,130,246,.22);
-    --field-b:rgba(96,165,250,.16);
-    --field-c:rgba(120,140,170,.14);
+    --paper:#070910;
+    --field-a:rgba(59,130,246,.20);
+    --field-b:rgba(96,165,250,.13);
+    --field-c:rgba(120,140,170,.10);
 
     /* ---- the glass ladder: closer = lighter, the dark-mode reversal --- */
-    --glass:rgba(255,255,255,.055);       /* passive housing               */
-    --glass-hi:rgba(255,255,255,.09);
-    --g2:rgba(255,255,255,.11);           /* interactive widget            */
-    --g2-hi:rgba(255,255,255,.165);
-    --well:rgba(0,0,0,.36);               /* cut into the surface          */
+    --glass:#161A22;                      /* passive housing               */
+    --glass-hi:#1C212B;
+    --g2:#1E2430;                         /* interactive widget            */
+    --g2-hi:#272F3D;
+    --well:#0D1017;                       /* cut into the surface          */
     --edge:rgba(255,255,255,.15);         /* specular top lip              */
     --line:rgba(255,255,255,.13);
 
@@ -77,10 +77,10 @@
     --bad-wash:rgba(255,90,112,.14);
 
     /* ---- shape: concentric, committed -------------------------------- */
-    --r:26px; --r-s:18px; --r-xs:12px;
+    --r:18px; --r-s:14px; --r-xs:12px;
 
     /* ---- light. Short shadows, a lit top lip, never a haze ----------- */
-    --blur:blur(20px) saturate(165%);
+    --blur:none;   /* 2.1: cards are solid. the glass is gone on purpose */
     --raise:
       inset 0 1px 0 var(--edge),
       inset 0 -1px 0 rgba(0,0,0,.40),
@@ -215,7 +215,6 @@
      a different one than itself. */
   .card,.bar,.pinStrip{
     background:linear-gradient(155deg,var(--glass-hi),var(--glass) 72%);
-    -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
     border:1px solid var(--line);box-shadow:var(--raise)}
   .card{position:relative;padding:clamp(14px,1.3vw,18px);border-radius:var(--r)}
   .card+.card{margin-top:14px}
@@ -226,12 +225,21 @@
   /* ══ TYPE ═════════════════════════════════════════════════════════════ */
   h1{font-family:var(--disp);font-size:21px;font-weight:700;letter-spacing:-.03em;
     margin:1px 0 0;line-height:1.05}
-  .label{font-family:var(--mono);font-size:11px;letter-spacing:.15em;text-transform:uppercase;
+  /* 12px is allowed for a SHORT uppercase label and nothing else (2.2).
+     Most of these are short - "BEHIND THIS NUMBER" - but 58 uses across
+     gold and setup are whole sentences in a label's clothes ("2 · IS HE
+     SELLING IT, OR PAWNING IT?"). Rather than restyle those one by one
+     the whole class goes to 14px with the tracking pulled in from .15em,
+     because wide tracking is half of what makes a long uppercase line
+     hard to read. Tried at 13px first and then at 14; check-screens
+     stayed green at both, across four phone sizes and four desk sizes,
+     so there was no reason to stop at the half measure. */
+  .label{font-family:var(--mono);font-size:14px;letter-spacing:.1em;text-transform:uppercase;
     color:var(--ink-3);display:block;margin-bottom:9px;font-weight:500}
-  .cardHint{font-size:13.5px;color:var(--ink-3);margin-top:7px;line-height:1.55}
+  .cardHint{font-size:14px;color:var(--ink-3);margin-top:7px;line-height:1.55}
   .cardHint b{color:var(--ink-2)}
-  .fine{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);margin-top:11px;line-height:1.55}
-  .eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+  .fine{font-family:var(--mono);font-size:14px;color:var(--ink-3);margin-top:11px;line-height:1.55}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.2em;text-transform:uppercase;
     color:var(--ink-3)}
   .narrow{max-width:820px;margin:0 auto}
   .mb12{margin-bottom:12px}.mb14{margin-bottom:14px}.mb16{margin-bottom:16px}
@@ -243,7 +251,7 @@
   .tabwrap{flex:1 1 auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap;
     justify-content:center}
   @media (max-width:1079px){ .tabwrap{justify-content:flex-start} .sys{margin-left:0} }
-  .sys{margin-left:auto;font-family:var(--mono);font-size:11.5px;color:var(--ink-3);
+  .sys{margin-left:auto;font-family:var(--mono);font-size:14px;color:var(--ink-3);
     letter-spacing:.06em;display:flex;align-items:center;gap:7px}
   .sys .dot{width:7px;height:7px;border-radius:50%;background:var(--good);
     box-shadow:0 0 6px color-mix(in srgb,var(--good) 60%,transparent)}
@@ -255,7 +263,8 @@
   .pills{display:flex;padding:3px;border-radius:999px;background:var(--well);
     box-shadow:var(--well-sh);flex-wrap:wrap}
   .pills button{padding:7px 15px;border:none;border-radius:999px;background:transparent;
-    color:var(--ink-2);cursor:pointer;font-size:13px;font-weight:600;
+    color:var(--ink-2);cursor:pointer;font-size:14px;font-weight:600;
+    min-height:44px;display:inline-flex;align-items:center;justify-content:center;
     transition:background .18s,color .18s,transform .12s}
   .pills button:hover{color:var(--ink)}
   .pills button.on{color:var(--on-accent);font-weight:700;
@@ -269,19 +278,23 @@
 
   .brassBtn{background:linear-gradient(150deg,var(--accent-2),var(--accent));
     color:var(--on-accent);border:none;border-radius:999px;padding:0 20px;
-    font-weight:700;font-size:13.5px;cursor:pointer;box-shadow:var(--fill-sh);
+    font-weight:700;font-size:14px;cursor:pointer;box-shadow:var(--fill-sh);
+    min-height:44px;display:inline-flex;align-items:center;justify-content:center;
     transition:transform .12s,box-shadow .12s}
   .brassBtn:hover{transform:translateY(-1px)}
   .brassBtn:active{transform:translateY(1px);box-shadow:var(--raise)}
   .ghostBtn{background:linear-gradient(160deg,var(--g2-hi),var(--g2));border:1px solid var(--line);
-    border-radius:999px;color:var(--accent-ink);padding:9px 17px;font-size:13px;font-weight:700;
-    cursor:pointer;flex-shrink:0;box-shadow:var(--raise);transition:transform .12s}
+    border-radius:999px;color:var(--accent-ink);padding:9px 17px;font-size:14px;font-weight:700;
+    cursor:pointer;flex-shrink:0;box-shadow:var(--raise);
+    min-height:44px;display:inline-flex;align-items:center;justify-content:center;
+    transition:transform .12s}
   .ghostBtn:hover{transform:translateY(-1px)}
   .ghostBtn:active{transform:translateY(1px)}
 
   /* engraved inputs */
   .numIn{width:100%;background:var(--well);border:1px solid var(--line);border-radius:var(--r-xs);
     color:var(--ink);font-family:var(--mono);font-size:19px;padding:12px 13px;
+    min-height:44px;
     font-variant-numeric:tabular-nums;box-shadow:var(--well-sh)}
   .numIn.big{font-size:25px}
   /* No rule meant the browser's own placeholder grey - near-invisible on a
@@ -293,16 +306,24 @@
   .numIn::placeholder{color:var(--ink-2);opacity:1}
   .roOut{width:100%;background:transparent;border:1px dashed var(--line);border-radius:var(--r-xs);
     color:var(--ink-3);font-family:var(--mono);padding:10px 12px;box-shadow:none;cursor:default}
-  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:7px;
-    border-radius:999px;background:var(--well);box-shadow:var(--well-sh);outline-offset:4px}
-  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:19px;height:19px;
+  /* The slider was a 7px-tall element: the DRAWN bar was the whole target,
+     so the grabbable band was 7px of a 44px rule (2.4). The element is now
+     44px tall and transparent, and the 7px bar is drawn on its track -
+     same look, a band a thumb can actually land on. */
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:44px;
+    background:transparent;box-shadow:none;outline-offset:4px;margin:0;cursor:pointer}
+  input[type=range]::-webkit-slider-runnable-track{height:7px;border-radius:999px;
+    background:var(--well);box-shadow:var(--well-sh)}
+  input[type=range]::-moz-range-track{height:7px;border-radius:999px;
+    background:var(--well);box-shadow:var(--well-sh)}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;margin-top:-6px;width:19px;height:19px;
     border-radius:50%;background:radial-gradient(circle at 34% 30%,#fff,#E4D9C6);
     box-shadow:0 2px 6px rgba(38,30,16,.45),inset 0 -2px 3px rgba(38,30,16,.18);cursor:pointer}
   input[type=range]::-moz-range-thumb{width:19px;height:19px;border:none;border-radius:50%;
     background:radial-gradient(circle at 34% 30%,#fff,#E4D9C6);
     box-shadow:0 2px 6px rgba(38,30,16,.45),inset 0 -2px 3px rgba(38,30,16,.18);cursor:pointer}
   .sliderScale{display:flex;justify-content:space-between;font-family:var(--mono);
-    font-size:11px;color:var(--ink-3);margin-top:6px}
+    font-size:14px;color:var(--ink-3);margin-top:6px}
   .rateRow{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:9px}
   .rateRow .label{margin:0}
   .rateNum{width:86px;text-align:center;font-size:15px;padding:8px 6px}
@@ -323,7 +344,7 @@
     transition:transform .14s}
   .itemBtn:hover{transform:translateY(-1px)}
   .itemBtn .idx{width:26px;height:26px;border-radius:50%;flex-shrink:0;display:grid;
-    place-content:center;font-family:var(--mono);font-size:10px;color:var(--ink-3);
+    place-content:center;font-family:var(--mono);font-size:12px;color:var(--ink-3);
     background:var(--well);box-shadow:var(--well-sh)}
   .itemBtn.on{color:var(--on-accent);border-color:transparent;
     background:linear-gradient(150deg,var(--accent-2),var(--accent));box-shadow:var(--fill-sh)}
@@ -345,20 +366,22 @@
   .browse>summary::after{content:"\203A";position:absolute;right:20px;top:16px;
     transition:transform .18s;color:var(--ink-3);font-size:18px;line-height:1}
   .browse[open]>summary::after{transform:rotate(90deg)}
-  .browseSub{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);letter-spacing:.03em}
+  .browseSub{font-family:var(--mono);font-size:12px;color:var(--ink-3);letter-spacing:.03em}
   .fold>summary,.foldCard>summary{list-style:none;cursor:pointer}
   .fold>summary::-webkit-details-marker,.foldCard>summary::-webkit-details-marker{display:none}
-  .foldLine{margin-top:10px;font-size:13px;color:var(--info-ink);font-weight:700}
+  .foldLine{margin-top:10px;font-size:14px;color:var(--info-ink);font-weight:700;
+    /* 2.4: this is a tap target, not a caption. It was 20px tall. */
+    min-height:44px;display:flex;align-items:center}
   .foldLine::after{content:" \203A"}
   .fold[open]>.foldLine::after{content:" \02C5"}
   .foldCard>summary{display:flex;flex-direction:column;gap:3px}
-  .foldSub{font-family:var(--mono);font-size:11px;color:var(--ink-3);letter-spacing:.03em}
+  .foldSub{font-family:var(--mono);font-size:14px;color:var(--ink-3);letter-spacing:.03em}
   .stepCard>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:12px}
   .stepCard>summary::-webkit-details-marker{display:none}
   .stepSum .stepN{font-family:var(--mono);font-size:12px;color:var(--ink-3);width:25px;height:25px;
     flex:none;display:grid;place-items:center;border-radius:50%;background:var(--well);
     box-shadow:var(--well-sh)}
-  .stepSum .stepT{font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;
+  .stepSum .stepT{font-family:var(--mono);font-size:12px;letter-spacing:.1em;
     text-transform:uppercase;color:var(--ink-3)}
   .stepSum .stepA{margin-left:auto;font-size:14.5px;font-weight:700;color:var(--ink);text-align:right}
   .stepSum.live .stepN{background:linear-gradient(150deg,var(--accent-2),var(--accent));
@@ -371,30 +394,30 @@
   .pinStrip{display:flex;align-items:center;gap:clamp(10px,1.6vw,26px);flex-wrap:wrap;
     padding:11px clamp(12px,1.3vw,18px);border-radius:var(--r);
     border:1px solid color-mix(in srgb,var(--accent) 34%,var(--line))}
-  .pinNew{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+  .pinNew{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;
     color:var(--ink-3);background:var(--well);border:none;border-radius:999px;padding:6px 12px;
     cursor:pointer;box-shadow:var(--well-sh)}
   .pinNew:hover{color:var(--ink)}
-  .pinLab{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--ink-3);
+  .pinLab{font-family:var(--mono);font-size:12px;letter-spacing:.14em;color:var(--ink-3);
     text-transform:uppercase}
   .pinCell{display:flex;flex-direction:column;gap:1px;line-height:1.15}
-  .pinCell span{font-size:10.5px;color:var(--ink-3);letter-spacing:.02em;white-space:nowrap}
+  .pinCell span{font-size:12px;color:var(--ink-3);letter-spacing:.02em;white-space:nowrap}
   .pinCell b{font-family:var(--mono);font-size:16px;color:var(--ink-2);font-variant-numeric:tabular-nums}
   .pinCell.big b{font-family:var(--disp);font-size:24px;font-weight:700;color:var(--ink);
     letter-spacing:-.02em}
-  .pinNote{font-size:12px;color:var(--ink-3);flex:1;min-width:190px;line-height:1.5}
+  .pinNote{font-size:14px;color:var(--ink-3);flex:1;min-width:190px;line-height:1.5}
   @media (min-width:1080px){
     .pinDecide{gap:clamp(9px,1.1vw,18px)}
     .pinDecide .pinCell.big{padding:0 clamp(10px,1vw,16px) 0 0}
     .pinDecide .pinCell.big+.pinCell.big{border-left:1px solid var(--line);
       padding-left:clamp(10px,1vw,16px)}
-    .pinDecide .pinCell.big span{font-size:11px;letter-spacing:.09em;text-transform:uppercase;
+    .pinDecide .pinCell.big span{font-size:12px;letter-spacing:.09em;text-transform:uppercase;
       color:var(--ink-2)}
     .pinDecide .pinCell.big b{font-size:38px;line-height:1.02;letter-spacing:-.03em}
     .pinDecide .pinCell:not(.big){opacity:.8}
     .pinDecide .pinCell:not(.big) b{font-size:14px}
-    .pinDecide .pinCell:not(.big) span{font-size:10px}
-    .pinDecide .pinNote{min-width:150px;font-size:11.5px;opacity:.9}
+    .pinDecide .pinCell:not(.big) span{font-size:12px}
+    .pinDecide .pinNote{min-width:150px;font-size:14px;opacity:.9}
     /* Stacked in the rail the numbers become a column: the two decisions at
        full size over a rule, the arithmetic in a quiet mono pair beneath. */
     .pinStrip.pinRail{display:grid;grid-template-columns:1fr 1fr;column-gap:12px;row-gap:9px;
@@ -409,10 +432,10 @@
       padding-top:9px;padding-bottom:13px;
       border-bottom:2px solid color-mix(in srgb,var(--accent) 45%,transparent);margin-bottom:3px}
     .pinStrip.pinRail .pinCell.big b{font-size:40px}
-    .pinStrip.pinRail .pinCell.big span{font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+    .pinStrip.pinRail .pinCell.big span{font-size:12px;letter-spacing:.1em;text-transform:uppercase;
       color:var(--ink-2)}
     .pinStrip.pinRail .pinCell:not(.big){opacity:1}
-    .pinStrip.pinRail .pinCell:not(.big) span{font-size:9.5px;letter-spacing:.11em;
+    .pinStrip.pinRail .pinCell:not(.big) span{font-size:12px;letter-spacing:.11em;
       text-transform:uppercase;color:var(--ink-3)}
     .pinStrip.pinRail .pinCell:not(.big) b{font-size:14px;color:var(--ink-2);font-weight:500}
     .pinStrip.pinRail .pinNote{grid-column:1/-1;min-width:0}
@@ -437,7 +460,7 @@
     .pinCell[data-k="lend"]{flex-direction:row;align-items:baseline;gap:8px;
       border-top:1px solid var(--line);padding-top:9px;opacity:.75}
     .pinCell[data-k="lend"] b{font-size:17px;color:var(--ink-2)}
-    .pinCell span{font-size:11px}
+    .pinCell span{font-size:12px}
     .pinStrip:not(:has(.pinCell)){display:flex;flex-wrap:wrap}
   }
 
@@ -454,7 +477,7 @@
      rule was quietly shrinking it to 11.5px inside a 21px <b>. Caught by
      the test measuring what the counter would actually see rather than
      trusting the rule I had just written. */
-  .wHead > span{font-size:11.5px;color:var(--ink-3);text-align:right;line-height:1.3}
+  .wHead > span{font-size:14px;color:var(--ink-3);text-align:right;line-height:1.3}
   /* green for a sale, amber for a hope, plain for hearsay - the same
      colours the rest of the desk uses for the same distinction */
   .wKind.sold{color:var(--accent-ink)}
@@ -471,7 +494,7 @@
     background:linear-gradient(90deg,var(--accent),var(--accent-2))}
   .wBar i.warn{background:linear-gradient(90deg,var(--warn),#F2B26B)}
   .wBar i.none{background:transparent}
-  .wFoot{font-size:12.5px;line-height:1.55;color:var(--ink-2);margin-top:8px}
+  .wFoot{font-size:14px;line-height:1.55;color:var(--ink-2);margin-top:8px}
   .wFoot b{color:var(--ink)}
 
   /* ══ THE ANCHOR ═══════════════════════════════════════════════════════ */
@@ -496,19 +519,19 @@
   .gcenter{position:absolute;inset:15.3%;display:grid;place-content:center;justify-items:center;
     text-align:center;pointer-events:none}
   .gcenter>*{max-width:100%;overflow-wrap:break-word}
-  .gcenter .gl{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+  .gcenter .gl{font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;
     color:var(--ink-3)}
   .gcenter b{font-family:var(--disp);font-weight:800;font-size:clamp(44px,4.6vw,68px);
     line-height:.95;letter-spacing:-.05em;font-variant-numeric:tabular-nums;color:var(--ink)}
   .gcenter .gs{font-family:var(--mono);font-size:12px;color:var(--ink-2);margin-top:4px}
   .card.unchecked .gwrap{opacity:.45}
   .tiles{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}
-  .tiles .widget .l{font-family:var(--mono);font-size:10.5px;letter-spacing:.13em;
+  .tiles .widget .l{font-family:var(--mono);font-size:14px;letter-spacing:.13em;
     text-transform:uppercase;color:var(--ink-3)}
   .tiles .widget .v{font-family:var(--mono);font-size:16px;font-weight:600;margin-top:3px;
     font-variant-numeric:tabular-nums;color:var(--ink)}
   .ladder{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;margin-top:9px}
-  .rung .k{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--ink-3)}
+  .rung .k{font-family:var(--mono);font-size:14px;letter-spacing:.1em;color:var(--ink-3)}
   .rung .d{font-family:var(--mono);font-size:15px;font-weight:600;margin-top:2px;
     font-variant-numeric:tabular-nums}
 
@@ -517,23 +540,23 @@
     border-left:3px solid var(--info);padding:10px 12px;margin-top:11px;font-size:13.5px;
     line-height:1.5;color:var(--ink-2)}
   .tagWarn{border-radius:var(--r-s);background:var(--warn-wash);border-left:3px solid var(--warn);
-    padding:10px 12px;margin-top:11px;font-size:13.5px;line-height:1.5;color:var(--warn-ink)}
+    padding:10px 12px;margin-top:11px;font-size:14px;line-height:1.5;color:var(--warn-ink)}
   .tagWarn b{color:var(--warn-ink)}
-  .feedTag{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);margin-top:7px;line-height:1.5}
+  .feedTag{font-family:var(--mono);font-size:14px;color:var(--ink-3);margin-top:7px;line-height:1.5}
   .feedTag b{color:var(--accent-ink);font-weight:600}
   .valRow{display:flex;align-items:center;justify-content:space-between;gap:10px}
   .valRow .num{font-family:var(--mono);font-size:21px;font-variant-numeric:tabular-nums}
-  .valRow .sub2{font-size:11.5px;color:var(--ink-3);margin-top:3px}
+  .valRow .sub2{font-size:12px;color:var(--ink-3);margin-top:3px}
   .foot{font-size:12.5px;color:var(--ink-3);line-height:1.6;padding:4px 6px}
-  .rules{font-size:13.5px;line-height:1.65;color:var(--ink-2)}
+  .rules{font-size:14px;line-height:1.65;color:var(--ink-2)}
   .rules b{color:var(--ink)} .rules .hd{color:var(--accent-ink);font-weight:700}
   .rules .sect{border-top:1px solid var(--line);margin-top:10px;padding-top:10px;font-size:13px}
   .step .n{width:28px;height:28px;border-radius:50%;flex-shrink:0;display:grid;place-content:center;
-    font-family:var(--mono);font-size:11px;color:var(--on-accent);font-weight:700;
+    font-family:var(--mono);font-size:14px;color:var(--on-accent);font-weight:700;
     background:linear-gradient(150deg,var(--accent-2),var(--accent));box-shadow:var(--fill-sh)}
   .step .t{font-family:var(--disp);font-size:15px;font-weight:700;line-height:1.3}
-  .step .d{font-size:13px;color:var(--ink-2);line-height:1.55;margin-top:4px}
-  .flag{font-size:13.5px;line-height:1.55;color:var(--ink-2);font-weight:500}
+  .step .d{font-size:14px;color:var(--ink-2);line-height:1.55;margin-top:4px}
+  .flag{font-size:14px;line-height:1.55;color:var(--ink-2);font-weight:500}
   .flag .x{width:28px;height:28px;border-radius:50%;flex-shrink:0;display:grid;place-content:center;
     font-family:var(--mono);font-size:12px;color:var(--bad-ink);background:var(--bad-wash);
     box-shadow:inset 0 1px 0 var(--edge)}
@@ -542,7 +565,7 @@
   /* ══ FAKES CHECKLIST ══════════════════════════════════════════════════ */
   .fakeRow{margin-top:11px;padding-top:10px;border-top:1px solid var(--line)}
   .fakeRow:first-of-type{border-top:none}
-  .fakeQ{font-size:13.5px;line-height:1.5;color:var(--ink-2)}
+  .fakeQ{font-size:14px;line-height:1.5;color:var(--ink-2)}
   .fakeRow.done .fakeQ{color:var(--ink-3)}
   .fakeRow .pills button.on.pass{background:var(--good);color:#fff;box-shadow:var(--raise)}
   .fakeRow .pills button.on.unsure{background:var(--warn);color:#fff;box-shadow:var(--raise)}
@@ -558,7 +581,7 @@
   .thumb img{width:100%;aspect-ratio:1;object-fit:contain;border-radius:8px;background:#fff;display:block}
   .thumb .tPrice{font-family:var(--mono);font-size:12px;color:var(--ink);font-weight:600}
   .thumb.sold .tPrice{color:var(--good)}
-  .thumb .tWhat{font-size:10.5px;line-height:1.3;color:var(--ink-3);display:-webkit-box;
+  .thumb .tWhat{font-size:12px;line-height:1.3;color:var(--ink-3);display:-webkit-box;
     -webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
   .compGrid{display:grid;gap:8px}
   .compBtn{display:flex;justify-content:space-between;align-items:center;gap:10px;
@@ -568,7 +591,7 @@
     transition:transform .12s,box-shadow .12s;cursor:pointer;-webkit-user-select:none;user-select:none}
   .compBtn:hover{transform:translateY(-1px)}
   .compBtn:active{transform:translateY(2px) scale(.995);box-shadow:var(--well-sh)}
-  .compBtn .cs{font-family:var(--mono);font-size:11px;color:var(--ink-3);text-align:right;
+  .compBtn .cs{font-family:var(--mono);font-size:12px;color:var(--ink-3);text-align:right;
     flex-shrink:0;max-width:52%}
   .compBtn.pending{background:linear-gradient(150deg,var(--accent-2),var(--accent));
     color:var(--on-accent);border-color:transparent;box-shadow:var(--fill-sh)}
@@ -587,13 +610,13 @@
   #omniIn::placeholder{color:var(--ink-3);font-weight:500}
   #omniIn:focus-visible{outline:none}
   .omniClr{border:none;background:transparent;color:var(--ink-2);font-size:26px;line-height:1;
-    width:42px;height:42px;border-radius:50%;cursor:pointer;flex-shrink:0}
+    width:44px;height:44px;border-radius:50%;cursor:pointer;flex-shrink:0}
   #omniIn:placeholder-shown ~ .omniClr{visibility:hidden}
   /* ...UNLESS THERE IS SOMETHING TO BACK OUT OF. Tapping a category tile
      leaves the box empty, which hid the only control on a desk screen that
      goes back to the start. */
   .omniLive #omniIn:placeholder-shown ~ .omniClr{visibility:visible;color:var(--ink)}
-  .omniHint{font-size:13.5px;color:var(--ink-2);margin:clamp(13px,1.2vw,17px) 4px 0;line-height:1.5}
+  .omniHint{font-size:14px;color:var(--ink-2);margin:clamp(13px,1.2vw,17px) 4px 0;line-height:1.5}
   .omniHint b{color:var(--ink);font-weight:600}
   /* A DROPDOWN IS NOT A WINDOW.
      This was folded in with the cards when the glass material went in, so
@@ -623,7 +646,7 @@
     color:var(--accent-ink);text-align:right;padding:5px 9px;border-radius:var(--r-xs);
     background:color-mix(in srgb,var(--accent) 14%,transparent);
     border:1px solid color-mix(in srgb,var(--accent) 30%,transparent)}
-  .omniRow .ov small{display:block;font:600 10px var(--sans);color:var(--ink-3);
+  .omniRow .ov small{display:block;font:600 12px var(--sans);color:var(--ink-3);
     text-align:right;letter-spacing:.06em;text-transform:uppercase;margin-top:1px}
   .omniRow .ov.none{color:var(--ink-3);background:transparent;border-color:var(--line);font-weight:600}
   .omniRow .ov.none small{color:var(--ink-3)}
@@ -640,7 +663,7 @@
   .shotZone{margin-top:14px;padding:14px;border-radius:var(--r-s);background:var(--well);
     box-shadow:var(--well-sh);border:2px dashed var(--line)}
   .shotZone.drag{border-color:var(--accent)}
-  .shotZone .cardHint{font-size:13.5px;color:var(--ink-2)}
+  .shotZone .cardHint{font-size:14px;color:var(--ink-2)}
   .shotThumbs{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
   .shotT{position:relative;width:78px;height:78px;border-radius:var(--r-xs);overflow:hidden;background:#000}
   .shotT img{width:100%;height:100%;object-fit:cover;object-position:top;display:block}
@@ -659,7 +682,7 @@
   .shotItem{background:var(--g2);border:1px solid var(--line);border-radius:var(--r-s);padding:8px}
   .shotItem img{width:100%;height:96px;object-fit:cover;border-radius:10px;display:block}
   .shotWhat{font-size:13px;color:var(--ink);margin-top:6px;line-height:1.35}
-  .shotWhen{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);margin-top:2px}
+  .shotWhen{font-family:var(--mono);font-size:12px;color:var(--ink-3);margin-top:2px}
   .camModal{position:fixed;inset:0;z-index:100;background:rgba(10,8,5,.94);display:grid;
     place-items:center;padding:16px}
   .camBox{width:min(900px,100%)}
@@ -691,7 +714,7 @@
   .mkSteps li+li{margin-top:5px}
   .mkWhat{font-size:14px;line-height:1.5;color:var(--ink-2);margin-top:8px}
   .mkWhat b{color:var(--ink)}
-  #step4{transition:outline-color .6s}
+  #step4{transition:outline-color .3s}   /* 2.9 caps motion at 300ms */
   #step4.justIn{outline:3px solid var(--accent);outline-offset:-3px}
 
   /* ══ NEXT STEP ════════════════════════════════════════════════════════ */
@@ -713,7 +736,7 @@
   .nsStep.cur .nsDot{border-color:var(--accent);color:var(--accent-ink)}
   .nsStep.done .nsDot{background:linear-gradient(150deg,var(--accent-2),var(--accent));
     border-color:transparent;color:var(--on-accent);box-shadow:var(--fill-sh)}
-  .nsL{font:600 11.5px var(--mono);letter-spacing:.08em;text-transform:uppercase}
+  .nsL{font:600 12px var(--mono);letter-spacing:.08em;text-transform:uppercase}
   .nsV{font-size:15px;font-weight:700;color:var(--ink);line-height:1.25;min-width:0;
     overflow-wrap:anywhere}
   .nsV small{display:block;font-size:13px;font-weight:500;color:var(--ink-2)}
@@ -762,7 +785,7 @@
   .buyRow{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:12px;
     padding:13px 15px;border-radius:var(--r-s);border:1px solid var(--line);
     background:linear-gradient(160deg,var(--g2-hi),var(--g2));box-shadow:var(--raise)}
-  .buyRow .l{font:600 11.5px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink)}
+  .buyRow .l{font:600 12px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink)}
   .buyRow .s{font-size:13.5px;line-height:1.45;color:var(--ink-2);margin-top:4px}
   .buyRow .v{font-family:var(--disp);font-size:27px;font-weight:800;color:var(--ink);
     letter-spacing:-.03em;font-variant-numeric:tabular-nums}
@@ -793,7 +816,7 @@
     display:block!important;width:auto;max-width:none;overflow:visible;height:auto}
   .pageNav{margin:12px 0 4px}
   .askCard{padding:clamp(15px,1.6vw,22px)}
-  .askWhere{font-family:var(--mono);font-size:11px;letter-spacing:.11em;color:var(--ink-3);
+  .askWhere{font-family:var(--mono);font-size:12px;letter-spacing:.11em;color:var(--ink-3);
     text-transform:uppercase}
   .askQ{font-family:var(--disp);font-size:clamp(20px,2.2vw,27px);font-weight:700;color:var(--ink);
     line-height:1.2;margin:6px 0 2px;letter-spacing:-.03em}
@@ -807,9 +830,9 @@
   .askOpt.on{background:linear-gradient(150deg,var(--accent-2),var(--accent));
     color:var(--on-accent);border-color:transparent;box-shadow:var(--fill-sh)}
   .askT{font-size:15.5px;font-weight:700}
-  .askS{font-size:12px;color:var(--ink-3);line-height:1.4}
+  .askS{font-size:14px;color:var(--ink-3);line-height:1.4}
   .askOpt.on .askS{color:color-mix(in srgb,var(--on-accent) 78%,transparent)}
-  .askWorth{margin-top:12px}
+  .askWorth{margin-top:9px}
   /* THE END OF THE RUN, ON THE CARD THAT ASKED THE LAST QUESTION.
      It reads as an answer, not another question: accent edge, the three
      numbers in display weight, and no controls in it. */
@@ -843,10 +866,10 @@
      Every state keeps full-contrast text. */
   .adDeal.on{transform:translateY(-1px)}
   .adDeal:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
-  .adDeal .k{font:700 11.5px/1.2 var(--mono);letter-spacing:.11em;text-transform:uppercase}
+  .adDeal .k{font:700 12px/1.2 var(--mono);letter-spacing:.11em;text-transform:uppercase}
   .adDeal .d{font:800 clamp(34px,3.4vw,44px)/1 var(--disp);letter-spacing:-.04em;
     margin:6px 0 5px;font-variant-numeric:tabular-nums;overflow-wrap:break-word}
-  .adDeal .s{font-size:12.5px;line-height:1.4}
+  .adDeal .s{font-size:14px;line-height:1.4}
   /* the quiet state both tiles share */
   .adDeal.buy,.adDeal.lend{background:var(--well);
     box-shadow:inset 0 0 0 1px var(--line)}
@@ -871,23 +894,23 @@
   .adDeal.lend .s b{color:var(--ink)}
   @media(max-width:520px){ .adPair{grid-template-columns:minmax(0,1fr)} }
   .adNote{display:block;margin-top:11px}
-  .adNote span{display:block;font:700 11px/1.2 var(--mono);letter-spacing:.09em;
+  .adNote span{display:block;font:700 14px/1.2 var(--mono);letter-spacing:.09em;
     text-transform:uppercase;color:var(--ink-3);margin-bottom:6px}
   .adNote i{font-style:normal;letter-spacing:.05em;opacity:.8;text-transform:none}
   .adNote input{width:100%;font-family:var(--sans);font-size:14.5px}
-  .adWhy{margin-top:10px;font-size:13px;line-height:1.5;color:var(--ink-2)}
+  .adWhy{margin-top:10px;font-size:14px;line-height:1.5;color:var(--ink-2)}
   /* WHAT WAS ACTUALLY AGREED. A box, not a tile. */
   .struck{margin-top:13px;padding:11px 12px 12px;border-radius:var(--r-s);
     background:var(--well);border:1px solid var(--line)}
   .struckRow{display:flex;gap:8px;align-items:stretch;margin-top:9px;flex-wrap:wrap}
   .struckPick{display:flex;padding:3px;border-radius:999px;background:var(--recess,var(--well));
     border:1px solid var(--line);flex:0 0 auto}
-  .struckPick button{padding:0 15px;min-height:38px;border:none;border-radius:999px;
-    background:transparent;color:var(--ink-3);font:700 13px/1 var(--sans);cursor:pointer}
+  .struckPick button{padding:0 15px;min-height:44px;border:none;border-radius:999px;
+    background:transparent;color:var(--ink-3);font:700 14px/1 var(--sans);cursor:pointer}
   .struckPick button.on{background:var(--accent);color:var(--on-accent);box-shadow:var(--fill-sh)}
   .struckIn{flex:1 1 110px;min-width:96px;font:800 20px/1 var(--disp);
     font-variant-numeric:tabular-nums;text-align:center}
-  .struckUse{flex:0 0 auto;min-height:38px;padding:0 14px;font-size:12.5px;
+  .struckUse{flex:0 0 auto;min-height:44px;padding:0 14px;font-size:14px;
     display:inline-flex;align-items:center}
   .struckNote{margin-top:8px}
   @media(max-width:430px){ .adGrid{grid-template-columns:minmax(0,1fr)} }
@@ -941,7 +964,7 @@
 
      Same standard layout. Same 42px nav it always was. */
   .askNav{display:flex;align-items:center;gap:10px;margin-top:16px}
-  .askNav .ghostBtn,.askNav .brassBtn{min-height:42px;padding:0 14px;font-size:13px;
+  .askNav .ghostBtn,.askNav .brassBtn{min-height:44px;padding:0 14px;font-size:14px;
     display:inline-flex;align-items:center;justify-content:center;line-height:1;
     /* Fixed, so the label cannot move anything but itself. */
     flex:0 0 104px;width:104px;max-width:104px;box-sizing:border-box;
@@ -949,7 +972,7 @@
     /* height, not min-height: the ghost button carries a border and the
        brass one does not, so a min-height gave 44px against 42px and
        check-ask caught the pair sitting at different heights. */
-    height:42px;padding-block:0;line-height:40px}
+    height:44px;padding-block:0;line-height:42px}
   .askDots{flex:1 1 auto;min-width:0;display:flex;gap:6px;justify-content:center;
     flex-wrap:nowrap;overflow:hidden}
   /* Named above the nav rather than on the button - see the note in
@@ -976,7 +999,7 @@
   .pageTabs button{flex:0 0 auto;display:inline-flex;align-items:center;gap:7px;padding:10px 16px;
     border:none;border-radius:999px;cursor:pointer;white-space:nowrap;background:var(--well);
     color:var(--ink-2);font-size:14px;font-weight:600;box-shadow:var(--well-sh)}
-  .pageTabs button i{font-style:normal;font-family:var(--mono);font-size:11px;opacity:.75}
+  .pageTabs button i{font-style:normal;font-family:var(--mono);font-size:12px;opacity:.75}
   .pageTabs button.on{background:linear-gradient(150deg,var(--accent-2),var(--accent));
     color:var(--on-accent);box-shadow:var(--fill-sh)}
   .pageTabs button.on i{opacity:.6}
@@ -986,7 +1009,7 @@
   .pageStep{display:flex;align-items:center;gap:10px;margin-top:10px}
   .pageStep .ghostBtn,.pageStep .brassBtn{padding:11px 19px}
   .pageStep button[disabled]{opacity:.35;cursor:default}
-  .pageWhere{flex:1;text-align:center;font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;
+  .pageWhere{flex:1;text-align:center;font-family:var(--mono);font-size:12px;letter-spacing:.1em;
     color:var(--ink-3);text-transform:uppercase}
 
   /* ══ THE PHONE'S SNAP SCREEN (shape only; phone.css does the rest) ════ */
@@ -998,20 +1021,26 @@
     text-decoration:underline;text-underline-offset:3px;padding:2px}
   .snapBusy{font-size:14px;color:var(--ink-2);display:flex;align-items:center;justify-content:center;gap:10px}
   .snapBusy .ghostBtn{padding:7px 13px;font-size:12px}
-  .snapOr{text-align:center;font-family:var(--mono);font-size:11px;letter-spacing:.14em;
+  .snapOr{text-align:center;font-family:var(--mono);font-size:12px;letter-spacing:.14em;
     text-transform:uppercase;color:var(--ink-3)}
   .snapTip{font-size:13px;color:var(--ink-3);line-height:1.5}
-  .snapOff{font-size:13px;color:var(--ink-3);line-height:1.6;padding:11px 13px;
-    border:1px dashed var(--line);border-radius:var(--r-s)}
-  .snapOff .ghostBtn{padding:6px 13px;font-size:12.5px;margin-left:4px}
+  /* The notice and its button share a line instead of stacking. The
+     button is a 44px tap target (2.4) and the text is 14px (2.2), and
+     stacked those two made an 85px block for one sentence - on the one
+     screen that must not scroll. Side by side it is 44px and says the
+     same thing. */
+  .snapOff{font-size:14px;color:var(--ink-3);line-height:1.45;padding:7px 11px;
+    border:1px dashed var(--line);border-radius:var(--r-s);
+    display:flex;align-items:center;gap:10px;flex-wrap:nowrap}
+  .snapOff>span{flex:1 1 auto;min-width:0}
+  .snapOff .ghostBtn{padding:6px 13px;font-size:14px;margin-left:0;flex:0 0 auto}
   .snapName{font-family:var(--disp);font-size:21px;font-weight:700;color:var(--ink);line-height:1.2;
     letter-spacing:-.03em}
   .snapName span{display:block;font-family:var(--sans);font-size:13.5px;font-weight:500;
     color:var(--ink-3);margin-top:3px;letter-spacing:0}
   .snapCard{padding:20px;border-radius:var(--r);
     border:1px solid color-mix(in srgb,var(--accent) 38%,var(--line));
-    background:linear-gradient(155deg,var(--glass-hi),var(--glass) 72%);
-    -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);box-shadow:var(--raise)}
+    background:linear-gradient(155deg,var(--glass-hi),var(--glass) 72%);box-shadow:var(--raise)}
   .snapCard.bad{border-color:color-mix(in srgb,var(--bad) 45%,transparent)}
   .snapLab{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;
     color:var(--ink-3)}
@@ -1025,7 +1054,7 @@
   .snapSrc{font-size:12px;color:var(--ink-3);margin-top:10px;border-top:1px solid var(--line);padding-top:9px}
   .snapSrc:empty{display:none}
   .snapCond{display:flex;gap:6px;flex-wrap:wrap}
-  .snapCond button{flex:1;min-width:64px;padding:10px 6px;border:none;border-radius:999px;
+  .snapCond button{flex:1;min-width:64px;min-height:44px;padding:10px 6px;border:none;border-radius:999px;
     cursor:pointer;background:transparent;color:var(--ink-2);font-size:12.5px;font-weight:600}
   .snapCond button.on{background:linear-gradient(150deg,var(--accent-2),var(--accent));
     color:var(--on-accent)}
@@ -1053,7 +1082,7 @@
        itself back in each time somebody taps a button - which reads as the
        app stalling, not as polish. Entrances belong on the thing that has
        genuinely just arrived. */
-    .pop{animation:rise .45s cubic-bezier(.2,.8,.2,1) both}
+    .pop{animation:rise .28s cubic-bezier(.2,.8,.2,1) both}   /* 2.9 */
     @keyframes rise{from{opacity:0;transform:translateY(14px)}}
   }
   @media (prefers-reduced-motion:reduce){
@@ -1071,7 +1100,6 @@
      area keeps its own scroll. */
   .deskDock{display:flex;gap:4px;align-items:stretch;
     background:linear-gradient(155deg,var(--glass-hi),var(--glass) 72%);
-    -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
     border:1px solid var(--line);box-shadow:var(--raise);border-radius:var(--r);
     padding:6px;overflow:auto;scrollbar-width:none}
   .deskDock::-webkit-scrollbar{display:none}
@@ -1083,7 +1111,7 @@
   .deskDock button:active{transform:scale(.96)}
   .deskDock button svg{width:22px;height:22px;fill:none;stroke:currentColor;
     stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-  .deskDock button i{font-style:normal;font-size:11px;font-weight:600;line-height:1.15}
+  .deskDock button i{font-style:normal;font-size:14px;font-weight:600;line-height:1.15}
   .deskDock button.on{color:var(--accent-ink);background:var(--g2-hi);box-shadow:var(--raise)}
   .deskDock button.on svg{stroke-width:2.1}
   /* Under 1080 there is no room beside the work, so it lies back down as a
@@ -1091,7 +1119,7 @@
   @media (max-width:1079px){
     .deskDock{order:-1}
     .deskDock button{min-width:66px;padding:7px 5px}
-    .deskDock button i{font-size:10.5px}
+    .deskDock button i{font-size:14px}
   }
   @media (min-width:1080px){
     /* The shell gains a first column. The dock spans both rows so the
@@ -1127,7 +1155,7 @@
   .kindTile:active{transform:translateY(0)}
   .kindTile b{font-family:var(--disp);font-size:15.5px;font-weight:700;color:var(--ink);
     letter-spacing:-.02em;line-height:1.2}
-  .kindTile span{font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;
+  .kindTile span{font-family:var(--mono);font-size:12px;letter-spacing:.09em;
     text-transform:uppercase;color:var(--ink-3)}
 
   /* ══ THE WALLET ═══════════════════════════════════════════════════════
@@ -1150,7 +1178,7 @@
   .hero::after{content:"";position:absolute;right:-64px;top:-76px;width:224px;height:224px;
     border-radius:50%;background:rgba(255,255,255,.09);pointer-events:none}
   .hero>*{position:relative;z-index:1}
-  .heroWho{font:600 12.5px var(--sans);color:var(--on-hero-2)}
+  .heroWho{font:600 14px var(--sans);color:var(--on-hero-2)}
   /* "the date and time are not separated any more" - a single space each
      side of the middot is not a separation at 12.5px. The gap carries it
      now, and the time sits a weight back so the day reads first. */
@@ -1158,7 +1186,7 @@
   .whoAt{font-weight:500;opacity:.9}
   .heroWhat{font:800 20px var(--disp);color:var(--on-hero);letter-spacing:-.03em;
     margin-top:2px;line-height:1.15}
-  .heroLab{font:500 11px var(--mono);letter-spacing:.16em;text-transform:uppercase;
+  .heroLab{font:500 12px var(--mono);letter-spacing:.16em;text-transform:uppercase;
     color:var(--on-hero-2);margin-top:16px}
   .heroBig{font:800 clamp(46px,15vw,62px) var(--disp);color:var(--on-hero);letter-spacing:-.05em;
     line-height:.95;font-variant-numeric:tabular-nums;margin-top:2px}
@@ -1184,7 +1212,7 @@
        own underneath, which reads as a second fact rather than a mark on
        this one. */
     white-space:nowrap}
-  .metBuy{font:600 12.5px var(--sans);color:var(--on-hero-2);margin-top:8px;line-height:1.3}
+  .metBuy{font:600 14px var(--sans);color:var(--on-hero-2);margin-top:8px;line-height:1.3}
   .metBuy b{font-weight:800;color:var(--on-hero)}
   .metBuyOff{opacity:.76}
   /* While the search box has the keyboard up, the hero folds away so the
@@ -1215,11 +1243,11 @@
      the header for the rows underneath. */
   .dayRow{display:flex;align-items:baseline;justify-content:space-between;gap:12px;
     margin-top:14px;padding-bottom:7px;border-bottom:1px solid var(--line)}
-  .dayRow span{font:500 11px var(--mono);letter-spacing:.16em;text-transform:uppercase;
+  .dayRow span{font:500 12px var(--mono);letter-spacing:.16em;text-transform:uppercase;
     color:var(--ink-3)}
-  .dayRow b{font:700 13.5px var(--sans);color:var(--ink);font-variant-numeric:tabular-nums}
+  .dayRow b{font:700 14px var(--sans);color:var(--ink);font-variant-numeric:tabular-nums}
   .dayRow b.dayNone{font-weight:500;color:var(--ink-3)}
-  .heroSub{font:500 13.5px var(--sans);color:var(--on-hero-2);margin-top:6px;line-height:1.45}
+  .heroSub{font:500 14px var(--sans);color:var(--on-hero-2);margin-top:6px;line-height:1.45}
   .heroBar{height:6px;border-radius:99px;background:rgba(0,0,0,.28);overflow:hidden;margin-top:12px}
   .heroBar i{display:block;height:100%;border-radius:99px;background:#fff;min-width:4px;
     transition:width .3s}
@@ -1232,11 +1260,11 @@
     background:rgba(255,255,255,.20);border:1px solid rgba(255,255,255,.30)}
   .act i svg{width:20px;height:20px;fill:none;stroke:#fff;stroke-width:1.9;
     stroke-linecap:round;stroke-linejoin:round}
-  .act span{font:600 11.5px var(--sans);color:var(--on-hero)}
+  .act span{font:600 14px var(--sans);color:var(--on-hero)}
   .act:focus-visible{outline:2.5px solid #fff;outline-offset:3px;border-radius:12px}
   .act[disabled]{opacity:.45;cursor:default}
   /* icon-led rows: everything that is not the number */
-  .wSect{font:500 11px var(--mono);letter-spacing:.16em;text-transform:uppercase;
+  .wSect{font:500 12px var(--mono);letter-spacing:.16em;text-transform:uppercase;
     color:var(--ink-3);margin:18px 2px 9px}
   .wRow{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--r-s);
     background:var(--glass);border:1px solid var(--line);text-align:left;width:100%}
@@ -1260,18 +1288,18 @@
      inferred from a bar. */
   .wVia{display:flex;align-items:baseline;gap:8px;margin:9px 0 4px;
     padding-top:9px;border-top:1px solid var(--line)}
-  .wVia span{font:700 10.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;
+  .wVia span{font:700 12px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;
     color:var(--ink-3);flex:0 0 auto}
-  .wVia b{font-size:13.5px;color:var(--ink);line-height:1.3}
+  .wVia b{font-size:14px;color:var(--ink);line-height:1.3}
   .wWhy{font-size:12.5px;line-height:1.45;color:var(--warn-ink);margin-bottom:5px}
-  .wFrom{font-size:12px;color:var(--ink-3);font-family:var(--mono);margin-bottom:5px}
-  .seenTag{font:600 10.5px var(--mono);letter-spacing:.04em;color:var(--accent-ink);
+  .wFrom{font-size:14px;color:var(--ink-3);font-family:var(--mono);margin-bottom:5px}
+  .seenTag{font:600 12px var(--mono);letter-spacing:.04em;color:var(--accent-ink);
     background:var(--well);border-radius:999px;padding:3px 8px;flex:0 0 auto;margin-left:6px}
   /* ---- the trade's words, in plain ones ---- */
   .words{margin:10px 0 0;padding:0;display:grid;gap:11px}
-  .words dt{font:700 13.5px/1.35 var(--sans);color:var(--ink)}
-  .words dt i{font-style:normal;color:var(--accent-ink);font-family:var(--mono);font-size:12.5px}
-  .words dd{margin:3px 0 0;font-size:13px;line-height:1.5;color:var(--ink-2)}
+  .words dt{font:700 14px/1.35 var(--sans);color:var(--ink)}
+  .words dt i{font-style:normal;color:var(--accent-ink);font-family:var(--mono);font-size:14px}
+  .words dd{margin:3px 0 0;font-size:14px;line-height:1.5;color:var(--ink-2)}
   .words dd b{color:var(--ink)}
   .words dd i{font-style:italic;color:var(--ink)}
   /* ---- how firm an item's number is ---- */
@@ -1280,7 +1308,7 @@
      own, so it needs a seam - without one the two halves run together and
      the verdict reads as another line of the source note. */
   .iRule{display:flex;align-items:center;gap:8px;margin-top:13px;
-    font:600 10.5px/1 var(--mono);letter-spacing:.09em;text-transform:uppercase;
+    font:600 12px/1 var(--mono);letter-spacing:.09em;text-transform:uppercase;
     color:var(--ink-3)}
   .iRule::before,.iRule::after{content:"";height:1px;background:var(--line);flex:0 0 10px}
   .iRule::after{flex:1}
@@ -1290,7 +1318,7 @@
   .iLine{margin-top:4px;font-size:14px;line-height:1.45;color:var(--ink-2)}
   .iLine b{color:var(--ink);font-family:var(--mono);font-weight:700}
   .iFold{margin-top:9px}
-  .iMore{font-size:12.5px;line-height:1.5;color:var(--ink-3);display:grid;gap:7px;padding-top:7px}
+  .iMore{font-size:14px;line-height:1.5;color:var(--ink-3);display:grid;gap:7px;padding-top:7px}
   .iMore p{margin:0}
   .iMore b{color:var(--ink-2)}
   .iHead{margin-top:7px;font:700 15px/1.35 var(--sans);color:var(--ink)}
@@ -1299,30 +1327,30 @@
   .iLine{margin-top:4px;font-size:14px;line-height:1.45;color:var(--ink-2)}
   .iLine b{color:var(--ink);font-family:var(--mono);font-weight:700}
   .iFold{margin-top:9px}
-  .iMore{font-size:12.5px;line-height:1.5;color:var(--ink-3);display:grid;gap:7px;padding-top:7px}
+  .iMore{font-size:14px;line-height:1.5;color:var(--ink-3);display:grid;gap:7px;padding-top:7px}
   .iMore b{color:var(--ink-2)}
   .iBand{margin-top:10px;padding:10px 12px;border-radius:var(--r-xs);background:var(--well);
     display:flex;flex-direction:column;gap:2px}
-  .iBand .k{font:500 9.5px/1.25 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+  .iBand .k{font:500 12px/1.25 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
   .iBand b{font:700 19px/1.15 var(--mono);font-variant-numeric:tabular-nums;color:var(--ink)}
-  .iBand .s{font-size:11.5px;line-height:1.45;color:var(--ink-3);margin-top:2px}
+  .iBand .s{font-size:12px;line-height:1.45;color:var(--ink-3);margin-top:2px}
   /* ---- the trend's own word, with a button to take it or not ---- */
   .mWarn{margin-top:10px;padding:11px 13px;border-radius:var(--r-s);background:var(--well);
     border-left:3px solid var(--line)}
   .mWarn.on{background:var(--warn-wash);border-left-color:var(--warn)}
   .mWarn .h{font:700 14.5px/1.3 var(--sans);color:var(--ink)}
   .mWarn.on .h{color:var(--warn-ink)}
-  .mWarn .p{margin-top:4px;font-size:13px;line-height:1.5;color:var(--ink-2)}
+  .mWarn .p{margin-top:4px;font-size:14px;line-height:1.5;color:var(--ink-2)}
   /* NOT flex: the bold figures inside the sentence became flex ITEMS, so the
      line broke around each one and a stray full stop started its own row. A
      sentence is a block; the button rides inline inside it. */
   .mWarn .ask{margin-top:9px;padding-top:9px;border-top:1px solid var(--line);
-    font-size:13px;line-height:1.7;color:var(--ink-2)}
+    font-size:14px;line-height:1.7;color:var(--ink-2)}
   .mWarn .ask .ghostBtn,.mWarn .ask .ison{vertical-align:middle;margin-left:6px}
   .mWarn .ask b{color:var(--ink)}
   .mWarn .ask .ghostBtn{padding:6px 13px;font-size:12px}
-  .mWarn .ask .no{display:block;margin-top:6px;font-size:12px;color:var(--ink-3)}
-  .mWarn .ask .ison{font-size:12.5px;color:var(--ink-2);font-weight:600}
+  .mWarn .ask .no{display:block;margin-top:6px;font-size:14px;color:var(--ink-3)}
+  .mWarn .ask .ison{font-size:14px;color:var(--ink-2);font-weight:600}
   /* ---- the metal guard: two years of the market, and the number it makes ---- */
   .mChart{margin:10px 0 2px}
   .mChart svg{display:block;width:100%;height:auto;overflow:visible}
@@ -1331,12 +1359,12 @@
   .mcGuard{stroke:var(--warn);stroke-width:1.4;stroke-dasharray:5 3}
   .mcSafe{fill:var(--good);opacity:.09}
   .mcNow{fill:var(--accent-2)}
-  .mcAx{fill:var(--ink-3);font-family:var(--mono);font-size:8.5px}
-  .mcLab{font-family:var(--mono);font-size:9.5px;font-weight:700}
+  .mcAx{fill:var(--ink-3);font-family:var(--mono);font-size:14px}
+  .mcLab{font-family:var(--mono);font-size:14px;font-weight:700}
   .mcLab.now{fill:var(--accent-ink)}
   .mcLab.guard{fill:var(--warn-ink)}
   .mcKey{display:flex;flex-wrap:wrap;gap:12px;margin-top:7px;font-family:var(--mono);
-    font-size:10px;letter-spacing:.05em;color:var(--ink-3)}
+    font-size:14px;letter-spacing:.05em;color:var(--ink-3)}
   .mcKey span{display:flex;align-items:center;gap:5px}
   .mcKey i{width:13px;height:2px;border-radius:2px;display:block}
   .mcKey .k1{background:var(--accent-2)}
@@ -1345,28 +1373,28 @@
   .mRead{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}
   .mStat{background:var(--well);border-radius:var(--r-xs);padding:9px 10px;display:flex;
     flex-direction:column;gap:1px;min-width:0}
-  .mStat .k{font:500 9.5px/1.25 var(--mono);letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3)}
+  .mStat .k{font:500 12px/1.25 var(--mono);letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3)}
   .mStat b{font:700 19px/1.1 var(--mono);font-variant-numeric:tabular-nums;color:var(--ink)}
   .mStat b.good{color:var(--good)} .mStat b.warn{color:var(--warn-ink)} .mStat b.bad{color:var(--bad-ink)}
-  .mStat .s{font-size:10.5px;color:var(--ink-3);line-height:1.3}
+  .mStat .s{font-size:14px;color:var(--ink-3);line-height:1.3}
   .mVerdict{margin-top:11px;padding:13px 15px;border-radius:var(--r-s);
     background:linear-gradient(150deg,var(--accent-2),var(--accent));color:var(--on-accent)}
   .mVerdict.buy{background:var(--g2);color:var(--ink);border:1px solid var(--line)}
-  .mVerdict .k{font:600 10.5px/1 var(--mono);letter-spacing:.13em;text-transform:uppercase;opacity:.85}
+  .mVerdict .k{font:600 12px/1 var(--mono);letter-spacing:.13em;text-transform:uppercase;opacity:.85}
   .mVerdict .d{font:800 34px/1.05 var(--disp);letter-spacing:-.02em;margin-top:4px;
     font-variant-numeric:tabular-nums}
   .mVerdict .d small{font-size:15px;font-weight:600;opacity:.7;margin-left:3px}
-  .mVerdict .s{font-size:12.5px;margin-top:3px;opacity:.9}
+  .mVerdict .s{font-size:14px;margin-top:3px;opacity:.9}
   .mWhy{margin-top:11px;font-size:13.5px;line-height:1.5;color:var(--ink-2)}
   .mWhy b{color:var(--ink)}
   .mEvid{margin-top:9px;padding-top:9px;border-top:1px solid var(--line);
-    font-family:var(--mono);font-size:11px;line-height:1.5;color:var(--ink-3)}
+    font-family:var(--mono);font-size:12px;line-height:1.5;color:var(--ink-3)}
   .mEvid b{color:var(--ink-2)}
   .mEvid b.thin{display:block;margin-top:5px;color:var(--warn-ink)}
   @media (max-width:560px){ .mRead{grid-template-columns:1fr} }
   .killCard{margin-top:7px;padding:12px 14px 13px}
   .killRow{display:flex;flex-direction:column;gap:2px;margin-top:9px}
-  .killRow b{font-size:11px;letter-spacing:.09em;text-transform:uppercase;font-family:var(--mono)}
+  .killRow b{font-size:12px;letter-spacing:.09em;text-transform:uppercase;font-family:var(--mono)}
   .killRow.no b{color:var(--bad)}
   .killRow.go b{color:var(--accent-ink)}
   /* GREY TEXT IN A BLACK BOX. Reported from the counter, about the last
@@ -1383,13 +1411,13 @@
   .railBack{margin-top:7px;padding:12px 14px 11px;border-radius:var(--r-s);
     background:var(--glass);border:1px solid var(--line)}
   .railBackHd{display:flex;align-items:baseline;gap:8px;margin-bottom:9px}
-  .railBackHd b{font-size:13.5px;letter-spacing:-.01em}
-  .railBackHd span{margin-left:auto;font-size:11px;color:var(--ink-3);
+  .railBackHd b{font-size:14px;letter-spacing:-.01em}
+  .railBackHd span{margin-left:auto;font-size:14px;color:var(--ink-3);
     font-family:var(--mono)}
   .railLadder{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
   .rbCell{padding:8px 9px 9px;border-radius:var(--r-xs);background:var(--well);
     border:1px solid var(--line);min-width:0}
-  .rbCell .k{font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;
+  .rbCell .k{font-size:12px;letter-spacing:.07em;text-transform:uppercase;
     color:var(--ink-3);font-family:var(--mono);white-space:nowrap;
     overflow:hidden;text-overflow:ellipsis}
   .rbCell .d{font:800 19px/1.05 var(--disp);letter-spacing:-.03em;margin-top:3px;
@@ -1399,7 +1427,7 @@
   .rbCell.now .k{color:var(--accent-ink)}
   .rbCell.now .d{font-size:22px;color:var(--ink)}
   .rbDay60{margin-top:9px;padding-top:8px;border-top:1px solid var(--line);
-    font-size:11.5px;line-height:1.45;color:var(--ink-2)}
+    font-size:14px;line-height:1.45;color:var(--ink-2)}
   .rbDay60 b{color:var(--warn-ink)}
   @media (max-width:1079px){ .railLadder{grid-template-columns:repeat(3,minmax(0,1fr))} }
   button.wRow,a.wRow{cursor:pointer;color:inherit;text-decoration:none;transition:transform .12s}
@@ -1410,11 +1438,11 @@
     stroke-linecap:round;stroke-linejoin:round}
   .wRow .t{flex:1;min-width:0}
   .wRow .t b{display:block;font:700 14.5px var(--sans);color:var(--ink)}
-  .wRow .t span{display:block;font:400 12.5px var(--sans);color:var(--ink-3);margin-top:1px;
+  .wRow .t span{display:block;font:400 14px var(--sans);color:var(--ink-3);margin-top:1px;
     line-height:1.4}
   .wRow .v{font:800 17px var(--disp);color:var(--ink);letter-spacing:-.02em;
     font-variant-numeric:tabular-nums;text-align:right;flex:none}
-  .wRow .v small{display:block;font:500 10px var(--mono);letter-spacing:.1em;
+  .wRow .v small{display:block;font:500 12px var(--mono);letter-spacing:.1em;
     text-transform:uppercase;color:var(--ink-3)}
   .wBar{height:5px;border-radius:99px;background:var(--well);overflow:hidden;margin-top:7px}
   .wBar i{display:block;height:100%;border-radius:99px;background:var(--accent)}
@@ -1426,7 +1454,7 @@
   .deskHero .heroBig{font-size:clamp(44px,3.4vw,58px)}
   .deskHero .acts{grid-auto-columns:1fr;gap:8px;margin-top:15px}
   .rail0{display:none}
-  .railNote{margin-top:11px;font-size:12px;line-height:1.5;color:var(--ink-3)}
+  .railNote{margin-top:11px;font-size:14px;line-height:1.5;color:var(--ink-3)}
   #view.item.railed .rail .wRow{margin-top:8px}
 
   /* The start screen: ways in on the left, the day on the right - the
@@ -1450,10 +1478,10 @@
      the line the screen already spends on "Shape it is in". Closed it adds
      nothing, which is the only budget there was. check-screens holds it. */
   .phKill{margin:0}
-  .phKillSum{display:flex;align-items:baseline;justify-content:space-between;
-    gap:10px;cursor:pointer;list-style:none}
+  .phKillSum{display:flex;align-items:center;justify-content:space-between;
+    gap:10px;cursor:pointer;list-style:none;min-height:44px}
   .phKillSum::-webkit-details-marker{display:none}
-  .phKillSum span{color:var(--bad);font-family:var(--mono);font-size:11px;
+  .phKillSum span{color:var(--bad);font-family:var(--mono);font-size:14px;
     letter-spacing:.06em;white-space:nowrap}
   .phKillIn{padding-bottom:2px}
   .phKillIn .killRow:first-child{margin-top:7px}
@@ -1466,7 +1494,7 @@
     border-radius:var(--r-xs);overflow:hidden}
   .dRow{display:flex;align-items:baseline;justify-content:space-between;gap:12px;
     padding:9px 11px;background:var(--well)}
-  .dRow span{font-size:12.5px;line-height:1.35;color:var(--ink-2)}
+  .dRow span{font-size:14px;line-height:1.35;color:var(--ink-2)}
   .dRow b{font:800 18px/1 var(--disp);letter-spacing:-.03em;color:var(--ink);
     font-variant-numeric:tabular-nums;white-space:nowrap}
   .dRow.tot b{font-size:21px;color:var(--accent-ink)}
@@ -1479,19 +1507,19 @@
   .offerRow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
     gap:2px;margin-top:9px;padding-top:9px;border-top:1px solid var(--line)}
   .oCell{text-align:center;padding:2px 3px}
-  .oCell .k{font:600 9.5px/1.2 var(--mono);letter-spacing:.08em;
+  .oCell .k{font:600 12px/1.2 var(--mono);letter-spacing:.08em;
     text-transform:uppercase;color:var(--ink-3)}
   .oCell .d{font:700 16px/1.1 var(--disp);letter-spacing:-.02em;margin-top:3px;
     color:var(--ink-2);font-variant-numeric:tabular-nums}
   .oCell.mid .k{color:var(--ink-2)}
   .oCell.mid .d{font-weight:800;font-size:18px;color:var(--ink)}
-  .oWhy{margin-top:7px;font-size:12px;line-height:1.45;color:var(--ink-3)}
+  .oWhy{margin-top:7px;font-size:14px;line-height:1.45;color:var(--ink-3)}
   /* WHICH DEAL THIS IS, STATED NOT ASKED. The Lent/Bought pills here were
      the same decision as the two big tiles above them, held in a second
      state that could disagree with the first - and the log is what the
      shop's price book is built out of. The tiles are the control; this
      just says which way they are set, so the strip reads as a sentence. */
-  .struckWas{font:700 11.5px/1 var(--mono);letter-spacing:.11em;
+  .struckWas{font:700 12px/1 var(--mono);letter-spacing:.11em;
     text-transform:uppercase;color:var(--accent-ink);white-space:nowrap;
     align-self:center;padding:0 2px}
   /* THE WHEEL THAT SAYS IT IS WORKING. An automatic lookup fires the
@@ -1532,7 +1560,7 @@
      is a decision taken rather than a step saved. */
   .adRec{margin-top:9px;font-size:13px;line-height:1.5;color:var(--ink-2);
     border-left:2px solid var(--accent);padding-left:10px}
-  .adRec b{color:var(--accent-ink);font-family:var(--mono);font-size:11px;
+  .adRec b{color:var(--accent-ink);font-family:var(--mono);font-size:12px;
     letter-spacing:.09em;text-transform:uppercase}
   .adRecHow{color:var(--ink-3)}
   .adRec{display:block;width:100%;text-align:left;font:inherit;cursor:pointer;
@@ -1557,6 +1585,7 @@
      its own cost 20px of a budget that had none. */
   .adSched{background:none;border:none;cursor:pointer;padding:0;
     font:700 inherit/1 var(--sans);font-size:inherit;color:var(--accent);
+    min-height:44px;display:inline-flex;align-items:center;
     white-space:nowrap}
   .adSched:hover{text-decoration:underline}
   .adSched:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:6px}
@@ -1574,8 +1603,8 @@
   .iTabs{display:flex;gap:3px;padding:3px;border-radius:999px;margin-bottom:12px;
     background:var(--recess,#07090d);
     box-shadow:inset 0 3px 8px rgba(0,0,0,.55),inset 0 -1px 0 rgba(255,255,255,.05)}
-  .iTab{flex:1;padding:9px 14px;border:none;border-radius:999px;background:transparent;
-    color:var(--ink-3);cursor:pointer;font:700 13.5px var(--sans);letter-spacing:.02em;
+  .iTab{flex:1;min-height:44px;padding:9px 14px;border:none;border-radius:999px;background:transparent;
+    color:var(--ink-3);cursor:pointer;font:700 14px var(--sans);letter-spacing:.02em;
     transition:color .15s ease,background .15s ease}
   .iTab:hover{color:var(--ink-2)}
   .iTab.on{color:var(--on-accent,#06121b);background:linear-gradient(150deg,var(--accent-2),var(--accent));
@@ -1588,7 +1617,10 @@
   .infoBtn{display:inline-flex;align-items:center;justify-content:center;
     width:18px;height:18px;margin-left:5px;padding:0;vertical-align:-3px;
     border:1px solid var(--line);border-radius:50%;background:var(--g2,#1b2030);
-    color:var(--ink-3);font:700 11px var(--sans);cursor:pointer;position:relative}
+    color:var(--ink-3);font:700 12px var(--sans);cursor:pointer;position:relative}
+  /* 2.4: the TARGET is 44x44, the drawn circle stays 18. */
+  .infoBtn::after{content:"";position:absolute;left:50%;top:50%;
+    width:44px;height:44px;transform:translate(-50%,-50%)}
   .infoBtn:hover{color:var(--ink);border-color:var(--accent)}
   .infoBtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   .infoPop{display:none;position:absolute;bottom:calc(100% + 9px);left:50%;
@@ -1605,27 +1637,189 @@
      size - the padding just has to stop being generous. Keyed to height,
      not width, because that is what runs out: the desk is still 1138px
      wide there and the columns are fine. */
-  @media (max-height:720px){
-    .colQ .card{padding:13px 15px}
-    .colQ .card + .card{margin-top:9px}
-    .iTabs{margin-bottom:8px;padding:2px}
-    .iTab{padding:7px 12px;font-size:13px}
-    .colQ .struck{padding:11px 13px}
-    .colQ .tiles{margin-top:9px!important}
-    .colQ .label{margin-bottom:5px}
-    .colQ .cardHint{margin-top:6px;line-height:1.45}
-    .adPair{gap:9px}
-    .colQ .ladder{margin-top:8px}
-    /* The second pass: 48px still over at 674. The big type is what is
-       left, and the two deal tiles are the one thing that must stay big -
-       they are the answer. So the headings and the supporting lines give
-       up the height instead. */
-    .colQ .adHd{font-size:12px;margin-bottom:2px}
-    .colQ .adWhat{font-size:14px;margin-bottom:7px}
-    .colQ .adWhy{font-size:12px;margin-top:7px;line-height:1.4}
-    .colQ .struckRow{margin-top:6px}
-    .colQ .rung{padding:9px 10px}
-    .colQ .widget{padding:10px 11px}
-    .colQ details.card{padding:11px 14px}
-    .colQ .tagWarn{padding:8px 11px;margin-top:7px}
+  /* ---- browser zoom -----------------------------------------------
+     Raising the type floors (2.2) and the tap targets (2.4) cost height,
+     and the place it shows is the desk at 150% and 175% browser zoom,
+     where the window is already short: check-tabs measures 787px and
+     674px of usable height. The type and the targets do not come back
+     down - the height comes out of padding and gaps.
+
+     Written once each, deliberately. The first version of this block had
+     the same property declared two and three times with the LOOSER value
+     last, so every tightening I measured was being thrown away by my own
+     earlier line four rows further down. Three passes moved the number
+     by 5px and I blamed the layout. */
+  @media (max-height:830px){
+    .colQ .card{padding:11px 14px}
+    .colQ .card + .card{margin-top:8px}
+    .colQ .label{margin-bottom:4px}
+    .colQ .cardHint{margin-top:5px;line-height:1.42}
+    .colQ .ladder{margin-top:7px}
+    .colQ .rung{padding:8px 11px}
+    .colQ .widget{padding:9px 12px}
+    .colQ details.card{padding:10px 14px}
+    .colQ .foldCard{padding:9px 14px}
+    .colQ .numIn{padding:8px 12px}
+    .colQ .iTab{padding:6px 12px}
+    .colQ .adGrid{gap:9px}
+    .colQ .adPair{gap:9px}
+    .colQ .askOpts{gap:7px}
+    .colQ .askOpt{padding:10px 13px}
+    .colQ .sliderScale{margin-top:3px}
+    .colQ input[type=range]{height:44px}
+    .colQ .adHd{margin-bottom:1px}
+    .colQ .adWhat{margin-bottom:5px}
+    .colQ .adWhy{margin-top:6px;line-height:1.4}
+    .colQ .adNote{margin-top:6px}
+    .colQ .adDeal{padding:10px 13px 11px}
+    .colQ .tiles{margin-top:7px!important}
+    .colQ .tagWarn{padding:8px 11px;margin-top:6px}
+    .colQ .struck{padding:7px 12px;margin-top:7px}
+    .colQ .struck .label{margin-bottom:3px}
+    .colQ .struckRow{margin-top:5px}
+    .colQ .struckNote{margin-top:4px}
+    .colQ .struck .row2{margin-top:5px}
+    .colQ .struck .cardHint{margin-top:4px;line-height:1.35}
+    .colQ .ticket{padding:9px 13px}
+    .iTabs{margin-bottom:7px;padding:2px}
   }
+
+  @media (max-height:720px){
+    .colQ .card{padding:8px 12px}
+    .colQ .card + .card{margin-top:5px}
+    .colQ .label{margin-bottom:2px}
+    .colQ .cardHint{margin-top:3px;line-height:1.35}
+    .colQ .ladder{margin-top:4px}
+    .colQ .rung{padding:5px 10px}
+    .colQ .widget{padding:7px 11px}
+    .colQ details.card{padding:8px 13px}
+    .colQ .foldCard{padding:7px 13px}
+    .colQ .numIn{padding:6px 11px}
+    .colQ .iTab{padding:4px 11px;font-size:14px;min-height:44px}
+    .colQ .adGrid{gap:6px}
+    .colQ .adPair{gap:6px}
+    .colQ .askOpts{gap:5px}
+    .colQ .askOpt{padding:8px 13px}
+    .colQ .askCard{padding:7px 12px}
+    .colQ .sliderScale{margin-top:2px}
+    .colQ input[type=range]{height:44px}
+    /* The two deal tiles are the answer and must stay the biggest thing
+       on the card, but clamp(34px,3.4vw,44px) at 175% zoom is 44px of
+       type in a 674px window. 27px is still twice anything near it. */
+    .colQ .adHd{margin-bottom:0}
+    .colQ .adWhat{margin-bottom:3px}
+    .colQ .adWhy{margin-top:3px;line-height:1.3}
+    .colQ .adNote{margin-top:2px}
+    .colQ .adNote input{padding:5px 10px}
+    .colQ .adNote span{margin-bottom:1px}
+    .colQ .adDeal .k{letter-spacing:.08em}
+    .colQ .adDeal{padding:6px 11px 7px}
+    .colQ .adDeal .d{font-size:27px}
+    .colQ .adDeal .s{line-height:1.28}
+    .colQ .tiles{margin-top:5px!important}
+    .colQ .tagWarn{padding:6px 11px;margin-top:5px}
+    .colQ .struck{padding:4px 11px;margin-top:4px}
+    .colQ .struck .label{margin-bottom:1px}
+    .colQ .struckRow{margin-top:3px}
+    .colQ .struckNote{margin-top:2px}
+    .colQ .struck .row2{margin-top:3px}
+    .colQ .struck .cardHint{margin-top:2px;line-height:1.28}
+    .colQ .struckPick button{padding:0 12px}
+    .colQ .ticket{padding:6px 11px}
+    .colQ .rungRow{margin-top:3px}
+    .colQ .struck .struckIn{font-size:18px}
+    .iTabs{margin-bottom:3px;padding:1px}
+  }
+
+  /* ══ THE MODERN LAYER ═════════════════════════════════════════════════
+     Directive Section 6: required, not optional, and for a Work tool that
+     means four things — a slow low-contrast field behind the solid panels,
+     cards that animate in, motion on the controls, and figures that move
+     when the money moves.
+
+     Jace's whole verdict on the first attempt was "kind of boring", and he
+     was right. The rule I had misread is 4.2: the field he actually likes
+     has DEPTH — near particles big and bright, far ones tiny and dim. A
+     flat scatter of identical faint dots is not that, it is nothing. ── */
+
+  /* the star field sits behind the ambient washes and below every panel */
+  #fx{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+  body::before{z-index:-1}
+
+  /* ---- cards animate in ------------------------------------------------
+     Applied by JS after a render, not in the stylesheet, so a re-render of
+     the same screen does not re-play it. See deskRise() in app.js. */
+  /* The base state is VISIBLE and the keyframe fades in from nothing, not
+     the other way round. Written the other way first - opacity:0 in the
+     rule, animation forwards to 1 - and that is a card that stays blank
+     for good if the animation never runs. It also hid the money from
+     check-screens' contrast probe, which reads the composite opacity of
+     every ancestor and got 1:1. The probe was right to; a figure nobody
+     can read is a figure nobody can read, whatever the reason.
+     .28s, not .40s: 2.9 caps motion at 300ms and I had overrun it. */
+  .rise{animation:riseIn .28s cubic-bezier(.16,.84,.26,1) both}
+  @keyframes riseIn{from{opacity:0;transform:translateY(16px) scale(.99)}
+                      to{opacity:1;transform:none}}
+  .rise.r1{animation-delay:.01s} .rise.r2{animation-delay:.04s}
+  .rise.r3{animation-delay:.07s} .rise.r4{animation-delay:.10s}
+  .rise.r5{animation-delay:.12s} .rise.r6{animation-delay:.14s}
+  .rise.r7{animation-delay:.16s} .rise.r8{animation-delay:.18s}
+
+  /* ---- figures line up and move ---------------------------------------
+     2.2 wants tabular-nums on numbers. Every money readout in the app goes
+     through one of these classes, so this is the whole set. */
+  .snapBig,.bigNum,.money,.amt,.rungAmt,.adAmt,.v,.num,
+  .pinAmt,.railAmt,.ladAmt,.offerAmt{font-variant-numeric:tabular-nums}
+
+  /* ---- the message that replaced alert() (2.11) ----------------------- */
+  #toast{position:fixed;left:14px;right:14px;z-index:900;
+    bottom:calc(18px + env(safe-area-inset-bottom));
+    max-width:520px;margin-inline:auto;
+    background:var(--g2);border:1px solid var(--edge);border-radius:var(--r-s);
+    box-shadow:0 2px 6px rgba(0,0,0,.55),0 14px 30px -14px rgba(0,0,0,.95);
+    padding:13px 16px;color:var(--ink);
+    font:600 15px/1.4 var(--sans);
+    transform:translateY(14px);opacity:0;pointer-events:none;
+    transition:opacity .2s ease,transform .2s cubic-bezier(.16,.84,.26,1)}
+  #toast.on{opacity:1;transform:none}
+  #toast.bad{border-color:color-mix(in srgb,var(--bad) 50%,var(--edge))}
+  #toast.ok{border-color:color-mix(in srgb,var(--good) 50%,var(--edge))}
+  body.phone #toast{bottom:calc(72px + env(safe-area-inset-bottom))}
+
+  /* ---- every control has every state (2.11) ---------------------------
+     Disabled was styled in exactly two places and the app disables 22
+     controls. A button that is off and looks on is worse than a missing
+     button: the counter taps it, nothing happens, and he taps it again. */
+  button:disabled,button[disabled],
+  input:disabled,select:disabled,textarea:disabled{
+    opacity:.45;cursor:not-allowed;box-shadow:none;filter:saturate(.5)}
+  button:disabled:hover,button[disabled]:hover{transform:none}
+
+  @media (prefers-reduced-motion:reduce){
+    .rise{animation:none;opacity:1;transform:none}
+    #toast{transition:none}
+  }
+
+  /* ---- sliding view changes (6.0) -------------------------------------
+     Short, and no bounce, per 2.9. The old screen leaves to the left and
+     the new one comes in from the right, which is the direction the work
+     moves in: search, question, answer. */
+  @media (prefers-reduced-motion:no-preference){
+    ::view-transition-old(root){animation:vtOut .18s ease forwards}
+    ::view-transition-new(root){animation:vtIn .24s cubic-bezier(.16,.84,.26,1)}
+  }
+  @keyframes vtOut{to{opacity:0;transform:translateX(-10px)}}
+  @keyframes vtIn{from{opacity:0;transform:translateX(14px)}}
+
+  /* ---- scrollbars: thin, and in the project's own colours (2.11) ------
+     scrollbar-width:thin was already set on the panels that scroll, but
+     the colour was the browser's grey, which on a #070910 panel is a pale
+     bar down the side of every column. */
+  *{scrollbar-width:thin;scrollbar-color:var(--g2-hi) transparent}
+  *::-webkit-scrollbar{width:9px;height:9px}
+  *::-webkit-scrollbar-track{background:transparent}
+  *::-webkit-scrollbar-thumb{background:var(--g2-hi);border-radius:999px;
+    border:2px solid transparent;background-clip:padding-box}
+  *::-webkit-scrollbar-thumb:hover{background:var(--line-2,#394256);background-clip:padding-box}
+  /* the two strips that deliberately hide theirs keep hiding theirs */
+  .pageTabs::-webkit-scrollbar,.deskDock::-webkit-scrollbar{display:none;width:0;height:0}

@@ -600,8 +600,8 @@ function snapHTML(){
        </div>`
     : (has ? "" : pdConnectHTML());
   const camOff=(!camOn&&has)
-    ? `<div class="snapOff">Not connected \u2014 no sold-price lookups.
-        <button class="ghostBtn" data-gotab="setup" type="button">Set it up</button></div>`
+    ? `<div class="snapOff"><span>Not connected \u2014 no sold-price lookups.</span>`+
+      `<button class="ghostBtn" data-gotab="setup" type="button">Set it up</button></div>`
     : "";
 
   /* Read, but not placed: say what was seen rather than showing an empty
@@ -1003,8 +1003,8 @@ function snapShelfHTML(){
       <div class="shotWhat">${esc(sh.what||"not identified")}</div>
       <div class="shotWhen">${new Date(sh.ts).toLocaleDateString()}</div>
       <div class="row2" style="gap:6px;margin-top:6px">
-        <button class="ghostBtn" data-shot="${sh.id}" style="flex:1;padding:8px 10px;font-size:12px">Try again</button>
-        <button class="ghostBtn" data-shotdrop="${sh.id}" style="padding:8px 10px;font-size:12px">&times;</button>
+        <button class="ghostBtn" data-shot="${sh.id}" style="flex:1;padding:8px 10px;font-size:14px">Try again</button>
+        <button class="ghostBtn" data-shotdrop="${sh.id}" style="padding:8px 10px;font-size:14px">&times;</button>
       </div></div>`).join("")}</div>
   </details>`;
 }

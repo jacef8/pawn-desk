@@ -690,7 +690,7 @@ console.log("\n  the rail says what it costs him to get it back, not just what h
      two halves of one sentence, and the customer asks the second half out
      loud - "so what do I owe you" - while you are still holding the first.
      Day 30 is the figure the deal turns on, so it is the one that is lit. */
-    const pay = await dk.evaluate(() => {
+    const pay = await dk.evaluate(async () => {
       st.mode = "item"; st.catId = "tools"; st.itemId = "t1"; st.picked = true;
       st.brandSet = true; st.brand = "hi"; st.model = "DCD791";
       st.condSet = true; st.completeSet = true; st.cond = "good"; st.complete = true;
@@ -704,6 +704,16 @@ console.log("\n  the rail says what it costs him to get it back, not just what h
          LAST card, so the run has to actually be standing on it. */
       st.askEdit = false; st.askAt = askQueue(calcItem()).length - 1;
       render();
+      /* MEASURE THE SETTLED PAGE, NOT A FRAME MID-ENTRANCE.
+         The cards now animate in (directive 6.0), which means that for
+         about a quarter of a second after a screen change every figure on
+         it is part-way through a fade. tileInk below folds in the
+         composite opacity of every ancestor, correctly, and read the
+         chosen tile's money as 1:1 against its own fill - not because the
+         colours are wrong but because it caught the first frame.
+         The assertion is right and stays exactly as it is: it is about
+         what the counter can read. What was wrong was WHEN it looked. */
+      await Promise.all(document.getAnimations().map(a => a.finished.catch(() => {})));
       const rail = document.querySelector(".rail");
       const back = rail && rail.querySelector(".railBack");
       const rows = back ? [...back.querySelectorAll(".dRow")] : [];
