@@ -12111,7 +12111,7 @@ function say(msg,kind){
       String(msg||"").length>54?4600:3000);
   }catch(e){}
 }
-const APP_BUILD="1012.0243";
+const APP_BUILD="1012.0310";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -14091,91 +14091,34 @@ function render(){
 try{ pdReadHandoff(); }catch(e){}
 render();
 
-/* ══ THE MODERN LAYER ═══════════════════════════════════════════════════
-   Directive Section 6, required for every project, and for a Work tool
-   that reads: a slow low-contrast field behind the solid panels, cards
-   that animate in, and figures that move when the money moves.
+/* ══ MOTION ═════════════════════════════════════════════════════════════
+   What is left of the modern layer after "get rid of the particles":
+   cards that animate in when the screen changes, and a sliding view
+   change on a tab press. Both are about telling you something moved.
 
    Both surfaces load app.js, so this is one copy rather than two. That is
    the whole reason it lives at the bottom of this file and not in a new
    one: CLAUDE.md's standing warning is that phone.js carries its own
-   copies of panels and they drift. An effects layer is exactly the kind
-   of thing that would have been pasted twice.
-
-   No three.js. 6.2 scopes it to Showpiece and real 3D work, and the desk
-   has to come up off a cached copy with no signal - a CDN import map is
-   the one thing that cannot. No Lenis: 6.3 excludes it from shells that
-   fit one screen, which both of these are (.dash is height:100dvh with
-   the panels scrolling inside themselves). Plain canvas, about 2KB. ── */
+   copies of panels and they drift. ── */
 (function(){
   if(typeof document==="undefined")return;
   const calm=matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  /* ---- the field ------------------------------------------------------
-     Depth is the point (4.2): radius AND brightness both rise with z, so
-     near stars are ~2.8px at 90% and far ones ~0.4px at 12%. A flat
-     scatter of identical faint dots is what "kind of boring" meant. */
-  let cv=document.getElementById("fx");
-  if(!cv){ cv=document.createElement("canvas"); cv.id="fx";
-    cv.setAttribute("aria-hidden","true");
-    document.body.insertBefore(cv,document.body.firstChild); }
-  const ctx=cv.getContext&&cv.getContext("2d");
-  if(!ctx)return;
+  /* ---- the field: GONE ------------------------------------------------
+     "get rid of the particles." It was 170 stars on a phone and 340 on a
+     desk, three depth layers, tilt parallax, the lot - built because
+     Section 6 of the directive calls an effects layer required for every
+     project and 4.2 names the night-sky field as the look to aim at.
 
-  let w=0,h=0,dots=[],tx=0,ty=0,px=0,py=0,running=false;
-  function build(){
-    const dpr=Math.min(window.devicePixelRatio||1,2);   /* capped, 2.10 */
-    w=innerWidth; h=innerHeight;
-    cv.width=Math.round(w*dpr); cv.height=Math.round(h*dpr);
-    cv.style.width=w+"px"; cv.style.height=h+"px";
-    ctx.setTransform(dpr,0,0,dpr,0,0);
-    const n=w<700?170:340;                              /* fewer on phones */
-    dots=[];
-    for(let i=0;i<n;i++){
-      const z=Math.random();
-      dots.push({x:Math.random()*w,y:Math.random()*h,z:z,
-        r:.4+z*z*2.4, s:.05+z*.46, a:.12+z*z*.78,
-        tw:Math.random()*6.283, tws:.6+Math.random()*1.3});
-    }
-    dots.sort(function(a,b){return a.z-b.z;});          /* far ones first */
-  }
-  function paint(t){
-    ctx.clearRect(0,0,w,h);
-    px+=(tx-px)*.06; py+=(ty-py)*.06;
-    for(let i=0;i<dots.length;i++){
-      const d=dots[i], x=d.x+px*d.z*26, y=d.y+py*d.z*26;
-      const tw=calm?1:(.72+.28*Math.sin(t*.001*d.tws+d.tw));
-      ctx.beginPath(); ctx.arc(x,y,d.r,0,6.283);
-      ctx.fillStyle="rgba(196,219,255,"+(d.a*tw)+")"; ctx.fill();
-      if(d.z>.80){                                       /* the near few bloom */
-        ctx.beginPath(); ctx.arc(x,y,d.r*3.4,0,6.283);
-        ctx.fillStyle="rgba(120,170,255,"+(d.a*tw*.16)+")"; ctx.fill();
-      }
-    }
-  }
-  function frame(t){
-    for(let i=0;i<dots.length;i++){ const d=dots[i];
-      d.y-=d.s; if(d.y<-6){ d.y=h+6; d.x=Math.random()*w; } }
-    paint(t);
-    if(document.hidden){ running=false; return; }        /* paused, 2.10 */
-    requestAnimationFrame(frame);
-  }
-  function start(){ if(running||calm)return; running=true; requestAnimationFrame(frame); }
+     It is still out, and the rule it answers is a general one written for
+     projects that are trying to impress. This is a counter tool with
+     somebody standing in front of it, and the counter's own rules outrank
+     the directive here: DESIGN.md Section 1 says so in Jace's words.
 
-  build();
-  let rT=0;
-  addEventListener("resize",function(){ clearTimeout(rT); rT=setTimeout(build,160); });
-  if(calm){ paint(0); }
-  else{
-    start();
-    document.addEventListener("visibilitychange",function(){ if(!document.hidden)start(); });
-    addEventListener("pointermove",function(e){
-      tx=(e.clientX/w-.5)*2; ty=(e.clientY/h-.5)*2; },{passive:true});
-    addEventListener("deviceorientation",function(e){
-      if(e.gamma==null)return;
-      tx=Math.max(-1,Math.min(1,e.gamma/26));
-      ty=Math.max(-1,Math.min(1,(e.beta-50)/26)); },{passive:true});
-  }
+     Everything else from that pass stays, because none of it was
+     decoration: solid panels, the type floors, the 44px targets, the
+     message that replaced the browser pop-ups, and the cards animating in
+     when the SCREEN changes. ── */
 
   /* ---- cards animate in ----------------------------------------------
      Only when the SCREEN changes, never on a re-render of the same one.

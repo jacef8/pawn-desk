@@ -11,8 +11,9 @@ stayed put.
 
 **October 2026: the third design.** The governing directive changed and
 now rejects see-through panels outright, raises the secondary type floor
-to 14px, requires 44px tap targets, bans browser pop-ups, caps motion at
-300ms and makes an effects layer compulsory rather than optional. The
+to 14px, requires 44px tap targets, bans browser pop-ups and caps motion at
+300ms. It also makes an effects layer compulsory; that part lasted one
+build and is now explicitly refused (Section 8). The
 liquid glass this document was written around is gone; Sections 3, 4 and
 8 are rewritten and `check-design` holds the new numbers.
 
@@ -246,14 +247,27 @@ with "drew:false": `startViewTransition` runs its callback
 asynchronously, and this file reads the DOM straight after `render()` in
 dozens of places.
 
-**The field behind the panels** is a plain-canvas star field: three depth
-layers, radius and brightness both rising with depth, pixel ratio capped
-at 2, paused when the tab is hidden, one still frame under reduced
-motion. No three.js (the desk has to come up off a cached copy with no
-signal) and no Lenis (both shells fit one screen and scroll their panels,
-not the page). The first version was 34 identical faint dots and the
-counter's whole verdict on it was "kind of boring" — depth is the point,
-not the dots.
+**There is no field behind the panels.** One was built — a plain-canvas
+star field, three depth layers, tilt parallax — because Section 6 of the
+governing directive makes an effects layer compulsory and Section 4.2
+names that exact look as the one to aim at. It lasted a single build.
+"get rid of the particles." → `check-design` asserts its absence by id
+*and by shape*, because the directive still says to build one and the
+next pass over this file will read that and put it back.
+
+The ambient colour washes on `body::before` stay. They predate all of
+this and nobody has complained about them.
+
+This is Section 1 doing its job: the counter's rules outrank everything
+else in this document, and that includes a directive that outranks the
+rest of it. A general standard written for projects trying to impress
+does not get to add moving decoration to a screen somebody uses while a
+customer waits.
+
+No three.js and no Lenis either — 6.2 scopes three.js to Showpiece and
+real 3D work and the desk has to come up off a cached copy with no
+signal, and 6.3 excludes Lenis from shells that fit one screen, which
+both of these are.
 
 ---
 

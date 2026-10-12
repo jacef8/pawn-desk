@@ -1731,20 +1731,19 @@
     .iTabs{margin-bottom:3px;padding:1px}
   }
 
-  /* ══ THE MODERN LAYER ═════════════════════════════════════════════════
-     Directive Section 6: required, not optional, and for a Work tool that
-     means four things — a slow low-contrast field behind the solid panels,
-     cards that animate in, motion on the controls, and figures that move
-     when the money moves.
+  /* ══ MOTION ═══════════════════════════════════════════════════════════
+     Directive Section 6 asks a Work tool for four things: a field behind
+     the solid panels, cards that animate in, motion on the controls, and
+     figures that move when the money moves.
 
-     Jace's whole verdict on the first attempt was "kind of boring", and he
-     was right. The rule I had misread is 4.2: the field he actually likes
-     has DEPTH — near particles big and bright, far ones tiny and dim. A
-     flat scatter of identical faint dots is not that, it is nothing. ── */
+     THE FIELD IS OUT. "get rid of the particles", one build after it went
+     in. It was built to 4.2 and it was the thing he had asked for when he
+     said the first attempt was "kind of boring" — but a counter tool is
+     not a project trying to impress, and DESIGN.md Section 1 says the
+     counter's rules outrank the rest of this document. The ambient colour
+     washes on body::before stay; they were here before any of this.
 
-  /* the star field sits behind the ambient washes and below every panel */
-  #fx{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
-  body::before{z-index:-1}
+     The other three stay, because none of them is decoration. ── */
 
   /* ---- cards animate in ------------------------------------------------
      Applied by JS after a render, not in the stylesheet, so a re-render of

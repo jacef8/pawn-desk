@@ -238,16 +238,24 @@ for (const [page, w, h, name] of SIZES) {
   });
   ok(sheer.length === 0, `  every panel is solid — ${sheer.length}${sheer.length ? ": " + [...new Set(sheer)].slice(0, 3).join(" | ") : ""}`);
 
-  /* the effects layer is required (6.0) and must sit BEHIND the panels,
-     never over text */
+  /* NO EFFECTS LAYER. Section 6.0 asks every project for one and this
+     app had one for exactly one build: "get rid of the particles."
+     Asserted rather than just deleted, because the directive still says
+     to build it and the next pass over this file will read that and put
+     it back. The counter's rules outrank it here. */
   const fx = await p.evaluate(() => {
-    const c = document.getElementById("fx");
-    if (!c) return {missing: true};
-    const cs = getComputedStyle(c);
-    return {z: cs.zIndex, pe: cs.pointerEvents, painted: c.width > 0 && c.height > 0};
+    const byId = !!document.getElementById("fx");
+    /* and by shape, not just by that one id: a full-bleed canvas fixed
+       behind everything is the thing, whatever it ends up being called */
+    const byShape = [...document.querySelectorAll("canvas")].some(c => {
+      const cs = getComputedStyle(c), r = c.getBoundingClientRect();
+      return cs.position === "fixed" && r.width >= innerWidth * 0.9
+                                     && r.height >= innerHeight * 0.9;
+    });
+    return {byId, byShape};
   });
-  ok(!fx.missing && fx.painted && fx.pe === "none",
-     `  the field is there, behind everything, and catches no taps — ${JSON.stringify(fx)}`);
+  ok(!fx.byId && !fx.byShape,
+     `  no particle layer \u2014 he asked for it gone and it stays gone`);
   await p.close();
 }
 
