@@ -412,6 +412,70 @@ for (const [tag, file, w, h] of [["the phone", "phone.html", 390, 844],
   }
 }
 
+/* ══════════════════════════════════════════════════════════════════════
+   NOT ONE GUN PASS MAY POINT AT EBAY.
+
+   "eBay does not sell guns but it seems like you always go there looking
+   for them." Said after I took a brand new scraper to eBay's sold page
+   for a Ruger LCP. The app has never made this mistake - EBAY_CANNOT.guns
+   has said so in nearly those words the whole time, and findPasses hands
+   a firearm GunWatcher, Guns.com ended, auction results and GunBroker,
+   none of them an eBay call. The mistake is mine, every time, and a rule
+   that only lives in CLAUDE.md is a rule I read after the fact.
+
+   So it is an assertion. What it is really guarding is a future pass over
+   this file deciding that eBay is worth a try "as a fallback" for a
+   category where the median result is a $29 holster against a $179
+   pistol. There is no such thing as a weak comp here; it is a different
+   product.
+
+   Measured, not assumed: a Ruger LCP search on eBay on 13 Oct 2026
+   returned 120 price-shaped strings with a median of $29.13 and a
+   maximum of $199 - holsters, magazines, grips and springs. */
+console.log("\n  guns never go to eBay");
+{
+  const page = await browser.newPage({viewport: {width: 1280, height: 900}});
+  await page.goto(BASE + "/index.html", {waitUntil: "networkidle"});
+  const r = await page.evaluate(() => {
+    const out = {};
+    /* the standing message, which is what the screen tells the counter */
+    out.cannot = (typeof EBAY_CANNOT === "object" && EBAY_CANNOT.guns) || "";
+    /* and the passes themselves, for every gun row the catalog carries */
+    const cat = CATALOG.find(c => c.id === "guns");
+    out.cats = !!cat;
+    const bad = [], hosts = new Set();
+    if (cat) {
+      for (const item of cat.items) {
+        st.catId = "guns"; st.itemId = item.id; st.picked = true;
+        const passes = (typeof findPasses === "function") ? (findPasses(calcItem()) || []) : [];
+        for (const p of passes) {
+          const blob = JSON.stringify(p).toLowerCase();
+          if (/ebay/.test(blob)) bad.push(item.id + ": " + (p.name || p.id || "pass"));
+          if (p.ebay) bad.push(item.id + ": a pass flagged ebay:true");
+          /* A pass names its source in prose rather than carrying a URL -
+             {name, where, q, say} - so the thing to read is `where`.
+             The first version of this check looked for https:// hosts,
+             found none anywhere, and reported "the hosts a gun is sent
+             to are: none" as a failure. It was measuring a field that
+             does not exist. */
+          if (p.where) hosts.add(String(p.where));
+        }
+      }
+    }
+    out.bad = bad; out.hosts = [...hosts].sort();
+    return out;
+  });
+  ok(/does not sell firearms/i.test(r.cannot),
+     `  the desk still says why — "${(r.cannot || "MISSING").slice(0, 46)}…"`);
+  ok(r.cats, "  the gun catalog is reachable");
+  ok(r.bad.length === 0,
+     `  no gun pass mentions eBay — ${r.bad.length}${r.bad.length ? ": " + r.bad.slice(0, 3).join(" | ") : ""}`);
+  const GUN_SOURCES = /gunwatcher|guns\.com|auction|gunbroker/i;
+  ok(r.hosts.length >= 3 && r.hosts.every(h => GUN_SOURCES.test(h)) && !r.hosts.some(h => /ebay/i.test(h)),
+     `  every source a gun is sent to is a gun source — ${r.hosts.join(", ") || "none"}`);
+  await page.close();
+}
+
 await browser.close();
 console.log(fails ? "\n  " + fails + " FAILED\n" : "\n  all passed\n");
 process.exit(fails ? 1 : 0);

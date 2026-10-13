@@ -150,6 +150,34 @@ distinction everywhere. Asks run high, and high is the wrong way to be
 wrong when money is going out. A check that catches the absurd is a smell,
 not a verdict; do not present it as one.
 
+**NEVER GO TO EBAY FOR A GUN PRICE.** eBay does not sell firearms. A
+search for one comes back as holsters, magazines, grips and springs, and
+the median of that is about $29 against a pistol worth $179. It is not a
+weak comp, it is a different product.
+
+"eBay does not sell guns but it seems like you always go there looking
+for them." He is right, and the galling part is that the app has known
+this the whole time: `EBAY_CANNOT.guns` in app.js says it in nearly the
+same words, and `findPasses` already hands a firearm four other passes -
+GunWatcher, Guns.com ended, auction-house results, GunBroker asking. The
+rule has never been missing from the code. It was missing from me.
+
+So: guns and anything on wheels (`EBAY_CANNOT.rolling` - nobody ships a
+quad or a golf cart) go to their own sources. Before pointing ANY lookup,
+scraper or search at eBay, check `EBAY_CANNOT` for the category first.
+If there is an entry, eBay is not a fallback, not a sanity check, and not
+"worth a look anyway" - it is wrong, and it is wrong in the direction
+that costs money.
+
+**And a scraper that finds nothing will invent something.** Asked for
+sold prices off an eBay page that turned out to be a login wall, an
+extraction model handed back a Ruger LCP at $350 and an LCP II at $450,
+with 2023 dates. There were no listings on that page at all. Nothing
+about the answer looked wrong; the prices were plausible and the shape
+was right. Before any scraped figure is believed, check that the page it
+came from actually held listings - the page title and the final URL after
+redirects are the cheapest tell.
+
 ---
 
 ## Secrets and services
