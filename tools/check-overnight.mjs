@@ -245,6 +245,49 @@ $99.00
      `  the trade-in offer and the shipping threshold are not counted — got ${rp.n || rp.skip} at $${rp.lo}-$${rp.hi}`);
 }
 
+/* ── THE WHOLE REAL PAGE, 648 LINES OF IT ────────────────────────────
+   tools/fixtures/gunscom-used-870.txt is the used-guns page for Remington
+   870 Express exactly as it came off the shop computer on 13 Oct 2026,
+   start to finish: the age gate, the nav, the filter rail, 24 listings,
+   the suppressor advert, four news articles, twenty customer reviews and
+   the footer. Nothing trimmed. The two fixtures above are cut down and a
+   cut-down page is a page I chose the shape of. */
+console.log("\n  the whole page, untrimmed, as it came off his machine");
+{
+  const real = fs.readFileSync("tools/fixtures/gunscom-used-870.txt", "utf8");
+  const rr = readPage(real, "Remington 870 Express");
+  ok(!rr.skip && rr.lo === 355 && rr.hi === 430,
+     `  reads $355-$430 — ${rr.skip || "$" + rr.lo + "-$" + rr.hi}`);
+
+  /* THE COUNT IS THE ASSERTION THAT DOES THE WORK. There are 25 prices on
+     that page. 23 are counted. The two that are not are the live auction
+     at the top, which shows STARTING BID $350.00 and BUY NOW $389.99 -
+     a starting bid is what the seller hopes for and nothing has been bid.
+     Delete the no-bids rule and this goes to 24 and the bottom of the
+     range drops to $350, which is how the real page tests that rule
+     rather than a fixture I shaped myself. (24 and not 25: the BUY NOW
+     price underneath has no gun named between it and the starting bid
+     above it, so the model rule drops that one on its own.) */
+  const prices = (real.match(/^\$[0-9]/gm) || []).length;
+  ok(prices === 25, `  the page carries 25 prices — ${prices}`);
+  ok(rr.n === 23, `  and 23 are counted, the live auction's two left out — ${rr.n}`);
+
+  /* the page ends with "Are you at least 18 years old? YES NO", which is a
+     gate and not a bot wall, and the listings are on the page behind it */
+  ok(/at least 18 years old/i.test(real), "  the age gate IS in the text");
+  ok(!rr.skip, "  and it is not mistaken for a sign-in wall");
+
+  /* 76 results, 24 shown. The book is priced off the first page and that is
+     deliberate: "LOAD MORE..." is the 25th line and nothing behind it is in
+     the text. Worth saying out loud, because 76 looks like the sample size
+     and it is not. */
+  ok(/76 RESULTS/i.test(real) && rr.n < 30,
+     `  76 results on the site, ${rr.n} actually read — the first page only`);
+
+  const rx = readPage(real, "Mossberg 500");
+  ok(!!rx.skip, `  and nothing at all for a gun that is not on it — ${rx.skip || "ACCEPTED"}`);
+}
+
 console.log("\n  and it does read a good page");
 r = readPage(goodPage("Remington 870 Express"), "Remington 870 Express");
 ok(!r.skip && r.n === 6, `  six used asks read as six — ${r.skip || r.n}`);
