@@ -1403,6 +1403,54 @@ function itemGuard(x){
 /* The same strip the metals page carries, saying the item version of the
    same thing: here is how good this number is, here is what it does to the
    offer, and here is the figure if you disagree. */
+/* THE CEILING. A new price is not a comp, it is the line nothing used may
+   cross, and it is the one figure that can prove a used range wrong by
+   itself. Two things get said, and only when a new price is actually
+   known for this row (MODEL_NEW) - nothing is ever inferred from the used
+   price:
+
+     the range is above new   the book is wrong, not tight, and it is
+                              wrong in the direction that lends too much
+     the loan is near new     he asked for exactly this - "anything you'd
+                              lend near its new price says so on the card"
+
+   Said once, in the place the loan is already explained, rather than as
+   its own card. The three rows that carried this as prose in their note
+   had the sentence taken out when the figures moved to MODEL_NEW, so it
+   cannot be printed twice and the two cannot drift apart. */
+/* ONE FUNCTION, BOTH SURFACES. The desk lends and the phone buys, so the
+   figure it is held against differs - but the ceiling and the wording do
+   not, and CLAUDE.md's standing warning is that phone.js carries its own
+   copies of panels and they drift. `which` picks the figure, nothing else.
+   The phone found this the hard way: the first cut wired the desk only,
+   and the field screen - the one used in a driveway with somebody else
+   reaching for the same thing - said nothing at all. */
+function newCeilingHTML(x,which){
+  const m=x&&x.market, N=m&&m.newAt;
+  if(!N||!(N.price>0))return "";
+  const m0=n=>money(Math.round(n));
+  const hi=Number(m.hi)||0;
+  const buying=which==="buy";
+  const fig=Number(buying?x.buy:x.target)||0;
+  const cls=buying?"phCeil":"iLine warn";
+  /* The range being above new is the book being wrong, and it is wrong
+     wherever it is read. Said first, because it outranks the other. */
+  /* SAY WHERE THE CEILING CAME FROM. The sentence this replaced carried
+     "(median of 24 dealer listings, Aug 2026)" and check-pricing asserted
+     on it - correctly: a warning without the figure behind it is the tool
+     telling the counter to distrust a number on no evidence, which is the
+     one thing this book does not do anywhere else. Dropping it was a real
+     regression and the suite caught it the same hour. */
+  const prov=[N.how,N.date?fmtMonth(N.date):""].filter(Boolean).join(", ");
+  if(hi>=N.price)
+    return `<div class="${cls}">A new one runs about <b>${m0(N.price)}</b>${prov?", the "+esc(prov):""}. The top of this range is ${m0(hi)}, above new &mdash; that range is wrong rather than tight.</div>`;
+  /* "anything you'd lend near its new price says so on the card" - and the
+     same for what the phone would pay, because paying 60% of new for a
+     used thing in a driveway is the same mistake with a different name. */
+  if(fig>0&&fig>=N.price*0.6)
+    return `<div class="${cls}">That ${buying?"pays":"lends"} <b>${m0(fig)}</b> on something that runs about ${m0(N.price)} new${prov?" (the "+esc(prov)+")":""}.</div>`;
+  return "";
+}
 function itemGuardHTML(x){
   const G=x&&x.guard;
   if(!G||G.kind==="hand")return "";
@@ -1431,6 +1479,7 @@ function itemGuardHTML(x){
     ${G.cut>0
       ? `<div class="iLine ${G.warn?"warn":""}">The loan is figured off <b>${m0(G.guard)}</b> instead of ${m0(G.mid)} &mdash; ${G.cut}% off, because the price above is not a measured one. A buy keeps the full ${m0(G.mid)}.</div>`
       : `<div class="iLine good">Solid enough to use as it stands. The loan is figured off the full ${m0(G.mid)}.</div>`}
+    ${newCeilingHTML(x)}
     <details class="fold iFold"><summary class="foldLine">Why, and why items have no trend read</summary>
       <div class="iMore">
         ${G.cut>0?`<p>A buy you can price and move. A pawn is 60 days on a number that came out of a sample, so the loan takes the ${G.cut}%. Type your own resale in and the guard steps aside.</p>`:""}
@@ -10801,14 +10850,14 @@ function closeCam(){
    h/m/l, date checked, source page, what moves the price]. The weekly task rewrites
    only the low, high, confidence, date and source values. It never adds or removes rows. */
 let MODEL_PRICES=[
- ["a1","g1","Remington 870 Express",300,400,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=remington+870+express","Super Mag or extra barrels add; rust lowers. CHECK BEFORE LENDING NEAR $400: a NEW one runs about $381 (median of 24 dealer listings, Aug 2026), so the top of this range is above new. Our high needs sold data it has not had yet."],
+ ["a1","g1","Remington 870 Express",300,400,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=remington+870+express","Super Mag or extra barrels add; rust lowers."],
  ["a2","g1","Remington 870 Wingmaster",450,625,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=remington+870+wingmaster","Bluing and wood; 16, 28 and .410 bring far more"],
  ["a3","g1","Mossberg 500",225,325,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=mossberg+500","Combo barrels and chokes add"],
- ["a4","g1","Mossberg 590 / 590A1",380,550,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=mossberg+590a1","590A1 heavy barrel on top; plain 590 less. CHECK BEFORE LENDING NEAR $550: a NEW one runs about $525 (median of 41 dealer listings, Aug 2026), so the top of this range is above new. Our high needs sold data it has not had yet."],
+ ["a4","g1","Mossberg 590 / 590A1",380,550,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=mossberg+590a1","590A1 heavy barrel on top; plain 590 less."],
  ["a5","g1","Maverick 88",150,210,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=maverick+88","Extra barrel adds a little"],
  ["a6","g1","Mossberg 835 Ulti-Mag",250,350,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=mossberg+835+ulti-mag","Camo turkey or waterfowl combos on top"],
  ["a7","g1","Benelli Nova / SuperNova",290,410,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=benelli+nova","SuperNova and camo bring more"],
- ["a8","g1","Browning BPS",525,725,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=browning+bps","Walnut over synthetic; small gauges far more. CHECK BEFORE LENDING NEAR $725: a NEW one runs about $667 (median of 25 dealer listings, Aug 2026), so the top of this range is above new. Our high needs sold data it has not had yet."],
+ ["a8","g1","Browning BPS",525,725,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=browning+bps","Walnut over synthetic; small gauges far more."],
  ["a9","g2","Remington 1100",450,675,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=remington+1100","Plain 12 ga lowest; LT-20 and small gauges higher"],
  ["a10","g2","Remington 11-87",550,750,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=remington+11-87","Premier walnut over synthetic; slug barrels add"],
  ["a11","g2","Beretta A300 Outlander",525,675,"m","2026-09-19","https://gunwatcher.com/gun-value-sold-information/market-price?itemName=beretta+a300+outlander","Camo and wood over black synthetic"],
@@ -11491,6 +11540,42 @@ function mpIndex(rows,src){
   }
   return ix;
 }
+/* ══ WHAT A NEW ONE COSTS ══════════════════════════════════════════════
+   "Want me to put that check on the rest of the book, so anything you'd
+   lend near its new price says so on the card?" - "Yes add that."
+
+   A new price is not a comp. It is a CEILING, and it is the one number
+   that can prove a used range wrong on its own: a used gun booked at or
+   above what a new one costs is not a tight comp, it is an error, and it
+   is an error in the direction that lends too much.
+
+   Three rows already carried this, written into the note as prose -
+   "CHECK BEFORE LENDING NEAR $400: a NEW one runs about $381". Prose
+   cannot be checked by a test and drifts from the numbers beside it, so
+   the figure moved here and came out of the sentence. Same three numbers,
+   same medians, same month; nothing was re-researched and nothing was
+   invented to fill the table out.
+
+   [new price, when it was checked, how it was got]
+
+   Filling the rest is a shelf-tag job, which Jace is already doing by
+   hand - "shelf tags photographed 19 Sep 2026, Bristol area" is a source
+   in this very book. Rows that are not in here simply do not get the
+   line; nothing is guessed from the used price. */
+const MODEL_NEW={
+  a1:[381,"2026-08-01","median of 24 dealer listings"],
+  a4:[525,"2026-08-01","median of 41 dealer listings"],
+  a8:[667,"2026-08-01","median of 25 dealer listings"]
+};
+/* Rows get folded together (mpFold), and an id that went into a merge still
+   resolves through MP_BY_ID - so the lookup is by the id of the row that is
+   actually in hand, plus every id that folded into it. */
+function newPriceFor(row){
+  if(!row)return null;
+  const hit=MODEL_NEW[row[0]];
+  if(!hit)return null;
+  return {price:hit[0], date:hit[1], how:hit[2]};
+}
 let MP_BY_ID=mpIndex(MODEL_PRICES);
 /* The count is spoken to the user in step 3, and prices.json rewrites the list
    every week, so read it off the list instead of typing a number that rots. */
@@ -12111,7 +12196,7 @@ function say(msg,kind){
       String(msg||"").length>54?4600:3000);
   }catch(e){}
 }
-const APP_BUILD="1012.0310";
+const APP_BUILD="1013.1119";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
@@ -12306,8 +12391,13 @@ function marketNow(){
   const lo=(mine&&mine.lo>0)?Math.round(mine.lo):r[3];
   const hi=(mine&&mine.hi>0)?Math.round(mine.hi):r[4];
   return {kind:"list",lo,hi,mid:Math.round((lo+hi)/2/5)*5,name:r[2],conf:mine?"h":r[5],
-          date:mine?todayStr():r[6],src:r[7],note:r[8],mine:!!mine,stale:mine?false:age>MP_STALE_DAYS,age};
+          date:mine?todayStr():r[6],src:r[7],note:r[8],mine:!!mine,stale:mine?false:age>MP_STALE_DAYS,age,
+          /* the ceiling, where one is known - see MODEL_NEW */
+          newAt:newPriceFor(r)};
 }
+/* "2026-08-01" -> "Aug 2026". A new price is a month's reading, not a
+   day's, and printing a day on it would claim more than was measured. */
+function fmtMonth(d){ try{ return new Date(String(d)+"T12:00:00").toLocaleDateString("en-US",{month:"short",year:"numeric"}); }catch(e){ return String(d); } }
 function fmtDay(d){ try{ return new Date(String(d)+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"}); }catch(e){ return String(d); } }
 const SRC_NAMES={"pricecharting.com":"PriceCharting","swappa.com":"Swappa","gunwatcher.com":"GunWatcher (GunBroker sales)","jdpower.com":"J.D. Power",
   "axedb.com":"AxeDB","golfcartsearch.com":"GolfCartSearch","underpriced.app":"Underpriced","reverb.com":"Reverb","tractorhouse.com":"TractorHouse",

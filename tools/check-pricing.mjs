@@ -3052,21 +3052,44 @@ console.log("\n  a used gun is not worth more than a new one, and says so");
       if (!rows.length) { out[id] = {missing:true}; continue; }
       omniPick(rows[0]);
       const x = calcItem();
-      const note = (x.checked && x.market && x.market.note) || "";
+      /* THE TEST WAS RIGHT AND THE INTENT MOVED - it is the second kind of
+         failure CLAUDE.md names, not a stale assertion. It asserted on the
+         words "CHECK BEFORE LENDING" inside the row's NOTE, because that
+         is where the warning was written: as prose, in the same string as
+         everything else the row had to say.
+
+         The figure now lives in MODEL_NEW and the sentence is built by
+         newCeilingHTML, so the note no longer carries it and could not -
+         that was the point of moving it, since prose cannot be checked and
+         drifts from the numbers beside it.
+
+         What has NOT changed is what this block is for: the counter must
+         be warned before lending near the top of a range that is above
+         new, and must be told what the ceiling is and where it came from.
+         So the assertions keep their names and read the card instead.
+
+         It earned its keep in the move, too. The first cut of the new line
+         dropped "median of 24 dealer listings" and these two lines went
+         red within the hour - a warning with no evidence behind it, which
+         is the one thing this book does not do anywhere else. */
+      const seen = document.body.innerText;
+      const line = (seen.match(/A new one runs about[^\n]*/) || [""])[0];
       out[id] = {
         onRow: x.checked && x.market ? x.market.name : "",
-        warns: /CHECK BEFORE LENDING/.test(note),
+        warns: /above new/.test(line),
         /* the warning is useless without the figure that justifies it */
-        hasFigure: /\$\d+/.test(note) && /median of \d+ dealer listings/.test(note),
-        onScreen: document.body.innerText.includes("CHECK BEFORE LENDING"),
+        hasFigure: /\$\d+/.test(line) && /median of \d+ dealer listings/.test(line),
+        onScreen: /A new one runs about/.test(seen),
+        /* and the ceiling must be real data, never read off the used price */
+        fromTable: !!(x.market && x.market.newAt && x.market.newAt.price > 0),
       };
     }
     /* and a row with no such problem must NOT carry the warning, or it is
        noise the counter learns to scroll past */
     const rows = omniRows("glock 19").rows; omniPick(rows[0]);
     const g = calcItem();
-    out.clean = { note: (g.checked && g.market && g.market.note) || "",
-                  warns: /CHECK BEFORE LENDING/.test((g.checked && g.market && g.market.note) || "") };
+    out.clean = { name: (g.market && g.market.name) || "",
+                  warns: /A new one runs about|above new/.test(document.body.innerText) };
     return out;
   });
   for (const id of ["a1","a4","a8"]) {
@@ -3074,6 +3097,8 @@ console.log("\n  a used gun is not worth more than a new one, and says so");
        `  ${id} ${r[id].onRow || "NOT REACHED"} warns before the top of its range`);
     ok(!r[id].missing && r[id].hasFigure,
        `  ${id} names the new price and how many listings it came from`);
+    ok(!r[id].missing && r[id].fromTable,
+       `  ${id} takes its ceiling from the table, not off the used price`);
   }
   ok(r.a1.onScreen, "  and the warning reaches the counter screen, not just the data");
   ok(!r.clean.warns, "  while a row with no such problem stays quiet");

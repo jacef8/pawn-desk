@@ -114,7 +114,8 @@ function phVerdictHTML(x){
   return `<div class="phVerdict ${cls}${soft?" est":""}">
     ${banner?`<div class="phEst">${banner}</div>`:""}
     <div class="phWord">${word}</div><div class="phLine">${line}</div>
-    <div class="phMath">Resells for about <b>${money(resale)}</b> &middot; your buy rate for ${esc(catName)} is ${x.buyPct}%, so you'd pay up to <b>${money(buy)}</b>.${soft?` <b>Check it if the money matters.</b>`:""}</div></div>`;
+    <div class="phMath">Resells for about <b>${money(resale)}</b> &middot; your buy rate for ${esc(catName)} is ${x.buyPct}%, so you'd pay up to <b>${money(buy)}</b>.${soft?` <b>Check it if the money matters.</b>`:""}</div>
+    ${typeof newCeilingHTML==="function"?newCeilingHTML(x,"buy"):""}</div>`;
 }
 function phoneStepHTML(x){
   const m=x.market, what=(typeof madeName==="function"?madeName():"")||displayName(x);
@@ -741,6 +742,14 @@ function snapHTML(){
         <div class="heroLab">Pay up to</div>
         <div class="heroBig">${money(x.buy)}</div>
         <div class="heroSub">Resells ${money(Math.round(x.resale))} \u00b7 you make ${money(x.buyMargin)}</div>
+        ${/* THE CEILING, ON THE FINISHED ANSWER. phVerdictHTML carries it
+             while the run is still going, but that box returns nothing once
+             the questions are done - which is exactly the screen somebody
+             stands on in a driveway deciding whether to hand over cash. The
+             first cut wired the mid-run box only and the finished screen
+             said nothing, which is the same silence the field screen was
+             already fixed for once. */
+          typeof newCeilingHTML==="function"?newCeilingHTML(x,"buy"):""}
         ${actions}</div>`;
 
   /* The evidence row carries the meter the desk grew: how much is behind
