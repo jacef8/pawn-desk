@@ -206,6 +206,51 @@ for (let i = 0; i < todo.length; i++) {
   }
 
   if (PROBE) {
+    /* TRY THE OTHER SOURCES TOO, in the same run, on his machine.
+       The first probe answered the question I asked and raised a better
+       one. GunWatcher's free figure is its own monthly MODEL value, not a
+       sale: the current month is behind a sign-in, what you can read is
+       last month, and the actual sold rows on the page numbered three,
+       all marked New, one of them five months old. That is not something
+       to price 77 rows off.
+       His worklist has always pointed at completed auctions instead,
+       which are real sales with real dates. They refuse a datacentre the
+       same way GunWatcher did, so the only way to find out which of them
+       open for an ordinary browser is to ask his. One double-click,
+       every candidate, and a summary short enough to paste back. */
+    const alt = [
+      ["GunBroker completed", "https://www.gunbroker.com/All/search?Keywords=" + encodeURIComponent(row.name) + "&Completed=1"],
+      ["GunBroker sold",      "https://www.gunbroker.com/All/search?Keywords=" + encodeURIComponent(row.name) + "&IncludeSellers=&Completed=1&Sold=1"],
+      ["Guns.com ended",      "https://www.guns.com/auctions/recently-ended?keyword=" + encodeURIComponent(row.name)],
+      ["Guns.com search",     "https://www.guns.com/search?keyword=" + encodeURIComponent(row.name)],
+      ["GunWatcher sold all", "https://gunwatcher.com/gun-value-sold-information/sold-data?itemName=" + encodeURIComponent(row.name).replace(/%20/g, "+")]
+    ];
+    console.log("\n  --- the other places, same gun ---");
+    for (const [label, u] of alt) {
+      const ap = await ctx.newPage();
+      let t = "", title = "";
+      try {
+        await ap.goto(u, { waitUntil: "domcontentloaded", timeout: 45000 });
+        await ap.waitForTimeout(4000);
+        t = await ap.evaluate(() => document.body.innerText);
+        title = await ap.title();
+      } catch (e) { t = ""; title = "COULD NOT OPEN: " + e.message.split("\n")[0].slice(0, 50); }
+      const wall = WALL.test(t) || /sign ?in|log ?in|register/i.test(title);
+      const money = (t.match(/\$\s?[0-9][0-9,]*/g) || []).length;
+      const sold = /sold|ended|winning bid|completed/i.test(t);
+      console.log("  " + label.padEnd(20) +
+        " chars " + String(t.length).padEnd(7) +
+        " prices " + String(money).padEnd(5) +
+        (wall ? " LOGIN WALL" : sold ? " looks like sold data" : " no sold words"));
+      console.log("      " + title.slice(0, 74));
+      if (t.length > 300) {
+        fs.writeFileSync(path.join(process.cwd(), "gun-probe-" + label.replace(/[^a-z0-9]+/gi, "-").toLowerCase() + ".txt"), t);
+      }
+      await ap.close();
+      await sleep(3000 + Math.random() * 3000);
+    }
+    console.log("  --- end ---\n");
+
     const base = path.join(process.cwd(), "gun-probe-" + row.key);
     fs.writeFileSync(base + ".txt", text);
     await page.screenshot({ path: base + ".png", fullPage: true }).catch(() => {});
