@@ -119,11 +119,63 @@ average sold range`;
 r = readPage(MIXED, "Remington 870 Express");
 ok(!!r.skip && /too wide/i.test(r.skip), `  a 28x spread is refused as more than one model — ${r.skip || "ACCEPTED"}`);
 
+/* ── THE REAL PAGE THAT NEARLY GOT THROUGH ────────────────────────────
+   tools/fixtures/guns-com-ended.txt is the actual Guns.com recently-ended
+   page, cut down, as it came off the shop computer on 13 Oct 2026. It is
+   here because it beat the wrong-model guard: headed "REMINGTON 870
+   EXPRESS 15450 RESULTS", carrying a filter chip that says the same, and
+   listing a Glock, a Springfield, a gold Colt Python and a Marlin .22.
+   The keyword does nothing on that URL. A fixture written by hand would
+   never have had that shape, because I did not know a site did that until
+   one did. */
+console.log("\n  the real Guns.com page, which beat the first guard");
+{
+  const real = fs.readFileSync("tools/fixtures/guns-com-ended.txt", "utf8");
+  const r2 = readPage(real, "Remington 870 Express");
+  ok(!!r2.skip, `  it is refused — ${r2.skip || "ACCEPTED, and the book gets a Glock price"}`);
+  ok(!!r2.skip && /beside any price|ignored the search/.test(r2.skip),
+     `  and refused for the RIGHT reason, not by luck — ${r2.skip || ""}`);
+  /* and the words really are on it, so the old guard really was useless */
+  const low = real.toLowerCase();
+  ok(["remington", "870", "express"].every((w) => low.includes(w)),
+     "  the gun IS named on the page, which is exactly why the old check passed it");
+}
+
+/* STARTING BID (NO BIDS) IS NOT A SALE. Two on that same page: a Ruger
+   LCP II at $300 and a Marlin Model 60 at $200, both closed, both unsold. */
+console.log("\n  an unsold lot is not a sale");
+{
+  /* SHAPED LIKE THE REAL PAGE, which is the only way this tests anything:
+     the words that say what kind of price it is sit ABOVE the number, and
+     a "WINNING BID" line is there too so the sold-word rule is satisfied
+     and the no-bids rule is the only thing that can refuse it. The first
+     version put a bare $300.00 on its own line and went green because the
+     sold-word rule caught it - the no-bids filter was never reached. */
+  const unsold = "q".repeat(600) + `
+Remington 870 Express
+Condition:  USED
+AUCTION
+Closed
+WINNING BID (0)
+STARTING BID (NO BIDS)
+$300.00
+Remington 870 Express
+Condition:  USED
+Closed
+WINNING BID (0)
+STARTING BID (NO BIDS)
+$200.00`;
+  const r3 = readPage(unsold, "Remington 870 Express");
+  ok(!!r3.skip, `  a closed lot nobody bid on is refused — ${r3.skip || "ACCEPTED, and an ask became a sale"}`);
+}
+
 console.log("\n  and it does read a good page");
+/* The model now has to appear NEXT TO the money, which is what a real
+   per-model page looks like and what the ignored-search page did not. */
 const GOOD = "w".repeat(600) + `
 Remington 870 Express market value
-Average sold price $340
-Sold range low $300 high $395
+Remington 870 Express average sold price $340
+Remington 870 Express sold range low $300 high $395
 Based on completed auctions`;
 r = readPage(GOOD, "Remington 870 Express");
 ok(!r.skip && r.lo === 300 && r.hi === 395,

@@ -121,13 +121,51 @@ function readPage(text, model) {
   const missing = words.filter((w) => !low.includes(w));
   if (missing.length) return { skip: "page does not mention " + missing.join(", ") + " - wrong model" };
 
+  /* AND THE WORDS HAVE TO BE ON THE LISTINGS, NOT JUST IN THE SEARCH BOX.
+     Caught on the real Guns.com ended-auctions page. It is headed
+     "REMINGTON 870 EXPRESS 15450 RESULTS" and carries a filter chip
+     reading "Keyword: Remington 870 Express" - and then lists a Glock, a
+     Springfield, a gold Colt Python and a Marlin .22. The keyword does
+     nothing on that URL; the page echoes it back and shows every recently
+     ended auction there is.
+
+     The check above passes that page without blinking, because the words
+     ARE on it. A guard a site defeats by printing your own search term
+     back at you is not a guard. So: find the lines that carry a price,
+     look at the handful of lines above each one, and require the model's
+     words to be THERE - next to the money - on at least two of them. */
+  const lines0 = text.split("\n").map((s) => s.trim());
+  let near = 0;
+  for (let i = 0; i < lines0.length; i++) {
+    if (!/\$\s?[0-9]/.test(lines0[i])) continue;
+    const block = lines0.slice(Math.max(0, i - 8), i + 1).join(" ").toLowerCase();
+    if (words.every((w) => block.includes(w))) near++;
+  }
+  if (near < 2)
+    return { skip: "the gun is named on the page but not beside any price (" + near +
+                   " of the listings match) - a results page that ignored the search" };
+
   /* money on lines that are about a SOLD figure, not an asking price */
   const lines = text.split("\n").map((s) => s.trim()).filter(Boolean);
   const hits = [];
-  for (const line of lines) {
+  for (let li = 0; li < lines.length; li++) {
+    const line = lines[li];
     if (!/\$/.test(line)) continue;
-    if (/ask|asking|list price|msrp|new|buy it now/i.test(line)) continue;
-    if (!/sold|sale|average|avg|median|value|range|high|low/i.test(line)) continue;
+    /* READ THE LINES AROUND THE PRICE, NOT JUST THE PRICE'S OWN LINE.
+       Written per-line first, and it could never have fired: on a real
+       listing the price sits alone on its line and everything that says
+       what KIND of price it is - "WINNING BID (20)", "STARTING BID (NO
+       BIDS)", "Closed" - is on the lines above it. The suite went green
+       anyway, on a different rule, which is how a filter that cannot fire
+       stays in a file. */
+    const around = lines.slice(Math.max(0, li - 4), li + 2).join(" ");
+    /* STARTING BID (NO BIDS) IS NOT A SALE. Two on that Guns.com page: a
+       Ruger LCP II at $300 and a Marlin Model 60 at $200, both "Closed",
+       both with nobody having bid. The lot ended; nothing was sold. That
+       is the seller's ask wearing a sold price's punctuation. */
+    if (/starting bid|no bids|opening bid|reserve not met|unsold|did not sell/i.test(around)) continue;
+    if (/ask|asking|list price|msrp|buy it now/i.test(around)) continue;
+    if (!/sold|sale|average|avg|median|value|range|high|low|winning bid|hammer/i.test(around)) continue;
     for (const m of line.matchAll(/\$\s?([0-9][0-9,]*(?:\.[0-9]{2})?)/g)) {
       const v = Number(m[1].replace(/,/g, ""));
       if (v >= 40 && v <= 25000) hits.push({ v, line });
