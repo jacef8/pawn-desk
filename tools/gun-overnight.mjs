@@ -152,13 +152,37 @@ console.log(`browser: ${HEADLESS ? "headless (trial only)" : "headed"}  gap: ${G
 /* A profile that persists between runs. Cloudflare treats a browser with a
    history and cookies very differently from a fresh one every night. */
 const profile = path.join(process.cwd(), ".gun-overnight-profile");
-const ctx = await chromium.launchPersistentContext(profile, {
+/* A STACK TRACE IS NO USE AT A PAWN COUNTER. Whatever goes wrong opening
+   the browser, say it in a sentence somebody can act on. Found by running
+   this where there is no screen at all: it printed forty lines of
+   Playwright internals and the word XServer. */
+let ctx;
+try {
+  ctx = await chromium.launchPersistentContext(profile, {
   ...(process.env.PW_CHROME ? { executablePath: process.env.PW_CHROME } : {}),
   headless: HEADLESS,
   viewport: { width: 1360, height: 900 },
-  locale: "en-US",
-  timezoneId: "America/New_York",
-});
+    locale: "en-US",
+    timezoneId: "America/New_York",
+  });
+} catch (e) {
+  const msg = String((e && e.message) || e);
+  console.error("\nThe browser would not start.\n");
+  if (/XServer|headless/i.test(msg))
+    console.error("  This computer has no screen for it to open on. If that is\n" +
+                  "  right, add --headless to the end of the command.\n");
+  else if (/Executable doesn.t exist|browserType.launch.*ENOENT/i.test(msg))
+    console.error("  The browser itself is missing. Run this once:\n" +
+                  "      npx playwright install chromium\n");
+  else if (/profile|SingletonLock|already in use/i.test(msg))
+    console.error("  Another copy of this is already running, or the last one did\n" +
+                  "  not close. Close it, or delete the .gun-overnight-profile\n" +
+                  "  folder next to this file, then try again.\n");
+  else
+    console.error("  " + msg.split("\n")[0] + "\n");
+  console.error("  Nothing was read and nothing was written.\n");
+  process.exit(1);
+}
 
 const got = [], skipped = [];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

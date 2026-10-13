@@ -1,3 +1,10 @@
 tools/price-check.json
 tools/harvest.json
 prices.json.bak
+node_modules/
+.gun-overnight-profile/
+gun-prices-*.csv
+gun-prices-*.md
+gun-probe-*
+package-lock.json
+package.json
