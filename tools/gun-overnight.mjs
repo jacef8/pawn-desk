@@ -263,6 +263,65 @@ for (let i = 0; i < todo.length; i++) {
       ["Guns.com search",     "https://www.guns.com/search?keyword=" + encodeURIComponent(row.name)],
       ["GunWatcher sold all", "https://gunwatcher.com/gun-value-sold-information/sold-data?itemName=" + encodeURIComponent(row.name).replace(/%20/g, "+")]
     ];
+    /* ── GO IN THE FRONT DOOR ──────────────────────────────────────────
+       His own Chrome opens guns.com/search?keyword=... quite happily; the
+       script got "Attention Required! | Cloudflare" on the same address.
+       The difference is not the address, it is arriving cold. A browser
+       that has never been to the site, typing a search URL straight into
+       the bar, is exactly the shape of a scraper.
+
+       So do what he does: load the home page, let the challenge clear,
+       find their search box, type the gun, press Enter. That also answers
+       a second question no amount of guessing could - what URL their own
+       search actually produces, and whether it filters. The profile
+       persists between runs, so once this clears once it should stay
+       clear. */
+    console.log("\n  --- guns.com, through their own search box ---");
+    {
+      const gp = await ctx.newPage();
+      let landed = "", t = "", title = "", how = "";
+      try {
+        await gp.goto("https://www.guns.com/", { waitUntil: "domcontentloaded", timeout: 60000 });
+        /* a Cloudflare interstitial clears itself for a real browser, it
+           just needs to be given the seconds to do it */
+        await gp.waitForTimeout(9000);
+        const box = gp.locator('input[type="search"], input[name="keyword"], input[placeholder*="earch" i]').first();
+        if (await box.count()) {
+          await box.click({ timeout: 10000 });
+          await box.fill(row.name);
+          await box.press("Enter");
+          how = "typed it in their search box";
+          await gp.waitForLoadState("domcontentloaded", { timeout: 45000 }).catch(() => {});
+          await gp.waitForTimeout(7000);
+        } else {
+          how = "COULD NOT FIND their search box - went to the URL instead";
+          await gp.goto("https://www.guns.com/search?keyword=" + encodeURIComponent(row.name),
+            { waitUntil: "domcontentloaded", timeout: 45000 });
+          await gp.waitForTimeout(7000);
+        }
+        landed = gp.url(); t = await gp.evaluate(() => document.body.innerText); title = await gp.title();
+      } catch (e) { title = "FAILED: " + e.message.split("\n")[0].slice(0, 60); }
+
+      const words = row.name.toLowerCase().replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter((w) => w.length > 2);
+      const ls = t.split("\n").map((x) => x.trim());
+      let beside = 0;
+      for (let i = 0; i < ls.length; i++) {
+        if (!/\$\s?[0-9]/.test(ls[i])) continue;
+        const blk = ls.slice(Math.max(0, i - 8), i + 1).join(" ").toLowerCase();
+        if (words.every((w) => blk.includes(w))) beside++;
+      }
+      console.log("  " + how);
+      console.log("  landed on   " + landed.slice(0, 110));
+      console.log("  title       " + title.slice(0, 74));
+      console.log("  chars       " + t.length + "   prices " + (t.match(/\$\s?[0-9][0-9,]*/g) || []).length);
+      console.log("  listings that are actually this gun: " + beside +
+        (WALL.test(t) ? "   (BOT WALL)" : beside >= 2 ? "   <-- the search WORKS" : "   <-- search ignored, same as before"));
+      if (t.length > 300) fs.writeFileSync(path.join(process.cwd(), "gun-probe-gunscom-search.txt"), t);
+      await gp.screenshot({ path: path.join(process.cwd(), "gun-probe-gunscom-search.png"), fullPage: false }).catch(() => {});
+      await gp.close();
+      await sleep(4000);
+    }
+
     console.log("\n  --- the other places, same gun ---");
     for (const [label, u] of alt) {
       const ap = await ctx.newPage();
