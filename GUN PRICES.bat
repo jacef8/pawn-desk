@@ -62,7 +62,7 @@ REM ---- 3. which job --------------------------------------------------
 echo.
 echo   ---------------------------------------------------------------
 echo    1   Test it on ONE gun  ^(do this first - writes nothing^)
-echo    2   Read ALL the guns   ^(about 45 minutes - leave it running^)
+echo    2   Read ALL the guns   ^(about an hour - leave it running^)
 echo    3   Quit
 echo   ---------------------------------------------------------------
 echo.

@@ -92,3 +92,92 @@ rather than replacing it with something he cannot see.
 Which Claude setup is on his own machine. This session is a cloud
 container; it cannot see his desktop app or whether the Chrome extension
 is installed. That question goes to him.
+
+---
+
+# What happened next, 13 Oct 2026
+
+He picked B. "Running overnight." The recommendation above was A and he
+read it and chose the other one, which is his call to make — so the rest
+of this is about making B fail loudly instead of quietly, since that was
+the whole objection to it.
+
+## The source changed, and the old one was weaker than it looked
+
+The reader was pointed at GunWatcher's free market-price page. He pasted
+one back. It is **one monthly model figure, with the current month behind
+a sign-in**, and the actual sold rows on the page numbered three — all
+marked New, one of them five months old. That is not something to price 77
+lines of the book off, and it had been about to be.
+
+Five addresses, same gun, measured from his machine and from a stealth
+proxy:
+
+| address | what came back |
+|---|---|
+| GunBroker completed | "Just a moment..." — Cloudflare |
+| GunBroker sold | "Just a moment..." — Cloudflare |
+| Guns.com recently-ended | opens, 24 prices, **ignores the keyword** |
+| Guns.com search | opens, filters properly, mixes new and used |
+| GunWatcher sold-data | Cloudflare |
+
+The ended page is the dangerous one. It is headed `REMINGTON 870 EXPRESS
+15450 RESULTS`, it carries a filter chip saying the same, and it lists a
+Glock, a Springfield XD-M, a 24K gold Colt Python and a Marlin .22. A
+guard that asks "is the gun named on this page" passes it. That page is
+saved as `tools/fixtures/guns-com-ended.txt` and the suite runs against it.
+
+So the reader now uses
+
+    https://www.guns.com/used-guns?keyword=<model>
+
+which filters properly and is all used stock. **These are asking prices.**
+What a large national dealer lists the same used model at today is a real
+signal, and a better one than nothing on an aisle where 76 rows carry no
+counted sale. It is still an ask, asks run high, and high is the wrong way
+to be wrong when money is going out. The log file says so at the top of
+every run.
+
+## Six read by hand before the repoint
+
+Middle half of their used listings against what the book says now:
+
+| key | model | n | guns.com used asks | book |
+|---|---|---|---|---|
+| a1 | Remington 870 Express | 18 | $350–$400 | $300–$400 |
+| a2 | Remington 870 Wingmaster | 21 | $390–$480 | $450–$625 |
+| a3 | Mossberg 500 | 24 | $277–$400 | $225–$325 |
+| a4 | Mossberg 590 / 590A1 | 22 | $400–$600 | $380–$550 |
+| a5 | Maverick 88 | 20 | $200–$220 | $150–$210 |
+
+Six at five credits each was going to be 71 more one at a time, which is
+71 more messages. His own PC reads all 77 for nothing, so it does.
+
+## The guards, and the four that were wrong first
+
+Nine rules decide whether a figure is taken. Each was deleted in turn and
+the suite watched; eight went red, and the ninth was dead weight and is
+gone. The four that were wrong when first written:
+
+1. **The model has to be beside the price, not on the page.** This is the
+   ended-page trick above.
+2. **A fourteen-line window above the price reached into the listing
+   above it.** A mixed page of six used and four new counted seven used.
+   Blocks are now bounded by the previous price line.
+3. **And on the first listing of a page it reached into the header** —
+   which is the one place the search term always appears. The block now
+   stops at anything that is the page talking about itself ("N RESULTS",
+   "Applied Filters", "Keyword:").
+4. **The condition had to be the listing's own field, not the word "used"
+   anywhere nearby.** Guns.com heads the page "Used Guns For Sale" and
+   puts "Certified used" in the shipping banner, so the first listing on
+   every page matched whatever it actually was. A page of six NEW guns
+   came back with one used listing on it.
+
+And the one that could not fail: the no-bids rule, which refuses a closed
+auction nobody bid on. Deleting it left the suite green, because the
+fixture it was tested against was being refused for a different reason —
+it had no condition field within six lines of the price, since the real
+auction lots write `Condition:  USED` on one line and the test wrote it on
+two. Fixing the anchor to read both shapes made the rule testable, and it
+also means the auction lots on the ended page are readable at all.

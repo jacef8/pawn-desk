@@ -34,13 +34,30 @@
  * sign-in box. Every guard below exists because of that, and the morning
  * preview is the last one.
  *
- * WHAT IS A FIRST GUESS. The extraction rules. GunWatcher cannot be reached
- * from where this was written, so the figures are found by shape - money
- * near the words sold, average, value, range - rather than by CSS selectors
- * read off the real page. Run --probe first: it opens ONE model, saves the
- * page text and a screenshot, prints what it would have taken and from
- * which line, and writes nothing. Send that back and the rules get tightened
- * to the real page.
+ * WHAT IT READS NOW, AND WHAT CHANGED. It used to read GunWatcher's free
+ * market-price page. That page turned out to be one monthly model figure
+ * with the current month behind a sign-in, backed by three sold rows - not
+ * something to price 77 lines of the book off. So it reads guns.com's used
+ * section instead:
+ *
+ *     https://www.guns.com/used-guns?keyword=<the model>
+ *
+ * which filters to the model properly, is all used stock, and came off
+ * Jace's own machine on 13 Oct 2026 with 212 results for one shotgun.
+ *
+ * THESE ARE ASKING PRICES AND THE BOOK HAS TO SAY SO. They are what a
+ * large national dealer lists the same used model at today. That is a real
+ * signal and a far better one than nothing on an aisle where 76 rows carry
+ * no counted sale. But an ask is not a sale, asks run high, and high is the
+ * wrong way to be wrong when money is going out.
+ *
+ * THE EXTRACTION RULES ARE NO LONGER GUESSES. They are written against two
+ * real pages saved off the shop computer, both in tools/fixtures/, and
+ * tools/check-overnight.mjs lifts readPage() out of THIS file and runs it
+ * against them. One of those pages is the recently-ended page, which is
+ * here because it beat the first version of the guard: headed "REMINGTON
+ * 870 EXPRESS 15450 RESULTS" and listing a Glock, a Springfield and a gold
+ * Colt Python. Run --probe first on any new site before trusting it.
  *
  * NEEDS, on the shop computer:
  *   node 18+            node --version
@@ -99,92 +116,188 @@ function book() {
     .map((l) => { try { return JSON.parse(l.replace(/,\s*$/, "")); } catch { return null; } })
     .filter(Boolean);
   /* [id, item, name, low, high, confidence, date, source, note] */
+  /* The gun rows are the ones whose recorded source is GunWatcher - that is
+     how they were sourced originally and it is still what marks them out as
+     the firearms aisle. Where they are READ from is guns.com now. */
   return rows.filter((r) => /gunwatcher\.com/.test(String(r[7] || "")))
-             .map((r) => ({ key: r[0], name: r[2], lo: r[3], hi: r[4], url: r[7], checked: r[6] }));
+             .map((r) => ({ key: r[0], name: r[2], lo: r[3], hi: r[4], checked: r[6],
+                            q: searchFor(r[2]), url: usedUrl(searchFor(r[2])) }));
+}
+
+/* ── WHERE THE NUMBERS COME FROM NOW ──────────────────────────────────
+   guns.com's used section, which is the one thing on the open web that
+   is reachable, filters to one model, and is about USED guns.
+
+   Measured 13 Oct 2026, from Jace's own machine and from a stealth
+   proxy, five sources for the same gun:
+
+     GunBroker completed   "Just a moment..."   Cloudflare
+     GunBroker sold        "Just a moment..."   Cloudflare
+     Guns.com ended        opens, 24 prices, IGNORES the search - it
+                           answered a Remington query with Glocks
+     Guns.com search       opens, filters properly, mixes new and used
+     GunWatcher sold-data  Cloudflare
+
+   And GunWatcher's free market-price page, which this used to read, is
+   its own monthly MODEL value with the current month behind a sign-in,
+   backed by three actual sold rows. Not something to price 77 rows off.
+
+   SO THESE ARE ASKING PRICES, and the app must say so. They are what a
+   large national used-gun dealer lists the same model at today, which is
+   a real market signal and a far better one than nothing - 76 of these
+   rows carry no counted sale at all. But an ask is not a sale, asks run
+   high, and high is the wrong way to be wrong when money is going out. */
+function usedUrl(q){ return "https://www.guns.com/used-guns?keyword=" + encodeURIComponent(q); }
+
+/* A SEARCH BOX WANTS A PRODUCT NAME, NOT A BOOK ENTRY. "Mossberg 590 /
+   590A1" is two guns in one row; "Ruger 10/22" and "Thompson/Center
+   Encore" are what the gun is CALLED. So cut only at a SPACED slash -
+   cutting at every slash gave "Ruger 10" and "Thompson", which would
+   have searched for something else and come back looking perfectly
+   fine. Three rows say something a shop says rather than something a
+   catalogue lists, and they are named here rather than mangled. */
+const SEARCH_AS = {
+  "Henry lever .22 (H001 / Golden Boy)": "Henry Golden Boy",
+  "AR-15, entry-level": "AR-15 rifle",
+  "1911 (Rock Island, Tisas, Springfield Mil-Spec)": "1911 pistol"
+};
+function searchFor(name){
+  const n = String(name || "");
+  return SEARCH_AS[n] || n.split(/\s+\/\s+|\s*[(,]/)[0].replace(/\s+/g, " ").trim();
 }
 
 /* ── is this page real, or is it a wall? ──────────────────────────────── */
 const WALL = /just a moment|attention required|checking your browser|enable javascript|verify you are( a)? human|captcha|access denied|sign in to your account/i;
 
 function readPage(text, model) {
-  /* Returns {lo,hi,from} or {skip:"reason"}. Deliberately suspicious: every
-     branch that cannot prove what it found returns a skip, because a missing
-     row costs nothing and a wrong row costs money. */
+  /* Returns {lo,hi,n,from} or {skip:"reason"}. Deliberately suspicious:
+     every branch that cannot prove what it found returns a skip, because
+     a missing row costs nothing and a wrong row costs money.
+
+     Written against the REAL guns.com used page rather than guessed at.
+     A listing comes through as a run of lines like
+
+         MOSSBERG
+         500
+         12 GA
+         5 Rounds
+         18.5" Barrel
+         Condition:
+         USED
+         Add To Cart
+         $449.99
+
+     so the price sits alone and everything that says what it IS sits
+     above it. Every rule below reads the block, not the line. */
   if (!text || text.length < 400) return { skip: "page came back nearly empty (" + (text || "").length + " chars)" };
-  if (WALL.test(text)) return { skip: "a bot wall or login page, not the price page" };
+  if (WALL.test(text)) return { skip: "a bot wall or login page, not the listings" };
   if (/loading\.\.\./i.test(text) && text.length < 2500) return { skip: "page never finished loading" };
 
-  /* the page must actually be about the gun that was asked for: every word
-     of the model name has to appear, or this is somebody else's price */
   const words = model.toLowerCase().replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter((w) => w.length > 2);
-  const low = text.toLowerCase();
-  const missing = words.filter((w) => !low.includes(w));
-  if (missing.length) return { skip: "page does not mention " + missing.join(", ") + " - wrong model" };
+  if (!words.length) return { skip: "no searchable words in the model name" };
 
-  /* AND THE WORDS HAVE TO BE ON THE LISTINGS, NOT JUST IN THE SEARCH BOX.
-     Caught on the real Guns.com ended-auctions page. It is headed
-     "REMINGTON 870 EXPRESS 15450 RESULTS" and carries a filter chip
-     reading "Keyword: Remington 870 Express" - and then lists a Glock, a
-     Springfield, a gold Colt Python and a Marlin .22. The keyword does
-     nothing on that URL; the page echoes it back and shows every recently
-     ended auction there is.
-
-     The check above passes that page without blinking, because the words
-     ARE on it. A guard a site defeats by printing your own search term
-     back at you is not a guard. So: find the lines that carry a price,
-     look at the handful of lines above each one, and require the model's
-     words to be THERE - next to the money - on at least two of them. */
-  const lines0 = text.split("\n").map((s) => s.trim());
-  let near = 0;
-  for (let i = 0; i < lines0.length; i++) {
-    if (!/\$\s?[0-9]/.test(lines0[i])) continue;
-    const block = lines0.slice(Math.max(0, i - 8), i + 1).join(" ").toLowerCase();
-    if (words.every((w) => block.includes(w))) near++;
-  }
-  if (near < 2)
-    return { skip: "the gun is named on the page but not beside any price (" + near +
-                   " of the listings match) - a results page that ignored the search" };
-
-  /* money on lines that are about a SOLD figure, not an asking price */
-  const lines = text.split("\n").map((s) => s.trim()).filter(Boolean);
+  const lines = text.split("\n").map((x) => x.trim()).filter(Boolean);
   const hits = [];
-  for (let li = 0; li < lines.length; li++) {
-    const line = lines[li];
-    if (!/\$/.test(line)) continue;
-    /* READ THE LINES AROUND THE PRICE, NOT JUST THE PRICE'S OWN LINE.
-       Written per-line first, and it could never have fired: on a real
-       listing the price sits alone on its line and everything that says
-       what KIND of price it is - "WINNING BID (20)", "STARTING BID (NO
-       BIDS)", "Closed" - is on the lines above it. The suite went green
-       anyway, on a different rule, which is how a filter that cannot fire
-       stays in a file. */
-    const around = lines.slice(Math.max(0, li - 4), li + 2).join(" ");
-    /* STARTING BID (NO BIDS) IS NOT A SALE. Two on that Guns.com page: a
-       Ruger LCP II at $300 and a Marlin Model 60 at $200, both "Closed",
-       both with nobody having bid. The lot ended; nothing was sold. That
-       is the seller's ask wearing a sold price's punctuation. */
-    if (/starting bid|no bids|opening bid|reserve not met|unsold|did not sell/i.test(around)) continue;
-    if (/ask|asking|list price|msrp|buy it now/i.test(around)) continue;
-    if (!/sold|sale|average|avg|median|value|range|high|low|winning bid|hammer/i.test(around)) continue;
-    for (const m of line.matchAll(/\$\s?([0-9][0-9,]*(?:\.[0-9]{2})?)/g)) {
-      const v = Number(m[1].replace(/,/g, ""));
-      if (v >= 40 && v <= 25000) hits.push({ v, line });
-    }
-  }
-  if (hits.length < 2) return { skip: "found " + hits.length + " sold-looking figure(s), need at least 2" };
+  let prev = -1;                                    /* the last price line read */
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(/^\$\s?([0-9][0-9,]*(?:\.[0-9]{2})?)$/);
+    if (!m) continue;                               /* a price on its own line */
+    const v = Number(m[1].replace(/,/g, ""));
+    /* EVERY price line bounds the next one, including one this reader goes
+       on to throw away. Advancing the boundary only on the ones it kept
+       let a rejected new gun's lines count as part of the used one under
+       it. */
+    const pstart = prev; prev = i;
+    if (!(v >= 40 && v <= 25000)) continue;
+    /* WHERE THIS LISTING STARTS. A fourteen-line window above the price
+       was wrong twice over, and both were silent. It reached back into the
+       listing BEFORE this one, so the first new gun after six used ones
+       borrowed their "Condition: USED" - a mixed page counted seven of ten.
+       And on the first listing of a page it reached up into the page
+       header, which on guns.com is headed with the search term and the
+       words "Used Guns For Sale" - that is exactly how the ended page got
+       a Glock counted as a Remington. So the block is bounded: it starts
+       after the previous price, and no more than eight lines above this
+       listing's own "Condition:" line. */
+    let j = -1;
+    /* TWO SHAPES ON THE SAME SITE. A buy-it-now listing puts "Condition:"
+       on its own line and the word under it; an auction lot puts
+       "Condition:  USED" on one line and then AUCTION, Closed and the bid
+       count before the price. Anchoring on the bare line only found the
+       first kind, which quietly made every auction lot unreadable - and
+       made the no-bids guard untestable, because the unsold fixture was
+       being refused for having no condition field rather than for nobody
+       having bid. Found by deleting the no-bids guard and watching the
+       suite stay green. */
+    for (let k = i - 1; k >= 0 && k >= i - 6; k--)
+      if (/^condition:\s*(used|new)?$/i.test(lines[k])) { j = k; break; }
+    /* NO CONDITION FIELD IS NOT A SKIP OF ITS OWN. It was one for an hour,
+       and deleting it left the suite green - nothing could tell the
+       difference, because a price with no condition field beside it is
+       already refused by the used-condition rule below. An assertion that
+       cannot fail is worse than no assertion, and so is a guard nothing can
+       tell the difference about. What the anchor is actually FOR is the
+       floor: when a condition line is found, the block starts no more than
+       eight lines above it, which is what keeps the first listing on a page
+       out of the header. */
+    let start = Math.max(pstart + 1, j >= 0 ? j - 8 : 0, 0);
+    /* AND IT STOPS AT THE PAGE FURNITURE. The first listing on a page has
+       no price above it to bound against, so the window ran up into the
+       header - and the header is the one place the search term is
+       guaranteed to appear whatever the page is actually showing. That is
+       the whole trick the ended page played: "REMINGTON 870 EXPRESS 15450
+       RESULTS" over a Glock. So walk forward past anything that is the
+       page talking about itself. */
+    for (let k = start; k < j; k++)
+      if (/\d+ results$|applied filters|clear all filters|^keyword:|^categories$/i.test(lines[k])) start = k + 1;
+    const block = lines.slice(start, i + 1).join(" ");
+    const low = block.toLowerCase();
 
+    /* THE SEARCH TERM BEING ON THE PAGE IS NOT THE GUN BEING ON THE
+       LISTING. The Guns.com ended-auctions page is headed "REMINGTON 870
+       EXPRESS 15450 RESULTS" and lists Glocks. The words have to be in
+       THIS block, beside THIS price. */
+    if (!words.every((w) => low.includes(w))) continue;
+    /* USED ONLY - the same search returns new stock beside the used, and a
+       new price is a ceiling, not a comp.
+
+       IT HAS TO BE THE LISTING'S OWN CONDITION FIELD. Looking for the bare
+       word "used" anywhere in the fourteen lines above the price let the
+       page header do it: guns.com heads the page "Used Guns For Sale" and
+       puts "Certified used" in the shipping banner, so the FIRST listing on
+       every page matched whatever it actually was. A page of six new guns
+       came back with one used listing on it, and a mixed page counted seven
+       of ten. Both found by the suite, not by reading. The condition sits on
+       the line under the word "Condition:", so that is what is read. */
+    if (!/condition:?\s*used\b/i.test(block)) continue;
+    /* an auction nobody bid on is the seller's ask, not a sale, and not
+       even a dealer's asking price */
+    if (/starting bid|no bids|opening bid|reserve not met/i.test(low)) continue;
+    hits.push({ v, line: block.replace(/\s+/g, " ").slice(-90) });
+  }
+
+  if (hits.length < 4)
+    return { skip: "only " + hits.length + " used listing(s) for this gun, need 4" };
+
+  /* TRIM THE TAILS. The top of a used list is collector pieces, special
+     editions and ones with glass on them; the bottom is damaged, parts
+     guns and youth models. Quarter to three-quarters is the ordinary
+     working gun somebody actually carries in. Min-to-max on the Mossberg
+     590 would have said $330-$850; the quarters say $400-$600. */
   const vals = hits.map((h) => h.v).sort((a, b) => a - b);
-  const lo = vals[0], hi = vals[vals.length - 1];
-  if (!(hi > lo)) return { skip: "high is not above low (" + lo + ", " + hi + ")" };
-  /* a range wider than 6x is not one gun, it is a page of mixed models */
-  if (hi / lo > 6) return { skip: "range $" + lo + "-$" + hi + " is too wide to be one model" };
-  return { lo: Math.round(lo), hi: Math.round(hi), from: hits.slice(0, 4).map((h) => h.line.slice(0, 110)) };
+  const at = (p) => { const i = (vals.length - 1) * p, lo = Math.floor(i), hi = Math.ceil(i);
+                      return vals[lo] + (vals[hi] - vals[lo]) * (i - lo); };
+  const lo = Math.round(at(0.25)), hi = Math.round(at(0.75));
+  if (!(hi > lo)) return { skip: "the middle half is a single price (" + lo + ") - too few to call a range" };
+  if (hi / lo > 4) return { skip: "even the middle half spans " + lo + "-" + hi + " - more than one model" };
+  return { lo, hi, n: hits.length, med: Math.round(at(0.5)),
+           from: hits.slice(0, 3).map((h) => h.line) };
 }
 
 /* ── run ──────────────────────────────────────────────────────────────── */
 const rows = book();
 const todo = LIMIT ? rows.slice(0, LIMIT) : rows;
-console.log(`${rows.length} gun models sourced to GunWatcher; reading ${todo.length}`);
+console.log(`${rows.length} gun models in the book; reading ${todo.length} off guns.com used`);
 console.log(`browser: ${HEADLESS ? "headless (trial only)" : "headed"}  gap: ${GAP_MIN / 1000}-${GAP_MAX / 1000}s\n`);
 
 /* A profile that persists between runs. Cloudflare treats a browser with a
@@ -225,6 +338,30 @@ try {
 const got = [], skipped = [];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+/* ── GO IN THE FRONT DOOR FIRST ───────────────────────────────────────
+   His own Chrome opens guns.com quite happily; the script got "Attention
+   Required! | Cloudflare" on the same address. The difference is not the
+   address, it is arriving cold. A browser that has never been to the site
+   and types a search URL straight into the bar is exactly the shape of a
+   scraper. So load the home page once, give the challenge the seconds it
+   needs to clear itself, and only then start asking for models. The
+   profile persists between runs, so after the first night this should
+   already be clear. */
+console.log("opening guns.com and letting it settle...");
+try {
+  const warm = await ctx.newPage();
+  await warm.goto("https://www.guns.com/", { waitUntil: "domcontentloaded", timeout: 60000 });
+  await warm.waitForTimeout(9000);
+  const t = await warm.evaluate(() => document.body.innerText);
+  console.log(WALL.test(t)
+    ? "  still showing a check. Carrying on anyway - it often clears on the next page.\n"
+    : "  in.\n");
+  await warm.close();
+  await sleep(3000);
+} catch (e) {
+  console.log("  could not open the home page (" + String(e.message).split("\n")[0].slice(0, 60) + "). Carrying on.\n");
+}
+
 for (let i = 0; i < todo.length; i++) {
   const row = todo[i];
   const page = await ctx.newPage();
@@ -238,115 +375,29 @@ for (let i = 0; i < todo.length; i++) {
     await page.waitForTimeout(2500);
     text = await page.evaluate(() => document.body.innerText);
   } catch (e) {
-    skipped.push({ ...row, why: "could not open the page (" + e.message.split("\n")[0].slice(0, 70) + ")" });
+    /* SAY IT ON THE SCREEN TOO, NOT ONLY IN THE LOG. A probe run whose page
+       would not open printed the two header lines and then exited quietly
+       with a zero, which looks exactly like a run that worked. */
+    const why = "could not open the page (" + e.message.split("\n")[0].slice(0, 70) + ")";
+    skipped.push({ ...row, why });
+    console.log(`  skip  ${row.key} ${row.name} — ${why}`);
+    if (PROBE) console.log("\n  " + row.url + "\n  Nothing was read and nothing was written.\n");
     await page.close();
     continue;
   }
 
   if (PROBE) {
-    /* TRY THE OTHER SOURCES TOO, in the same run, on his machine.
-       The first probe answered the question I asked and raised a better
-       one. GunWatcher's free figure is its own monthly MODEL value, not a
-       sale: the current month is behind a sign-in, what you can read is
-       last month, and the actual sold rows on the page numbered three,
-       all marked New, one of them five months old. That is not something
-       to price 77 rows off.
-       His worklist has always pointed at completed auctions instead,
-       which are real sales with real dates. They refuse a datacentre the
-       same way GunWatcher did, so the only way to find out which of them
-       open for an ordinary browser is to ask his. One double-click,
-       every candidate, and a summary short enough to paste back. */
-    const alt = [
-      ["GunBroker completed", "https://www.gunbroker.com/All/search?Keywords=" + encodeURIComponent(row.name) + "&Completed=1"],
-      ["GunBroker sold",      "https://www.gunbroker.com/All/search?Keywords=" + encodeURIComponent(row.name) + "&IncludeSellers=&Completed=1&Sold=1"],
-      ["Guns.com ended",      "https://www.guns.com/auctions/recently-ended?keyword=" + encodeURIComponent(row.name)],
-      ["Guns.com search",     "https://www.guns.com/search?keyword=" + encodeURIComponent(row.name)],
-      ["GunWatcher sold all", "https://gunwatcher.com/gun-value-sold-information/sold-data?itemName=" + encodeURIComponent(row.name).replace(/%20/g, "+")]
-    ];
-    /* ── GO IN THE FRONT DOOR ──────────────────────────────────────────
-       His own Chrome opens guns.com/search?keyword=... quite happily; the
-       script got "Attention Required! | Cloudflare" on the same address.
-       The difference is not the address, it is arriving cold. A browser
-       that has never been to the site, typing a search URL straight into
-       the bar, is exactly the shape of a scraper.
-
-       So do what he does: load the home page, let the challenge clear,
-       find their search box, type the gun, press Enter. That also answers
-       a second question no amount of guessing could - what URL their own
-       search actually produces, and whether it filters. The profile
-       persists between runs, so once this clears once it should stay
-       clear. */
-    console.log("\n  --- guns.com, through their own search box ---");
-    {
-      const gp = await ctx.newPage();
-      let landed = "", t = "", title = "", how = "";
-      try {
-        await gp.goto("https://www.guns.com/", { waitUntil: "domcontentloaded", timeout: 60000 });
-        /* a Cloudflare interstitial clears itself for a real browser, it
-           just needs to be given the seconds to do it */
-        await gp.waitForTimeout(9000);
-        const box = gp.locator('input[type="search"], input[name="keyword"], input[placeholder*="earch" i]').first();
-        if (await box.count()) {
-          await box.click({ timeout: 10000 });
-          await box.fill(row.name);
-          await box.press("Enter");
-          how = "typed it in their search box";
-          await gp.waitForLoadState("domcontentloaded", { timeout: 45000 }).catch(() => {});
-          await gp.waitForTimeout(7000);
-        } else {
-          how = "COULD NOT FIND their search box - went to the URL instead";
-          await gp.goto("https://www.guns.com/search?keyword=" + encodeURIComponent(row.name),
-            { waitUntil: "domcontentloaded", timeout: 45000 });
-          await gp.waitForTimeout(7000);
-        }
-        landed = gp.url(); t = await gp.evaluate(() => document.body.innerText); title = await gp.title();
-      } catch (e) { title = "FAILED: " + e.message.split("\n")[0].slice(0, 60); }
-
-      const words = row.name.toLowerCase().replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter((w) => w.length > 2);
-      const ls = t.split("\n").map((x) => x.trim());
-      let beside = 0;
-      for (let i = 0; i < ls.length; i++) {
-        if (!/\$\s?[0-9]/.test(ls[i])) continue;
-        const blk = ls.slice(Math.max(0, i - 8), i + 1).join(" ").toLowerCase();
-        if (words.every((w) => blk.includes(w))) beside++;
-      }
-      console.log("  " + how);
-      console.log("  landed on   " + landed.slice(0, 110));
-      console.log("  title       " + title.slice(0, 74));
-      console.log("  chars       " + t.length + "   prices " + (t.match(/\$\s?[0-9][0-9,]*/g) || []).length);
-      console.log("  listings that are actually this gun: " + beside +
-        (WALL.test(t) ? "   (BOT WALL)" : beside >= 2 ? "   <-- the search WORKS" : "   <-- search ignored, same as before"));
-      if (t.length > 300) fs.writeFileSync(path.join(process.cwd(), "gun-probe-gunscom-search.txt"), t);
-      await gp.screenshot({ path: path.join(process.cwd(), "gun-probe-gunscom-search.png"), fullPage: false }).catch(() => {});
-      await gp.close();
-      await sleep(4000);
-    }
-
-    console.log("\n  --- the other places, same gun ---");
-    for (const [label, u] of alt) {
-      const ap = await ctx.newPage();
-      let t = "", title = "";
-      try {
-        await ap.goto(u, { waitUntil: "domcontentloaded", timeout: 45000 });
-        await ap.waitForTimeout(4000);
-        t = await ap.evaluate(() => document.body.innerText);
-        title = await ap.title();
-      } catch (e) { t = ""; title = "COULD NOT OPEN: " + e.message.split("\n")[0].slice(0, 50); }
-      const wall = WALL.test(t) || /sign ?in|log ?in|register/i.test(title);
-      const money = (t.match(/\$\s?[0-9][0-9,]*/g) || []).length;
-      const sold = /sold|ended|winning bid|completed/i.test(t);
-      console.log("  " + label.padEnd(20) +
-        " chars " + String(t.length).padEnd(7) +
-        " prices " + String(money).padEnd(5) +
-        (wall ? " LOGIN WALL" : sold ? " looks like sold data" : " no sold words"));
-      console.log("      " + title.slice(0, 74));
-      if (t.length > 300) {
-        fs.writeFileSync(path.join(process.cwd(), "gun-probe-" + label.replace(/[^a-z0-9]+/gi, "-").toLowerCase() + ".txt"), t);
-      }
-      await ap.close();
-      await sleep(3000 + Math.random() * 3000);
-    }
-    console.log("  --- end ---\n");
+    /* THE SOURCE HUNT IS OVER AND THIS IS NOT IT ANY MORE. The probe used
+       to open five candidates - GunBroker completed, GunBroker sold, the
+       Guns.com ended page, the Guns.com search page, GunWatcher's sold
+       data - because the question was which of them opens for an ordinary
+       browser. It got answered: GunBroker is Cloudflare both ways, the
+       ended page ignores the keyword and answered a Remington query with
+       Glocks, GunWatcher's free figure is one monthly model value, and
+       guns.com/used-guns filters properly. So the probe does one thing
+       now: open the address this reader actually uses, show every figure
+       it would take and the listing it would take it off, and write
+       nothing to the book. */
 
     const base = path.join(process.cwd(), "gun-probe-" + row.key);
     fs.writeFileSync(base + ".txt", text);
@@ -361,7 +412,7 @@ for (let i = 0; i < todo.length; i++) {
                          r.from.map((l) => "    " + l).join("\n"));
     console.log("  page text saved to " + base + ".txt");
     console.log("  screenshot saved to " + base + ".png");
-    console.log("\nNothing was written. Send those two files back and the reading rules get fixed to the real page.");
+    console.log("\nNothing was written. These are asking prices off a dealer's used stock, not sold prices.");
     await page.close();
     break;
   }
@@ -402,6 +453,15 @@ if (rate < 60) {
     "how prices go stale while still looking current.", "");
 }
 lines.push(`Read ${got.length} of ${todo.length}. Skipped ${skipped.length}.`, "");
+/* SAY WHAT KIND OF FIGURE THIS IS, AT THE TOP, EVERY TIME. The app draws
+   the line between a sold price, an asking price and a researched one
+   everywhere else; a file that moves 77 rows of the book cannot be the one
+   place that leaves it out. These are asks. Asks run high. */
+lines.push("These are ASKING PRICES, not sold prices: what Guns.com lists the same",
+  "used model at today, taken as the middle half of their listings. A large",
+  "national dealer's ask is a real signal and better than nothing on an aisle",
+  "where 76 rows carry no counted sale at all. It is still an ask, and asks",
+  "run high. Read it as a ceiling to lend under, not as what the gun fetched.", "");
 if (big.length) {
   lines.push("## Look at these first — moved 25% or more", "",
     "Not held back and not called wrong: a check that catches the absurd is a",
