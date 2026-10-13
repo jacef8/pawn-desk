@@ -288,6 +288,57 @@ console.log("\n  the whole page, untrimmed, as it came off his machine");
   ok(!!rx.skip, `  and nothing at all for a gun that is not on it — ${rx.skip || "ACCEPTED"}`);
 }
 
+/* ── THE 26 IT SKIPPED ON THE FIRST FULL RUN ─────────────────────────
+   51 of 77 came back. Most of the 26 were this file's fault and each one
+   below is a row of the book that was unreadable for a reason that had
+   nothing to do with Guns.com. */
+console.log("\n  the rows the first full run could not read");
+
+/* "CZ P-10" and "CZ 75" came back "no searchable words in the model name",
+   because every word in them is two letters or shorter and the filter
+   wanted three. Two whole rows lost to a length test. */
+{
+  const page = HEAD + [399, 420, 445, 470, 520].map((p) => listing("CZ P-10 C", p)).join("\n") + "\n";
+  const r1 = readPage(page, "CZ P-10");
+  ok(!r1.skip && r1.n === 5, `  CZ P-10 reads — ${r1.skip || r1.n + " listings"}`);
+  /* and two letters still has to be the WHOLE word. "CZ" must not match
+     "Czechoslovakian" or the middle of a part number, which is why the
+     short words go in on a boundary rather than as a substring. */
+  const czech = HEAD + [399, 420, 445, 470, 520].map((p) =>
+    listing("Czechoslovakian VZ58 10 round", p)).join("\n") + "\n";
+  const r2 = readPage(czech, "CZ P-10");
+  ok(!!r2.skip, `  and "Czechoslovakian ... 10 round" is not a CZ P-10 — ${r2.skip || "ACCEPTED"}`);
+}
+
+/* "1911 (Rock Island, Tisas, Springfield Mil-Spec)" demanded rock AND
+   island AND tisas AND springfield AND mil AND spec beside one price.
+   Nothing matches that. It is searched as "1911 pistol", and that is what
+   the listing is matched against now - minus the word "pistol", because
+   no listing title says pistol, it says SPRINGFIELD 1911. */
+{
+  const page = HEAD + [520, 575, 620, 680, 750].map((p) =>
+    listing("Springfield 1911 Mil-Spec", p)).join("\n") + "\n";
+  const r = readPage(page, "1911 pistol");
+  ok(!r.skip && r.n === 5, `  1911 reads off Springfield listings — ${r.skip || r.n + " listings"}`);
+  /* THE GENERIC WORD IS DROPPED, NOT IGNORED EVERYWHERE. A search term
+     that is NOTHING but a generic word has nothing left to match on and
+     must refuse rather than match every gun on the page. */
+  const anything = readPage(page, "pistol");
+  ok(!!anything.skip && /no searchable words/.test(anything.skip),
+     `  and a search for just "pistol" matches nothing — ${anything.skip || "ACCEPTED, and it would match every gun on every page"}`);
+}
+
+/* "Hi-Point C9 - the middle half is a single price (110) - too few to call
+   a range". It was not too few. Eleven dealers listing the same cheap gun
+   at the same price is an unusually CLEAR answer, and it was thrown away
+   for being tidy. */
+{
+  const page = HEAD + [110, 110, 110, 110, 110].map((p) => listing("Hi-Point C9", p)).join("\n") + "\n";
+  const r = readPage(page, "Hi-Point C9");
+  ok(!r.skip && r.lo === r.hi && r.n === 5,
+     `  five dealers at one price is a range — ${r.skip || "$" + r.lo + "-$" + r.hi}`);
+}
+
 console.log("\n  and it does read a good page");
 r = readPage(goodPage("Remington 870 Express"), "Remington 870 Express");
 ok(!r.skip && r.n === 6, `  six used asks read as six — ${r.skip || r.n}`);

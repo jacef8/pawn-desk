@@ -193,8 +193,34 @@ function readPage(text, model) {
   if (WALL.test(text)) return { skip: "a bot wall or login page, not the listings" };
   if (/loading\.\.\./i.test(text) && text.length < 2500) return { skip: "page never finished loading" };
 
-  const words = model.toLowerCase().replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter((w) => w.length > 2);
+  /* WHICH WORDS HAVE TO BE BESIDE THE PRICE. Three things went wrong here
+     on the first full run, 26 of 77 skipped and most of them mine:
+
+     1. Words shorter than three letters were thrown away, so "CZ P-10"
+        and "CZ 75" had NOTHING left to match on and came back "no
+        searchable words in the model name". Two whole rows of the book
+        unreadable because of a length test. Two letters is plenty when
+        it has to sit on a word boundary: \bcz\b does not match "czech"
+        and it does not match the middle of anything else.
+
+     2. The generic word in a search term was being demanded of the
+        listing. "AR-15, entry-level" is searched as "AR-15 rifle" and
+        "1911 (Rock Island, Tisas, Springfield Mil-Spec)" as "1911
+        pistol", because a search box wants a product name. But no
+        listing title says "pistol" - it says SPRINGFIELD 1911. So the
+        word that helps the SEARCH is dropped from what the LISTING must
+        say.
+
+     3. And the whole book name was being demanded rather than the search
+        term. "1911 (Rock Island, Tisas, Springfield Mil-Spec)" asked for
+        rock AND island AND tisas AND springfield AND mil AND spec, all
+        beside one price. Nothing on earth matches that. Fixed at the call
+        site, which now passes what was actually searched for. */
+  const GENERIC = /^(pistol|pistols|rifle|rifles|revolver|revolvers|shotgun|shotguns|gun|guns|handgun|handguns|carbine|firearm)$/;
+  const words = model.toLowerCase().replace(/[^a-z0-9 ]/g, " ").split(/\s+/)
+    .filter((w) => w.length >= 2 && !GENERIC.test(w));
   if (!words.length) return { skip: "no searchable words in the model name" };
+  const wordRe = words.map((w) => new RegExp("\\b" + w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b"));
 
   const lines = text.split("\n").map((x) => x.trim()).filter(Boolean);
   const hits = [];
@@ -257,7 +283,7 @@ function readPage(text, model) {
        LISTING. The Guns.com ended-auctions page is headed "REMINGTON 870
        EXPRESS 15450 RESULTS" and lists Glocks. The words have to be in
        THIS block, beside THIS price. */
-    if (!words.every((w) => low.includes(w))) continue;
+    if (!wordRe.every((re) => re.test(low))) continue;
     /* USED ONLY - the same search returns new stock beside the used, and a
        new price is a ceiling, not a comp.
 
@@ -288,7 +314,11 @@ function readPage(text, model) {
   const at = (p) => { const i = (vals.length - 1) * p, lo = Math.floor(i), hi = Math.ceil(i);
                       return vals[lo] + (vals[hi] - vals[lo]) * (i - lo); };
   const lo = Math.round(at(0.25)), hi = Math.round(at(0.75));
-  if (!(hi > lo)) return { skip: "the middle half is a single price (" + lo + ") - too few to call a range" };
+  /* A FLAT RANGE IS A RANGE. This used to be a skip, and it threw away
+     the Hi-Point C9: eleven dealers listing the same cheap gun at the
+     same $110 is not too few to call, it is an unusually clear answer.
+     The four-listing floor above is what guards against calling a range
+     off nothing. */
   if (hi / lo > 4) return { skip: "even the middle half spans " + lo + "-" + hi + " - more than one model" };
   return { lo, hi, n: hits.length, med: Math.round(at(0.5)),
            from: hits.slice(0, 3).map((h) => h.line) };
@@ -301,7 +331,7 @@ const todo = LIMIT ? rows.slice(0, LIMIT) : rows;
    "sourced to GunWatcher" and went hunting five sites, which was the copy
    from before the repoint - the zip on his desktop was a day old and there
    was no way to tell by looking. Now there is. */
-const READER_BUILD = "1013.1545";
+const READER_BUILD = "1013.1640";
 console.log(`reader ${READER_BUILD}`);
 console.log(`${rows.length} gun models in the book; reading ${todo.length} off guns.com used`);
 console.log(`browser: ${HEADLESS ? "headless (trial only)" : "headed"}  gap: ${GAP_MIN / 1000}-${GAP_MAX / 1000}s\n`);
@@ -390,10 +420,18 @@ function waitForEnter(msg) {
 async function openAndClear(page, url, tries) {
   for (let a = 0; a <= (tries === undefined ? 2 : tries); a++) {
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
+    /* WAIT FOR THE LISTINGS, NOT FOR A NUMBER OF SECONDS. The first full
+       run came back with "only 0 used listing(s)" for a Glock 19, a
+       Mossberg 590 and a Benelli Nova - guns a national dealer always has
+       in stock, and two of them read fine by hand earlier the same day.
+       They were not missing, the page had not drawn them yet: a flat
+       2.5-second wait, 77 times, on a shop connection. Now it waits for
+       the thing it came for, which is a cart button or a results count,
+       and gives up after twenty seconds rather than guessing. */
     await page.waitForFunction(
-      () => !/Loading\.\.\./i.test(document.body.innerText) || document.body.innerText.length > 2500,
-      { timeout: 30000 }).catch(() => {});
-    await page.waitForTimeout(a === 0 ? 2500 : 9000);
+      () => /Add To Cart|\d+ RESULTS/i.test(document.body.innerText),
+      { timeout: 20000 }).catch(() => {});
+    await page.waitForTimeout(a === 0 ? 1800 : 9000);
     const t = await page.evaluate(() => document.body.innerText);
     if (!WALL.test(t)) return t;
     if (a === 0) continue;                 /* give it one quiet second go */
@@ -429,6 +467,20 @@ for (let i = 0; i < todo.length; i++) {
     /* same routine as the home page: load it, and if a challenge comes up
        mid-run, stop and ask rather than writing 76 empty rows */
     text = await openAndClear(page, row.url);
+    /* AND IF IT STILL LOOKS THIN, LOOK AGAIN BEFORE WRITING IT OFF. A gun
+       with nothing on the page and a gun whose page was still drawing look
+       identical from here, and one of those is worth another twelve
+       seconds. Only one retry, and only when the first read found too
+       little - a page that answered properly is not asked twice. */
+    const first = readPage(text, row.q);
+    if (first.skip && /only \d+ used listing/.test(first.skip)) {
+      await page.waitForTimeout(6000);
+      const again = await page.evaluate(() => document.body.innerText);
+      if (again.length > text.length) text = again;
+      if (readPage(text, row.q).skip) {
+        text = await openAndClear(page, row.url, 0);
+      }
+    }
   } catch (e) {
     /* SAY IT ON THE SCREEN TOO, NOT ONLY IN THE LOG. A probe run whose page
        would not open printed the two header lines and then exited quietly
@@ -457,7 +509,7 @@ for (let i = 0; i < todo.length; i++) {
     const base = path.join(process.cwd(), "gun-probe-" + row.key);
     fs.writeFileSync(base + ".txt", text);
     await page.screenshot({ path: base + ".png", fullPage: true }).catch(() => {});
-    const r = readPage(text, row.name);
+    const r = readPage(text, row.q);
     console.log("PROBE " + row.key + "  " + row.name);
     console.log("  url      " + row.url);
     console.log("  chars    " + text.length);
@@ -472,7 +524,7 @@ for (let i = 0; i < todo.length; i++) {
     break;
   }
 
-  const r = readPage(text, row.name);
+  const r = readPage(text, row.q);
   if (r.skip) { skipped.push({ ...row, why: r.skip }); console.log(`  skip  ${row.key} ${row.name} — ${r.skip}`); }
   else {
     const move = Math.round(((r.lo + r.hi) / 2 - (row.lo + row.hi) / 2) / ((row.lo + row.hi) / 2) * 100);
@@ -519,6 +571,13 @@ lines.push("These are ASKING PRICES, not sold prices: what Guns.com lists the sa
   "run high. Read it as a ceiling to lend under, not as what the gun fetched.", "");
 if (big.length) {
   lines.push("## Look at these first — moved 25% or more", "",
+    "ONE NAME, SEVERAL GUNS, is what most of these are. A row called",
+    "Remington 700 or Winchester Model 70 or Thompson/Center Encore is a",
+    "family, not a configuration: the same keyword pulls a plain synthetic",
+    "deer rifle and a Premier with wood and glass on it. The figure is not",
+    "wrong, it is the whole family, and the book's number is for an",
+    "ordinary used one. Treat a big mover as a row to look at by hand, not",
+    "a row to apply.", "",
     "Not held back and not called wrong: a check that catches the absurd is a",
     "smell, not a verdict. They are listed here so they get the first look in",
     "the morning preview.", "",
