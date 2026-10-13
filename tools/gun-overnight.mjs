@@ -297,6 +297,12 @@ function readPage(text, model) {
 /* ── run ──────────────────────────────────────────────────────────────── */
 const rows = book();
 const todo = LIMIT ? rows.slice(0, LIMIT) : rows;
+/* SAY WHICH COPY THIS IS, ON THE FIRST LINE. He ran a probe that printed
+   "sourced to GunWatcher" and went hunting five sites, which was the copy
+   from before the repoint - the zip on his desktop was a day old and there
+   was no way to tell by looking. Now there is. */
+const READER_BUILD = "1013.1545";
+console.log(`reader ${READER_BUILD}`);
 console.log(`${rows.length} gun models in the book; reading ${todo.length} off guns.com used`);
 console.log(`browser: ${HEADLESS ? "headless (trial only)" : "headed"}  gap: ${GAP_MIN / 1000}-${GAP_MAX / 1000}s\n`);
 
@@ -307,15 +313,35 @@ const profile = path.join(process.cwd(), ".gun-overnight-profile");
    the browser, say it in a sentence somebody can act on. Found by running
    this where there is no screen at all: it printed forty lines of
    Playwright internals and the word XServer. */
-let ctx;
-try {
-  ctx = await chromium.launchPersistentContext(profile, {
-  ...(process.env.PW_CHROME ? { executablePath: process.env.PW_CHROME } : {}),
+/* USE HIS OWN CHROME IF IT IS ON THE MACHINE. Playwright ships its own
+   Chromium, and on 13 Oct 2026 that browser was handed "Attention
+   Required! | Cloudflare" on guns.com from HIS computer - 685 characters,
+   nothing on the page - going in through their own search box, while the
+   Chrome sitting on the same desktop opens the same address fine. So it
+   is not the address and it is not the connection, it is the browser.
+   Playwright can drive the installed Chrome instead of its own, and that
+   is one fewer thing to tell apart. Falls back to the bundled one if
+   Chrome is not installed. */
+const LAUNCH = {
   headless: HEADLESS,
   viewport: { width: 1360, height: 900 },
-    locale: "en-US",
-    timezoneId: "America/New_York",
-  });
+  locale: "en-US",
+  timezoneId: "America/New_York",
+  args: ["--disable-blink-features=AutomationControlled"],
+};
+let ctx;
+try {
+  if (process.env.PW_CHROME) {
+    ctx = await chromium.launchPersistentContext(profile, { ...LAUNCH, executablePath: process.env.PW_CHROME });
+  } else {
+    try {
+      ctx = await chromium.launchPersistentContext(profile, { ...LAUNCH, channel: "chrome" });
+      console.log("using the Chrome already on this computer");
+    } catch {
+      ctx = await chromium.launchPersistentContext(profile, LAUNCH);
+      console.log("using the browser that came with Playwright (no Chrome found)");
+    }
+  }
 } catch (e) {
   const msg = String((e && e.message) || e);
   console.error("\nThe browser would not start.\n");
@@ -347,14 +373,47 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
    needs to clear itself, and only then start asking for models. The
    profile persists between runs, so after the first night this should
    already be clear. */
+/* AND IF THE CHECK IS STILL THERE, ASK HIM TO CLICK IT. This is the only
+   manual step in the whole run and it takes four seconds. A browser that
+   has cleared the challenge once keeps the cookie in the profile folder,
+   so the other 76 go unattended and the next night starts clear.
+   Grinding on regardless was the alternative, and that writes a file of
+   nothing while looking like it worked. */
+function waitForEnter(msg) {
+  return new Promise((done) => {
+    process.stdout.write(msg);
+    try { process.stdin.setRawMode(false); } catch {}
+    process.stdin.resume();
+    process.stdin.once("data", () => { process.stdin.pause(); done(); });
+  });
+}
+async function openAndClear(page, url, tries) {
+  for (let a = 0; a <= (tries === undefined ? 2 : tries); a++) {
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
+    await page.waitForFunction(
+      () => !/Loading\.\.\./i.test(document.body.innerText) || document.body.innerText.length > 2500,
+      { timeout: 30000 }).catch(() => {});
+    await page.waitForTimeout(a === 0 ? 2500 : 9000);
+    const t = await page.evaluate(() => document.body.innerText);
+    if (!WALL.test(t)) return t;
+    if (a === 0) continue;                 /* give it one quiet second go */
+    if (HEADLESS) return t;                /* nobody is there to click it */
+    await waitForEnter(
+      "\n  ------------------------------------------------------------\n" +
+      "  The site is asking whether you are a person.\n" +
+      "  Look at the browser window that opened. Tick the box.\n" +
+      "  Then come back here and press Enter.\n" +
+      "  ------------------------------------------------------------\n  ");
+  }
+  return await page.evaluate(() => document.body.innerText);
+}
+
 console.log("opening guns.com and letting it settle...");
 try {
   const warm = await ctx.newPage();
-  await warm.goto("https://www.guns.com/", { waitUntil: "domcontentloaded", timeout: 60000 });
-  await warm.waitForTimeout(9000);
-  const t = await warm.evaluate(() => document.body.innerText);
+  const t = await openAndClear(warm, "https://www.guns.com/");
   console.log(WALL.test(t)
-    ? "  still showing a check. Carrying on anyway - it often clears on the next page.\n"
+    ? "  still showing a check. Carrying on, and it will ask again if it has to.\n"
     : "  in.\n");
   await warm.close();
   await sleep(3000);
@@ -367,13 +426,9 @@ for (let i = 0; i < todo.length; i++) {
   const page = await ctx.newPage();
   let text = "";
   try {
-    await page.goto(row.url, { waitUntil: "domcontentloaded", timeout: 60000 });
-    /* wait for the loader to clear rather than a fixed sleep */
-    await page.waitForFunction(
-      () => !/Loading\.\.\./i.test(document.body.innerText) || document.body.innerText.length > 2500,
-      { timeout: 30000 }).catch(() => {});
-    await page.waitForTimeout(2500);
-    text = await page.evaluate(() => document.body.innerText);
+    /* same routine as the home page: load it, and if a challenge comes up
+       mid-run, stop and ask rather than writing 76 empty rows */
+    text = await openAndClear(page, row.url);
   } catch (e) {
     /* SAY IT ON THE SCREEN TOO, NOT ONLY IN THE LOG. A probe run whose page
        would not open printed the two header lines and then exited quietly
