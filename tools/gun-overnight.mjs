@@ -298,7 +298,16 @@ function readPage(text, model) {
     if (!/condition:?\s*used\b/i.test(block)) continue;
     /* an auction nobody bid on is the seller's ask, not a sale, and not
        even a dealer's asking price */
-    if (/starting bid|no bids|opening bid|reserve not met/i.test(low)) continue;
+    /* A LIVE AUCTION IS NOT A DEALER'S ASK AND IT IS NOT A SALE EITHER.
+       It used to be only the unbid lots that were dropped. The first full
+       run counted plenty of the other kind: "CURRENT BID (1) $425.00" on a
+       Mossberg 590, "CURRENT BID (72) $515.00" on a Glock 26, "CURRENT BID
+       (44) $1,475.00" on a Beretta 92. A lot with one bid is the starting
+       price wearing a different label, and a lot with seventy-two is a
+       bidding war two days from closing. Neither is what a dealer is
+       asking today, which is the one kind of figure this file collects.
+       Everything with a countdown comes out, bids or no bids. */
+    if (/starting bid|no bids|opening bid|reserve not met|current bid|winning bid|\bbid \/ buy\b|\d+d \d+h/i.test(low)) continue;
     hits.push({ v, line: block.replace(/\s+/g, " ").slice(-90) });
   }
 
@@ -320,7 +329,15 @@ function readPage(text, model) {
      The four-listing floor above is what guards against calling a range
      off nothing. */
   if (hi / lo > 4) return { skip: "even the middle half spans " + lo + "-" + hi + " - more than one model" };
-  return { lo, hi, n: hits.length, med: Math.round(at(0.5)),
+  /* AND BETWEEN TWO AND FOUR TIMES IS A FAMILY, NOT A PRICE. Remington 700
+     read $876-$2325, the 11-87 $701-$2500 off a Premier at $2,999, the
+     Model 70 $515-$1665. Those are honest figures for everything the
+     keyword catches and useless for the gun on the counter, because one
+     name covers a plain synthetic deer rifle and a wood-and-glass special.
+     They are reported, with the spread, and kept OUT of the CSV - a row
+     that needs a person's eye must not ride into the book with the rest. */
+  const wide = hi / lo > 2;
+  return { lo, hi, wide, n: hits.length, med: Math.round(at(0.5)),
            from: hits.slice(0, 3).map((h) => h.line) };
 }
 
@@ -331,7 +348,7 @@ const todo = LIMIT ? rows.slice(0, LIMIT) : rows;
    "sourced to GunWatcher" and went hunting five sites, which was the copy
    from before the repoint - the zip on his desktop was a day old and there
    was no way to tell by looking. Now there is. */
-const READER_BUILD = "1013.1640";
+const READER_BUILD = "1013.1725";
 console.log(`reader ${READER_BUILD}`);
 console.log(`${rows.length} gun models in the book; reading ${todo.length} off guns.com used`);
 console.log(`browser: ${HEADLESS ? "headless (trial only)" : "headed"}  gap: ${GAP_MIN / 1000}-${GAP_MAX / 1000}s\n`);
@@ -528,8 +545,9 @@ for (let i = 0; i < todo.length; i++) {
   if (r.skip) { skipped.push({ ...row, why: r.skip }); console.log(`  skip  ${row.key} ${row.name} — ${r.skip}`); }
   else {
     const move = Math.round(((r.lo + r.hi) / 2 - (row.lo + row.hi) / 2) / ((row.lo + row.hi) / 2) * 100);
-    got.push({ ...row, newLo: r.lo, newHi: r.hi, from: r.from, move });
-    console.log(`  read  ${row.key} ${row.name} — $${r.lo}-$${r.hi} (book $${row.lo}-$${row.hi}, ${move >= 0 ? "+" : ""}${move}%)`);
+    got.push({ ...row, newLo: r.lo, newHi: r.hi, from: r.from, move, n: r.n, wide: r.wide });
+    console.log(`  ${r.wide ? "WIDE" : "read"}  ${row.key} ${row.name} — $${r.lo}-$${r.hi} off ${r.n}` +
+      ` (book $${row.lo}-$${row.hi}, ${move >= 0 ? "+" : ""}${move}%)` + (r.wide ? "   <-- held back, more than one gun" : ""));
   }
   await page.close();
   if (i < todo.length - 1) await sleep(GAP_MIN + Math.random() * (GAP_MAX - GAP_MIN));
@@ -540,14 +558,17 @@ if (PROBE) process.exit(0);
 
 /* ── the CSV, in the shape Setup already reads ────────────────────────── */
 const q = (s) => /[",\n]/.test(String(s)) ? '"' + String(s).replace(/"/g, '""') + '"' : String(s);
+/* THE WIDE ONES DO NOT GO IN THE FILE HE LOADS. They are in the log, with
+   the spread and the listing count, where they get a person's eye. */
+const firm = got.filter((g) => !g.wide), held = got.filter((g) => g.wide);
 const csv = ["Key,Item,Your low,Your high"]
-  .concat(got.map((g) => [g.key, g.name, g.newLo, g.newHi].map(q).join(",")))
+  .concat(firm.map((g) => [g.key, g.name, g.newLo, g.newHi].map(q).join(",")))
   .join("\n") + "\n";
 fs.writeFileSync(out("csv"), csv);
 
 /* ── and the log, which is the part that stops a quiet failure ────────── */
 const rate = todo.length ? Math.round(got.length / todo.length * 100) : 0;
-const big = got.filter((g) => Math.abs(g.move) >= 25).sort((a, b) => Math.abs(b.move) - Math.abs(a.move));
+const big = firm.filter((g) => Math.abs(g.move) >= 25).sort((a, b) => Math.abs(b.move) - Math.abs(a.move));
 const lines = [];
 lines.push(`# Gun prices read ${today}`, "");
 if (rate < 60) {
@@ -559,7 +580,7 @@ if (rate < 60) {
     "below has been read — a short CSV applied as though it were a full one is",
     "how prices go stale while still looking current.", "");
 }
-lines.push(`Read ${got.length} of ${todo.length}. Skipped ${skipped.length}.`, "");
+lines.push(`Read ${got.length} of ${todo.length}. Skipped ${skipped.length}. In the CSV: ${firm.length}.`, "");
 /* SAY WHAT KIND OF FIGURE THIS IS, AT THE TOP, EVERY TIME. The app draws
    the line between a sold price, an asking price and a researched one
    everywhere else; a file that moves 77 rows of the book cannot be the one
@@ -585,8 +606,23 @@ if (big.length) {
   big.forEach((g) => lines.push(`| ${g.key} | ${g.name} | $${g.lo}-$${g.hi} | $${g.newLo}-$${g.newHi} | ${g.move >= 0 ? "+" : ""}${g.move}% |`));
   lines.push("");
 }
-lines.push("## Everything read", "", "| key | model | book | read | move | off which line |", "|---|---|---|---|---|---|");
-got.forEach((g) => lines.push(`| ${g.key} | ${g.name} | $${g.lo}-$${g.hi} | $${g.newLo}-$${g.newHi} | ${g.move >= 0 ? "+" : ""}${g.move}% | ${(g.from[0] || "").replace(/\|/g, "/")} |`));
+if (held.length) {
+  lines.push("## Held back — one name, more than one gun", "",
+    "These read a range wider than two to one, which no single used gun has.",
+    "A Remington 700 is a plain synthetic deer rifle and it is also a heavy",
+    "barrel with wood and glass on it, and the keyword catches both. The",
+    "figures below are honest about everything the search found and no use",
+    "for the gun on the counter, so they are NOT in the CSV and nothing will",
+    "move them. Look at them by hand, or split the row in the book.", "",
+    "| key | model | book | read | off how many | spread |", "|---|---|---|---|---|---|");
+  held.forEach((g) => lines.push(`| ${g.key} | ${g.name} | $${g.lo}-$${g.hi} | $${g.newLo}-$${g.newHi} | ${g.n} | ${(g.newHi / g.newLo).toFixed(1)}x |`));
+  lines.push("");
+}
+/* HOW MANY LISTINGS IT CAME OFF IS PART OF THE FIGURE. Four dealers and
+   twenty-four dealers are not the same evidence and the log used to show
+   neither. */
+lines.push("## Everything read", "", "| key | model | book | read | off how many | move | off which line |", "|---|---|---|---|---|---|---|");
+got.forEach((g) => lines.push(`| ${g.key} | ${g.name} | $${g.lo}-$${g.hi} | $${g.newLo}-$${g.newHi} | ${g.n} | ${g.move >= 0 ? "+" : ""}${g.move}% | ${(g.from[0] || "").replace(/\|/g, "/")} |`));
 lines.push("");
 if (skipped.length) {
   lines.push("## Skipped, and why", "", "| key | model | why |", "|---|---|---|");

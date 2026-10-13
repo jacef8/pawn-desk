@@ -150,12 +150,28 @@ console.log("\n  an unsold lot is not a price");
 {
   const unsold = HEAD + SIX.map((p) => listing("Remington 870 Express", p,
     {auction: true, bid: "STARTING BID (NO BIDS)"})).join("\n") + "\n";
-  /* and the proof that this fixture is readable when somebody DID bid, so
-     the only thing refusing it above is the no-bids rule */
-  const sold = HEAD + SIX.map((p) => listing("Remington 870 Express", p,
-    {auction: true, bid: "WINNING BID (14)"})).join("\n") + "\n";
-  const rs = readPage(sold, "Remington 870 Express");
-  ok(!rs.skip && rs.n === 6, `  the same six lots WITH bids read fine — ${rs.skip || rs.n}`);
+  /* THIS ASSERTION TURNED AROUND, AND IT WAS RIGHT BOTH TIMES. It used to
+     demand that the same six lots WITH bids read fine, which proved the
+     no-bids rule was the only thing refusing the unbid ones. Then the
+     first full run showed what that let in: "CURRENT BID (1) $425.00" on a
+     Mossberg 590, "CURRENT BID (72) $515.00" on a Glock 26, "CURRENT BID
+     (44) $1,475.00" on a Beretta 92. One bid is the starting price wearing
+     a different label and seventy-two is a bidding war two days from
+     closing. This file collects what a dealer is asking today, and a lot
+     with a countdown on it is not that. So the rule widened and the test
+     turned over with it: everything with a bid count comes out now. The
+     unbid case above is still refused, and still for its own reason. */
+  const bid = HEAD + SIX.map((p) => listing("Remington 870 Express", p,
+    {auction: true, bid: "CURRENT BID (14)"})).join("\n") + "\n";
+  const rs = readPage(bid, "Remington 870 Express");
+  ok(!!rs.skip, `  a live auction part way through is refused too — ${rs.skip || "ACCEPTED at " + rs.n}`);
+  /* and the buy-it-now listings on the same page still read, so what has
+     been cut is the auctions and not the page */
+  const mix = HEAD
+    + SIX.map((p) => listing("Remington 870 Express", p)).join("\n") + "\n"
+    + [900, 950].map((p) => listing("Remington 870 Express", p, {auction: true, bid: "CURRENT BID (9)"})).join("\n") + "\n";
+  const rmix = readPage(mix, "Remington 870 Express");
+  ok(!rmix.skip && rmix.n === 6, `  and a page of six asks plus two auctions counts the six — ${rmix.skip || rmix.n}`);
   const ru = readPage(unsold, "Remington 870 Express");
   ok(!!ru.skip, `  a closed lot nobody bid on is refused — ${ru.skip || "ACCEPTED, and an unsold ask became a comp"}`);
 }
@@ -337,6 +353,26 @@ console.log("\n  the rows the first full run could not read");
   const r = readPage(page, "Hi-Point C9");
   ok(!r.skip && r.lo === r.hi && r.n === 5,
      `  five dealers at one price is a range — ${r.skip || "$" + r.lo + "-$" + r.hi}`);
+}
+
+/* ── ONE NAME, MORE THAN ONE GUN ─────────────────────────────────────
+   Remington 700 read $876-$2325 on the first full run and went straight
+   into the CSV. Honest about everything the keyword caught, useless for
+   the gun on the counter. Anything wider than two to one is marked and
+   kept out of the file he loads. */
+console.log("\n  a family is not a price");
+{
+  const family = HEAD + [480, 520, 700, 1400, 2200, 2400].map((p) =>
+    listing("Remington 700", p)).join("\n") + "\n";
+  const rf = readPage(family, "Remington 700");
+  ok(!rf.skip, `  it still reads — ${rf.skip || "$" + rf.lo + "-$" + rf.hi}`);
+  ok(rf.wide === true, `  and is marked as more than one gun — ${rf.wide}`);
+  /* THE ORDINARY ROW MUST NOT BE MARKED, or the flag means nothing and
+     everything ends up held back. The 870 page spans $355-$430. */
+  const ok870 = readPage(goodPage("Remington 870 Express"), "Remington 870 Express");
+  ok(ok870.wide === false, `  while a normal row is not — ${ok870.wide}`);
+  const realA1 = readPage(fs.readFileSync("tools/fixtures/gunscom-used-870.txt", "utf8"), "Remington 870 Express");
+  ok(realA1.wide === false, `  and nor is the real page, $${realA1.lo}-$${realA1.hi}`);
 }
 
 console.log("\n  and it does read a good page");
