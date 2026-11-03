@@ -48,7 +48,7 @@ for (const m of [process.env.PW_MODULE, "playwright",
 ].filter(Boolean)) { try { ({chromium} = req(m)); break; } catch (e) {} }
 if (!chromium) { console.error("playwright not found - set PW_MODULE."); process.exit(2); }
 const BASE = process.env.PD_BASE || "http://127.0.0.1:8099";
-const EXE = process.env.PW_CHROME || "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
+const EXE = process.env.PW_CHROME || "/opt/pw-browsers/chromium-1243/chrome-linux64/chrome";
 let fails = 0;
 const ok = (c, m) => { console.log((c ? "  ok    " : "  FAIL  ") + m); if (!c) fails++; };
 

@@ -29,7 +29,7 @@ worst kind of failure, because everything looks fine from here.
     node tools/check-ask.mjs            # ~15s
 
 They need the server on 8099 and Chromium at
-`/opt/pw-browsers/chromium-1194/chrome-linux/chrome`. Several take over a
+`/opt/pw-browsers/chromium-1243/chrome-linux64/chrome`. Several take over a
 minute; run them in the background rather than chaining sleeps.
 
 **Then:** commit to the feature branch, push it, and publish by

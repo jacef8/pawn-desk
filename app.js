@@ -6749,8 +6749,38 @@ async function harvRun(ref,count){
     const t=todo[i];
     harvNow=`${i+1} of ${todo.length} — ${t.name}`;
     const el=document.getElementById("harvNow"); if(el)el.textContent=harvNow; else render();
-    let comps=[];
+    let comps=[], from="";
+    /* ASK THE SERVICE FOR REAL SOLD PRICES BEFORE PAYING A MODEL TO SEARCH.
+       This loop has always gone straight to Claude with web search, two
+       passes a target, and taken whatever came back - the first pass even
+       ASKS for "completed, sold eBay listings", which is a search engine
+       being asked for sold data it cannot see. Every figure it has ever
+       produced is an asking price wearing the word sold, and the day a
+       model was handed an eBay login wall it invented a Ruger LCP at $350.
+
+       Meanwhile /ebay now answers with SoldComps, which is bought and paid
+       for and returns what things actually SOLD for. /limits says
+       soldSource "soldcomps" and sold true. It costs no Anthropic money at
+       all, so it is both the cheaper call and the better evidence, and it
+       was sitting unused while this spent a dollar a dozen rows.
+
+       So it goes first. The searches below stay, for everything eBay has
+       no sold record of, and what came from where is written on the row. */
+    if(!harvBlind(t.ref)){
+      try{
+        const j=await pdEbayComps(t.name);
+        const sold=j&&j.basis==="sold";
+        const got=((j&&j.comps)||[]).map(c=>({price:Math.round(Number(c.price)||0),
+          where:EBAY_SOURCE_NAME[String(j.source||"")]||"eBay",
+          basis:sold?"sold":"asking"})).filter(c=>c.price>0);
+        /* FOUR, THE SAME FLOOR THE GUN READER USES. Three sales is not a
+           market, and the band below cuts the top and bottom quarter off
+           whatever it is given - on two listings that is both of them. */
+        if(got.length>=4&&sold){ comps=got; from=got[0].where; }
+      }catch(e){}
+    }
     for(const p of [pass1,pass2]){
+      if(comps.length>=4)break;
       if(harvStop)break;
       try{ const d=await CAP.sample.json(findPrompt(t.name,p),{search:true});
            comps=comps.concat(((d&&d.comps)||[]).filter(c=>c&&Number(c.price)>0)); }
@@ -6771,7 +6801,12 @@ async function harvRun(ref,count){
         lo:at(0.25),hi:at(0.75),med:at(0.5),
         conf:(ps.length>=6&&share>=0.6)?"h":(ps.length>=4?"m":"l"),
         date:todayStr(),wild:!!(w&&w.wild),ratio:w?w.ratio:null,book:w?w.book:null,
-        note:`${ps.length} listings, ${sold} sold${share<0.5?" - mostly asks":""}`};
+        from:from||"",
+        /* SAY WHICH KIND OF NUMBER IT IS, ON THE ROW. "8 listings, 8 sold"
+           read the same whether the sales were counted by SoldComps or
+           guessed at by a search, and those are not the same evidence. */
+        note:from?`${ps.length} sold prices from ${from}`
+                 :`${ps.length} listings, ${sold} sold${share<0.5?" - mostly asks":""}`};
       /* These used to be filed as ordinary listings. A device keeps 3,000 of
          those and the shared store 5,000, and 610 models at eight or ten
          listings apiece is six thousand - so the back half of a full run
@@ -6784,6 +6819,14 @@ async function harvRun(ref,count){
   harvBusy=false; harvNow=""; harvWake(false); render();
   try{ pdSync(); }catch(e){}
 }
+/* THE AISLES eBay CANNOT PRICE, by item rather than by category, because
+   the harvest's targets carry an item id and not a category one. Firearms
+   and anything on wheels: eBay sells neither, so a search returns holsters
+   and trailer couplings and the median of that is a number with nothing
+   behind it. EBAY_CANNOT has said so the whole time; the harvest had never
+   read it. */
+const HARV_BLIND=new Set(["g1","g2","g3","g4","g5","g6","g7","g8","g9","g10","r1","r2"]);
+function harvBlind(ref){ return HARV_BLIND.has(String(ref||"")); }
 function todayStr(){ const d=new Date(), p=n=>String(n).padStart(2,"0");
   return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate()); }
 /* The file the site serves, with everything harvested folded in. Downloaded
@@ -12196,7 +12239,7 @@ function say(msg,kind){
       String(msg||"").length>54?4600:3000);
   }catch(e){}
 }
-const APP_BUILD="1013.1119";
+const APP_BUILD="1103.0210";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

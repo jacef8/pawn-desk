@@ -20,7 +20,7 @@ for (const m of tries.filter(Boolean)) { try { ({chromium} = req(m)); break; } c
 if (!chromium) { console.error("playwright not found - set PW_MODULE."); process.exit(2); }
 
 const BASE = process.env.PD_BASE || "http://127.0.0.1:8099";
-const EXE  = process.env.PW_CHROME || "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
+const EXE  = process.env.PW_CHROME || "/opt/pw-browsers/chromium-1243/chrome-linux64/chrome";
 const b = await chromium.launch({executablePath: EXE});
 const p = await b.newPage();
 await p.goto(BASE + "/index.html", {waitUntil: "networkidle"});

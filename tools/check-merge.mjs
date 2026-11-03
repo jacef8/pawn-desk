@@ -520,12 +520,24 @@ console.log("\n  the harvest lives inside an allowance, and prices by shelf");
   ok(/dueForEvent/.test(harv) && /age >= 21/.test(harv),
      "  a month before the event, but not from cold - last week's price is still last week's");
 
-  /* the state file must survive a round trip with the ledger in it */
-  const st = JSON.parse(readFileSync(join(ROOT, "tools/harvest.json"), "utf8"));
-  ok(st.found && Object.keys(st.found).length > 100,
-     "the state file still carries its findings — " + Object.keys(st.found || {}).length + " rows");
-  ok(st.spend && typeof st.spend === "object",
-     "  and the spend ledger beside them");
+  /* the state file must survive a round trip with the ledger in it.
+     IT IS NOT IN THE REPOSITORY. tools/harvest.json is the local ledger and
+     .gitignore line 2 keeps it out, so in a fresh clone this threw ENOENT
+     and took the whole suite down with it - 3 Nov, on a clone that had
+     never run a harvest. The assertions below are real and stay; what
+     changes is that their absence is reported as a skip rather than as a
+     crash, because a suite that cannot run in a clean checkout is a suite
+     nobody runs. */
+  let st = null;
+  try { st = JSON.parse(readFileSync(join(ROOT, "tools/harvest.json"), "utf8")); } catch (e) {}
+  if (!st) {
+    console.log("  skip    no tools/harvest.json in this clone — the round trip is untested here");
+  } else {
+    ok(st.found && Object.keys(st.found).length > 100,
+       "the state file still carries its findings — " + Object.keys(st.found || {}).length + " rows");
+    ok(st.spend && typeof st.spend === "object",
+       "  and the spend ledger beside them");
+  }
 
   /* the bug that hid itself: spend assigned before it was declared, the
      assignment threw, and the catch ate it - found loaded, spend did not */

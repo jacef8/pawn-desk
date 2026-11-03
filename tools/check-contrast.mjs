@@ -29,7 +29,7 @@ for (const m of tries.filter(Boolean)) { try { ({chromium} = req(m)); break; } c
 if (!chromium) { console.error("playwright not found"); process.exit(2); }
 
 const BASE = process.env.PD_BASE || "http://127.0.0.1:8099";
-const EXE  = process.env.PW_CHROME || "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
+const EXE  = process.env.PW_CHROME || "/opt/pw-browsers/chromium-1243/chrome-linux64/chrome";
 
 /* [what it is, ink token, the stack it sits on (nearest first), minimum].
    4.5 for body copy, 3.0 for large text (24px+ or 19px bold) and for the

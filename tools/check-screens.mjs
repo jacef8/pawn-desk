@@ -36,7 +36,7 @@ if (!chromium) {
 }
 
 const BASE = process.env.PD_BASE || "http://127.0.0.1:8099";
-const EXE  = process.env.PW_CHROME || "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
+const EXE  = process.env.PW_CHROME || "/opt/pw-browsers/chromium-1243/chrome-linux64/chrome";
 /* Loose on purpose: a phrase each screen cannot render without. */
 const WANT = {
   /* "try stihl" was the desk's prose hint. The desk lists its worked

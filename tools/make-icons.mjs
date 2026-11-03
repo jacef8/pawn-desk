@@ -32,7 +32,7 @@ for (const m of [process.env.PW_MODULE, "playwright",
   try { ({chromium} = req(m)); break; } catch (e) {}
 }
 if (!chromium) { console.error("playwright not found - install it, or point PW_MODULE at it."); process.exit(2); }
-const EXE = process.env.PW_CHROME || "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
+const EXE = process.env.PW_CHROME || "/opt/pw-browsers/chromium-1243/chrome-linux64/chrome";
 
 /* The tag. One closed path, no strokes, no gradient stops doing work the
    shape should do - at 16px a stroke is a suggestion and a fill is a fact.
