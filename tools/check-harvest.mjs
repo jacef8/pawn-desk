@@ -179,6 +179,47 @@ console.log("\n  the query it sends is the model, not the whole row");
   ok(/DeWalt DCCS670/.test(body), `  sent "DeWalt DCCS670" — ${body.slice(0, 70)}`);
 }
 
+console.log("\n  a band too wide to be one machine never reaches the file");
+{
+  /* THE TWO OFF THE FIRST REAL RUN. Echo CS-310 $18-$126 off five sales,
+     Husqvarna 562 XP $30-$400 off six. A 562 XP is a nine-hundred-dollar
+     professional saw and $30 is a seized one sold for the bar. The low end
+     is what sets the loan, so an $18 floor on a chainsaw is money out of
+     the till. */
+  const r = await page.evaluate(async () => {
+    const realSeed = window.harvLoadSeed, realFetch = window.fetch, realSample = CAP.sample;
+    window.fetch = (...a) => String(a[0]).includes("/ebay") ? Promise.reject(new Error("no")) : realFetch(...a);
+    CAP.sample = {json: async () => ({comps: [18, 40, 95, 110, 126].map((p) => ({price: p, where: "a search", basis: "sold"}))})};
+    window.harvLoadSeed = async () => [{ref: "p1", name: "Echo CS-310", alias: ""}];
+    HARV = {}; harvSave();
+    await harvRun("", 1);
+    const row = Object.values(harvAll())[0];
+    const f = harvFile();
+    const inFile = JSON.parse(f.json).rows.some((x) => x[2] === "Echo CS-310" && x[3] < 60);
+    window.harvLoadSeed = realSeed; window.fetch = realFetch; CAP.sample = realSample;
+    HARV = {}; harvSave();
+    return {lo: row.lo, hi: row.hi, wide: row.wide, held: f.held, inFile};
+  });
+  ok(r.wide === true, `  $${r.lo}-$${r.hi} is marked as more than one machine — ${r.wide}`);
+  ok(r.held >= 1, `  and counted as held back — ${r.held}`);
+  ok(r.inFile === false, `  and is NOT in the file that would be saved — ${r.inFile}`);
+}
+
+console.log("\n  the file it saves is never shorter than the book it replaces");
+{
+  /* 2 Nov: the download came back with 511 rows against the live 519 and
+     quietly dropped the PlayStation 5, two laptops and both Switches. The
+     desk was holding a prices.json from before those rows landed. */
+  const r = await page.evaluate(() => {
+    const live = MODEL_PRICES.concat([["zz1", "p1", "A row this tab has never seen", 10, 20, "m", "2026-11-03", "", "", ""]]);
+    const onLive = harvFile(live), onStale = harvFile(null);
+    return {live: onLive.total, stale: onStale.total, started: onLive.started, shortFlag: onLive.short};
+  });
+  ok(r.live === r.stale + 1, `  a fresh list with one more row makes a file with one more row — ${r.stale} then ${r.live}`);
+  ok(r.shortFlag === false, `  and is not flagged short — ${r.shortFlag}`);
+  ok(typeof r.started === "number" && r.started > 400, `  it records what it started from — ${r.started}`);
+}
+
 ok(errs.length === 0, `  no page errors — ${errs.slice(0, 2).join(" | ") || "none"}`);
 await browser.close();
 console.log(fails ? `\n  ${fails} FAILED\n` : "\n  all passed\n");

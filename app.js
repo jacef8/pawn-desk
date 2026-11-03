@@ -6796,11 +6796,22 @@ async function harvRun(ref,count){
       done[harvKey(t)]={ts:Date.now(),ref:t.ref,name:t.name,n:ps.length,date:todayStr(),note:"nothing usable"};
     }else{
       const sold=uniq.filter(c=>c.basis==="sold").length, share=sold/ps.length;
+      /* ONE NAME, MORE THAN ONE THING - and on a used tool that usually
+         means a parts machine got into the sample. The first real sold
+         run, 2 Nov, came back with an Echo CS-310 at $18-$126 off five
+         sales and a Husqvarna 562 XP at $30-$400 off six. A 562 XP is a
+         nine-hundred-dollar professional saw; $30 is somebody selling a
+         seized one for the bar. Both would have gone into the book, and
+         it is the LOW end that sets what gets lent, so an $18 floor on a
+         chainsaw is money straight out of the till.
+         Wider than two to one is held back and reported, never applied,
+         the same rule tools/sold-pass.mjs uses. */
+      const wide=at(0.25)>0&&at(0.75)/at(0.25)>2;
       const w=harvWild(t.ref,at(0.5));
       done[harvKey(t)]={ts:Date.now(),ref:t.ref,name:t.name,alias:t.alias||"",n:ps.length,sold,
         lo:at(0.25),hi:at(0.75),med:at(0.5),
         conf:(ps.length>=6&&share>=0.6)?"h":(ps.length>=4?"m":"l"),
-        date:todayStr(),wild:!!(w&&w.wild),ratio:w?w.ratio:null,book:w?w.book:null,
+        date:todayStr(),wild:!!(w&&w.wild),wide,ratio:w?w.ratio:null,book:w?w.book:null,
         from:from||"",
         /* SAY WHICH KIND OF NUMBER IT IS, ON THE ROW. "8 listings, 8 sold"
            read the same whether the sales were counted by SoldComps or
@@ -6849,14 +6860,35 @@ function todayStr(){ const d=new Date(), p=n=>String(n).padStart(2,"0");
 /* The file the site serves, with everything harvested folded in. Downloaded
    rather than written, because a web page cannot commit to the repository -
    this is the one step that still needs a person. */
-function harvFile(){
-  const rows=MODEL_PRICES.map(r=>r.slice());
+/* THE FILE IT WRITES MUST NOT BE SHORTER THAN THE BOOK IT REPLACES.
+   2 Nov: the download came back with 511 rows against the live 519, and
+   the twelve it quietly dropped included the PlayStation 5, two laptops
+   and both Switches. Nothing was wrong with the harvest - the desk had a
+   prices.json from before those rows landed still sitting in its cache,
+   built the file off that, and the save would have deleted them.
+   So the file is built on a FRESH prices.json rather than on whatever
+   this tab happens to be holding, and if the result comes out shorter
+   than the live list it is refused and says why. A download that silently
+   loses twelve rows is the worst shape this can fail in, because it looks
+   like a successful save. */
+async function harvLive(){
+  try{
+    const r=await fetch("prices.json",{cache:"no-store"});
+    if(!r.ok)return null;
+    const j=await r.json();
+    return mpOk(j&&j.rows)?j.rows:null;
+  }catch(e){ return null; }
+}
+function harvFile(live){
+  const base=(live&&live.length>=MODEL_PRICES.length)?live:MODEL_PRICES;
+  const rows=base.map(r=>r.slice());
+  const started=rows.length;
   const byName=new Map(rows.map((r,i)=>[String(r[1])+"|"+String(r[2]).toLowerCase(),i]));
   let n=0, added=0, updated=0, held=0, thin=0;
   const nextId=()=>{ let id; do{ id="h"+(++n); }while(rows.some(r=>r[0]===id)); return id; };
   for(const f of Object.values(harvAll())){
     if(!f||!f.n||f.n<4||!(f.lo>0)||!(f.hi>=f.lo)){ thin++; continue; }
-    if(f.wild){ held++; continue; }
+    if(f.wild||f.wide){ held++; continue; }
     const row=[null,f.ref,f.name,Math.round(f.lo),Math.round(f.hi),f.conf,f.date,
       "https://www.ebay.com/sch/i.html?_nkw="+encodeURIComponent(f.name)+"&LH_Sold=1&LH_Complete=1",
       f.note,f.alias||""];
@@ -6866,10 +6898,22 @@ function harvFile(){
   }
   return {json:JSON.stringify({updated:todayStr(),
     note:"Resale price list. Refreshed by the weekly task; app.js carries the same rows as a fallback.",
-    rows}),added,updated,held,thin,total:rows.length};
+    rows}),added,updated,held,thin,total:rows.length,started,
+    short:rows.length<started};
 }
-function harvDownload(){
-  const f=harvFile();
+async function harvDownload(){
+  const live=await harvLive();
+  const f=harvFile(live);
+  if(!live){
+    st.harvErr="Couldn\u2019t check the live price list, so this was not saved. "+
+      "Reload the page and try again \u2014 saving a short file deletes rows.";
+    render(); return;
+  }
+  if(f.short){
+    st.harvErr="That file would have had "+f.total+" rows against the live "+f.started+
+      ". Not saved. Reload the page first.";
+    render(); return;
+  }
   try{
     const b=new Blob([f.json],{type:"application/json"});
     const a=document.createElement("a");
@@ -12256,7 +12300,7 @@ function say(msg,kind){
       String(msg||"").length>54?4600:3000);
   }catch(e){}
 }
-const APP_BUILD="1103.0340";
+const APP_BUILD="1103.0425";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{
