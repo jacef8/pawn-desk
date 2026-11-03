@@ -6709,6 +6709,53 @@ async function harvLoadSeed(){
   return harvSeed;
 }
 const harvKey=t=>t.ref+"|"+t.name;
+/* WHICH TWENTY-FIVE, AND WHY THAT TWENTY-FIVE.
+   It went down the list alphabetically, which meant the first run anybody
+   ever pressed spent all 25 lookups on chainsaws: Craftsman S165, DeWalt
+   DCCS670, Echo CS-310, Echo CS-352. "how are the 25 items selected" - in
+   file order, and there was no better answer than that.
+   There is now. Three things decide it, in this order:
+
+     1. Has this row ever had a SALE behind it. 211 of the 519 have not -
+        their number came off asking prices or research in September and
+        nothing has tested it since. A row priced off nothing is worth
+        more than a row priced off a six-week-old sale.
+     2. How fast the thing moves. The catalog already says, per item:
+        fast, normal, slow. A generator that goes in a week earns its
+        lookup ahead of an outboard that sits till spring.
+     3. What it is worth. A $40 row and an $800 row cost the same lookup
+        and are not worth the same to get right.
+
+   The quota is the reason this matters at all. 2,000 lookups a month
+   against 1,032 targets means the order IS the decision about which half
+   gets priced. */
+const LIQ_RANK={fast:0,normal:1,slow:2};
+/* The row says, in its own note, whether a sale is behind it: "9 eBay
+   sales in the last 90 days", "13 sold prices from SoldComps", or
+   nothing of the kind. Checked against the harvest's own history on all
+   519 rows and it agrees on 505; the fourteen it differs on are rows
+   whose note records sales that history never logged, and the note is
+   the better witness there because it is what the row itself claims. */
+const HARV_SOLD=/\b([1-9]\d*)\s+(sold|sales|sale)\b|sold prices from|\bsales in the last\b/i;
+function harvOrder(todo){
+  /* the book, by the same ref|name key the file is written with */
+  const book=new Map();
+  (MODEL_PRICES||[]).forEach(r=>{ book.set(String(r[1])+"|"+String(r[2]).toLowerCase(),r); });
+  const item=new Map();
+  (CATALOG||[]).forEach(c=>(c.items||[]).forEach(i=>item.set(i.id,i)));
+  const score=t=>{
+    const r=book.get(String(t.ref)+"|"+String(t.name).toLowerCase());
+    /* no row at all is as cold as it gets - nothing has ever priced it */
+    const cold=!r||!HARV_SOLD.test(String(r[8]||""));
+    const it=item.get(String(t.ref));
+    const liq=it&&LIQ_RANK[it.liq]!=null?LIQ_RANK[it.liq]:1;
+    const worth=r?(Number(r[3])+Number(r[4]))/2:(it?Number(it.value):0);
+    return {cold:cold?0:1,liq,worth:-(worth||0)};
+  };
+  return todo.map(t=>({t,s:score(t)}))
+    .sort((a,b)=>a.s.cold-b.s.cold||a.s.liq-b.s.liq||a.s.worth-b.s.worth)
+    .map(x=>x.t);
+}
 function harvBookFor(ref){
   for(const c of CATALOG){ const it=c.items.find(i=>i.id===ref); if(it)return it.value; }
   return 0;
@@ -6741,6 +6788,7 @@ async function harvRun(ref,count){
   const done=harvAll();
   let todo=seed.filter(t=>!done[harvKey(t)]);
   if(ref)todo=todo.filter(t=>t.ref===ref);
+  todo=harvOrder(todo);
   if(count>0)todo=todo.slice(0,count);
   const pass1={where:"eBay",say:"completed, sold eBay listings - the price it actually went for, not what it was listed at"};
   const pass2={where:"Shopping",say:"used-condition listings currently for sale on Google Shopping and the marketplaces"};
@@ -12300,7 +12348,7 @@ function say(msg,kind){
       String(msg||"").length>54?4600:3000);
   }catch(e){}
 }
-const APP_BUILD="1103.0425";
+const APP_BUILD="1103.0515";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

@@ -220,6 +220,60 @@ console.log("\n  the file it saves is never shorter than the book it replaces");
   ok(typeof r.started === "number" && r.started > 400, `  it records what it started from — ${r.started}`);
 }
 
+console.log("\n  the 25 it picks are the 25 worth picking");
+{
+  /* "how are the 25 items selected" - in file order, which is why the
+     first run anybody pressed spent all 25 on chainsaws. */
+  const r = await page.evaluate(async () => {
+    const seed = await harvLoadSeed();
+    const order = harvOrder(seed.slice());
+    const first = order.slice(0, 25).map((t) => t.name);
+    const book = new Map();
+    MODEL_PRICES.forEach((x) => book.set(String(x[1]) + "|" + String(x[2]).toLowerCase(), x));
+    const sold = (t) => {
+      const x = book.get(String(t.ref) + "|" + String(t.name).toLowerCase());
+      return !!(x && /\b([1-9]\d*)\s+(sold|sales|sale)\b|sold prices from|\bsales in the last\b/i.test(String(x[8] || "")));
+    };
+    return {first, fileOrder: seed.slice(0, 3).map((t) => t.name),
+            coldInFirst25: order.slice(0, 25).filter((t) => !sold(t)).length,
+            sameLength: order.length === seed.length,
+            noDupes: new Set(order.map(harvKey)).size === order.length};
+  });
+  /* IT MUST STILL BE THE SAME LIST. A sort that drops or doubles a target
+     is worse than no sort at all - the dropped one is never priced and
+     nothing says so. */
+  ok(r.sameLength, "  every target is still in the list");
+  ok(r.noDupes, "  and none of them twice");
+  /* THE ONE THAT MATTERS. Before this, the first 25 were whatever sat at
+     the top of the file. */
+  ok(r.coldInFirst25 === 25, `  all 25 have no sale behind them — ${r.coldInFirst25}`);
+  ok(r.first[0] !== r.fileOrder[0], `  and it is not simply file order — "${r.first[0]}" not "${r.fileOrder[0]}"`);
+  console.log("          first five: " + r.first.slice(0, 5).join(", "));
+
+  /* AND THE RUN HAS TO USE IT. The three assertions above all passed with
+     the sort disconnected from harvRun, because they call harvOrder
+     directly - they were testing the sort and not the button, which is
+     exactly the shape of assertion that is worse than none. This one
+     presses the button and reads which target it actually priced. */
+  const ran = await page.evaluate(async () => {
+    const realFetch = window.fetch, realSample = CAP.sample;
+    window.fetch = (...a) => String(a[0]).includes("/ebay") ? Promise.reject(new Error("no")) : realFetch(...a);
+    CAP.sample = {json: async () => ({comps: [100, 110, 120, 130, 140, 150].map((p) => ({price: p, where: "a search", basis: "sold"}))})};
+    HARV = {}; harvSave();
+    await harvRun("", 1);
+    const row = Object.values(harvAll())[0];
+    const seed = await harvLoadSeed();
+    window.fetch = realFetch; CAP.sample = realSample;
+    HARV = {}; harvSave();
+    return {priced: row ? row.name : null, fileFirst: seed[0].name,
+            wanted: harvOrder(seed.slice())[0].name};
+  });
+  ok(ran.priced === ran.wanted,
+     `  pressing it prices "${ran.wanted}" first — got "${ran.priced}"`);
+  ok(ran.priced !== ran.fileFirst,
+     `  and not "${ran.fileFirst}", which is just the top of the file`);
+}
+
 ok(errs.length === 0, `  no page errors — ${errs.slice(0, 2).join(" | ") || "none"}`);
 await browser.close();
 console.log(fails ? `\n  ${fails} FAILED\n` : "\n  all passed\n");
