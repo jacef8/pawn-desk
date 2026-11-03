@@ -6766,7 +6766,7 @@ async function harvRun(ref,count){
 
        So it goes first. The searches below stay, for everything eBay has
        no sold record of, and what came from where is written on the row. */
-    if(!harvBlind(t.ref)){
+    if(!harvBlind(t.ref,t.name)){
       try{
         const j=await pdEbayComps(t.name);
         const sold=j&&j.basis==="sold";
@@ -6826,7 +6826,24 @@ async function harvRun(ref,count){
    behind it. EBAY_CANNOT has said so the whole time; the harvest had never
    read it. */
 const HARV_BLIND=new Set(["g1","g2","g3","g4","g5","g6","g7","g8","g9","g10","r1","r2"]);
-function harvBlind(ref){ return HARV_BLIND.has(String(ref||"")); }
+/* AND THE ROWS THAT CARRY A NAME WHERE THE ITEM ID SHOULD BE. 141 of the
+   519 do. Two of them are "SKS rifle" and "AK-pattern rifle", and eight
+   more are "UTV / side-by-side" and "Golf cart" - every one of them a
+   thing eBay does not sell, and every one of them sailing straight past a
+   guard that only knew g1 to g10 and r1, r2. Found by running the pass
+   over the book instead of the seed list and reading the first dozen
+   targets, which is the only reason it was caught before the lookups were
+   spent. The id check stays because it is exact; this is underneath it. */
+const BLIND_WORDS=/\b(gun|guns|rifle|shotgun|pistol|revolver|firearm|carbine|muzzleloader|ar-?15|ak-?(47|pattern)|sks)\b|\b(atv|utv|side.by.side|golf cart|four.wheeler|quad|go.kart|dirt bike|moped|scooter|motorcycle|trailer)\b/i;
+function harvBlind(ref,name){
+  const r=String(ref||"");
+  if(HARV_BLIND.has(r))return true;
+  /* only for a ref that is not one of the catalog's own ids - a real id is
+     exact and must not be second-guessed by a word, or "Rifle scope" and
+     "Gun safe" stop being priceable */
+  if(/^[a-z]+[0-9]+[a-z]?$/.test(r))return false;
+  return BLIND_WORDS.test(r)||BLIND_WORDS.test(String(name||""));
+}
 function todayStr(){ const d=new Date(), p=n=>String(n).padStart(2,"0");
   return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate()); }
 /* The file the site serves, with everything harvested folded in. Downloaded
@@ -12239,7 +12256,7 @@ function say(msg,kind){
       String(msg||"").length>54?4600:3000);
   }catch(e){}
 }
-const APP_BUILD="1103.0210";
+const APP_BUILD="1103.0340";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

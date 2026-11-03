@@ -148,10 +148,28 @@ console.log("\n  it does not ask eBay about a gun");
   ok(r.seen.ebay === 0, `  no /ebay call for a semi-auto pistol — ${r.seen.ebay}`);
   const q = await run({ref: "r2", name: "Honda Rancher", ebay: "sold"});
   ok(q.seen.ebay === 0, `  nor for a four wheeler, which nobody ships — ${q.seen.ebay}`);
-  /* AND THE GUARD IS NARROW. If it caught everything, the first block above
-     would be passing for the wrong reason. */
+  /* AND THE ROWS THAT CARRY A NAME WHERE THE ITEM ID SHOULD BE. 141 of the
+     519 in the book do. Two are "SKS rifle" and "AK-pattern rifle" and
+     eight are "UTV / side-by-side" or "Golf cart" - all of them things
+     eBay does not sell, all of them straight past a guard that knew only
+     g1 to g10 and r1, r2. Caught on the first dry run of tools/
+     sold-pass.mjs, before any lookup was spent, by reading the targets it
+     listed rather than the count. */
+  for (const [ref, name] of [["SKS rifle", "SKS"], ["AK-pattern rifle", "AK-pattern rifle"],
+                             ["UTV / side-by-side", "Polaris Ranger"], ["Golf cart", "EZGO TXT"]]) {
+    const b = await run({ref, name, ebay: "sold"});
+    ok(b.seen.ebay === 0, `  no /ebay call for "${ref}" — ${b.seen.ebay}`);
+  }
+  /* AND THE GUARD IS NARROW, three ways. A real item id is never
+     second-guessed by a word, or "Rifle scope" stops being priceable; and
+     an ordinary named row still goes. If this caught everything, every
+     assertion above would be passing for the wrong reason. */
   const p = await run({ref: "p1", name: "Stihl MS 170", ebay: "sold"});
   ok(p.seen.ebay === 1, `  while a chainsaw still goes to eBay — ${p.seen.ebay}`);
+  const sc = await run({ref: "h1", name: "Leupold VX-Freedom rifle scope", ebay: "sold"});
+  ok(sc.seen.ebay === 1, `  and a RIFLE SCOPE is not a rifle — ${sc.seen.ebay}`);
+  const hp = await run({ref: "Headphones — over-ear", name: "Sony WH-1000XM4", ebay: "sold"});
+  ok(hp.seen.ebay === 1, `  and a named row that is not a gun still goes — ${hp.seen.ebay}`);
 }
 
 console.log("\n  the query it sends is the model, not the whole row");
