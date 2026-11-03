@@ -1,0 +1,107 @@
+[
+ {
+  "id": "mccoy01",
+  "ts": 1793669276951,
+  "name": "moultrie edge 2 cellular trail camera 2 pack kit",
+  "brand": "Moultrie",
+  "model": "Edge 2 (2-pack)",
+  "cat": "hunt",
+  "ask": 99.99,
+  "reg": 0,
+  "store": "McCoy's Outdoor, Marianna FL",
+  "words": [
+   "moultrie",
+   "edge",
+   "2",
+   "cellular",
+   "trail",
+   "camera",
+   "2",
+   "pack",
+   "kit"
+  ]
+ },
+ {
+  "id": "mccoy02",
+  "ts": 1793669336951,
+  "name": "moultrie edge solar cellular trail camera",
+  "brand": "Moultrie",
+  "model": "Edge Solar",
+  "cat": "hunt",
+  "ask": 129.99,
+  "reg": 0,
+  "store": "McCoy's Outdoor, Marianna FL",
+  "words": [
+   "moultrie",
+   "edge",
+   "solar",
+   "cellular",
+   "trail",
+   "camera"
+  ]
+ },
+ {
+  "id": "mccoy03",
+  "ts": 1793669396951,
+  "name": "moultrie power mag rechargeable lithium battery",
+  "brand": "Moultrie",
+  "model": "Power Mag",
+  "cat": "hunt",
+  "ask": 49.99,
+  "reg": 0,
+  "store": "McCoy's Outdoor, Marianna FL",
+  "words": [
+   "moultrie",
+   "power",
+   "mag",
+   "rechargeable",
+   "lithium",
+   "battery"
+  ]
+ },
+ {
+  "id": "mccoy04",
+  "ts": 1793669456951,
+  "name": "hoyt vtm 31 pro 70lb rh compound bow blackout special edition",
+  "brand": "Hoyt",
+  "model": "VTM 31 Pro 70# RH Blackout",
+  "cat": "hunt",
+  "ask": 799.99,
+  "reg": 0,
+  "store": "McCoy's Outdoor, Marianna FL",
+  "words": [
+   "hoyt",
+   "vtm",
+   "31",
+   "pro",
+   "70lb",
+   "rh",
+   "compound",
+   "bow",
+   "blackout",
+   "special",
+   "edition"
+  ]
+ },
+ {
+  "id": "mccoy05",
+  "ts": 1793669516951,
+  "name": "hoyt vtm 31 pro 70lb rh compound bow",
+  "brand": "Hoyt",
+  "model": "VTM 31 Pro 70# RH",
+  "cat": "hunt",
+  "ask": 1259.99,
+  "reg": 0,
+  "store": "McCoy's Outdoor, Marianna FL",
+  "words": [
+   "hoyt",
+   "vtm",
+   "31",
+   "pro",
+   "70lb",
+   "rh",
+   "compound",
+   "bow"
+  ]
+ }
+]
