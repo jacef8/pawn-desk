@@ -373,7 +373,26 @@ console.log("");
         const d = document.documentElement;
         const down = d.scrollHeight - window.innerHeight;
         const across = d.scrollWidth - window.innerWidth;
-        if (down > 4 || across > 4) out.push(state + " +" + down + "px down +" + across + "px across");
+        if (down > 4 || across > 4) {
+          /* AND NAME WHAT STUCK OUT. This went red on 3 Nov at +8px on the
+             iPhone and +11px on the narrow Android, and by the next morning
+             it would not reproduce - four clean runs, web font blocked and
+             allowed, and not one layout file changed in between. All the
+             failure had ever said was how many pixels, which is why there
+             was nothing to go on. A measurement that cannot be chased is
+             half a measurement, so it names the deepest element past the
+             edge and how tall it is. */
+          const past = [];
+          document.querySelectorAll("body *").forEach((el) => {
+            const r = el.getBoundingClientRect();
+            if (r.height > 0 && (r.bottom > window.innerHeight + 1 || r.right > window.innerWidth + 1))
+              past.push((el.id ? "#" + el.id : el.tagName.toLowerCase()) +
+                        (el.className ? "." + String(el.className).trim().split(/\s+/).join(".").slice(0, 30) : "") +
+                        " [" + Math.round(r.height) + "px tall, " + Math.round(r.bottom) + " from top]");
+          });
+          out.push(state + " +" + down + "px down +" + across + "px across" +
+                   (past.length ? " — " + past.slice(-3).join(" < ") : " — nothing measurable sticks out, so it is the page box itself"));
+        }
       }
       return out;
     });
@@ -410,7 +429,26 @@ console.log("");
         const d = document.documentElement;
         const down = d.scrollHeight - window.innerHeight;
         const across = d.scrollWidth - window.innerWidth;
-        if (down > 4 || across > 4) out.push(state + " +" + down + "px down +" + across + "px across");
+        if (down > 4 || across > 4) {
+          /* AND NAME WHAT STUCK OUT. This went red on 3 Nov at +8px on the
+             iPhone and +11px on the narrow Android, and by the next morning
+             it would not reproduce - four clean runs, web font blocked and
+             allowed, and not one layout file changed in between. All the
+             failure had ever said was how many pixels, which is why there
+             was nothing to go on. A measurement that cannot be chased is
+             half a measurement, so it names the deepest element past the
+             edge and how tall it is. */
+          const past = [];
+          document.querySelectorAll("body *").forEach((el) => {
+            const r = el.getBoundingClientRect();
+            if (r.height > 0 && (r.bottom > window.innerHeight + 1 || r.right > window.innerWidth + 1))
+              past.push((el.id ? "#" + el.id : el.tagName.toLowerCase()) +
+                        (el.className ? "." + String(el.className).trim().split(/\s+/).join(".").slice(0, 30) : "") +
+                        " [" + Math.round(r.height) + "px tall, " + Math.round(r.bottom) + " from top]");
+          });
+          out.push(state + " +" + down + "px down +" + across + "px across" +
+                   (past.length ? " — " + past.slice(-3).join(" < ") : " — nothing measurable sticks out, so it is the page box itself"));
+        }
       }
       return out;
     });
