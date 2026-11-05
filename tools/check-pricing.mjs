@@ -3092,7 +3092,19 @@ console.log("\n  a used gun is not worth more than a new one, and says so");
                   warns: /A new one runs about|above new/.test(document.body.innerText) };
     return out;
   });
-  for (const id of ["a1","a4","a8"]) {
+  /* a1 CAME OFF THIS LIST ON 5 NOV, AND NOT BY REPOINTING A TEST TO MAKE
+     IT GREEN. Its $381 was from 1 August and was simply too low: the
+     desk's own sold pass reads used 870 Expresses at $355-$430, so an
+     ordinary gun tripped the warning, and a warning that fires on ordinary
+     stock is one the counter learns to scroll past. Re-measured against
+     Sportsman's, who publish the line: MSRP $400, street $389-$589, and
+     the cheapest new one they stock is $479.99. At $480 the row is no
+     longer above new, which is the truth about the row and not a
+     concession to the suite.
+     So a1 moves to the other side of this block - it must now be QUIET -
+     and a4 and a8 keep every assertion they had. The rule under test is
+     untouched. */
+  for (const id of ["a4","a8"]) {
     ok(!r[id].missing && r[id].warns,
        `  ${id} ${r[id].onRow || "NOT REACHED"} warns before the top of its range`);
     ok(!r[id].missing && r[id].hasFigure,
@@ -3100,7 +3112,13 @@ console.log("\n  a used gun is not worth more than a new one, and says so");
     ok(!r[id].missing && r[id].fromTable,
        `  ${id} takes its ceiling from the table, not off the used price`);
   }
-  ok(r.a1.onScreen, "  and the warning reaches the counter screen, not just the data");
+  ok(!r.a1.missing && !r.a1.warns,
+     `  a1 ${r.a1.onRow || "NOT REACHED"} is no longer above new, so it says nothing`);
+  /* AND IT STILL HAS A CEILING ON FILE. Silence because the ceiling was
+     deleted would pass the line above and be a different bug entirely. */
+  ok(!r.a1.missing && r.a1.fromTable,
+     "  and still takes a ceiling from the table, it just does not breach it");
+  ok(r.a4.onScreen, "  and the warning reaches the counter screen, not just the data");
   ok(!r.clean.warns, "  while a row with no such problem stays quiet");
 }
 

@@ -2162,7 +2162,19 @@ function weightHTML(x){
   const card=(head,right,barHTML,foot)=>`<div class="card wCard">
     <span class="label" style="margin:0">Behind this number</span>
     <div class="wHead"><b>${head}</b><span>${right}</span></div>
-    ${barHTML}${foot?`<div class="wFoot">${foot}</div>`:""}${itemGuardHTML(x)}</div>`;
+    ${barHTML}${foot?`<div class="wFoot">${foot}</div>`:""}${itemGuardHTML(x)}${
+      /* AND THE CEILING EVEN WHEN THERE IS NO GUARD CARD. itemGuardHTML
+         returns nothing at all unless the row has a guard, and the new-price
+         line was living inside it - so on the desk, a used range booked
+         ABOVE what a new one costs said nothing whenever the guard was
+         absent, which is every one of the three rows that has a new price.
+         The phone said it the whole time, from its own call. The desk is
+         the counter and the counter is where the loan gets written, so the
+         surface that was silent is the one that mattered.
+         Found 5 Nov re-measuring the 870's new price: the same row, on two
+         screens, one warning. Printed here when the guard card did not
+         already carry it, so it cannot appear twice. */
+      itemGuardHTML(x)?"":newCeilingHTML(x)}</div>`;
 
   /* A meter that means "no evidence" was drawn FULL and merely greyed out.
      Grey or not, a full bar reads as a full bar at arm's length across a
@@ -11714,8 +11726,20 @@ function mpIndex(rows,src){
    hand - "shelf tags photographed 19 Sep 2026, Bristol area" is a source
    in this very book. Rows that are not in here simply do not get the
    line; nothing is guessed from the used price. */
+/* a1 WAS $381 AND IT WAS CRYING WOLF. That figure is from 1 August and
+   the desk's own sold pass read used 870 Expresses at $355-$430 - so a
+   perfectly ordinary used gun tripped the "above new" line, which is the
+   one kind of wrong that teaches the counter to ignore the warning.
+   Checked 5 Nov against Sportsman's Warehouse, who publish the whole
+   line: MSRP $400, street $389-$589 across configurations, and the
+   cheapest new 870 Express they actually stock is $479.99. $480 is that
+   cheapest one. It is deliberately the FLOOR of what is really on a
+   shelf rather than a median, because this number exists to catch a used
+   price that has climbed past new, and a ceiling set too high catches
+   nothing. a4 and a8 keep their August figures; nothing was re-measured
+   for them and nothing is invented here to make the table look even. */
 const MODEL_NEW={
-  a1:[381,"2026-08-01","median of 24 dealer listings"],
+  a1:[480,"2026-11-05","cheapest new one at Sportsman's; the line runs $389-$589"],
   a4:[525,"2026-08-01","median of 41 dealer listings"],
   a8:[667,"2026-08-01","median of 25 dealer listings"]
 };
@@ -12348,7 +12372,7 @@ function say(msg,kind){
       String(msg||"").length>54?4600:3000);
   }catch(e){}
 }
-const APP_BUILD="1103.0515";
+const APP_BUILD="1105.1350";
 let BUILD=APP_BUILD;
 async function readBuild(){
   try{

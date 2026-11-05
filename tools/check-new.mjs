@@ -89,14 +89,34 @@ for (const [page, w, h, label, figure] of [
   await p.goto(BASE + "/" + page, {waitUntil: "networkidle"});
   await p.waitForTimeout(400);
 
-  /* a1 is the Remington 870 Express: used 300-400 against 381 new */
+  /* THE EXAMPLE MOVED, THE RULE DID NOT. This stood on a1, the Remington
+     870 Express, whose book range topped out at $400 against $381 new.
+     a1's new price was re-measured on 5 Nov and is $480, so it is no
+     longer a row booked above new - the sold pass reads it $355-$430 and
+     that is simply a normal used gun now. The rule being tested is
+     unchanged and still worth a test, so it moved to a4, the Mossberg
+     590: book $380-$550 against $525 new, and $550 is over the top.
+     This is the "test is right, your change moved what it pointed at"
+     case, not the "test is stale" one. */
   const over = await p.evaluate((src) => {
-    (new Function("return (" + src + ")")())("a1");
+    (new Function("return (" + src + ")")())("a4");
     return {text: document.body.innerText, hi: calcItem().market.hi};
   }, STAND.toString());
   ok(/above new/.test(over.text),
      `  a range booked above new is called out — ${(over.text.match(/A new one runs about[^\n]*/) || ["NOT SAID"])[0].slice(0, 76)}`);
-  ok(/\$381/.test(over.text), "  and it gives the new price, not just a warning");
+  ok(/\$525/.test(over.text), "  and it gives the new price, not just a warning");
+
+  /* AND THE ROW THAT WAS THE EXAMPLE MUST NOT STILL FIRE. If $480 had
+     been set too low this would go red, which is the whole reason the
+     figure was changed. */
+  const wasExample = await p.evaluate((src) => {
+    (new Function("return (" + src + ")")())("a1");
+    return document.body.innerText;
+  }, STAND.toString());
+  ok(!/above new/.test(wasExample),
+     "  while an ordinary used 870 Express no longer trips it");
+  ok(!/A new one runs about/.test(wasExample),
+     "  and says nothing at all about new, rather than a warning with no teeth");
 
   /* NO CEILING WITHOUT DATA, ACROSS THE WHOLE BOOK.
      Written first as "stand on one row that has no new price and check the
